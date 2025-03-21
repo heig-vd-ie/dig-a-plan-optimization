@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "dig-a-plan-optimization"
+version = "0.1.0"
+description = ""
+authors = ["adeleh1379 <adelehmg@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+polars = "^1.25.2"
+utility-functions = {git = "git@github.com:heig-vd-ie/utility-functions.git"}
+pyocclient = "^0.6"
+twindigrid-schema = {git = "git@github.com:heig-vd-ie/dataschema.git", rev = "dig_a_plan"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
