@@ -1,0 +1,42 @@
+{
+  "terminal.integrated.commandsToSkipShell": [
+    // Ensure the toggle sidebar visibility keybinding skips the shell
+    "workbench.action.toggleSidebarVisibility",
+    // Send quick open's keybinding to the shell
+    "-workbench.action.quickOpen",
+  ],
+  "typescript.inlayHints.parameterTypes.enabled": true,
+  "typescript.inlayHints.propertyDeclarationTypes.enabled":true,
+  "terminal.integrated.env.osx": {
+    "PYTHONPATH": "${workspaceFolder}/src",
+  },
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}/src",
+  },
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder}/src",
+  },
+  // "python.terminal.launchArgs": [
+  //   "-i"
+  // ],
+  "terminal.integrated.fontSize": 12,
+  "explorer.autoReveal": false,
+  "workbench.action.terminal.setDimension": 1000,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.analysis.extraPaths": [
+    "src/"
+  ],
+  "python.analysis.autoImportCompletions": true,
+  "jupyter.notebookFileRoot": "${workspaceFolder}/src",
+  "pylint.args": [
+    "--max-line-length=450",
+    "--max-module-lines=10000",
+  ],
+  "python.analysis.typeCheckingMode": "basic",
+  "files.autoSave": "afterDelay",
+  "editor.defaultFormatter": "njpwerner.autodocstring",
+  "autoDocstring.docstringFormat": "numpy",
+  "jupyter.runStartupCommands": [direnv allow .]
+}
