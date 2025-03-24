@@ -110,6 +110,8 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
     )
 
     switch: pl.DataFrame = pl.from_pandas(net.switch)
+    
+    switch = switch.filter(c("closed") == True)  # Only include closed switches
 
     switch = switch.select(
         c("name").alias("edge_id"),

@@ -10,6 +10,7 @@ import os
 from data_connector import pandapower_to_distflow, validate_node_index_and_edge_direction 
 from distflow_schema.node_data import NodeData
 from distflow_schema.edge_data import EdgeData
+from switches import set_switch_states
 
 # Import the helper function from input_parameters.py
 from input_parameters import build_input_parameters
@@ -22,6 +23,10 @@ if __name__ == "__main__":
     # 1) Load pandapower network from file
     net_file_path = "./modified_cigre_network_lv.p"
     net = pp.from_pickle(net_file_path)
+    #print(net.bus)
+    
+    # 2) Set the switch states (create and control switches)
+    set_switch_states(net)
 
 
     # 3) Preprocess transformers: swap if needed and zero out losses
@@ -266,7 +271,8 @@ if __name__ == "__main__":
         plt.title("Comparison: DistFlow vs. pandapower")
         plt.legend()
         plt.grid(True)
-        plt.xticks(np.arange(n_bus), rotation=90)
+        bus_names = net.bus["name"].values  # or net.bus.name.values
+        plt.xticks(np.arange(n_bus), bus_names, rotation=90)
         plt.show()
     except Exception as e:
         print(f"Error running pandapower for comparison: {e}")
