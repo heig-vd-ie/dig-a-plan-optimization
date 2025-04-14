@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: "3.12"
 
-          
+
       # WORKFLOW FOR SPHINX WITH PIP
       # - name: Install dependencies
       #   run: | 
@@ -69,7 +69,6 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           poetry install --no-root
-      #   poetry install
     
       - name: Build HTML
         run: |
