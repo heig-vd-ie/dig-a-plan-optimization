@@ -38,10 +38,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install R
-        run: |
-          sudo apt update
-          sudo apt install -y r-base r-base-dev
       # WORKFLOW FOR SPHINX WITH PIP
       # - name: Install dependencies
       #   run: | 
