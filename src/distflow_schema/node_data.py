@@ -5,6 +5,7 @@ import polars as pl
 
 
 class NodeData(pt.Model):
+    uuid: str = pt.Field(dtype=pl.Utf8, unique=True)
     node_id: int = pt.Field(dtype=pl.Int32, unique=True)
     v_base: int = pt.Field(dtype=pl.Float64)
     i_base: int = pt.Field(dtype=pl.Float64)

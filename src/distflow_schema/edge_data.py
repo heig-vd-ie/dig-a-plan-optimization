@@ -7,7 +7,8 @@ from distflow_schema._constraints import literal_constraint
 TYPES = Literal["branch", "transformer", "switch"]
 
 class EdgeData(pt.Model):
-    edge_id: str = pt.Field(dtype=pl.Utf8, unique=True)
+    uuid: str = pt.Field(dtype=pl.Utf8, unique=True)
+    edge_id: int = pt.Field(dtype=pl.Int32, unique=True)
     u_of_edge: int = pt.Field(dtype=pl.Int32)
     v_of_edge: int = pt.Field(dtype=pl.Int32)
     r_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
