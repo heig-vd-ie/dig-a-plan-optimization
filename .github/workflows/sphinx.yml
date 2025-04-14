@@ -61,7 +61,6 @@ jobs:
       - name: Install dependencies with Poetry
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          poetry run pip install --no-cache-dir rpy2
           poetry install --no-root
       #   poetry install
     
