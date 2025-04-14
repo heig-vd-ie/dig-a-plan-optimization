@@ -153,46 +153,82 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
 
 
 def validate_node_index_and_edge_direction(distflow_schema: DistFlowSchema) -> tuple[DistFlowSchema, nx.DiGraph, dict[int, int]]:
-    
-    
-    
     edge_data: pl.DataFrame = distflow_schema.edge_data
-    
+
     if distflow_schema.slack_node_id is None:
-            raise ValueError("The slack node id must be provided")
+        raise ValueError("The slack node id must be provided")
         
     if not edge_data.filter(pl.struct("u_of_edge", "v_of_edge").is_duplicated()).is_empty():
         raise ValueError("Edges in parallel in edge_data")
     
-    ### Get a continuous index #########################################################################################
+    # ---- Diagnostic: Print unique (u_of_edge, v_of_edge) pairs ----
+    unique_edges = edge_data.select(["u_of_edge", "v_of_edge"]).unique()
+    print("Unique (u_of_edge, v_of_edge) pairs in edge_data:")
+    print(unique_edges)
+    # ---------------------------------------------------------------
+    
+    # Get a continuous node index
     node_id_list = edge_data\
         .unpivot(on=["u_of_edge", "v_of_edge"], value_name="node_id")\
         .unique("node_id", keep="first").sort("node_id")["node_id"].to_list()
-    
     node_idx_mapping = dict(zip(node_id_list, range(len(node_id_list))))
     
-
+    # Replace node IDs in edge_data using the continuous index mapping
     edge_data = edge_data.with_columns(
         c(col).replace_strict(node_idx_mapping, default=None).alias(col)
         for col in ["u_of_edge", "v_of_edge"]
     )
     
-    slack_node_id: int = node_idx_mapping[distflow_schema.slack_node_id] # type: ignore
+    slack_node_id: int = node_idx_mapping[distflow_schema.slack_node_id]  # type: ignore
     
-    node_data= distflow_schema.node_data.with_columns(
+    node_data = distflow_schema.node_data.with_columns(
         c("node_id").replace_strict(node_idx_mapping, default=None).alias("node_id")
-    ).sort("node_id")
+     ).sort("node_id")
     
-    ### Get a tree graph and directed edges ############################################################################
+    # # --- New Code: Force a Radial (Tree) Edge Set ---
+    # # Convert edge_data to a pandas DataFrame (only the u,v columns)
+    # edge_pd = edge_data.select(["u_of_edge", "v_of_edge"]).to_pandas()
+    
+    # # Build an undirected graph from these edges
+    # G = nx.Graph()
+    # for _, row in edge_pd.iterrows():
+    #     G.add_edge(row["u_of_edge"], row["v_of_edge"])
+    
+    # # If the graph is not a tree, extract its spanning tree
+    # if not nx.is_tree(G):
+    #     print("Edge data is not a tree; extracting spanning tree.")
+    #     spanning_tree = nx.minimum_spanning_tree(G)
+    #     allowed_edges = set(spanning_tree.edges())
+    #     # Filter the full edge_data (with all columns) to keep only edges in the spanning tree
+    #     edge_pd_full = edge_data.to_pandas()
+    #     mask = edge_pd_full.apply(
+    #         lambda row: ((row["u_of_edge"], row["v_of_edge"]) in allowed_edges) or
+    #                     ((row["v_of_edge"], row["u_of_edge"]) in allowed_edges),
+    #         axis=1
+    #     )
+    #     edge_pd_filtered = edge_pd_full[mask]
+    #     edge_data = pl.from_pandas(edge_pd_filtered)
+    # else:
+    #     print("Edge data is already a tree.")
+    
+    # # --- End New Code ---
+
+    # Now generate the directed tree graph using the (now radial) edge_data.
     nx_tree_grid: nx.DiGraph = generate_tree_graph_from_edge_data(
-        edge_data=distflow_schema.edge_data, slack_node_id=distflow_schema.slack_node_id)
+        edge_data=edge_data,
+        slack_node_id=distflow_schema.slack_node_id
+    )
     
     edge_data = get_all_edge_data(nx_graph=nx_tree_grid).sort("v_of_edge")
     
     distflow_schema = distflow_schema.replace_table(
-        edge_data=edge_data, slack_node_id=slack_node_id, node_data=node_data)
+        edge_data=edge_data,
+        slack_node_id=slack_node_id,
+        node_data=node_data
+    )
     
     return distflow_schema, nx_tree_grid, node_idx_mapping
+
     
 
 def schema_to_distflow_schema(

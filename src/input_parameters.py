@@ -154,8 +154,8 @@ def build_input_parameters(net, schema, s_base: float, radial: bool = True) -> d
         "q_line_max": q_line_max,
     }
     
-    print("Edge DataFrame used for input parameters:")
-    print(edge_df)
+    # print("Edge DataFrame used for input parameters:")
+    # print(edge_df)
    
 
     
