@@ -1,5 +1,162 @@
-import pyomo.environ as pyo
+r"""
+1. Initialization
+~~~~~~~~~~~~~~~~~~~~~
 
+.. math::
+    :label: distflow-initialization
+    :nowrap:
+    
+    \begin{align} 
+        v_{i} &= \frac{v_{0}}{\tau_{0\, \to\, i}} \\
+        \overline{S^{z}_{i}} &= \displaystyle\sum_{\Large{d\, \in\, D_i}} S^{\text{node}}_{d}
+    \end{align}
+
+2. Power update
+~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: distflow-power
+    :nowrap:
+    
+    \begin{align} 
+        \underline{S^{\text{Z}}_{i}} &= - S^{\text{node}}_{i} - v_{i} \cdot \underline{Y_{i}} - \displaystyle\sum_{\Large{c\, \in\, C_i}} \left(\overline{S^{\text{Z}}_{c}} + v_{i} \cdot \overline{Y_{c}} \right)\\
+        i_{i} &= \frac{\vert \underline{S^{\text{Z}}_{i}}\vert^{2}}{v_{i}}\\
+        \overline{S^{\text{Z}}_{i}} &= i_{i} \cdot Z_{i} - \underline{S^{\text{Z}}_{i}}
+    \end{align}
+
+The negative sign around :math:`\underline{S^{\text{Z}}_{i}}` comes from :ref:`sign convention<sign-convention>`
+
+3. Voltage update
+~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: distflow-voltage
+    :nowrap:
+    
+    \begin{align} 
+        dv_{i} &=  - 2 \cdot \Re \left(Z_{i}^{*} \cdot \overline{S^{\text{Z}}_{i}} \right) + \vert Z_{i} \vert^{2} \cdot i_{i} \\
+        v_{i}^{new} &= \frac{v_{0}}{\tau_{0\, \to\, i}} + \displaystyle\sum_{\Large{p \,\in\, P_0^i}} \frac{dv_{p}}{\tau_{p\, \to\, i}}
+    \end{align}
+
+4. Convergence check
+~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: Convergence-check
+    :nowrap:
+
+    \begin{align} 
+        \max_{i\, \in \, I} \frac{\vert v_{i}  - v_{i}^{new}\vert}{v_{i}^{new}} \leq tol \quad \begin{cases}
+            \text{TRUE} \Rightarrow \text{STOP} \\
+            \text{FALSE} \Rightarrow \text{GO TO 2}
+        \end{cases} \
+    \end{align}
+
+Algorithm in matrix form
+-------------------------
+
+1. Matrix initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: distflow-initialization-matrix
+    :nowrap:
+    
+    \begin{align} 
+        \mathbf{V} &= \mathbf{V_{IN}} \\
+        \mathbf{\overline{S_{Z}}} &= \mathbf{D} \times \mathbf{S_{\text{node}}}
+        
+    \end{align}
+
+2. Matrix power update
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: distflow-power-matrix
+    :nowrap:
+    
+    \begin{align} 
+        \mathbf{\underline{S_{Z}}} &= - \mathbf{S_{node}} - \mathbf{V} \odot \mathbf{Y_{tot}} \\
+        \mathbf{I_{Z}} &= \mathbf{\underline{S_{Z}}} \odot \mathbf{\underline{S_{Z}}}^{*} \oslash \mathbf{V} \\
+        \mathbf{\overline{S_{Z}}} &= \mathbf{I_{Z}} \odot \mathbf{Z} - \mathbf{\underline{S_{Z}}}
+    \end{align}
+
+3. Matrix voltage update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: distflow-voltage-matrix
+    :nowrap:
+    
+    \begin{align} 
+        \mathbf{dV} &=  - 2 \cdot \Re \left(\mathbf{Z}^{*} \odot \mathbf{\overline{S_{Z}}} \right) + \mathbf{Z^2} \odot \mathbf{I_{Z}} \\
+        \mathbf{V} &= \mathbf{V_{IN}} + \mathbf{D_{prop}} \times \mathbf{dV}
+    \end{align}
+
+Where:
+
+-   :math:`\odot` is the Hadamard product (element wise multiplication)
+-   :math:`\oslash` is the Hadamard division
+-   :math:`\times` is the matrix multiplication
+
+Voltage drop demonstration
+------------------------------
+
+The general voltage drop decomposition between two nodes is given by the following equation (for branch n always equals 1):
+
+.. math::
+    :label: voltage-drop-decomposition
+    :nowrap:
+    
+    \begin{align} 
+        \frac{V_{i}}{N_{j}} - V_{j} &= Z_{j} \cdot I_{j} \\
+        v_{j} & = \vert \frac{V_{i}}{N_{j}} -Z_{j} \cdot I_{j} \vert^{2} \\ 
+        v_{j} & = \frac{v_{i}}{N_{j}^2} - 2 \cdot \Re \left(\frac{V_{i}}{N_{j}} \cdot Z_{j}^{*} \cdot I_{j}^{*} \right) + \vert Z_{j} \cdot I_{j}\vert^{2}\\
+        v_{j} & = \frac{v_{i}}{N_{j}^2}  - 2 \cdot \Re \left(Z_{j}^{*} \cdot \overline{S^{\text{Z}}_{j}} \right) + \vert Z_{j} \vert^{2} \cdot i_{j} \\
+        v_{j} & = \frac{v_{i}}{N_{j}^2} + dv_{j} \\
+    \end{align}  
+
+Let's consider nodes :math:`1`, :math:`2` and :math:`3` sequencly connected to the slack node :math:`0`. 
+The voltage level at node :math:`3`, calculated with reference to the slack node voltage, is given by the following expression:
+
+.. math::
+    :label: voltage_calculation_explanation
+    :nowrap:
+    
+    \begin{align} 
+        \large{
+            \begin{cases}
+            v_{1} = \frac{v_{0}}{N_{1}^2} + dv_{1} \\
+            v_{2} = \frac{v_{1}}{N_{2}^2} + dv_{2} \\
+            v_{3} = \frac{v_{2}}{N_{3}^2} + dv_{3}
+            \end{cases}
+        } \Rightarrow v_{3} = \frac{v_{0}}{N_{1}^2 \cdot N_{2}^2 \cdot N_{3}^2} +  \frac{dv_{1}}{N_{2}^2 \cdot N_{3}^2} + \frac{dv_{2}}{N_{3}^2} + dv_{3} \\
+    \end{align}
+
+Therefore, by recursive substitution, we can express the general voltage level for any node :math:`i` as:
+
+.. math::
+    :label: voltage-calculation-final
+    :nowrap:
+    
+    \begin{align} 
+        v_{i} = \frac{v_{0}}{\tau_{0\, \to\, i}} + \displaystyle\sum_{\Large{p \,\in\, P_0^i}} \frac{dv_{p}}{\tau_{p\, \to\, i}}
+    \end{align}
+
+Where :math:`\tau_{p\, \to\, i}` is given by the following expression:
+
+.. math::
+    :label: tau-calculation
+    :nowrap:
+    
+    \begin{align} 
+        \tau_{p\, \to\, i} = \displaystyle\prod_{\Large{q \,\in\, P_p^i}} N_{q}^{2}
+    \end{align}
+
+"""
+
+
+import pyomo.environ as pyo
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # model.linking_f = pyo.Constraint(model.LF, rule=linking_f_rule)
@@ -38,7 +195,6 @@ def node_reactive_power_balance_rule(m, l, i, j):
         for (l_2, i_2, j_2) in m.LC if (i_2 == j) and (j_2 != i)
     )
 
-    
     return m.q_z_dn[l, i, j] == m.master_d[l, i, j] * (- m.q_node[j] - children_sum)
 
 # (5) Upstream Flow Definitions for candidate (l,i,j):
@@ -56,7 +212,7 @@ def voltage_drop_lower_rule(m, l, i, j):
     return m.v_sq[j] - m.v_sq[i] - dv >= - m.M*(1 - m.master_d[l, i, j])
 
 def voltage_drop_z_upper_rule(m, l, i, j):
-    dv = m.v_sq[i] - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
+    dv = - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
     return m.v_sq[j] - m.v_sq[i] - dv <= m.M*(1 - m.master_d[l, i, j])
 # (7) Rotated Cone (SOC) Current Constraint for candidate (l,i,j):
 # Enforce: ||[2*p_z_up, 2*q_z_up, v_sq[i]-f(l,i,j)]||_2 <= v_sq[i]+f(l,i,j)
