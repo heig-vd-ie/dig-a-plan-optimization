@@ -28,10 +28,16 @@ jobs:
       - uses: actions/checkout@v2
 
       # Set up SSH agent for private repo access
-      - name: Set up SSH
+      - name: Set up SSH for utility-functions repo
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_UTILIY_FUNCTIONS}}
+      
+      # Set up SSH agent for private repo access
+      - name: Set up SSH for data-schema repo
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY_DATASCHEMA }}
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v2
