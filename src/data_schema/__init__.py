@@ -11,9 +11,9 @@ import duckdb
 import polars as pl
 import patito as pt
 
-import distflow_schema
-from distflow_schema.node_data import NodeData
-from distflow_schema.edge_data import EdgeData
+import data_schema
+from data_schema.node_data import NodeData
+from data_schema.edge_data import EdgeData
 
 from general_function import snake_to_camel, build_non_existing_dirs
 
@@ -69,7 +69,7 @@ class DistFlowSchema:
                 new_table: pl.DataFrame = pl.concat([pt_table, pl_table.select(col_list)], how="diagonal_relaxed")
 
                 new_kwargs[table_name] = pt.DataFrame(new_table)\
-                    .set_model(getattr(distflow_schema, snake_to_camel(table_name)))\
+                    .set_model(getattr(data_schema, snake_to_camel(table_name)))\
                     .fill_null(strategy="defaults").cast(strict=True)
         return new_kwargs
 

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import os
 from data_connector import pandapower_to_distflow, validate_node_index_and_edge_direction 
-from distflow_schema.node_data import NodeData
-from distflow_schema.edge_data import EdgeData
+from data_schema.node_data import NodeData
+from data_schema.edge_data import EdgeData
 from switches import set_switch_states
 
 # Import the helper function from input_parameters.py

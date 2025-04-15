@@ -1,0 +1,19 @@
+﻿Name,Type,Default,Mandatory,Explanation
+cn_fk,String,,No,Node unique identifier
+node_id,Integer,,Yes,Node index
+v_base,Integer,,Yes,Base voltage in V
+i_base,Float,,Yes,Base current in A
+s_base,Float,1.00E+06,Yes,Base power in VA
+p_node_pu,Float,0,Yes,Measured active power in pu
+q_node_pu,Float,0,Yes,Measured reactive power in pu
+p_node_max_pu,Float,0,Yes,Maximum admissible active power in pu (only for OPF)
+p_node_min_pu,Float,0,Yes,Maximum admissible reactive power in pu (only for OPF)
+q_node_max_pu,Float,0,Yes,Minimum admissible active power in pu (only for OPF)
+q_node_min_pu,Float,0,Yes,Minimum admissible reactive power in pu (only for OPF)
+v_node_sqr_pu,Float,,No,Mesured squared voltage in pu
+type,slack | end_user | connection,,Yes,Type of Node
+std_p_measured,Float,1.00E-03,Yes,Standard deviation of the measured active power error
+std_q_measured,Float,1.00E-03,Yes,Standard deviation of the measured reactive power error
+std_p_predicted,Float,2.00E-01,Yes,Standard deviation of the predicted active power error
+std_q_predicted,Float,2.00E-01,Yes,Standard deviation of the predicted reactive power error
+std_v,Float,1.00E-03,Yes,Standard deviation of the measured voltage error

@@ -12,6 +12,8 @@ Dig-A-Plan-Optimization is a Python package for optimizing distribution grid rei
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
+   data_schema
    master_model
    slave_model
 

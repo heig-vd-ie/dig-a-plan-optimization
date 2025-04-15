@@ -2,7 +2,7 @@ from typing import Optional
 import patito as pt
 import polars as pl
 from typing_extensions import Literal
-from distflow_schema._constraints import literal_constraint
+from data_schema._constraints import literal_constraint
 
 TYPES = Literal["branch", "transformer", "switch"]
 

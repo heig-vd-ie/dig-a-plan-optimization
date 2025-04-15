@@ -11,7 +11,7 @@ from polars_function import (
 from networkx_function import (
     generate_tree_graph_from_edge_data, get_all_edge_data)
 
-from distflow_schema import DistFlowSchema
+from data_schema import DistFlowSchema
 
 from twindigrid_changes.schema import ChangesSchema
 from twindigrid_sql.entries.equipment_class import EXTERNAL_NETWORK, TRANSFORMER, SWITCH, BRANCH, EXTERNAL_NETWORK, TRANSFORMER
