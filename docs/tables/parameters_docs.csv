@@ -1,0 +1,13 @@
+Name,Description
+:math:`r`,Resistance for branch :math:`l`
+:math:`x`,Reactance for branch :math:`l`
+:math:`b`,Shunt susceptance for branch :math:`l`
+:math:`p_{\text{node}}`,Real power injection (or load) at bus :math:`i`
+:math:`q_{\text{node}}`,Reactive power injection (or load) at bus :math:`i`
+:math:`i_{\max}`,Maximum allowable current magnitude at bus :math:`i`
+:math:`v_{\min}`,Minimum voltage level (per unit) at bus :math:`i`
+:math:`v_{\max}`,Maximum voltage level (per unit) at bus :math:`i`
+:math:`d^{\text{master}}`,Binary indicator: 1 if active and for notactive 0  
+:math:`v_{\text{slack}}^{2}`,Squared slack bus voltage (per unit)
+:math:`\text{slack node}`,Index of the slack bus
+:math:`M`,Big-M constant used in voltage drop constraints

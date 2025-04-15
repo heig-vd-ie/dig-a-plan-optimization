@@ -8,7 +8,8 @@ r"""
     
     \begin{align} 
         v_{i} &= \frac{v_{0}}{\tau_{0\, \to\, i}} \\
-        \overline{S^{z}_{i}} &= \displaystyle\sum_{\Large{d\, \in\, D_i}} S^{\text{node}}_{d}
+        P^{up}_{z} &= \displaystyle\sum_{\Large{d\, \in\, N_i}} p^{\text{node}}_{d}\\
+        Q^{up}_{z} &= \displaystyle\sum_{\Large{d\, \in\, N_i}} q^{\text{node}}_{d}
     \end{align}
 
 2. Power update
@@ -18,13 +19,16 @@ r"""
     :label: distflow-power
     :nowrap:
     
-    \begin{align} 
-        \underline{S^{\text{Z}}_{i}} &= - S^{\text{node}}_{i} - v_{i} \cdot \underline{Y_{i}} - \displaystyle\sum_{\Large{c\, \in\, C_i}} \left(\overline{S^{\text{Z}}_{c}} + v_{i} \cdot \overline{Y_{c}} \right)\\
-        i_{i} &= \frac{\vert \underline{S^{\text{Z}}_{i}}\vert^{2}}{v_{i}}\\
-        \overline{S^{\text{Z}}_{i}} &= i_{i} \cdot Z_{i} - \underline{S^{\text{Z}}_{i}}
+    \begin{align}
+        P_{z}^{\text{dn}}(l,i,j) &= -\,p_{\text{node}}(j)
+        - \sum_{\substack{(l',i',j') \\ i' = j,\; j' \neq i}} P_{z}^{\text{up}}(l',i',j'), \label{eq:active_balance} \\[1ex]
+        Q_{z}^{\text{dn}}(l,i,j) &= -\,q_{\text{node}}(j)
+        - \sum_{\substack{(l',i',j') \\ i' = j,\; j' \neq i}}
+        \Bigl( Q_{z}^{\text{up}}(l',i',j') + b(l')\,v_{j}^{2} \Bigr), \label{eq:reactive_balance} \\[1ex]
+        P_{z}^{\text{up}}(l,i,j) &= r(l)\,i^{2} - P_{z}^{\text{dn}}(l,i,j), \label{eq:active_flow} \\[1ex]
+        Q_{z}^{\text{up}}(l,i,j) &= x(l)\,i^{2} - Q_{z}^{\text{dn}}(l,i,j). \label{eq:reactive_flow}
     \end{align}
 
-The negative sign around :math:`\underline{S^{\text{Z}}_{i}}` comes from :ref:`sign convention<sign-convention>`
 
 3. Voltage update
 ~~~~~~~~~~~~~~~~~~~~~
@@ -34,37 +38,22 @@ The negative sign around :math:`\underline{S^{\text{Z}}_{i}}` comes from :ref:`s
     :nowrap:
     
     \begin{align} 
-        dv_{i} &=  - 2 \cdot \Re \left(Z_{i}^{*} \cdot \overline{S^{\text{Z}}_{i}} \right) + \vert Z_{i} \vert^{2} \cdot i_{i} \\
-        v_{i}^{new} &= \frac{v_{0}}{\tau_{0\, \to\, i}} + \displaystyle\sum_{\Large{p \,\in\, P_0^i}} \frac{dv_{p}}{\tau_{p\, \to\, i}}
+        \Delta v_{i} & = -2\left(r(l)\,P_{z}^{\text{up}}(l,i,j) + x(l)\,Q_{z}^{\text{up}}(l,i,j)\right)
+        + \left(r(l)^{2} + x(l)^{2}\right)i^{2}
+
     \end{align}
 
-4. Convergence check
-~~~~~~~~~~~~~~~~~~~~~
-
-.. math::
-    :label: Convergence-check
-    :nowrap:
-
-    \begin{align} 
-        \max_{i\, \in \, I} \frac{\vert v_{i}  - v_{i}^{new}\vert}{v_{i}^{new}} \leq tol \quad \begin{cases}
-            \text{TRUE} \Rightarrow \text{STOP} \\
-            \text{FALSE} \Rightarrow \text{GO TO 2}
-        \end{cases} \
-    \end{align}
-
-Algorithm in matrix form
--------------------------
-
-1. Matrix initialization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+5. Rotated Second Order Cone (SOC) Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
     :label: distflow-initialization-matrix
     :nowrap:
     
     \begin{align} 
-        \mathbf{V} &= \mathbf{V_{IN}} \\
-        \mathbf{\overline{S_{Z}}} &= \mathbf{D} \times \mathbf{S_{\text{node}}}
+        \left(2\,P_{z}^{\text{up}}(l,i,j)\right)^{2} + \left(2\,Q_{z}^{\text{up}}(l,i,j)\right)^{2}
+        + \Bigl(v_{i}^{2}-i^{2}\Bigr)^{2} \le \Bigl(v_{i}^{2}+i^{2}\Bigr)^{2}
+
         
     \end{align}
 
