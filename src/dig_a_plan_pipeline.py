@@ -85,4 +85,6 @@ class DigAPlan():
         
         self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
         
+        
+    
 
