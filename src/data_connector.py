@@ -11,7 +11,6 @@ from polars_function import (
 from networkx_function import (
     generate_tree_graph_from_edge_data, get_all_edge_data)
 
-from data_schema import DistFlowSchema
 
 from twindigrid_changes.schema import ChangesSchema
 from twindigrid_sql.entries.equipment_class import EXTERNAL_NETWORK, TRANSFORMER, SWITCH, BRANCH, EXTERNAL_NETWORK, TRANSFORMER
@@ -19,17 +18,14 @@ from twindigrid_sql.entries.equipment_class import EXTERNAL_NETWORK, TRANSFORMER
 from general_function import pl_to_dict
 
 
-def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlowSchema:
+def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) -> dict[str, pl.DataFrame]:
     
-    distflow_schema: DistFlowSchema = DistFlowSchema()
+    
+    grid_data: dict[str, pl.DataFrame] = {}
     
     node_data: pl.DataFrame = pl.from_pandas(net.bus)
     load: pl.DataFrame = pl.from_pandas(net.load)
     sgen: pl.DataFrame = pl.from_pandas(net.sgen)
-    
-    load = load.with_columns(c("bus").cast(pl.Int32))
-    sgen = sgen.with_columns(c("bus").cast(pl.Int32))
-
 
     sgen = sgen.group_by("bus").agg(
         (-c("p_mw").sum()*1e6/s_base).alias("p_pv"),
@@ -47,18 +43,20 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
         pl.sum_horizontal([c("q_load").fill_null(0.), c("q_pv").fill_null(0.)]).alias("q_node_pu")
     )
 
-    node_data = node_data[["vn_kv"]].with_row_index(name="node_id")\
-        .with_columns(c("node_id").cast(pl.Int32))\
+    node_data = node_data[["vn_kv", "name"]].with_row_index(name="node_id")\
         .join(load, on="node_id", how="left")\
         .select(
+            c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv")*1e3).alias("v_base"),
             c("p_node_pu").fill_null(0.0),
             c("q_node_pu").fill_null(0.0),
             pl.lit(None).cast(pl.Float64).alias("v_node_sqr_pu"),
         ).with_columns(
+            pl.lit(s_base).alias("s_base"),
             (s_base /(c("v_base") * np.sqrt(3))).alias("i_base")
         )
+
         
     line: pl.DataFrame = pl.from_pandas(net.line)
     line = line\
@@ -70,10 +68,10 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
             (c("v_base")**2 /s_base).alias("z_base"), 
         ).select(
             "u_of_edge", "v_of_edge",
-            c("name").alias("edge_id"),
+            c("name").alias("eq_fk"),
             (c("r_ohm_per_km")*c("length_km")/c("z_base")).alias("r_pu"),
             (c("x_ohm_per_km")*c("length_km")/c("z_base")).alias("x_pu"),
-            (c("c_nf_per_km")*c("length_km")*1e-9*2*np.pi*50/c("z_base")).alias("b_pu"),
+            (c("c_nf_per_km")*c("length_km")*1e-9*2*np.pi*50*c("z_base")).alias("b_pu"),
             (c("max_i_ka") * 1e3 / c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"), 
         )
@@ -98,7 +96,7 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
         get_transfo_imaginary_component(module = c("y"), real = c("g")).alias("b"),
     ).select(
         "u_of_edge", "v_of_edge", 
-        c("name").alias("edge_id"),
+        c("name").alias("eq_fk"),
         (c("r")/c("z_base")).alias("r_pu"),
         (c("x")/c("z_base")).alias("x_pu"),
         (c("g")*c("z_base")).alias("g_pu"),
@@ -110,29 +108,18 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
     )
 
     switch: pl.DataFrame = pl.from_pandas(net.switch)
-    
-    switch = switch.filter(c("closed") == True)  # Only include closed switches
 
-    switch = switch.select(
-        c("name").alias("edge_id"),
-        c("bus").cast(pl.Int32).alias("u_of_edge"),
-        c("element").cast(pl.Int32).alias("v_of_edge"),
-        pl.lit("switch").alias("type"),
-    )
+    switch = switch.filter(c("closed"))\
+        .select(
+            c("name").alias("eq_fk"),
+            c("bus").cast(pl.Int32).alias("u_of_edge"),
+            c("element").cast(pl.Int32).alias("v_of_edge"),
+            pl.lit("switch").alias("type"),
+        )
 
-    null_val_mapping: dict[str, Union[int, float]] = {"r_pu": 0, "x_pu": 0, "b_pu": 0, "g_pu": 0, "n_transfo": 1.0}
-
-    edge_data = pl.concat(
+    grid_data["edge_data"] = pl.concat(
         [line, trafo, switch], how="diagonal_relaxed"
-    ).with_columns(
-        c(name).fill_null(val)
-        for name, val in null_val_mapping.items()
-    )
-    
-    # Ensure unique edge_id by replacing it with a unique row count
-    edge_data = edge_data.with_row_count("unique_edge_id", offset=0) \
-        .drop("edge_id") \
-        .rename({"unique_edge_id": "edge_id"})
+    ).with_row_index(name="edge_id")
 
     ext_grid : pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
@@ -140,16 +127,16 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
     slack_node_id: int = ext_grid["bus"][0]
     v_slack_node_sqr_pu: float = ext_grid["vm_pu"][0]**2
     
-    node_data = node_data.with_columns(
+    grid_data["node_data"] = node_data.with_columns(
         pl.when(c("node_id") == slack_node_id)
         .then(pl.lit(v_slack_node_sqr_pu))
-        .otherwise(c("v_node_sqr_pu")).alias("v_node_sqr_pu") 
+        .otherwise(c("v_node_sqr_pu")).alias("v_node_sqr_pu"),
+        pl.when(c("node_id") == slack_node_id)
+        .then(pl.lit("slack"))
+        .otherwise(pl.lit("pq")).alias("type"),
     )
     
-    distflow_schema = distflow_schema.add_table(
-        node_data=node_data, edge_data=edge_data, slack_node_id=slack_node_id, s_base=s_base)
-    
-    return distflow_schema
+    return grid_data
 
 
 
@@ -158,7 +145,7 @@ def pandapower_to_distflow(net: pp.pandapowerNet, s_base: float=1e6) -> DistFlow
 
 def schema_to_distflow_schema(
     changes_schema: ChangesSchema, s_base: float
-) -> dict:
+) :
     """
     Convert the schema to a DistFlowSchema instance and add the edge_data table to it
     Also convert in PU the branch parameter
@@ -251,7 +238,3 @@ def schema_to_distflow_schema(
     )
 
     ## Create the DistFlowSchema instance
-    distflow_schema = DistFlowSchema()
-    ## Add edge_data table to the DistFlowSchema instance
-    distflow_schema = distflow_schema.add_table(edge_data=resource_data_pu)
-    return {"distflow_schema": distflow_schema, "slack_node_id": slack_node_id}
