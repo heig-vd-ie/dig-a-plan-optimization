@@ -10,6 +10,10 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, node_size: int = 22, width:
     line: pl.DataFrame = pl.from_pandas(net["line"])
     trafo: pl.DataFrame = pl.from_pandas(net["trafo"])
     switch: pl.DataFrame = pl.from_pandas(net["switch"])
+    switch = switch.with_columns(
+        c("closed").replace_strict({True:1.0,False:0.3},default=None).alias("opacity")
+    )
+
 
     fig = go.Figure()
 
@@ -43,7 +47,8 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, node_size: int = 22, width:
                     x=data["x_coords"],
                     y=data["y_coords"],
                     mode="lines",
-                    line=dict(width=3, color="red"),
+                    opacity= data["opacity"],
+                    line=dict(width=3, color="darkred"),
                     hoverinfo="none",
                     showlegend=False
                 )

@@ -9,8 +9,7 @@ TYPES = Literal["slack", "pq", "pv"]
 class NodeData(pt.Model):
     cn_fk: str = pt.Field(dtype=pl.Utf8, unique=True)
     node_id: int = pt.Field(dtype=pl.Int32, unique=True)
-    v_base: int = pt.Field(dtype=pl.Float64)
-    i_base: int = pt.Field(dtype=pl.Float64)
+    v_base: float = pt.Field(dtype=pl.Float64)
     p_node_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     q_node_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     p_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)

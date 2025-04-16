@@ -11,4 +11,6 @@ def slave_model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
         initialize=lambda m: [(l, i, j) for l in m.L for (i, j) in m.C[l]] + [(l, j, i) for l in m.L for (i, j) in m.C[l]]
     )
     
+    model.S = pyo.Set(within=model.L)
+    
     return model

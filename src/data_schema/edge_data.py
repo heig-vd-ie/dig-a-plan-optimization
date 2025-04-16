@@ -9,6 +9,7 @@ TYPES = Literal["branch", "transformer", "switch"]
 class EdgeData(pt.Model):
     eq_fk: str = pt.Field(dtype=pl.Utf8, unique=True)
     edge_id: int = pt.Field(dtype=pl.Int32, unique=True)
+    i_base: Optional[float] = pt.Field(dtype=pl.Float64)
     u_of_edge: int = pt.Field(dtype=pl.Int32)
     v_of_edge: int = pt.Field(dtype=pl.Int32)
     r_pu: float = pt.Field(dtype=pl.Float64, default=0.0)

@@ -56,7 +56,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
             pl.lit(s_base).alias("s_base"),
             (s_base /(c("v_base") * np.sqrt(3))).alias("i_base")
         )
-
+    i_base_mapping = pl_to_dict(node_data["node_id", "i_base"])
         
     line: pl.DataFrame = pl.from_pandas(net.line)
     line = line\
@@ -74,6 +74,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
             (c("c_nf_per_km")*c("length_km")*1e-9*2*np.pi*50*c("z_base")).alias("b_pu"),
             (c("max_i_ka") * 1e3 / c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"), 
+            c("i_base")
         )
     trafo: pl.DataFrame = pl.from_pandas(net.trafo)
     
@@ -104,6 +105,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
         pl.lit("transformer").alias("type"),
         (c("sn_mva") *1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias("i_max_pu"),
         ((c("vn_hv_pu")/c("vn_lv_pu"))).alias("n_transfo"),
+        c("i_base")
         
     )
 
