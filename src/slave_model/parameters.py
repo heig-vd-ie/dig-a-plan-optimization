@@ -1,4 +1,3 @@
-from attr import mutable
 import pyomo.environ as pyo
 
 def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
