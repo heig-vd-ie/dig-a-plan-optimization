@@ -5,7 +5,7 @@ def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.x = pyo.Param(model.L)         # Reactance for branch l.
     model.p_node = pyo.Param(model.N)         # Real node at bus i.
     model.q_node = pyo.Param(model.N)         # Reactive load at bus i.
-    model.M = pyo.Param(initialize=1e4)    # Big-M constant.
+    model.big_m = pyo.Param()    # Big-M constant.
     model.slack_node = pyo.Param()     # Slack bus index.
     
     return model

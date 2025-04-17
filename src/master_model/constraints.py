@@ -32,17 +32,17 @@ def orientation_rule(m, l):
 
 # Big-M constraints for real power flows.
 def flow_P_lower_rule(m, l, i, j):
-    return m.p_flow[l, i, j] >= -m.M * m.d[l, i, j]
+    return m.p_flow[l, i, j] >= -m.big_m * m.d[l, i, j]
 
 def flow_P_upper_rule(m, l, i, j):
-    return m.p_flow[l, i, j] <= m.M * m.d[l, i, j]
+    return m.p_flow[l, i, j] <= m.big_m * m.d[l, i, j]
 
 # Big-M constraints for reactive power flows.
 def flow_Q_lower_rule(m, l, i, j):
-    return m.q_flow[l, i, j] >= -m.M * m.d[l, i, j]
+    return m.q_flow[l, i, j] >= -m.big_m * m.d[l, i, j]
 
 def flow_Q_upper_rule(m, l, i, j):
-    return m.q_flow[l, i, j] <= m.M * m.d[l, i, j]
+    return m.q_flow[l, i, j] <= m.big_m * m.d[l, i, j]
 
 # Real power balance.
 def power_balance_real_rule(m, n):

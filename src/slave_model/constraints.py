@@ -150,26 +150,24 @@ import pyomo.environ as pyo
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.slack_voltage = pyo.Constraint(rule=slack_voltage_rule)
-    model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
-    model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
     model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
     model.active_power_flow = pyo.Constraint(model.LC, rule=active_power_flow_rule)
     model.reactive_power_flow = pyo.Constraint(model.LC, rule=reactive_power_flow_rule)
     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
-    model.voltage_drop_z_upper = pyo.Constraint(model.LC, rule=voltage_drop_z_upper_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
-    # model.current_max = pyo.Constraint(model.LC, rule=current_max_rule)
-    model.flow_bounds_real = pyo.Constraint(model.LC, rule=current_limit_rule)
+    model.current_limit = pyo.Constraint(model.LC, rule=current_limit_rule)
+    model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
+    model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     return model
     
 
 def objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    v_penalty = m.v_penalty_factor * sum(m.slack_v_sq[n] for n in m.N)
-    i_penalty = m.v_penalty_factor * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-    return edge_losses
-    # return edge_losses + v_penalty + i_penalty
+    v_penalty = m.v_penalty_cost * sum(m.slack_v_sq[n] for n in m.N)
+    i_penalty = m.v_penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    return edge_losses + v_penalty + i_penalty
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
 def slack_voltage_rule(m):
@@ -207,11 +205,11 @@ def reactive_power_flow_rule(m, l, i, j):
 # We then enforce two separate inequalities:
 def voltage_drop_lower_rule(m, l, i, j):
     dv = - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
-    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.M*(1 - m.master_d[l, i, j])
+    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.big_m*(1 - m.master_d[l, i, j])
 
-def voltage_drop_z_upper_rule(m, l, i, j):
+def voltage_drop_upper_rule(m, l, i, j):
     dv = - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
-    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.M*(1 - m.master_d[l, i, j])
+    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.master_d[l, i, j])
 
 # (5) Rotated Cone (SOC) Current Constraint for candidate (l,i,j):
 # Enforce: ||[2*p_z_up, 2*q_z_up, v_sq[i]-f(l,i,j)]||_2 <= v_sq[i]+f(l,i,j)
@@ -220,8 +218,8 @@ def current_rotated_cone_rule(m, l, i, j):
     if l in m.S:
         return m.i_sq[l, i, j] == 0
     else:
-        lhs = (2*m.p_z_up[l, i, j])**2 + (2*m.q_z_up[l, i, j])**2 + (m.v_sq[j] - m.i_sq[l, i, j])**2
-        rhs = (m.v_sq[j] + m.i_sq[l, i, j])**2
+        lhs = (2*m.p_z_up[l, i, j])**2 + (2*m.q_z_up[l, i, j])**2 + (m.v_sq[j]/ (m.n_transfo[l, j, i] ** 2) - m.i_sq[l, i, j])**2
+        rhs = (m.v_sq[j]/ (m.n_transfo[l, j, i] ** 2) + m.i_sq[l, i, j])**2
         return m.master_d[l, i, j] * lhs <= rhs
 
 
@@ -231,8 +229,8 @@ def current_limit_rule(m, l, i, j):
 
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
 def voltage_upper_limits_rule(m, n):
-    return m.v_sq[n] <= m.vmax[n]**2 + m.slack_v_sq[n]
+    return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_sq[n]
 
 def voltage_lower_limits_rule(m, n):
-    return m.v_sq[n] >= m.vmin[n]**2 - m.slack_v_sq[n]
+    return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_sq[n]
 

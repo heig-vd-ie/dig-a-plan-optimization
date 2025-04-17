@@ -45,9 +45,13 @@ def generate_slave_model() -> pyo.AbstractModel:
     return slave_model
 
 class DigAPlan():
-    def __init__(self, verbose: bool = False):
+    def __init__(self, verbose: bool = False, big_m: float = 1e4, v_penalty_cost: float = 1e-3, i_penalty_cost: float = 1e-3):
         
         self.verbose: int = verbose
+        self.big_m: float = big_m
+        self.v_penalty_cost: float = v_penalty_cost
+        self.i_penalty_cost: float = i_penalty_cost
+        
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
         self.__master_model: pyo.AbstractModel = generate_master_model()
@@ -105,16 +109,24 @@ class DigAPlan():
             None: {
                 "N": {None: self.node_data["node_id"].to_list()},
                 "L": {None: self.edge_data["edge_id"].to_list()},
-                "C": pl_to_dict(self.edge_data.select("edge_id", pl.concat_list("u_of_edge", "v_of_edge").pipe(list_to_list_of_tuple))),
+                "C": pl_to_dict(
+                    self.edge_data.select("edge_id", pl.concat_list("u_of_edge", "v_of_edge").pipe(list_to_list_of_tuple))),
                 "S": {None: self.edge_data.filter(c("type") == "switch")["edge_id"].to_list()},
                 "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                 "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                 "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
-                "n_transfo": pl_to_dict_with_tuple(self.edge_data.select(pl.concat_list("edge_id", "u_of_edge", "v_of_edge"), "n_transfo")),
+                "n_transfo": pl_to_dict_with_tuple(
+                    self.edge_data.select(pl.concat_list("edge_id", "u_of_edge", "v_of_edge"), "n_transfo")),
                 "p_node": pl_to_dict(self.node_data["node_id", "p_node_pu"]),
                 "q_node": pl_to_dict(self.node_data["node_id", "q_node_pu"]),
+                "i_max": pl_to_dict(self.edge_data["edge_id", "i_max_pu"]),
+                "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),
+                "v_max": pl_to_dict(self.node_data["node_id", "v_max_pu"]),
                 "slack_node": {None: self.slack_node},
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
+                "big_m": {None: self.big_m},
+                "v_penalty_cost": {None: self.v_penalty_cost},
+                "i_penalty_cost": {None: self.i_penalty_cost},
             }
         }
         
@@ -144,6 +156,11 @@ class DigAPlan():
         new_d = self.master_model_instance.d.extract_values() # type: ignore
         self.slave_model_instance.master_d.store_values(new_d) # type: ignore
         _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+        
+    def solve_models_pipeline(self):
+        self.solve_master_model()
+        self.solve_slave_model()
+    
         
     def extract_switch_status(self) -> dict[str, bool]:
         switch_status = self.master_model_instance.delta.extract_values() # type: ignore
