@@ -4,7 +4,7 @@ import pyomo.environ as pyo
 import patito as pt
 from typing import TypedDict, Unpack
 
-from general_function import pl_to_dict, generate_log
+from general_function import pl_to_dict, generate_log, pl_to_dict_with_tuple
 from polars_function import list_to_list_of_tuple, cast_boolean
 
 from data_schema.node_data import NodeData
@@ -110,6 +110,7 @@ class DigAPlan():
                 "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                 "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                 "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
+                "n_transfo": pl_to_dict_with_tuple(self.edge_data.select(pl.concat_list("edge_id", "u_of_edge", "v_of_edge"), "n_transfo")),
                 "p_node": pl_to_dict(self.node_data["node_id", "p_node_pu"]),
                 "q_node": pl_to_dict(self.node_data["node_id", "q_node_pu"]),
                 "slack_node": {None: self.slack_node},
@@ -174,7 +175,4 @@ class DigAPlan():
                 self.edge_data.filter(c("type") != "switch")["eq_fk", "edge_id", "i_base"], on="edge_id", how="inner"
             )
         return edge_current
-                
         
-        
-    

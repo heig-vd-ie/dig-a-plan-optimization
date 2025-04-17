@@ -168,7 +168,8 @@ def objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
     v_penalty = m.v_penalty_factor * sum(m.slack_v_sq[n] for n in m.N)
     i_penalty = m.v_penalty_factor * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-    return edge_losses + v_penalty + i_penalty
+    return edge_losses
+    # return edge_losses + v_penalty + i_penalty
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
 def slack_voltage_rule(m):
@@ -206,11 +207,11 @@ def reactive_power_flow_rule(m, l, i, j):
 # We then enforce two separate inequalities:
 def voltage_drop_lower_rule(m, l, i, j):
     dv = - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
-    return m.v_sq[i] - m.v_sq[j] - dv >= - m.M*(1 - m.master_d[l, i, j])
+    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.M*(1 - m.master_d[l, i, j])
 
 def voltage_drop_z_upper_rule(m, l, i, j):
     dv = - 2*(m.r[l]*m.p_z_up[l, i, j] + m.x[l]*m.q_z_up[l, i, j]) + (m.r[l]**2 + m.x[l]**2)*m.i_sq[l, i, j]
-    return m.v_sq[i] - m.v_sq[j] - dv <= m.M*(1 - m.master_d[l, i, j])
+    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.M*(1 - m.master_d[l, i, j])
 
 # (5) Rotated Cone (SOC) Current Constraint for candidate (l,i,j):
 # Enforce: ||[2*p_z_up, 2*q_z_up, v_sq[i]-f(l,i,j)]||_2 <= v_sq[i]+f(l,i,j)
