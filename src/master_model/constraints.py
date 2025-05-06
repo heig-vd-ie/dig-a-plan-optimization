@@ -1,9 +1,11 @@
 # constraints.py
 import pyomo.environ as pyo
+from pyomo.environ import ConstraintList
 
 def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
-    model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
+    # model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
+    model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
     model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
     model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
@@ -13,14 +15,25 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     
+    # ——— Benders cut containers ————————————————
+    model.benders_cuts  = ConstraintList()   
+    
     return model
 
 # Objective function: minimize approximate losses weighted by line resistances.
-def objective_rule(m):
-    return sum(
+# def objective_rule(m):
+#     return sum(
+#         m.r[l] * (m.p_flow[l, a, b]**2 + m.q_flow[l, a, b]**2)
+#         for (l, a, b) in m.LC
+#     )
+
+# Objective: approximate losses + Benders auxiliary Theta
+def master_obj(m):
+    base_losses = sum(
         m.r[l] * (m.p_flow[l, a, b]**2 + m.q_flow[l, a, b]**2)
         for (l, a, b) in m.LC
     )
+    return base_losses + m.Theta
 
 # Orientation constraint.
 def orientation_rule(m, l):

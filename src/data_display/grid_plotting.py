@@ -35,24 +35,51 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, node_size: int = 22, width:
                     x=data["x_coords"],
                     y=data["y_coords"],
                     mode="lines",
-                    line=dict(width=3, color="green"),
+                    line=dict(width=3, color="maroon"),
                     hoverinfo="none",
                     showlegend=False
                 )
             )
 
-    for data in switch.to_dicts():
-            fig.add_trace(
-                go.Scatter(
-                    x=data["x_coords"],
-                    y=data["y_coords"],
-                    mode="lines",
-                    opacity= data["opacity"],
-                    line=dict(width=3, color="darkred"),
-                    hoverinfo="none",
-                    showlegend=False
-                )
-            )
+    # for data in switch.to_dicts():
+    #         fig.add_trace(
+    #             go.Scatter(
+    #                 x=data["x_coords"],
+    #                 y=data["y_coords"],
+    #                 mode="lines",
+    #                 opacity= data["opacity"],
+    #                 line=dict(width=3, color="darkred"),
+    #                 hoverinfo="none",
+    #                 showlegend=False
+    #             )
+    #         )
+    
+    
+    
+    # draw switchable lines: closed = green solid
+    for data in switch.filter(c("closed") == True).to_dicts():
+        fig.add_trace(go.Scatter(
+            x=data["x_coords"],
+            y=data["y_coords"],
+            mode="lines",
+            opacity=data["opacity"],
+            line=dict(width=3, color="green", dash="solid"),
+            hoverinfo="none",
+            showlegend=False,
+        ))
+
+    # draw switchable lines: open = red dashed
+    for data in switch.filter(c("closed") == False).to_dicts():
+        fig.add_trace(go.Scatter(
+            x=data["x_coords"],
+            y=data["y_coords"],
+            mode="lines",
+            opacity=data["opacity"],
+            line=dict(width=3, color="red", dash="dash"),
+            hoverinfo="none",
+            showlegend=False,
+        ))
+    
             
     fig.add_trace(
             go.Scatter(

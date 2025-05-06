@@ -1,6 +1,11 @@
 import polars as pl
 from polars import col as c
+import os
+os.environ["GRB_LICENSE_FILE"] = os.path.join(os.environ["HOME"], "gurobi_license", "gurobi.lic")
+
 import pyomo.environ as pyo
+
+from pyomo.environ import Suffix
 import patito as pt
 from typing import TypedDict, Unpack
 
@@ -42,6 +47,9 @@ def generate_slave_model() -> pyo.AbstractModel:
     slave_model = slave_model_parameters(slave_model)
     slave_model = slave_model_variables(slave_model)
     slave_model = slave_model_constraints(slave_model)
+    slave_model.dual = Suffix(direction=Suffix.IMPORT)
+    #add fix_d list
+    slave_model.fix_d = pyo.ConstraintList()
     return slave_model
 
 class DigAPlan():
@@ -133,6 +141,9 @@ class DigAPlan():
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
+        # Attach dual suffix to slave model instance for shadow prices
+        self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
+        
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
         for table_name, pl_table in grid_data.items():
@@ -151,16 +162,71 @@ class DigAPlan():
         
     def solve_master_model(self):
         _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
-    
-    def solve_slave_model(self):
-        new_d = self.master_model_instance.d.extract_values() # type: ignore
-        self.slave_model_instance.master_d.store_values(new_d) # type: ignore
-        _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
         
-    def solve_models_pipeline(self):
-        self.solve_master_model()
-        self.solve_slave_model()
+        
     
+    # def solve_slave_model(self): #OLD
+    #     new_d = self.master_model_instance.d.extract_values() # type: ignore
+    #     self.slave_model_instance.master_d.store_values(new_d) # type: ignore
+    #     _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+        
+    def solve_slave_model(self):
+        # 1) pull current master d’s
+        master_ds = self.master_model_instance.d.extract_values()
+        # 2) clear any fix_d constraints
+        self.slave_model_instance.fix_d.clear()
+        # 3) load them into slave.master_d
+        self.slave_model_instance.master_d.store_values(master_ds)
+        # 3) re-add one fix_d constraint per (l,i,j)
+        for (l,i,j), dval in master_ds.items():
+            self.slave_model_instance.fix_d.add(
+                self.slave_model_instance.d[l,i,j] == dval
+            )
+
+        # 2) solve the slave
+        result = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+
+        # 3) scrape off the non‐zero duals from just the fix_d block
+        duals = []
+        for idx, cons in self.slave_model_instance.fix_d.items():
+            sigma = self.slave_model_instance.dual[cons]
+            if abs(sigma) > 1e-8:
+                duals.append((idx, sigma))
+
+        # 4) return them so the Benders driver can build cuts
+        return result, duals
+
+    def solve_models_pipeline(self, max_iters=20, tol=1e-6):
+        m = self.master_model_instance
+        s = self.slave_model_instance
+        solver_m = self.master_solver
+        solver_s = self.slave_solver
+
+        prev_theta = None
+        for k in range(1, max_iters+1):
+            # 1) Solve master
+            res_m = solver_m.solve(m, tee=self.verbose)
+            assert res_m.solver.termination_condition == pyo.TerminationCondition.optimal
+            # slave solve & get duals
+            res_s, duals = self.solve_slave_model()
+            # if infeasible
+            if res_s.solver.termination_condition!=pyo.TerminationCondition.optimal:
+                expr = sum(sigma*(m.d[idx]-dval) for idx,sigma in duals for dval in [self.master_model_instance.d[idx].value])
+                m.add_component(f'feas_cut_{k}', pyo.Constraint(expr=expr>=0))
+                continue
+            # feasible: add optimality cut
+            w = pyo.value(s.objective)
+            expr = sum(-sigma*(m.d[idx]-dval) for idx,sigma in duals for dval in [self.master_model_instance.d[idx].value])
+            m.add_component(f'opt_cut_{k}', pyo.Constraint(expr=m.Theta>=w+expr))
+            th = pyo.value(m.Theta)
+            if prev_theta is not None and abs(th-w)<tol:
+                print(f'Benders converged in {k} iters')
+                break
+            prev_theta = th
+
+            
+
+
         
     def extract_switch_status(self) -> dict[str, bool]:
         switch_status = self.master_model_instance.delta.extract_values() # type: ignore
@@ -192,4 +258,3 @@ class DigAPlan():
                 self.edge_data.filter(c("type") != "switch")["eq_fk", "edge_id", "i_base"], on="edge_id", how="inner"
             )
         return edge_current
-        

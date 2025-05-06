@@ -57,53 +57,44 @@ r"""
         
     \end{align}
 
-2. Matrix power update
-~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. math::
-    :label: distflow-power-matrix
-    :nowrap:
-    
-    \begin{align} 
-        \mathbf{\underline{S_{Z}}} &= - \mathbf{S_{node}} - \mathbf{V} \odot \mathbf{Y_{tot}} \\
-        \mathbf{I_{Z}} &= \mathbf{\underline{S_{Z}}} \odot \mathbf{\underline{S_{Z}}}^{*} \oslash \mathbf{V} \\
-        \mathbf{\overline{S_{Z}}} &= \mathbf{I_{Z}} \odot \mathbf{Z} - \mathbf{\underline{S_{Z}}}
-    \end{align}
-
-3. Matrix voltage update
+6. Objective: Minimize losses with penalties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Resistive losses: In each branch (l,i,j), the real-power loss is:
+
 
 .. math::
     :label: distflow-voltage-matrix
     :nowrap:
     
-    \begin{align} 
-        \mathbf{dV} &=  - 2 \cdot \Re \left(\mathbf{Z}^{*} \odot \mathbf{\overline{S_{Z}}} \right) + \mathbf{Z^2} \odot \mathbf{I_{Z}} \\
-        \mathbf{V} &= \mathbf{V_{IN}} + \mathbf{D_{prop}} \times \mathbf{dV}
+    \begin{align}
+        \text{Objective} = \sum_{(l,i,j)} r_l \cdot i^2_{l,ij} + v\_penalty + i\_penalty
     \end{align}
 
 Where:
 
--   :math:`\odot` is the Hadamard product (element wise multiplication)
--   :math:`\oslash` is the Hadamard division
--   :math:`\times` is the matrix multiplication
+-    The first term, :math:`\sum r_l \cdot i^2_{l,ij}`, represents the total line (edge) losses, corresponding to Joule heating losses :math: `(P_{\text{loss}} = R \cdot I^2)` across all branches.
+-   :math: The second and third terms, :math:`v\_penalty` and :math: `i\_penalty`, are regularization terms that encourage voltages and currents to remain within their prescribed limits.
 
-Voltage drop demonstration
-------------------------------
+Penalties terms
+---------------
 
-The general voltage drop decomposition between two nodes is given by the following equation (for branch n always equals 1):
+They are penalty terms that "soften" the hard limits on voltage bounds and current limits in the model.
 
-.. math::
-    :label: voltage-drop-decomposition
-    :nowrap:
-    
-    \begin{align} 
-        \frac{V_{i}}{N_{j}} - V_{j} &= Z_{j} \cdot I_{j} \\
-        v_{j} & = \vert \frac{V_{i}}{N_{j}} -Z_{j} \cdot I_{j} \vert^{2} \\ 
-        v_{j} & = \frac{v_{i}}{N_{j}^2} - 2 \cdot \Re \left(\frac{V_{i}}{N_{j}} \cdot Z_{j}^{*} \cdot I_{j}^{*} \right) + \vert Z_{j} \cdot I_{j}\vert^{2}\\
-        v_{j} & = \frac{v_{i}}{N_{j}^2}  - 2 \cdot \Re \left(Z_{j}^{*} \cdot \overline{S^{\text{Z}}_{j}} \right) + \vert Z_{j} \vert^{2} \cdot i_{j} \\
-        v_{j} & = \frac{v_{i}}{N_{j}^2} + dv_{j} \\
-    \end{align}  
+In theory:
+
+- Voltage at each bus must stay between :math:`V_{\text{min}}` and :math:`V_{\text{max}}`.
+- Current in each branch must stay below :math:`I_{\text{max}}`.
+
+Thus, "slack variables" are introduced:
+
+- :math:`\texttt{slack\_v\_sq[n]}` allows small violations of the voltage constraints.
+- :math:`\texttt{slack\_i\_sq[l,i,j]}` allows small violations of the current constraints.
+
+Violating constraints must nevertheless be penalized heavily; otherwise, the solver could abuse these slacks to find easier but unrealistic solutions.
+
+
+
 
 Let's consider nodes :math:`1`, :math:`2` and :math:`3` sequencly connected to the slack node :math:`0`. 
 The voltage level at node :math:`3`, calculated with reference to the slack node voltage, is given by the following expression:
@@ -143,7 +134,6 @@ Where :math:`\tau_{p\, \to\, i}` is given by the following expression:
     \end{align}
 
 """
-
 
 import pyomo.environ as pyo
 
@@ -233,4 +223,5 @@ def voltage_upper_limits_rule(m, n):
 
 def voltage_lower_limits_rule(m, n):
     return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_sq[n]
+
 
