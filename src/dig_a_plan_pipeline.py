@@ -163,56 +163,18 @@ class DigAPlan():
         
         self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
         self.__instantiate_model()
-        
-    # def solve_master_model(self):
-    #     _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
-        
-        
-    
-    # # def solve_slave_model(self): #OLD
-    # #     new_d = self.master_model_instance.d.extract_values() # type: ignore
-    # #     self.slave_model_instance.master_d.store_values(new_d) # type: ignore
-    # #     _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-        
-    # def solve_slave_model(self):
-    #     # 1) pull current master d’s
-    #     master_ds = self.master_model_instance.d.extract_values() # type: ignore
-    #     # # 2) clear any fix_d constraints
-    #     # self.slave_model_instance.fix_d.clear()
-    #     # 3) load them into slave.master_d
-    #     self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
-    #     # # 3) re-add one fix_d constraint per (l,i,j)
-    #     # for (l,i,j), dval in master_ds.items():
-    #     #     self.slave_model_instance.fix_d.add(
-    #     #         self.slave_model_instance.d[l,i,j] == dval
-    #     #     )
 
-    #     # 2) solve the slave
-        
+    def solve_models_pipeline(self, max_iters: int, bender_cut_factor: float = 1e0) -> None:
 
-    #     # 3) scrape off the non‐zero duals from just the fix_d block
-    #     # duals = []
-    #     # for idx, cons in self.slave_model_instance.fix_d.items():
-    #     #     sigma = self.slave_model_instance.dual[cons]
-    #     #     if abs(sigma) > 1e-8:
-    #     #         duals.append((idx, sigma))
-
-    #     # 4) return them so the Benders driver can build cuts
-    #     return result
-
-    def solve_models_pipeline(self, max_iters=2, tol=1e-6):
-        # self.master_model_instance
-        # s = self.slave_model_instance
-        # solver_m = self.master_solver
-        # solver_s = self.slave_solver
-        for k in range(1, 50):
+        for k in range(max_iters):
             print(k)
             
 
             master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
             print(master_results.solver.termination_condition)
-            print("objective:", self.master_model_instance.objective())
+            print("Master objective:", self.master_model_instance.objective())
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
+            # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
             slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
@@ -227,32 +189,10 @@ class DigAPlan():
                 break
             else:
                 if k <= max_iters:
-                    self.add_benders_cut(nb_iter = k)
-
-        # prev_theta = None
-        # for k in range(1, max_iters+1):
-        #     # 1) Solve master
-        #     res_m = solver_m.solve(m, tee=self.verbose)
-        #     assert res_m.solver.termination_condition == pyo.TerminationCondition.optimal
-        #     # slave solve & get duals
-        #     res_s, duals = self.solve_slave_model()
-        #     # if infeasible
-        #     if res_s.solver.termination_condition!=pyo.TerminationCondition.optimal:
-        #         expr = sum(sigma*(m.d[idx]-dval) for idx, sigma in duals for dval in [self.master_model_instance.d[idx].value])
-        #         m.add_component(f'feas_cut_{k}', pyo.Constraint(expr=expr>=0))
-        #         continue
-        #     # feasible: add optimality cut
-        #     w = pyo.value(s.objective)
-        #     expr = sum(-sigma*(m.d[idx]-dval) for idx, sigma in duals for dval in [self.master_model_instance.d[idx].value])
-        #     m.add_component(f'opt_cut_{k}', pyo.Constraint(expr=m.Theta>=w+expr))
-        #     th = pyo.value(m.Theta)
-        #     if prev_theta is not None and abs(th-w)<tol:
-        #         print(f'Benders converged in {k} iters')
-        #         break
-        #     prev_theta = th
+                    self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
 
             
-    def add_benders_cut(self, nb_iter: int) -> None:
+    def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
         constraint_name_list = [
             "node_active_power_balance", 
             "node_reactive_power_balance",
@@ -308,7 +248,7 @@ class DigAPlan():
             f'bender_cuts_{nb_iter}', 
             pyo.Constraint(expr=getattr(self.master_model_instance, f'theta_{nb_iter}')>= theta)
             )
-        bender_cut_factor = 1e0
+        
         # update objective function
         self.master_model_instance.objective.set_value( # type: ignore
             expr=self.master_model_instance.objective.expr + # type: ignore
