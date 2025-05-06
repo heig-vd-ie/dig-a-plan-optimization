@@ -53,10 +53,13 @@ def generate_slave_model() -> pyo.AbstractModel:
     return slave_model
 
 class DigAPlan():
-    def __init__(self, verbose: bool = False, big_m: float = 1e4, v_penalty_cost: float = 1e-3, i_penalty_cost: float = 1e-3):
+    def __init__(self, verbose: bool = False, big_m: float = 1e4, v_penalty_cost: float = 1e-3, i_penalty_cost: float = 1e-3,
+                 slack_threshold: float = 1e-5) -> None:
+    
         
         self.verbose: int = verbose
         self.big_m: float = big_m
+        self.slack_threshold: float = slack_threshold
         self.v_penalty_cost: float = v_penalty_cost
         self.i_penalty_cost: float = i_penalty_cost
         
@@ -160,50 +163,68 @@ class DigAPlan():
         self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
         self.__instantiate_model()
         
-    def solve_master_model(self):
-        _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
+    # def solve_master_model(self):
+    #     _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
         
         
     
-    # def solve_slave_model(self): #OLD
-    #     new_d = self.master_model_instance.d.extract_values() # type: ignore
-    #     self.slave_model_instance.master_d.store_values(new_d) # type: ignore
-    #     _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+    # # def solve_slave_model(self): #OLD
+    # #     new_d = self.master_model_instance.d.extract_values() # type: ignore
+    # #     self.slave_model_instance.master_d.store_values(new_d) # type: ignore
+    # #     _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
         
-    def solve_slave_model(self):
-        # 1) pull current master d’s
-        master_ds = self.master_model_instance.d.extract_values() # type: ignore
-        # # 2) clear any fix_d constraints
-        # self.slave_model_instance.fix_d.clear()
-        # 3) load them into slave.master_d
-        self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
-        # # 3) re-add one fix_d constraint per (l,i,j)
-        # for (l,i,j), dval in master_ds.items():
-        #     self.slave_model_instance.fix_d.add(
-        #         self.slave_model_instance.d[l,i,j] == dval
-        #     )
+    # def solve_slave_model(self):
+    #     # 1) pull current master d’s
+    #     master_ds = self.master_model_instance.d.extract_values() # type: ignore
+    #     # # 2) clear any fix_d constraints
+    #     # self.slave_model_instance.fix_d.clear()
+    #     # 3) load them into slave.master_d
+    #     self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
+    #     # # 3) re-add one fix_d constraint per (l,i,j)
+    #     # for (l,i,j), dval in master_ds.items():
+    #     #     self.slave_model_instance.fix_d.add(
+    #     #         self.slave_model_instance.d[l,i,j] == dval
+    #     #     )
 
-        # 2) solve the slave
-        result = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+    #     # 2) solve the slave
+        
 
-        # 3) scrape off the non‐zero duals from just the fix_d block
-        # duals = []
-        # for idx, cons in self.slave_model_instance.fix_d.items():
-        #     sigma = self.slave_model_instance.dual[cons]
-        #     if abs(sigma) > 1e-8:
-        #         duals.append((idx, sigma))
+    #     # 3) scrape off the non‐zero duals from just the fix_d block
+    #     # duals = []
+    #     # for idx, cons in self.slave_model_instance.fix_d.items():
+    #     #     sigma = self.slave_model_instance.dual[cons]
+    #     #     if abs(sigma) > 1e-8:
+    #     #         duals.append((idx, sigma))
 
-        # 4) return them so the Benders driver can build cuts
-        return result
+    #     # 4) return them so the Benders driver can build cuts
+    #     return result
 
-    def solve_models_pipeline(self, max_iters=20, tol=1e-6):
+    def solve_models_pipeline(self, max_iters=2, tol=1e-6):
         # self.master_model_instance
         # s = self.slave_model_instance
         # solver_m = self.master_solver
         # solver_s = self.slave_solver
-        master_results = self.solve_master_model()
-        slave_results = self.solve_slave_model()
-        self.add_benders_cut(nb_iter = 0)
+        for k in range(1, 3):
+            print(k)
+            
+
+            _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
+            print("objective:", self.master_model_instance.objective())
+            master_ds = self.master_model_instance.d.extract_values() # type: ignore
+            self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
+            _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+            
+            infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+                .filter(c("slack_i_sq") > self.slack_threshold)
+            infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
+                .filter(c("slack_v_sq") > self.slack_threshold)
+            print(infeasible_i_sq)
+            if infeasible_i_sq.is_empty() & infeasible_v_sq.is_empty():
+                log.info(f"Master model solved in {k} iterations")
+                break
+            else:
+                if k <= max_iters:
+                    self.add_benders_cut(nb_iter = k)
 
         # prev_theta = None
         # for k in range(1, max_iters+1):
@@ -276,7 +297,7 @@ class DigAPlan():
         # Generate bender_cuts expression 
         theta = 0
         for data in bender_cuts.to_dicts():
-            theta += data["marginal_cost"] * data["factor"] * (data["d_variable"] - data["d"] )
+            theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
 
         # Add Bender cut to master model
         self.master_model_instance.add_component(f'theta_{nb_iter}', pyo.Var())
