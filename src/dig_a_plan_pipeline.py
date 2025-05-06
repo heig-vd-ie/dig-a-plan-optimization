@@ -73,6 +73,7 @@ class DigAPlan():
         self.master_solver = pyo.SolverFactory('gurobi')
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2
+        self.slave_solver.options["QCPDual"] = 1
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -145,7 +146,7 @@ class DigAPlan():
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
         # Attach dual suffix to slave model instance for shadow prices
-        self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT_EXPORT)
+        self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
@@ -204,16 +205,18 @@ class DigAPlan():
         # s = self.slave_model_instance
         # solver_m = self.master_solver
         # solver_s = self.slave_solver
-        for k in range(1, 3):
+        for k in range(1, 50):
             print(k)
             
 
-            _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
+            master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
+            print(master_results.solver.termination_condition)
             print("objective:", self.master_model_instance.objective())
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
+            master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
-            _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-            
+            slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+            print(slave_results.solver.termination_condition)
             infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
             infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
@@ -305,11 +308,11 @@ class DigAPlan():
             f'bender_cuts_{nb_iter}', 
             pyo.Constraint(expr=getattr(self.master_model_instance, f'theta_{nb_iter}')>= theta)
             )
-
+        bender_cut_factor = 1e0
         # update objective function
         self.master_model_instance.objective.set_value( # type: ignore
             expr=self.master_model_instance.objective.expr + # type: ignore
-            getattr(self.master_model_instance, f'theta_{nb_iter}')
+            bender_cut_factor* getattr(self.master_model_instance, f'theta_{nb_iter}')
             ) 
         
         

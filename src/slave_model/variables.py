@@ -24,7 +24,5 @@ def slave_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Slack variable for voltage drop constraints.
     model.slack_v_sq = pyo.Var(model.N, domain=pyo.NonNegativeReals)
     model.slack_i_sq = pyo.Var(model.LC, domain=pyo.NonNegativeReals)
-    # “d” will hold the d‐values coming from the master
-    model.d = pyo.Var(model.LC, bounds=(0,1))
     return model
     
