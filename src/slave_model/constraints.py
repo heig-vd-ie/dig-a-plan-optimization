@@ -5,12 +5,23 @@ r"""
 .. math::
     :label: distflow-initialization
     :nowrap:
-    
-    \begin{align} 
-        v_{i} &= \frac{v_{0}}{\tau_{0\, \to\, i}} \\
-        P^{up}_{z} &= \displaystyle\sum_{\Large{d\, \in\, N_i}} p^{\text{node}}_{d}\\
-        Q^{up}_{z} &= \displaystyle\sum_{\Large{d\, \in\, N_i}} q^{\text{node}}_{d}
+
+    \begin{align}
+        v_i &= \frac{v_0}{\tau_{0 \rightarrow i}} \\
+        P^{up}_{(l,i,j)} &= \sum_{d \in N_i} p^{\text{node}}_d \\
+        Q^{up}_{(l,i,j)} &= \sum_{d \in N_i} q^{\text{node}}_d
     \end{align}
+
+- The voltage at the reference node (slack bus) is fixed: :math:`v^2_0 = 1.0`.
+- Upstream active/reactive powers are initialized recursively based on the topology.
+
+Role of :math:`d^{master}_{(l,i,j)}` in slave model decomposition:
+
+
+- In the **master model**, :math:`d_{(l,i,j)}` is a binary variable that selects whether candidate branch :math:`(l,i,j)` is part of the network.
+- In the **slave model**, this value is passed as a fixed parameter :math:`d^{master}_{(l,i,j)}`.
+- When :math:`d_{(l,i,j)} = 0`, the corresponding branch is disabled: power flows are zero, voltage constraints are relaxed, and SOC constraints are deactivated.
+- This variable enables the decomposition of the overall problem into a master (topology planning) and a slave (power flow evaluation) problem.
 
 2. Power update
 ~~~~~~~~~~~~~~~~~~
@@ -18,120 +29,135 @@ r"""
 .. math::
     :label: distflow-power
     :nowrap:
-    
+
     \begin{align}
-        P_{z}^{\text{dn}}(l,i,j) &= -\,p_{\text{node}}(j)
-        - \sum_{\substack{(l',i',j') \\ i' = j,\; j' \neq i}} P_{z}^{\text{up}}(l',i',j'), \label{eq:active_balance} \\[1ex]
-        Q_{z}^{\text{dn}}(l,i,j) &= -\,q_{\text{node}}(j)
-        - \sum_{\substack{(l',i',j') \\ i' = j,\; j' \neq i}}
-        \Bigl( Q_{z}^{\text{up}}(l',i',j') + b(l')\,v_{j}^{2} \Bigr), \label{eq:reactive_balance} \\[1ex]
-        P_{z}^{\text{up}}(l,i,j) &= r(l)\,i^{2} - P_{z}^{\text{dn}}(l,i,j), \label{eq:active_flow} \\[1ex]
-        Q_{z}^{\text{up}}(l,i,j) &= x(l)\,i^{2} - Q_{z}^{\text{dn}}(l,i,j). \label{eq:reactive_flow}
+        P^{dn}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( -p_{j}^{\text{node}}
+        - \sum_{\substack{(l',i',j') \\ j'=i,\, i' \ne j}} P^{up}_{(l',i',j')} \right) \\[1ex]
+        Q^{dn}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( -q_{j}^{\text{node}}
+        - \sum_{\substack{(l',i',j') \\ j'=i,\, i' \ne j}} \left( Q^{up}_{(l',i',j')} + \frac{b(l')}{2} v_i^2 \right) \right) \\[1ex]
+        P^{up}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( r(l) \cdot i^2_{(l,i,j)} - P^{dn}_{(l,i,j)} \right) \\[1ex]
+        Q^{up}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( x(l) \cdot i^2_{(l,i,j)} - Q^{dn}_{(l,i,j)} \right)
     \end{align}
 
 
-3. Voltage update
-~~~~~~~~~~~~~~~~~~~~~
+3. Voltage Drop Across Branch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
-    :label: distflow-voltage
+    :label: voltage-drop
     :nowrap:
     
-    \begin{align} 
-        \Delta v_{i} & = -2\left(r(l)\,P_{z}^{\text{up}}(l,i,j) + x(l)\,Q_{z}^{\text{up}}(l,i,j)\right)
-        + \left(r(l)^{2} + x(l)^{2}\right)i^{2}
+    \begin{align}
 
+    \Delta v_{(l,i,j)} = -2 \cdot \left( r(l) \cdot P^{up}_{(l,i,j)} + x(l) \cdot Q^{up}_{(l,i,j)} \right)
+    + \left( r(l)^2 + x(l)^2 \right) \cdot i^2_{(l,i,j)}
+    
     \end{align}
 
-5. Rotated Second Order Cone (SOC) Constraint
+Voltage drop constraints are enforced using transformer tap ratios and big-M logic:
+
+.. math:: 
+    :label: voltage-drop
+    :nowrap:
+    
+    \begin{align}
+
+    \frac{v_i^2}{\tau_{(l,i,j)}^2} - \frac{v_j^2}{\tau_{(l,j,i)}^2} - \Delta v_{(l,i,j)} \in [-M(1-d^{master}_{(l,i,j)} ), M(1-d^{master}_{(l,i,j)} )]
+    
+    \end{align}
+    
+
+
+4. Rotated Second Order Cone (SOC) Constraint
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
-    :label: distflow-initialization-matrix
+    :label: distflow-rotated-cone-norm
     :nowrap:
-    
-    \begin{align} 
-        \left(2\,P_{z}^{\text{up}}(l,i,j)\right)^{2} + \left(2\,Q_{z}^{\text{up}}(l,i,j)\right)^{2}
-        + \Bigl(v_{i}^{2}-i^{2}\Bigr)^{2} \le \Bigl(v_{i}^{2}+i^{2}\Bigr)^{2}
 
-        
-    \end{align}
+    \begin{align*}
+        & v_{j}^2 + i_{(l,i,j)}^2 \ge 
+        \left\lVert
+        \begin{pmatrix}
+            2P^{\text{up}}_{(l,i,j)} \\
+            2Q^{\text{up}}_{(l,i,j)} \\
+            v_{j}^2 - i_{(l,i,j)}^2
+        \end{pmatrix}
+        \right\rVert_2
+    \end{align*}
 
 
-6. Objective: Minimize losses with penalties
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Resistive losses: In each branch (l,i,j), the real-power loss is:
 
+5. Objective: Minimize losses with penalties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The optimization aims to minimize total resistive losses while softly enforcing operational constraints on voltage and current magnitudes.
 
 .. math::
-    :label: distflow-voltage-matrix
+    :label: distflow-objective
     :nowrap:
-    
+
     \begin{align}
-        \text{Objective} = \sum_{(l,i,j)} r_l \cdot i^2_{l,ij} + v\_penalty + i\_penalty
+        \text{Objective} = \sum_{(l,i,j)} r_l \cdot i^2_{(l,i,j)}
+        + \lambda_v \cdot \sum_{n} \mathrm{slack}_{\text{v},n}^2
+        + \lambda_i \cdot \sum_{(l,i,j)} \mathrm{slack}_{i,(l,i,j)}^2
     \end{align}
 
 Where:
 
--    The first term, :math:`\sum r_l \cdot i^2_{l,ij}`, represents the total line (edge) losses, corresponding to Joule heating losses :math: `(P_{\text{loss}} = R \cdot I^2)` across all branches.
--   :math: The second and third terms, :math:`v\_penalty` and :math: `i\_penalty`, are regularization terms that encourage voltages and currents to remain within their prescribed limits.
+- The first term, :math:`\sum_{(l,i,j)} r_l \cdot i^2_{(l,i,j)}`, represents the total Joule heating losses in the network, i.e., :math:`P_{\text{loss}} = R \cdot I^2`.
+- The second and third terms penalize constraint violations using slack variables that allow small violations of voltage and current limits.
 
-Penalties terms
----------------
+Slack variables:
 
-They are penalty terms that "soften" the hard limits on voltage bounds and current limits in the model.
+- :math:`\mathrm{slack}_{\text{v},n}^2`: allows soft violation of voltage bounds at node :math:`n`.
+- :math:`\mathrm{slack}_{i,(l,i,j)}^2`: allows soft violation of current limits in branch :math:`(l,i,j)`.
 
-In theory:
+Penalty weights:
 
-- Voltage at each bus must stay between :math:`V_{\text{min}}` and :math:`V_{\text{max}}`.
-- Current in each branch must stay below :math:`I_{\text{max}}`.
+- :math:`\lambda_v`: penalty coefficient for voltage violations.
+- :math:`\lambda_i`: penalty coefficient for current violations.
 
-Thus, "slack variables" are introduced:
-
-- :math:`\texttt{slack\_v\_sq[n]}` allows small violations of the voltage constraints.
-- :math:`\texttt{slack\_i\_sq[l,i,j]}` allows small violations of the current constraints.
-
-Violating constraints must nevertheless be penalized heavily; otherwise, the solver could abuse these slacks to find easier but unrealistic solutions.
+These penalty terms ensure feasibility while strongly discouraging violations unless absolutely necessary.
 
 
-
-
-Let's consider nodes :math:`1`, :math:`2` and :math:`3` sequencly connected to the slack node :math:`0`. 
-The voltage level at node :math:`3`, calculated with reference to the slack node voltage, is given by the following expression:
+6. Current (Flow) Bounds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
-    :label: voltage_calculation_explanation
+    :label: current
     :nowrap:
     
-    \begin{align} 
-        \large{
-            \begin{cases}
-            v_{1} = \frac{v_{0}}{N_{1}^2} + dv_{1} \\
-            v_{2} = \frac{v_{1}}{N_{2}^2} + dv_{2} \\
-            v_{3} = \frac{v_{2}}{N_{3}^2} + dv_{3}
-            \end{cases}
-        } \Rightarrow v_{3} = \frac{v_{0}}{N_{1}^2 \cdot N_{2}^2 \cdot N_{3}^2} +  \frac{dv_{1}}{N_{2}^2 \cdot N_{3}^2} + \frac{dv_{2}}{N_{3}^2} + dv_{3} \\
-    \end{align}
+    \begin{align}
 
-Therefore, by recursive substitution, we can express the general voltage level for any node :math:`i` as:
+    i^2_{(l,i,j)} \le I^2_{\max,l} + \mathrm{slack}_{i,(l,i,j)}^2
+    
+    \end{align}
+    
+    
+7. Voltage Bounds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each node voltage squared must remain within limits:
 
 .. math::
-    :label: voltage-calculation-final
+    :label: Voltage Bounds 1
     :nowrap:
     
-    \begin{align} 
-        v_{i} = \frac{v_{0}}{\tau_{0\, \to\, i}} + \displaystyle\sum_{\Large{p \,\in\, P_0^i}} \frac{dv_{p}}{\tau_{p\, \to\, i}}
+    \begin{align}
+    v_n^2 \le v_{\text{max},n}^2 + \mathrm{slack_{\text{v},n}^2}
     \end{align}
-
-Where :math:`\tau_{p\, \to\, i}` is given by the following expression:
-
 .. math::
-    :label: tau-calculation
+    :label: Voltage Bounds 2
     :nowrap:
     
-    \begin{align} 
-        \tau_{p\, \to\, i} = \displaystyle\prod_{\Large{q \,\in\, P_p^i}} N_{q}^{2}
+    \begin{align}
+    v_n^2 \ge v_{\text{min},n}^2 - \mathrm{slack_{\text{v},n}^2}
     \end{align}
+
+
+
+
+
 
 """
 

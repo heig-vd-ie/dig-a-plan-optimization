@@ -1,7 +1,7 @@
 Name,Dimension,Description
-:math:`p_z^{\text{up}}`,3,Upstream active power flow 
-:math:`q_z^{\text{up}}`,3,Upstream reactive power flow 
-:math:`p_z^{\text{dn}}`,3,Downstream active power flow
-:math:`q_z^{\text{dn}}`,3,Downstream reactive power flow
-:math:`i_{\text{sq}}`,3,Squared current magnitude
-:math:`v_{\text{sq}}`,1,Squared voltage magnitude at each node
+:math:`p^{\text{up}}`,3,Upstream active power flow 
+:math:`q^{\text{up}}`,3,Upstream reactive power flow 
+:math:`p^{\text{dn}}`,3,Downstream active power flow
+:math:`q^{\text{dn}}`,3,Downstream reactive power flow
+:math:`i_{\text{l}}^{2}`,3,Squared current magnitude
+:math:`v_{\text{j}}^2`,1,Squared voltage magnitude at each node
