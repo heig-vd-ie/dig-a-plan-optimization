@@ -3,6 +3,8 @@ from polars import col as c
 import os
 os.environ["GRB_LICENSE_FILE"] = os.path.join(os.environ["HOME"], "gurobi_license", "gurobi.lic")
 
+import copy
+
 import pyomo.environ as pyo
 
 from pyomo.environ import Suffix
@@ -167,18 +169,22 @@ class DigAPlan():
     def solve_models_pipeline(self, max_iters: int, bender_cut_factor: float = 1e0) -> None:
 
         for k in range(max_iters):
-            print(k)
+            print(f"\n--- BENDERS ITERATION {k} ---")
             
 
             master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
-            print(master_results.solver.termination_condition)
+            print(" Master solve status:", master_results.solver.termination_condition)
             print("Master objective:", self.master_model_instance.objective())
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
             slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-            print(slave_results.solver.termination_condition)
+            print(" Slave solve status:", slave_results.solver.termination_condition)
+            
+            w = pyo.value(self.__slave_model_instance.objective)
+            print(" Slave infeasibility w:", w)
+            
             infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
             infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
@@ -190,6 +196,8 @@ class DigAPlan():
             else:
                 if k <= max_iters:
                     self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
+                    
+
 
             
     def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
@@ -255,7 +263,57 @@ class DigAPlan():
             bender_cut_factor* getattr(self.master_model_instance, f'theta_{nb_iter}')
             ) 
         
-        
+    def check_all_fd_duals(self, epsilon: float = 1e-6):
+        """
+        For every (l,i,j) in current_rotated_cone:
+        1) Solve slave to get objective1(f1) and dual mu.
+        2) Deep-copy and loosen that one SOC constraint rhs += epsilon.
+        3) Resolve to get objective2(f2), compute FD = (f2 - f1)/epsilon.
+        4) Report mu, FD, and relative error.
+        """
+        base = self.__slave_model_instance
+        # 1) Baseline solve
+        self.slave_solver.solve(base)
+        f1 = pyo.value(base.objective)
+
+        results = []
+        for idx in base.current_rotated_cone:
+            # 1a) read the dual on this SOC constraint
+            mu = base.dual[ base.current_rotated_cone[idx] ]
+
+            # 2) perturb only this constraint
+            pert = copy.deepcopy(base)
+            con: pyo.Constraint = pert.current_rotated_cone[idx]
+            # original: con.body <= con.upper()
+            orig_rhs = con.upper()
+            # loosen the RHS by +epsilon
+            con.set_value(expr=(con.body <= orig_rhs + epsilon))
+
+            # 3) re-solve perturbed
+            self.slave_solver.solve(pert)
+            f2 = pyo.value(pert.objective)
+
+            # 4) finite-difference
+            fd = (f2 - f1)#/epsilon
+            rel_err = ((fd - mu)/mu) if mu != 0 else None
+
+            results.append({
+                "l,i,j": idx,
+                "dual (μ)": mu,
+                "FD approx": fd,
+                "rel error": rel_err,
+            })
+
+        # 5) print a simple table
+        print(f"{'idx':>12} | {'dual':>10} | {'FD':>10} | {'rel err':>8}")
+        print("-"*50)
+        for r in results:
+            idx, mu, fd= r["l,i,j"], r["dual (μ)"], r["FD approx"],# r["rel error"]
+            print(f"{str(idx):>12} | {mu:10.4e} | {fd:10.4e} | ") #
+               # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
+
+        return results
+    
     def extract_switch_status(self) -> dict[str, bool]:
         switch_status = self.master_model_instance.delta.extract_values() # type: ignore
         return pl_to_dict(
