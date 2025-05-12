@@ -1,0 +1,7 @@
+Name,Description
+:math:`r`,Resistance for branch :math:`l`
+:math:`x`,Reactance for branch :math:`l`
+:math:`p_{i}`,Real power injection (or load) at bus :math:`i`
+:math:`q_{i}`,Reactive power injection (or load) at bus :math:`i`
+:math:`slack_\text{node}`,Index of the slack bus
+:math:`M`,Big-M constant used in voltage drop constraints

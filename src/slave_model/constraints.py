@@ -8,19 +8,19 @@ r"""
 
     \begin{align}
         v_i &= \frac{v_0}{\tau_{0 \rightarrow i}} \\
-        P^{up}_{(l,i,j)} &= \sum_{d \in N_i} p^{\text{node}}_d \\
-        Q^{up}_{(l,i,j)} &= \sum_{d \in N_i} q^{\text{node}}_d
+        P^{up}_{(l~i~j)} &= \sum_{d \in N_i} p^{\text{node}}_d \\
+        Q^{up}_{(l~i~j)} &= \sum_{d \in N_i} q^{\text{node}}_d
     \end{align}
 
 - The voltage at the reference node (slack bus) is fixed: :math:`v^2_0 = 1.0`.
 - Upstream active/reactive powers are initialized recursively based on the topology.
 
-Role of :math:`d^{master}_{(l,i,j)}` in slave model decomposition:
+Role of :math:`d^{master}_{(l~i~j)}` in slave model decomposition:
 
 
-- In the **master model**, :math:`d_{(l,i,j)}` is a binary variable that selects whether candidate branch :math:`(l,i,j)` is part of the network.
+- In the **master model**, :math:`d_{(l~i~j)}` is a binary variable that selects whether candidate branch :math:`(l~i~j)` is part of the network.
 - In the **slave model**, this value is passed as a fixed parameter :math:`d^{master}_{(l,i,j)}`.
-- When :math:`d_{(l,i,j)} = 0`, the corresponding branch is disabled: power flows are zero, voltage constraints are relaxed, and SOC constraints are deactivated.
+- When :math:`d_{(l~i~j)} = 0`, the corresponding branch is disabled: power flows are zero, voltage constraints are relaxed, and SOC constraints are deactivated.
 - This variable enables the decomposition of the overall problem into a master (topology planning) and a slave (power flow evaluation) problem.
 
 2. Power update
@@ -31,12 +31,12 @@ Role of :math:`d^{master}_{(l,i,j)}` in slave model decomposition:
     :nowrap:
 
     \begin{align}
-        P^{dn}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( -p_{j}^{\text{node}}
-        - \sum_{\substack{(l',i',j') \\ j'=i,\, i' \ne j}} P^{up}_{(l',i',j')} \right) \\[1ex]
-        Q^{dn}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( -q_{j}^{\text{node}}
-        - \sum_{\substack{(l',i',j') \\ j'=i,\, i' \ne j}} \left( Q^{up}_{(l',i',j')} + \frac{b(l')}{2} v_i^2 \right) \right) \\[1ex]
-        P^{up}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( r(l) \cdot i^2_{(l,i,j)} - P^{dn}_{(l,i,j)} \right) \\[1ex]
-        Q^{up}_{(l,i,j)} &= d^{master}_{(l,i,j)} \cdot \left( x(l) \cdot i^2_{(l,i,j)} - Q^{dn}_{(l,i,j)} \right)
+        P^{dn}_{(l~i~j)} &= d^{master}_{(l~i~j)} \cdot \left( -p_{j}^{\text{node}}
+        - \sum_{\substack{(l'~i'~j') \\ j'=i,\, i' \ne j}} P^{up}_{(l'~i'~j')} \right) \\[1ex]
+        Q^{dn}_{(l~i~j)} &= d^{master}_{(l~i~j)} \cdot \left( -q_{j}^{\text{node}}
+        - \sum_{\substack{(l'~i'~j') \\ j'=i,\, i' \ne j}} \left( Q^{up}_{(l'~i'~j')} + \frac{b(l')}{2} v_i \right) \right) \\[1ex]
+        P^{up}_{(l~i~j)} &= d^{master}_{(l~i~j)} \cdot \left( r(l) \cdot i_{(l~i~j)} - P^{dn}_{(l~i~j)} \right) \\[1ex]
+        Q^{up}_{(l~i~j)} &= d^{master}_{(l~i~j)} \cdot \left( x(l) \cdot i_{(l~i~j)} - Q^{dn}_{(l~i~j)} \right)
     \end{align}
 
 
@@ -49,20 +49,20 @@ Role of :math:`d^{master}_{(l,i,j)}` in slave model decomposition:
     
     \begin{align}
 
-    \Delta v_{(l,i,j)} = -2 \cdot \left( r(l) \cdot P^{up}_{(l,i,j)} + x(l) \cdot Q^{up}_{(l,i,j)} \right)
-    + \left( r(l)^2 + x(l)^2 \right) \cdot i^2_{(l,i,j)}
+    \Delta v_{(l~i~j)} = -2 \cdot \left( r(l) \cdot P^{up}_{(l~i~j)} + x(l) \cdot Q^{up}_{(l~i~j)} \right)
+    + \left( r(l)^2 + x(l)^2 \right) \cdot i_{(l~i~j)}
     
     \end{align}
 
 Voltage drop constraints are enforced using transformer tap ratios and big-M logic:
 
 .. math:: 
-    :label: voltage-drop
+    :label: voltage-drop1
     :nowrap:
     
     \begin{align}
 
-    \frac{v_i^2}{\tau_{(l,i,j)}^2} - \frac{v_j^2}{\tau_{(l,j,i)}^2} - \Delta v_{(l,i,j)} \in [-M(1-d^{master}_{(l,i,j)} ), M(1-d^{master}_{(l,i,j)} )]
+    \frac{v_i}{\tau_{(l~i~j)}} - \frac{v_j}{\tau_{(l~i~j)}} - \Delta v_{(l~i~j)} \in [-M(1-d^{master}_{(l~i~j)} ), M(1-d^{master}_{(l~i~j)} )]
     
     \end{align}
     
@@ -76,12 +76,12 @@ Voltage drop constraints are enforced using transformer tap ratios and big-M log
     :nowrap:
 
     \begin{align*}
-        & v_{j}^2 + i_{(l,i,j)}^2 \ge 
+        & v_{j} + i_{(l~i~j)} \ge 
         \left\lVert
         \begin{pmatrix}
-            2P^{\text{up}}_{(l,i,j)} \\
-            2Q^{\text{up}}_{(l,i,j)} \\
-            v_{j}^2 - i_{(l,i,j)}^2
+            2P^{\text{up}}_{(l~i~j)} \\
+            2Q^{\text{up}}_{(l~i~j)} \\
+            v_{j} - i_{(l~i~j)}
         \end{pmatrix}
         \right\rVert_2
     \end{align*}
@@ -97,20 +97,21 @@ The optimization aims to minimize total resistive losses while softly enforcing 
     :nowrap:
 
     \begin{align}
-        \text{Objective} = \sum_{(l,i,j)} r_l \cdot i^2_{(l,i,j)}
-        + \lambda_v \cdot \sum_{n} \mathrm{slack}_{\text{v},n}^2
-        + \lambda_i \cdot \sum_{(l,i,j)} \mathrm{slack}_{i,(l,i,j)}^2
+        \text{Objective} =\ 
+        \sum_{(l~i~j)} r_l \cdot i_{(l~i~j)}\ 
+        + \lambda_v \cdot \sum_{n} V_n^{\text{slack}}\
+        + \lambda_i \cdot \sum_{(l~i~j)} i_{(l~i~j)}^{\text{slack}}
     \end{align}
 
 Where:
 
-- The first term, :math:`\sum_{(l,i,j)} r_l \cdot i^2_{(l,i,j)}`, represents the total Joule heating losses in the network, i.e., :math:`P_{\text{loss}} = R \cdot I^2`.
+- The first term, :math:`\sum_{(l~i~j)} r_l \cdot i_{(l~i~j)}`, represents the total Joule heating losses in the network, i.e., :math:`P_{\text{loss}} = R \cdot I^2`.
 - The second and third terms penalize constraint violations using slack variables that allow small violations of voltage and current limits.
 
 Slack variables:
 
-- :math:`\mathrm{slack}_{\text{v},n}^2`: allows soft violation of voltage bounds at node :math:`n`.
-- :math:`\mathrm{slack}_{i,(l,i,j)}^2`: allows soft violation of current limits in branch :math:`(l,i,j)`.
+- :math:`V_n^{\text{slack}}`: allows soft violation of voltage bounds at node :math:`n`.
+- :math:`i_{(l~i~j)}^{\text{slack}}`: allows soft violation of current limits in branch :math:`(l~i~j)`.
 
 Penalty weights:
 
@@ -129,7 +130,7 @@ These penalty terms ensure feasibility while strongly discouraging violations un
     
     \begin{align}
 
-    i^2_{(l,i,j)} \le I^2_{\max,l} + \mathrm{slack}_{i,(l,i,j)}^2
+    i_{(l~i~j)} \le i_{\max,l} + i_{(l~i~j)}^{\text{slack}}
     
     \end{align}
     
@@ -144,14 +145,14 @@ Each node voltage squared must remain within limits:
     :nowrap:
     
     \begin{align}
-    v_n^2 \le v_{\text{max},n}^2 + \mathrm{slack_{\text{v},n}^2}
+    v_n \le v_{\text{max},n} + V_n^{\text{slack}}
     \end{align}
 .. math::
     :label: Voltage Bounds 2
     :nowrap:
     
     \begin{align}
-    v_n^2 \ge v_{\text{min},n}^2 - \mathrm{slack_{\text{v},n}^2}
+    v_n \ge v_{\text{min},n} - V_n^{\text{slack}}
     \end{align}
 
 

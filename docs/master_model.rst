@@ -32,7 +32,7 @@
 
 
 1.4. Constraints and Objective
----------------------
+-----------------------------------
 
 .. automodule:: master_model.constraints
    :no-index:

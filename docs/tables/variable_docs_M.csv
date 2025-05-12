@@ -1,0 +1,6 @@
+Name,Dimension,Description
+:math:`d`,3,Binary variable representing line reinforcement or status decisions
+:math:`\delta`,1,Binary variable representing switch states
+:math:`p_{\text{flow}}`,3,Real-valued variable for active power flow on lines
+:math:`q_{\text{flow}}`,3,Real-valued variable for reactive power flow on lines
+:math:`\Theta`,1,Scalar non-negative variable for Benders decomposition

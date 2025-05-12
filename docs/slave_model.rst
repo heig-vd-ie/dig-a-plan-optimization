@@ -35,7 +35,7 @@ The slack bus (or reference bus) is used to set the overall voltage level of the
 
 
 2.4. Constraints and Objective
----------------------
+----------------------------------
 
 .. automodule:: slave_model.constraints
    :no-index:

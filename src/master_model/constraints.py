@@ -1,3 +1,107 @@
+r"""
+1. Initialization
+~~~~~~~~~~~~~~~~~~~~~
+
+This section describes the optimization model used in the **master problem**, which selects the network topology and flow variables. 
+The objective is to minimize resistive losses and a Benders auxiliary variable.
+
+2. Orientation Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For each branch :math:`l`, the master model ensures that:
+
+- If :math:`l` is switchable, it is active only when one of its associated candidate connections is selected.
+
+- If :math:`l` is non-switchable, one candidate connection must be active.
+
+.. math::
+    :label: master-orientation
+    :nowrap:
+
+    \begin{align}
+        \sum_{(l~i~j)} d_{(l~i~j)} = 
+        \begin{cases}
+            \delta_l & \text{if } l \in S \\
+            1 & \text{otherwise}
+        \end{cases}
+    \end{align}
+
+3. Power Flow
+~~~~~~~~~~~~~~~
+
+The real and reactive power flows are restricted using Big-M logic:
+
+.. math::
+    :label: master-flow-limits
+    :nowrap:
+
+    \begin{align}
+        -M \cdot d_{(l~i~j)} &\le p_{(l~i~j)} \le M \cdot d_{(l~i~j)} \\
+        -M \cdot d_{(l~i~j)} &\le q_{(l~i~j)} \le M \cdot d_{(l~i~j)}
+    \end{align}
+
+These bounds ensure that when :math:`d_{(l~i~j)} = 0`, the flow is forced to zero.
+
+    
+
+
+4. Power Balance Constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For each bus :math:`n \ne \text{slack}`:
+
+.. math::
+    :label: master-balance
+    :nowrap:
+
+    \begin{align}
+        \sum_{(l~a~b):\, b=n} p_{(l~a~b)} - \sum_{(l~a~b):\, a=n} p_{(l~a~b)} &= p_n^{\text{node}} \\
+        \sum_{(l~a~b):\, b=n} q_{(l~a~b)} - \sum_{(l~a~b):\, a=n} q_{(l~a~b)} &= q_n^{\text{node}}
+    \end{align}
+
+
+
+
+5. Radiality Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~
+Each non-slack node must have **exactly one** incoming active branch. For the slack node, this value is zero:
+
+.. math::
+    :label: master-radiality
+    :nowrap:
+
+    \begin{align}
+        \sum_{(l~a~b):\, b = n} d_{(l~a~b)} =
+        \begin{cases}
+            0 & \text{if } n = \text{slack node} \\
+            1 & \text{otherwise}
+        \end{cases}
+    \end{align}
+
+
+6. Objective Function
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: master-objective
+    :nowrap:
+
+    \begin{align}
+        \min \sum_{(l~i~j)} r_l \cdot \left( p_{(l~i~j)}^2 + q_{(l~i~j)}^2 \right) + \Theta
+    \end{align}
+
+- The first term represents approximate losses across all branches.
+
+- :math:`\Theta` is an auxiliary variable for Benders decomposition (used to include slave model costs).
+
+
+
+
+
+
+"""
+
+
 # constraints.py
 import pyomo.environ as pyo
 from pyomo.environ import ConstraintList
