@@ -136,7 +136,7 @@ Updates objective:
 
 .. math::
 
-    \min \text{original objective} + \text{bender_cut_factor} \cdot \theta_k
+    \min(\text{original objective} + \text{bender_cut_factor} \cdot \theta_k)
 
 
 
