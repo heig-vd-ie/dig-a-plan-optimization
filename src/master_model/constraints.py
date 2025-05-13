@@ -55,8 +55,8 @@ For each bus :math:`n \ne \text{slack}`:
     :nowrap:
 
     \begin{align}
-        \sum_{(l~a~b):\, b=n} p_{(l~a~b)} - \sum_{(l~a~b):\, a=n} p_{(l~a~b)} &= p_n^{\text{node}} \\
-        \sum_{(l~a~b):\, b=n} q_{(l~a~b)} - \sum_{(l~a~b):\, a=n} q_{(l~a~b)} &= q_n^{\text{node}}
+        \sum_{(l~i~j):\, j=n} p_{(l~i~j)} - \sum_{(l~i~j):\, i=n} p_{(l~i~j)} &= p_n^{\text{node}} \\
+        \sum_{(l~i~j):\, j=n} q_{(l~i~j)} - \sum_{(l~i~j):\, i=n} q_{(l~i~j)} &= q_n^{\text{node}}
     \end{align}
 
 
@@ -71,7 +71,7 @@ Each non-slack node must have **exactly one** incoming active branch. For the sl
     :nowrap:
 
     \begin{align}
-        \sum_{(l~a~b):\, b = n} d_{(l~a~b)} =
+        \sum_{(l~i~j):\, j = n} d_{(l~i~j)} =
         \begin{cases}
             0 & \text{if } n = \text{slack node} \\
             1 & \text{otherwise}
