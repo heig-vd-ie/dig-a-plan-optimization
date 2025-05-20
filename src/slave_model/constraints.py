@@ -166,7 +166,8 @@ import pyomo.environ as pyo
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
-    model.slack_voltage = pyo.Constraint(rule=slack_voltage_rule)
+    # model.slack_voltage = pyo.Constraint(rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
     model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
     model.active_power_flow = pyo.Constraint(model.LC, rule=active_power_flow_rule)
@@ -187,8 +188,14 @@ def objective_rule(m):
     return edge_losses + v_penalty + i_penalty
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
-def slack_voltage_rule(m):
-    return m.v_sq[m.slack_node] == m.slack_node_v_sq
+# def slack_voltage_rule(m):
+#     return m.v_sq[m.slack_node] == m.slack_node_v_sq
+def slack_voltage_rule(m, n):
+    if n == pyo.value(m.slack_node):
+        return m.v_sq[n] == m.slack_node_v_sq
+    return pyo.Constraint.Skip
+
+
     # return m.v_sq[m.slack_node] == m.slack_voltage
 
 # (32 Node Power Balance (Real) for candidate (l,i,j).

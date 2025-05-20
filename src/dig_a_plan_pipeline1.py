@@ -50,8 +50,7 @@ def generate_slave_model() -> pyo.AbstractModel:
     slave_model = slave_model_variables(slave_model)
     slave_model = slave_model_constraints(slave_model)
     slave_model.dual = Suffix(direction=Suffix.IMPORT)
-    #add fix_d list
-    # slave_model.fix_d = pyo.ConstraintList()
+
     return slave_model
 
 class DigAPlan():
@@ -195,78 +194,7 @@ class DigAPlan():
         else:
             print("Reached max_iters without full convergence.")
             
-    # def add_benders_cut(self, nb_iter: int, bender_cut_factor: float = 1.0) -> None:
-    #     # 1) get slave infeasibility (total slack) from last iteration
-    #     w = pyo.value(self.slave_model_instance.objective)
 
-    #     # 2) extract relevant dual values into a DataFrame as before
-    #     constraint_name_list = [
-    #         "node_active_power_balance", 
-    #         "node_reactive_power_balance",
-    #         "active_power_flow",
-    #         "reactive_power_flow",
-    #         "voltage_drop_lower",
-    #         "voltage_drop_upper",
-    #         "current_rotated_cone"
-    #     ]
-    #     bender_cuts = pl.DataFrame({
-    #             "name": list(dict(self.slave_model_instance.dual).keys()),  # type: ignore
-    #             "marginal_cost": list(dict(self.slave_model_instance.dual).values())  # type: ignore
-    #         })
-    #     # clean names & filter
-    #     bender_cuts = (
-    #         bender_cuts
-    #         .with_columns(
-    #             c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
-    #             pl.when(c("marginal_cost").abs() <= 1e-8).then(0.0).otherwise(c("marginal_cost")).alias("marginal_cost")
-    #         )
-    #         .with_columns(
-    #             c("name").pipe(modify_string_col, format_str={"]":""})
-    #                     .str.split("[").list.to_struct(fields=["name","index"])
-    #         )
-    #         .unnest("name")
-    #         .filter(c("name").is_in(constraint_name_list))
-    #         .with_columns(
-    #             c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l","i","j"])
-    #         )
-    #         .unnest("index")
-    #         .group_by(["l","i","j"]).agg(c("marginal_cost").sum())
-    #         .sort(["l","i","j"])
-    #     )
-    #     # extract master d-values and factors
-    #     master_d = (
-    #         extract_optimization_results(self.master_model_instance, "d")
-    #         .with_columns(
-    #             pl.when(c("d").abs()==0).then(-1.0).otherwise(1.0).alias("factor"),
-    #             c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-    #         )
-    #     )
-    #     master_d_var = (
-    #         pl.DataFrame(self.master_model_instance.d.items(), schema=["LC","d_var"])
-    #         .with_columns(c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
-    #     )
-    #     # join
-    #     cuts = (
-    #         bender_cuts
-    #         .with_columns(pl.concat_list(["l","i","j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
-    #         .join(master_d, on="LC").join(master_d_var, on="LC")
-    #         .filter(c("marginal_cost")!=0.0)
-    #     )
-    #     # 3) build sum_term = Σ π * factor * (d - d_k)
-    #     sum_term = 0
-    #     for row in cuts.to_dicts():
-    #         l,i,j = row["l"], row["i"], row["j"]
-    #         pi = row["marginal_cost"]
-    #         factor = row["factor"]
-    #         d_k = row["d_var"]
-    #         sum_term += pi * factor * (
-    #             self.master_model_instance.d[l,i,j] - d_k
-    #         )
-    #     # 4) form full feasibility cut: Theta >= w + sum_term
-    #     cut_expr = self.master_model_instance.Theta >= w + sum_term
-
-    #     # 5) add to the existing ConstraintList
-    #     self.master_model_instance.benders_cuts.add(cut_expr)
     
     
     def add_benders_cut(self, nb_iter: int, bender_cut_factor: float = 1.0) -> None:

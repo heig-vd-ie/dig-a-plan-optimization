@@ -8,16 +8,22 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.p_node = pyo.Param(model.N)         # Real node at bus i.
     model.q_node = pyo.Param(model.N)         # Reactive load at bus i.
     model.i_max = pyo.Param(model.L) # Minimum current (p.u.)    
-    model.v_min = pyo.Param(model.N) # Minimum voltage (p.u.)
-    model.v_max = pyo.Param(model.N) # Maximum voltage (p.u.)
+    # model.v_min = pyo.Param(model.N) # Minimum voltage (p.u.)
+    # model.v_max = pyo.Param(model.N) # Maximum voltage (p.u.)
+    # Soft defaults for voltage limits if none are passed in:
+    model.v_min = pyo.Param(model.N,   default=0.95,  mutable=True)
+    model.v_max = pyo.Param(model.N,   default=1.05,  mutable=True)
     # master_d is defined over LF: 1 if candidate is active, else 0.
     model.master_d = pyo.Param(model.LC, default= 0, mutable=True)
     
     model.slack_node_v_sq = pyo.Param()             # Slack bus voltage (p.u.)
     model.slack_node = pyo.Param()                  # Slack bus index.
     
-    model.big_m = pyo.Param()                        # Big-M constant.
-    model.v_penalty_cost = pyo.Param()
-    model.i_penalty_cost  = pyo.Param()
+
     
+    # Big-M and penalty costs: give safe defaults and allow mutation
+    model.big_m          = pyo.Param(initialize=0.0, mutable=True)
+    model.v_penalty_cost = pyo.Param(initialize=0.0, mutable=True)
+    model.i_penalty_cost = pyo.Param(initialize=0.0, mutable=True)
+
     return model
