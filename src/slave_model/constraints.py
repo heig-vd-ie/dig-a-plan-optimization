@@ -185,9 +185,10 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     
 
 def objective_rule(m):
-    edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    # edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    edge_losses = sum(m.i_sq[l, i, j] for (l, i, j) in m.LC)
     v_penalty = m.v_penalty_cost * sum(m.slack_v_sq[n] for n in m.N)
-    i_penalty = m.v_penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    i_penalty = m.i_penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
     return edge_losses + v_penalty + i_penalty
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.

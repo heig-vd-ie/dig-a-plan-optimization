@@ -139,7 +139,7 @@ def master_obj(m):
         m.r[l] * (m.p_flow[l, a, b]**2 + m.q_flow[l, a, b]**2)
         for (l, a, b) in m.LC
     )
-    return base_losses + m.Theta
+    return base_losses
 
 # Orientation constraint.
 def orientation_rule(m, l):

@@ -292,7 +292,7 @@ class DigAPlan():
         for r in results:
             idx, mu, fd= r["l,i,j"], r["dual (μ)"], r["FD approx"],# r["rel error"]
             print(f"{str(idx):>12} | {mu:10.4e} | {fd:10.4e} | ") #
-               # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
+            # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
 
         return results 
         

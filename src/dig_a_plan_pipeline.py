@@ -64,6 +64,7 @@ class DigAPlan():
         self.slack_threshold: float = slack_threshold
         self.v_penalty_cost: float = v_penalty_cost
         self.i_penalty_cost: float = i_penalty_cost
+        self.marginal_cost: pl.DataFrame
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
@@ -180,25 +181,38 @@ class DigAPlan():
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
             slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-            print(" Slave solve status:", slave_results.solver.termination_condition)
-            
+            print("Slave objective:", self.slave_model_instance.objective())
             w = pyo.value(self.__slave_model_instance.objective)
-            print(" Slave infeasibility w:", w)
+        
             
-            infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+            self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
-            infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
+            self.infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
                 .filter(c("slack_v_sq") > self.slack_threshold)
-            print(infeasible_i_sq)
-            if infeasible_i_sq.is_empty() & infeasible_v_sq.is_empty():
+            print(self.infeasible_i_sq)
+            if self.infeasible_i_sq.is_empty() & self.infeasible_v_sq.is_empty():
                 log.info(f"Master model solved in {k} iterations")
                 break
             else:
                 if k <= max_iters:
+                    self.calculate_marginal_costs()
                     self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
                     
 
-
+    def calculate_marginal_costs(self) -> None:
+        self.marginal_cost = pl.DataFrame({
+                "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
+                "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
+            }).with_columns(
+                c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
+                pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
+            ).with_columns(
+                c("name").pipe(modify_string_col, format_str= {"]":""}).str.split("[").list.to_struct(fields=["name", "index"])
+            ).unnest("name")\
+            .with_columns(
+                c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
+            ).unnest("index")
+        
             
     def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
         constraint_name_list = [
@@ -210,22 +224,7 @@ class DigAPlan():
             "voltage_drop_upper",
             "current_rotated_cone"
         ]
-        # Extract dual values from slave model
-        bender_cuts = pl.DataFrame({
-                "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
-                "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
-            }).with_columns(
-                c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
-                pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
-            ).with_columns(
-                c("name").pipe(modify_string_col, format_str= {"]":""}).str.split("[").list.to_struct(fields=["name", "index"])
-            ).unnest("name").filter(c("name").is_in(constraint_name_list))\
-            .with_columns(
-                c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
-            ).unnest("index").group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
-            .with_columns(
-                pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-            )
+        
         # Extract d results from master model
         master_d_results = extract_optimization_results(self.master_model_instance, "d")\
             .with_columns(
@@ -239,17 +238,38 @@ class DigAPlan():
             ).with_columns(
                 c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
             )
-        # Join bender_cuts with master_d_results and master_d_variable
-        bender_cuts = bender_cuts\
+        # Extract optimality_cuts from slave model
+        optimality_cuts = self.marginal_cost.filter(c("name").is_in(constraint_name_list))\
+            .group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
+            .with_columns(
+                pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+            )
+        # Join optimality_cuts with master_d_results and master_d_variable
+        optimality_cuts = optimality_cuts\
             .join(master_d_results, on="LC", how="inner")\
             .join(master_d_variable, on="LC", how="inner")\
             .filter(c("marginal_cost") != 0.0).sort("l")
         
+        index_list = self.infeasible_i_sq.with_columns(
+            c("LC").cast(pl.List(pl.Utf8)).list.join(",")
+        )["LC"].to_list()
+
+        feasibility_cuts = self.marginal_cost.filter(c("name") == "current_limit").with_columns(
+            pl.concat_list("l", "i", "j").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+        ).filter(c("LC").is_in(index_list))
+        
+        feasibility_cuts = feasibility_cuts\
+            .join(master_d_results, on="LC", how="inner")\
+            .join(master_d_variable, on="LC", how="inner")\
+            .filter(c("marginal_cost") != 0.0).sort("l")
         # Generate bender_cuts expression 
         theta = 0
-        for data in bender_cuts.to_dicts():
+        for data in optimality_cuts.to_dicts():
             theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
-
+        
+        for data in feasibility_cuts.to_dicts():
+            theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
+        
         # Add Bender cut to master model
         self.master_model_instance.add_component(f'theta_{nb_iter}', pyo.Var())
         self.master_model_instance.add_component(
@@ -310,7 +330,7 @@ class DigAPlan():
         for r in results:
             idx, mu, fd= r["l,i,j"], r["dual (μ)"], r["FD approx"],# r["rel error"]
             print(f"{str(idx):>12} | {mu:10.4e} | {fd:10.4e} | ") #
-               # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
+            # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
 
         return results
     
