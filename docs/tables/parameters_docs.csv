@@ -8,6 +8,6 @@ Name,Description
 :math:`v_{\min}`,Minimum voltage level (per unit) at bus :math:`i`
 :math:`v_{\max}`,Maximum voltage level (per unit) at bus :math:`i`
 :math:`d^{\text{master}}`,Binary indicator: 1 if active and for notactive 0  
-:math:`v_{\text{slack}}^{2}`,Squared slack bus voltage (per unit)
+:math:`v_{\text{slack}}`,Squared slack bus voltage (per unit)
 :math:`\text{slack node}`,Index of the slack bus
 :math:`M`,Big-M constant used in voltage drop constraints

@@ -5,7 +5,22 @@ r"""
 This section describes the optimization model used in the **master problem**, which selects the network topology and flow variables. 
 The objective is to minimize resistive losses and a Benders auxiliary variable.
 
-2. Orientation Constraint
+2. Objective Function
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. math::
+    :label: master-objective
+    :nowrap:
+
+    \begin{align}
+        \min \sum_{l~i~j} r_l \cdot \left( p_{l~i~j}^2 + q_{l~i~j}^2 \right) + \Theta
+    \end{align}
+
+- The first term represents approximate losses across all branches.
+
+- :math:`\Theta` is an auxiliary variable for Benders decomposition (used to include slave model costs).
+
+3. Orientation Constraint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each branch :math:`l`, the master model ensures that:
@@ -19,14 +34,14 @@ For each branch :math:`l`, the master model ensures that:
     :nowrap:
 
     \begin{align}
-        \sum_{(l~i~j)} d_{(l~i~j)} = 
+        d_{l~i~j} + d_{l~j~i} = 
         \begin{cases}
             \delta_l & \text{if } l \in S \\
             1 & \text{otherwise}
         \end{cases}
     \end{align}
 
-3. Power Flow
+4. Power Flow
 ~~~~~~~~~~~~~~~
 
 The real and reactive power flows are restricted using Big-M logic:
@@ -36,16 +51,16 @@ The real and reactive power flows are restricted using Big-M logic:
     :nowrap:
 
     \begin{align}
-        -M \cdot d_{(l~i~j)} &\le p_{(l~i~j)} \le M \cdot d_{(l~i~j)} \\
-        -M \cdot d_{(l~i~j)} &\le q_{(l~i~j)} \le M \cdot d_{(l~i~j)}
+        -M \cdot d_{l~i~j} &\le p_{l~i~j} \le M \cdot d_{l~i~j} \\
+        -M \cdot d_{l~i~j} &\le q_{l~i~j} \le M \cdot d_{l~i~j}
     \end{align}
 
-These bounds ensure that when :math:`d_{(l~i~j)} = 0`, the flow is forced to zero.
+These bounds ensure that when :math:`d_{l~i~j} = 0`, the flow is forced to zero.
 
     
 
 
-4. Power Balance Constraints
+5. Power Balance Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each bus :math:`n \ne \text{slack}`:
@@ -55,14 +70,14 @@ For each bus :math:`n \ne \text{slack}`:
     :nowrap:
 
     \begin{align}
-        \sum_{(l~i~j):\, j=n} p_{(l~i~j)} - \sum_{(l~i~j):\, i=n} p_{(l~i~j)} &= p_n^{\text{node}} \\
-        \sum_{(l~i~j):\, j=n} q_{(l~i~j)} - \sum_{(l~i~j):\, i=n} q_{(l~i~j)} &= q_n^{\text{node}}
+        \sum_{l~i~j:\, j=n} p_{l~i~j} - \sum_{l~i~j:\, i=n} p_{l~i~j} &= p_n^{\text{node}} \\
+        \sum_{l~i~j:\, j=n} q_{l~i~j} - \sum_{l~i~j:\, i=n} q_{l~i~j} &= q_n^{\text{node}}
     \end{align}
 
 
 
 
-5. Radiality Constraint
+6. Radiality Constraint
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Each non-slack node must have **exactly one** incoming active branch. For the slack node, this value is zero:
 
@@ -71,7 +86,7 @@ Each non-slack node must have **exactly one** incoming active branch. For the sl
     :nowrap:
 
     \begin{align}
-        \sum_{(l~i~j):\, j = n} d_{(l~i~j)} =
+        \sum_{l~i~j:\, j = n} d_{l~i~j} =
         \begin{cases}
             0 & \text{if } n = \text{slack node} \\
             1 & \text{otherwise}
@@ -79,20 +94,7 @@ Each non-slack node must have **exactly one** incoming active branch. For the sl
     \end{align}
 
 
-6. Objective Function
-~~~~~~~~~~~~~~~~~~~~~~
 
-.. math::
-    :label: master-objective
-    :nowrap:
-
-    \begin{align}
-        \min \sum_{(l~i~j)} r_l \cdot \left( p_{(l~i~j)}^2 + q_{(l~i~j)}^2 \right) + \Theta
-    \end{align}
-
-- The first term represents approximate losses across all branches.
-
-- :math:`\Theta` is an auxiliary variable for Benders decomposition (used to include slave model costs).
 
 
 

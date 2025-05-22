@@ -3,5 +3,5 @@ Name,Dimension,Description
 :math:`q^{\text{up}}`,3,Upstream reactive power flow 
 :math:`p^{\text{dn}}`,3,Downstream active power flow
 :math:`q^{\text{dn}}`,3,Downstream reactive power flow
-:math:`i_{\text{l}}^{2}`,3,Squared current magnitude
-:math:`v_{\text{j}}^2`,1,Squared voltage magnitude at each node
+:math:`i_{\text{l}}`,3,Squared current magnitude
+:math:`v_{\text{j}}`,1,Squared voltage magnitude at each node

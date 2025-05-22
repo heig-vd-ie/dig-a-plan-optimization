@@ -1,0 +1,3 @@
+Name,Description
+:math:`d^k_{l~i~j}`,Binary indicator for column :math:`k` representing the status of connection :math:`(l~ i~ j)`
+:math:`\text{cost}_k`,Cost parameter associated with column :math:`k`
