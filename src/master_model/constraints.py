@@ -122,24 +122,17 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     
     # ——— Benders cut containers ————————————————
-    model.benders_cuts = pyo.Constraint(model.LC, rule=benders_cuts_rule)
+    model.benders_cuts = pyo.Constraint(rule=benders_cuts_rule)
     
     return model
 
-# Objective function: minimize approximate losses weighted by line resistances.
-# def objective_rule(m):
-#     return sum(
-#         m.r[l] * (m.p_flow[l, a, b]**2 + m.q_flow[l, a, b]**2)
-#         for (l, a, b) in m.LC
-#     )
-
-# Objective: approximate losses + Benders auxiliary Theta
+# Objective: approximate losses + Benders cuts
 def master_obj(m):
     base_losses = sum(
         m.r[l] * (m.p_flow[l, a, b]**2 + m.q_flow[l, a, b]**2)
         for (l, a, b) in m.LC
     )
-    return base_losses
+    return base_losses + m.theta
 
 # Orientation constraint.
 def orientation_rule(m, l):
@@ -186,7 +179,7 @@ def radiality_rule(m, n):
     else:
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
 
-def benders_cuts_rule(m, l, i, j):
+def benders_cuts_rule(m):
     # Benders cuts: if the candidate is not selected, the flow must be zero.
-    return m.theta[l, i, j] >= m.slave_obj + m.maginal_cost[l, i, j] - m.big_m * (1 - m.d[l, i, j])
+    return m.theta >= m.slave_objective + sum(m.marginal_cost[l, i, j] * (m.previous_d[l, i, j] - m.d[l, i, j]) for (l, i, j) in m.LC)
     

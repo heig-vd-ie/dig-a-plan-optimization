@@ -64,7 +64,9 @@ class DigAPlan():
         self.big_m: float = big_m
         self.slack_threshold: float = slack_threshold
         self.penalty_cost: float = penalty_cost
-        self.marginal_cost: pl.DataFrame
+        self.marginal_cost: pl.DataFrame = pl.DataFrame()
+        self.marginal_cost_fun: pl.DataFrame = pl.DataFrame()
+        self.d: pl.DataFrame = pl.DataFrame()
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
@@ -178,10 +180,22 @@ class DigAPlan():
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
+            master_ds_df = pl.DataFrame({
+                    "LC": list(master_ds.keys()),
+                    str(k): list(master_ds.values())
+                }).with_columns(
+                    c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+                ).sort("LC")
+            if self.d.is_empty():
+                self.d = master_ds_df
+            else:
+                self.d = self.d.join(master_ds_df, on="LC", how="inner")
+            
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
+            self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
+            
             slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
             print("Slave objective:", self.slave_model_instance.objective()) # type: ignore
-            w = pyo.value(self.__slave_model_instance.objective)
         
             
             self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
@@ -189,31 +203,35 @@ class DigAPlan():
             # self.infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
             #     .filter(c("slack_v_sq") > self.slack_threshold)
             
-            infeas_pos = (
-                extract_optimization_results(self.slave_model_instance, "slack_v_pos")
-                .filter(c("slack_v_pos") > self.slack_threshold)
-                .with_columns(pl.lit("pos").alias("dir"))
-            )
-            # grab all nodes that violated the lower bound
-            infeas_neg = (
-                    extract_optimization_results(self.slave_model_instance, "slack_v_neg")
-                    .filter(c("slack_v_neg") > self.slack_threshold)
-                    .with_columns(pl.lit("neg").alias("dir"))
-            )
-            # union them into one table
-            self.infeasible_v_sq = pl.concat([infeas_pos, infeas_neg], how="vertical")
+            # infeas_pos = (
+            #     extract_optimization_results(self.slave_model_instance, "slack_v_pos")
+            #     .filter(c("slack_v_pos") > self.slack_threshold)
+            #     .with_columns(pl.lit("pos").alias("dir"))
+            # )
+            # # grab all nodes that violated the lower bound
+            # infeas_neg = (
+            #         extract_optimization_results(self.slave_model_instance, "slack_v_neg")
+            #         .filter(c("slack_v_neg") > self.slack_threshold)
+            #         .with_columns(pl.lit("neg").alias("dir"))
+            # )
+            # # union them into one table
+            # self.infeasible_v_sq = pl.concat([infeas_pos, infeas_neg], how="vertical")
             print(self.infeasible_i_sq)
-            if self.infeasible_i_sq.is_empty() & self.infeasible_v_sq.is_empty():
-                log.info(f"Master model solved in {k} iterations")
-                break
-            else:
-                if k <= max_iters:
-                    self.calculate_marginal_costs()
-                    self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
+            # if self.infeasible_i_sq.is_empty() & self.infeasible_v_sq.is_empty():
+            #     log.info(f"Master model solved in {k} iterations")
+            #     break
+            # else:
+            #     if k <= max_iters:
+            #         self.calculate_marginal_costs()
+            
+            self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
+            self.master_model_instance.slave_objective.store_values({None: self.slave_model_instance.objective()}) # type: ignore
+            self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
+            self.calculate_marginal_costs()
                     
 
     def calculate_marginal_costs(self) -> None:
-        self.marginal_cost = pl.DataFrame({
+        self.marginal_cost_fun = pl.DataFrame({
                 "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
                 "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
             }).with_columns(
@@ -225,73 +243,116 @@ class DigAPlan():
             .with_columns(
                 c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
             ).unnest("index")
+    
+    def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
+        constraint_dict = {
+            "neg_node_active_power_balance": 1, 
+            "pos_node_active_power_balance": -1,
+            "neg_node_reactive_power_balance": 1, 
+            "pos_node_reactive_power_balance": -1,
+            "voltage_drop_lower": 1,
+            "voltage_drop_upper": -1,
+        }
+        
+        
+        
+        marginal_cost_df = pl.DataFrame({
+                "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
+                "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
+            }).with_columns(
+                c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
+                pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
+            ).with_columns(
+                c("name").pipe(modify_string_col, format_str= {"]":""}).str.split("[").list.to_struct(fields=["name", "index"])
+            ).unnest("name").filter(c("name").is_in(constraint_dict.keys()))\
+            .with_columns(
+                (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
+                c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
+            ).unnest("index")\
+            .group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
+            .with_columns(pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
+        if self.marginal_cost.is_empty():
+            self.marginal_cost = marginal_cost_df.select("LC", c("marginal_cost").alias(str(nb_iter)))
+        else:
+            self.marginal_cost = self.marginal_cost.join(
+                marginal_cost_df.select("LC", c("marginal_cost").alias(str(nb_iter))), on="LC", how="inner")
         
             
-    def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
-        constraint_name_list = [
-            "node_active_power_balance", 
-            "node_reactive_power_balance",
-            "voltage_drop_lower",
-            "voltage_drop_upper",
-        ]
-        
+        self.master_model_instance.marginal_cost.store_values(  # type: ignore
+            pl_to_dict_with_tuple(marginal_cost_df.select(pl.concat_list(["l", "i", "j"]), "marginal_cost")))
+            
         # Extract d results from master model
-        master_d_results = extract_optimization_results(self.master_model_instance, "d")\
-            .with_columns(
-                pl.when(c("d").abs() == 0).then(pl.lit(-1.0)).otherwise(pl.lit(1.0)).alias("factor"),
-                c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-            )
-        # Extract d variable from master model
-        master_d_variable = pl.DataFrame(
-            self.master_model_instance.d.items(), # type: ignore
-            schema=["LC", "d_variable"]
-            ).with_columns(
-                c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-            )
-        # Extract optimality_cuts from slave model
-        optimality_cuts = self.marginal_cost.filter(c("name").is_in(constraint_name_list))\
-            .group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
-            .with_columns(
-                pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-            )
-        # Join optimality_cuts with master_d_results and master_d_variable
-        optimality_cuts = optimality_cuts\
-            .join(master_d_results, on="LC", how="inner")\
-            .join(master_d_variable, on="LC", how="inner")\
-            .filter(c("marginal_cost") != 0.0).sort("l")
+        # master_d_results = extract_optimization_results(self.master_model_instance, "d")\
+        #     .with_columns(
+        #         c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+        #     )
         
-        index_list = self.infeasible_i_sq.with_columns(
-            c("LC").cast(pl.List(pl.Utf8)).list.join(",")
-        )["LC"].to_list()
+            
+    # def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
+    #     constraint_name_list = [
+    #         "node_active_power_balance", 
+    #         "node_reactive_power_balance",
+    #         "voltage_drop_lower",
+    #         "voltage_drop_upper",
+    #     ]
+        
+    #     # Extract d results from master model
+    #     master_d_results = extract_optimization_results(self.master_model_instance, "d")\
+    #         .with_columns(
+    #             pl.when(c("d").abs() == 0).then(pl.lit(-1.0)).otherwise(pl.lit(1.0)).alias("factor"),
+    #             c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+    #         )
+    #     # Extract d variable from master model
+    #     master_d_variable = pl.DataFrame(
+    #         self.master_model_instance.d.items(), # type: ignore
+    #         schema=["LC", "d_variable"]
+    #         ).with_columns(
+    #             c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+    #         )
+    #     # Extract optimality_cuts from slave model
+    #     optimality_cuts = self.marginal_cost.filter(c("name").is_in(constraint_name_list))\
+    #         .group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
+    #         .with_columns(
+    #             pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+    #         )
+    #     # Join optimality_cuts with master_d_results and master_d_variable
+    #     optimality_cuts = optimality_cuts\
+    #         .join(master_d_results, on="LC", how="inner")\
+    #         .join(master_d_variable, on="LC", how="inner")\
+    #         .filter(c("marginal_cost") != 0.0).sort("l")
+        
+    #     index_list = self.infeasible_i_sq.with_columns(
+    #         c("LC").cast(pl.List(pl.Utf8)).list.join(",")
+    #     )["LC"].to_list()
 
-        feasibility_cuts = self.marginal_cost.filter(c("name") == "current_limit").with_columns(
-            pl.concat_list("l", "i", "j").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
-        ).filter(c("LC").is_in(index_list))
+    #     feasibility_cuts = self.marginal_cost.filter(c("name") == "current_limit").with_columns(
+    #         pl.concat_list("l", "i", "j").cast(pl.List(pl.Utf8)).list.join(",").alias("LC")
+    #     ).filter(c("LC").is_in(index_list))
         
-        feasibility_cuts = feasibility_cuts\
-            .join(master_d_results, on="LC", how="inner")\
-            .join(master_d_variable, on="LC", how="inner")\
-            .filter(c("marginal_cost") != 0.0).sort("l")
-        # Generate bender_cuts expression 
-        theta = 0
-        for data in optimality_cuts.to_dicts():
-            theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
+    #     feasibility_cuts = feasibility_cuts\
+    #         .join(master_d_results, on="LC", how="inner")\
+    #         .join(master_d_variable, on="LC", how="inner")\
+    #         .filter(c("marginal_cost") != 0.0).sort("l")
+    #     # Generate bender_cuts expression 
+    #     theta = 0
+    #     for data in optimality_cuts.to_dicts():
+    #         theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
         
-        for data in feasibility_cuts.to_dicts():
-            theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
+    #     for data in feasibility_cuts.to_dicts():
+    #         theta += data["marginal_cost"] * data["factor"] * (data["d"] - data["d_variable"])
         
-        # Add Bender cut to master model
-        self.master_model_instance.add_component(f'theta_{nb_iter}', pyo.Var())
-        self.master_model_instance.add_component(
-            f'bender_cuts_{nb_iter}', 
-            pyo.Constraint(expr=getattr(self.master_model_instance, f'theta_{nb_iter}')>= theta)
-            )
+    #     # Add Bender cut to master model
+    #     self.master_model_instance.add_component(f'theta_{nb_iter}', pyo.Var())
+    #     self.master_model_instance.add_component(
+    #         f'bender_cuts_{nb_iter}', 
+    #         pyo.Constraint(expr=getattr(self.master_model_instance, f'theta_{nb_iter}')>= theta)
+    #         )
         
-        # update objective function
-        self.master_model_instance.objective.set_value( # type: ignore
-            expr=self.master_model_instance.objective.expr + # type: ignore
-            bender_cut_factor* getattr(self.master_model_instance, f'theta_{nb_iter}')
-            ) 
+    #     # update objective function
+    #     self.master_model_instance.objective.set_value( # type: ignore
+    #         expr=self.master_model_instance.objective.expr + # type: ignore
+    #         bender_cut_factor* getattr(self.master_model_instance, f'theta_{nb_iter}')
+    #         ) 
         
     # def check_all_fd_duals(self, epsilon: float = 1e-6):
     #     """
