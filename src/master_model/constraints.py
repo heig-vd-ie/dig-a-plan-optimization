@@ -122,7 +122,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     
     # ——— Benders cut containers ————————————————
-    model.benders_cuts  = ConstraintList()   
+    model.benders_cuts = pyo.Constraint(model.LC, rule=benders_cuts_rule)
     
     return model
 
@@ -185,3 +185,8 @@ def radiality_rule(m, n):
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 0
     else:
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
+
+def benders_cuts_rule(m, l, i, j):
+    # Benders cuts: if the candidate is not selected, the flow must be zero.
+    return m.theta[l, i, j] >= m.slave_obj + m.maginal_cost[l, i, j] - m.big_m * (1 - m.d[l, i, j])
+    

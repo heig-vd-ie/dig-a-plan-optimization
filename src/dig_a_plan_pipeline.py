@@ -55,15 +55,15 @@ def generate_slave_model() -> pyo.AbstractModel:
     return slave_model
 
 class DigAPlan():
-    def __init__(self, verbose: bool = False, big_m: float = 1e4, v_penalty_cost: float = 1e-3, i_penalty_cost: float = 1e-3,
-                 slack_threshold: float = 1e-5) -> None:
+    def __init__(
+        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3,
+        slack_threshold: float = 1e-5) -> None:
     
         
         self.verbose: int = verbose
         self.big_m: float = big_m
         self.slack_threshold: float = slack_threshold
-        self.v_penalty_cost: float = v_penalty_cost
-        self.i_penalty_cost: float = i_penalty_cost
+        self.penalty_cost: float = penalty_cost
         self.marginal_cost: pl.DataFrame
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
@@ -140,8 +140,7 @@ class DigAPlan():
                 "slack_node": {None: self.slack_node},
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
-                "v_penalty_cost": {None: self.v_penalty_cost},
-                "i_penalty_cost": {None: self.i_penalty_cost},
+                "penalty_cost": {None: self.penalty_cost},
             }
         }
         
@@ -175,13 +174,13 @@ class DigAPlan():
 
             master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
             print(" Master solve status:", master_results.solver.termination_condition)
-            print("Master objective:", self.master_model_instance.objective())
+            print("Master objective:", self.master_model_instance.objective()) # type: ignore
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
             slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-            print("Slave objective:", self.slave_model_instance.objective())
+            print("Slave objective:", self.slave_model_instance.objective()) # type: ignore
             w = pyo.value(self.__slave_model_instance.objective)
         
             
@@ -232,9 +231,8 @@ class DigAPlan():
         constraint_name_list = [
             "node_active_power_balance", 
             "node_reactive_power_balance",
-            # "voltage_drop_lower",
-            # "voltage_drop_upper",
-            # "current_rotated_cone"
+            "voltage_drop_lower",
+            "voltage_drop_upper",
         ]
         
         # Extract d results from master model
@@ -295,56 +293,56 @@ class DigAPlan():
             bender_cut_factor* getattr(self.master_model_instance, f'theta_{nb_iter}')
             ) 
         
-    def check_all_fd_duals(self, epsilon: float = 1e-6):
-        """
-        For every (l,i,j) in current_rotated_cone:
-        1) Solve slave to get objective1(f1) and dual mu.
-        2) Deep-copy and loosen that one SOC constraint rhs += epsilon.
-        3) Resolve to get objective2(f2), compute FD = (f2 - f1)/epsilon.
-        4) Report mu, FD, and relative error.
-        """
-        base = self.__slave_model_instance
-        # 1) Baseline solve
-        self.slave_solver.solve(base)
-        f1 = pyo.value(base.objective)
+    # def check_all_fd_duals(self, epsilon: float = 1e-6):
+    #     """
+    #     For every (l,i,j) in current_rotated_cone:
+    #     1) Solve slave to get objective1(f1) and dual mu.
+    #     2) Deep-copy and loosen that one SOC constraint rhs += epsilon.
+    #     3) Resolve to get objective2(f2), compute FD = (f2 - f1)/epsilon.
+    #     4) Report mu, FD, and relative error.
+    #     """
+    #     base = self.__slave_model_instance
+    #     # 1) Baseline solve
+    #     self.slave_solver.solve(base)
+    #     f1 = pyo.value(base.objective)
 
-        results = []
-        for idx in base.current_rotated_cone:
-            # 1a) read the dual on this SOC constraint
-            mu = base.dual[ base.current_rotated_cone[idx] ]
+    #     results = []
+    #     for idx in base.current_rotated_cone:
+    #         # 1a) read the dual on this SOC constraint
+    #         mu = base.dual[ base.current_rotated_cone[idx] ]
 
-            # 2) perturb only this constraint
-            pert = copy.deepcopy(base)
-            con: pyo.Constraint = pert.current_rotated_cone[idx]
-            # original: con.body <= con.upper()
-            orig_rhs = con.upper()
-            # loosen the RHS by +epsilon
-            con.set_value(expr=(con.body <= orig_rhs + epsilon))
+    #         # 2) perturb only this constraint
+    #         pert = copy.deepcopy(base)
+    #         con: pyo.Constraint = pert.current_rotated_cone[idx]
+    #         # original: con.body <= con.upper()
+    #         orig_rhs = con.upper()
+    #         # loosen the RHS by +epsilon
+    #         con.set_value(expr=(con.body <= orig_rhs + epsilon))
 
-            # 3) re-solve perturbed
-            self.slave_solver.solve(pert)
-            f2 = pyo.value(pert.objective)
+    #         # 3) re-solve perturbed
+    #         self.slave_solver.solve(pert)
+    #         f2 = pyo.value(pert.objective)
 
-            # 4) finite-difference
-            fd = (f2 - f1)#/epsilon
-            rel_err = ((fd - mu)/mu) if mu != 0 else None
+    #         # 4) finite-difference
+    #         fd = (f2 - f1)#/epsilon
+    #         rel_err = ((fd - mu)/mu) if mu != 0 else None
 
-            results.append({
-                "l,i,j": idx,
-                "dual (μ)": mu,
-                "FD approx": fd,
-                "rel error": rel_err,
-            })
+    #         results.append({
+    #             "l,i,j": idx,
+    #             "dual (μ)": mu,
+    #             "FD approx": fd,
+    #             "rel error": rel_err,
+    #         })
 
-        # 5) print a simple table
-        print(f"{'idx':>12} | {'dual':>10} | {'FD':>10} | {'rel err':>8}")
-        print("-"*50)
-        for r in results:
-            idx, mu, fd= r["l,i,j"], r["dual (μ)"], r["FD approx"],# r["rel error"]
-            print(f"{str(idx):>12} | {mu:10.4e} | {fd:10.4e} | ") #
-            # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
+    #     # 5) print a simple table
+    #     print(f"{'idx':>12} | {'dual':>10} | {'FD':>10} | {'rel err':>8}")
+    #     print("-"*50)
+    #     for r in results:
+    #         idx, mu, fd= r["l,i,j"], r["dual (μ)"], r["FD approx"],# r["rel error"]
+    #         print(f"{str(idx):>12} | {mu:10.4e} | {fd:10.4e} | ") #
+    #         # f"{(f'{re:.2%}' if re is not None else '  n/a'):>8}")
 
-        return results
+    #     return results
     
     def extract_switch_status(self) -> dict[str, bool]:
         switch_status = self.master_model_instance.delta.extract_values() # type: ignore
