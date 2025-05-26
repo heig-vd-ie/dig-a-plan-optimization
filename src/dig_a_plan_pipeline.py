@@ -58,9 +58,6 @@ class DigAPlan():
     def __init__(
         self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3,
         slack_threshold: float = 1e-5) -> None:
-    def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3,
-        slack_threshold: float = 1e-5) -> None:
     
         
         self.verbose: int = verbose
@@ -181,7 +178,6 @@ class DigAPlan():
             master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
             print(" Master solve status:", master_results.solver.termination_condition)
             print("Master objective:", self.master_model_instance.objective()) # type: ignore
-            print("Master objective:", self.master_model_instance.objective()) # type: ignore
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
@@ -252,11 +248,11 @@ class DigAPlan():
     def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
         constraint_dict = {
             "neg_node_active_power_balance": 1, 
-            "pos_node_active_power_balance": -1,
+            "pos_node_active_power_balance": 1,
             "neg_node_reactive_power_balance": 1, 
-            "pos_node_reactive_power_balance": -1,
+            "pos_node_reactive_power_balance": 1,
             "voltage_drop_lower": 1,
-            "voltage_drop_upper": -1,
+            "voltage_drop_upper": 1,
         }
         
         
