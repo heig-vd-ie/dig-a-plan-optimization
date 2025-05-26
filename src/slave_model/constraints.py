@@ -183,9 +183,9 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     
 
 def objective_rule(m):
-    # edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    edge_losses = sum(m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    v_penalty = m.v_penalty_cost * sum(m.slack_v_sq[n] for n in m.N)
+    edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    
+    v_penalty = m.v_penalty_cost * (sum(m.slack_v_pos[n] for n in m.N) + sum(m.slack_v_neg[n] for n in m.N))
     i_penalty = m.i_penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
     return edge_losses + v_penalty + i_penalty
 
@@ -243,8 +243,8 @@ def current_rotated_cone_rule(m, l, i, j):
         lhs = (2*m.p_flow[l, i, j])**2 + (2*m.q_flow[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
         
-        return m.master_d[l, i, j] * lhs <= rhs
-
+        # return m.master_d[l, i, j] * lhs <= rhs
+        return lhs <= rhs
 
 # (6) Flow Bounds for candidate (l,i,j):
 def current_limit_rule(m, l, i, j):
@@ -252,9 +252,9 @@ def current_limit_rule(m, l, i, j):
 
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
 def voltage_upper_limits_rule(m, n):
-    return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_sq[n]
+    return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_pos[n]
 
 def voltage_lower_limits_rule(m, n):
-    return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_sq[n]
+    return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_neg[n]
 
 

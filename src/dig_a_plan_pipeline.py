@@ -187,8 +187,22 @@ class DigAPlan():
             
             self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
-            self.infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
-                .filter(c("slack_v_sq") > self.slack_threshold)
+            # self.infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
+            #     .filter(c("slack_v_sq") > self.slack_threshold)
+            
+            infeas_pos = (
+                extract_optimization_results(self.slave_model_instance, "slack_v_pos")
+                .filter(c("slack_v_pos") > self.slack_threshold)
+                .with_columns(pl.lit("pos").alias("dir"))
+            )
+            # grab all nodes that violated the lower bound
+            infeas_neg = (
+                    extract_optimization_results(self.slave_model_instance, "slack_v_neg")
+                    .filter(c("slack_v_neg") > self.slack_threshold)
+                    .with_columns(pl.lit("neg").alias("dir"))
+            )
+            # union them into one table
+            self.infeasible_v_sq = pl.concat([infeas_pos, infeas_neg], how="vertical")
             print(self.infeasible_i_sq)
             if self.infeasible_i_sq.is_empty() & self.infeasible_v_sq.is_empty():
                 log.info(f"Master model solved in {k} iterations")
