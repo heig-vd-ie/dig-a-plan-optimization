@@ -218,11 +218,9 @@ class DigAPlan():
         constraint_name_list = [
             "node_active_power_balance", 
             "node_reactive_power_balance",
-            "active_power_flow",
-            "reactive_power_flow",
-            "voltage_drop_lower",
-            "voltage_drop_upper",
-            "current_rotated_cone"
+            # "voltage_drop_lower",
+            # "voltage_drop_upper",
+            # "current_rotated_cone"
         ]
         
         # Extract d results from master model
