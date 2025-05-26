@@ -14,9 +14,9 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, node_size: int = 22, width:
         c("closed").replace_strict({True:1.0,False:0.3},default=None).alias("opacity")
     )
 
-    print(bus)
+
     fig = go.Figure()
-    print(line)
+
     for data in line.to_dicts():
         
         fig.add_trace(
