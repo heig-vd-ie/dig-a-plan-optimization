@@ -204,32 +204,32 @@ def slack_voltage_rule(m, n):
     # For candidate (l, i, j), j is the downstream bus.
 def node_active_power_balance_rule(m, l, i, j):
     downstream_power_flow = sum(
-        m.r[l_] * m.i_sq[l_, i_, j_] - m.p_z_dn[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
+        m.r[l_] * m.i_sq[l_, i_, j_] - m.p_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
     )
-    return m.p_z_dn[l, i, j] == m.master_d[l, i, j] * (- m.p_node[i] - downstream_power_flow)
+    return m.p_flow[l, i, j] == m.master_d[l, i, j] * (- m.p_node[i] - downstream_power_flow)
 
 
-# (2) Node Power Balance (Reactive) for candidate (l,i,j).
+# (3) Node Power Balance (Reactive) for candidate (l,i,j).
 def node_reactive_power_balance_rule(m, l, i, j):
     downstream_power_flow = sum(
-        m.x[l_] * m.i_sq[l_, i_, j_] - m.q_z_dn[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
+        m.x[l_] * m.i_sq[l_, i_, j_] - m.q_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
     )
     transversal_power = sum(
         - m.b[l_]/2 * m.v_sq[i] for (l_, i_, _) in m.LC if (i_ == i)
     )
-    return m.q_z_dn[l, i, j] == m.master_d[l, i, j] * (- m.q_node[i] - downstream_power_flow - transversal_power)
+    return m.q_flow[l, i, j] == m.master_d[l, i, j] * (- m.q_node[i] - downstream_power_flow - transversal_power)
 
     
 # (4) Voltage Drop along Branch for candidate (l,i,j).
 # Let expr = v_sq[i] - 2*(r[l]*p_z_up(l,i,j) + x[l]*q_z_up(l,i,j)) + (r[l]^2+x[l]^2)*f_c(l,i,j).
 # We then enforce two separate inequalities:
 def voltage_drop_lower_rule(m, l, i, j):   
-    dv =  2 * (m.r[l] * m.p_z_dn[l, i, j] + m.x[l]*m.q_z_dn[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.i_sq[l, i, j]
+    dv =  2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l]*m.q_flow[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.i_sq[l, i, j]
     
     return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.big_m*(1 - m.master_d[l, i, j])
 
 def voltage_drop_upper_rule(m, l, i, j):
-    dv =  2 * (m.r[l] * m.p_z_dn[l, i, j] + m.x[l]*m.q_z_dn[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.i_sq[l, i, j]
+    dv =  2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l]*m.q_flow[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.i_sq[l, i, j]
     
     return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.master_d[l, i, j])
 
@@ -240,7 +240,7 @@ def current_rotated_cone_rule(m, l, i, j):
     if l in m.S:
         return m.i_sq[l, i, j] == 0
     else:       
-        lhs = (2*m.p_z_dn[l, i, j])**2 + (2*m.q_z_dn[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
+        lhs = (2*m.p_flow[l, i, j])**2 + (2*m.q_flow[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
         
         return m.master_d[l, i, j] * lhs <= rhs

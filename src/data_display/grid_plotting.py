@@ -14,32 +14,33 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, node_size: int = 22, width:
         c("closed").replace_strict({True:1.0,False:0.3},default=None).alias("opacity")
     )
 
-
+    print(bus)
     fig = go.Figure()
-
+    print(line)
     for data in line.to_dicts():
-            fig.add_trace(
-                go.Scatter(
-                    x=data["x_coords"],
-                    y=data["y_coords"],
-                    mode="lines",
-                    line=dict(width=3, color="blue"),
-                    hoverinfo="none",
-                    showlegend=False
-                )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=data["x_coords"],
+                y=data["y_coords"],
+                mode="lines",
+                line=dict(width=3, color="blue"),
+                hoverinfo="none",
+                showlegend=False
             )
+        )
 
     for data in trafo.to_dicts():
-            fig.add_trace(
-                go.Scatter(
-                    x=data["x_coords"],
-                    y=data["y_coords"],
-                    mode="lines",
-                    line=dict(width=3, color="maroon"),
-                    hoverinfo="none",
-                    showlegend=False
-                )
+        fig.add_trace(
+            go.Scatter(
+                x=data["x_coords"],
+                y=data["y_coords"],
+                mode="lines",
+                line=dict(width=3, color="maroon"),
+                hoverinfo="none",
+                showlegend=False
             )
+        )
 
     # for data in switch.to_dicts():
     #         fig.add_trace(
