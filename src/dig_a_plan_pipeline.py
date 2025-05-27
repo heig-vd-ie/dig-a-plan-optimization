@@ -1,7 +1,7 @@
 import polars as pl
 from polars import col as c
 import os
-os.environ["GRB_LICENSE_FILE"] = os.path.join(os.environ["HOME"], "gurobi_license", "gurobi.lic")
+from math import log10
 
 import copy
 
@@ -56,7 +56,7 @@ def generate_slave_model() -> pyo.AbstractModel:
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3,
+        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2,
         slack_threshold: float = 1e-5) -> None:
     
         
@@ -65,7 +65,7 @@ class DigAPlan():
         self.slack_threshold: float = slack_threshold
         self.penalty_cost: float = penalty_cost
         self.marginal_cost: pl.DataFrame = pl.DataFrame()
-        self.marginal_cost_fun: pl.DataFrame = pl.DataFrame()
+        self.marginal_cost_evolution: dict[int, pl.DataFrame] = {}
         self.d: pl.DataFrame = pl.DataFrame()
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
@@ -79,6 +79,7 @@ class DigAPlan():
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2
         self.slave_solver.options["QCPDual"] = 1
+        # self.slave_solver.options['Method'] = 0       
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -150,8 +151,8 @@ class DigAPlan():
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
-        # Attach dual suffix to slave model instance for shadow prices
-        self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
+        # # Attach dual suffix to slave model instance for shadow prices
+        # self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
@@ -168,16 +169,22 @@ class DigAPlan():
         
         self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
         self.__instantiate_model()
+        self.__adapt_penalty_cost()
+        
+    
+    def __adapt_penalty_cost(self):
+        """
+        Returns the penalty factor used in the optimization.
+        """
+        self.penalty_cost = 10**round(log10(abs(self.edge_data["r_pu"].max()))) * self.penalty_cost # type: ignore
 
     def solve_models_pipeline(self, max_iters: int, bender_cut_factor: float = 1e0) -> None:
 
         for k in range(max_iters):
-            print(f"\n--- BENDERS ITERATION {k} ---")
             
 
-            master_results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
-            print(" Master solve status:", master_results.solver.termination_condition)
-            print("Master objective:", self.master_model_instance.objective()) # type: ignore
+            _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
+            
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
@@ -195,40 +202,23 @@ class DigAPlan():
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
             self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
             
-            slave_results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-            print("Slave objective:", self.slave_model_instance.objective()) # type: ignore
+            _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
+            
         
             
             self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
-            # self.infeasible_v_sq = extract_optimization_results(self.slave_model_instance, "slack_v_sq")\
-            #     .filter(c("slack_v_sq") > self.slack_threshold)
-            
-            # infeas_pos = (
-            #     extract_optimization_results(self.slave_model_instance, "slack_v_pos")
-            #     .filter(c("slack_v_pos") > self.slack_threshold)
-            #     .with_columns(pl.lit("pos").alias("dir"))
-            # )
-            # # grab all nodes that violated the lower bound
-            # infeas_neg = (
-            #         extract_optimization_results(self.slave_model_instance, "slack_v_neg")
-            #         .filter(c("slack_v_neg") > self.slack_threshold)
-            #         .with_columns(pl.lit("neg").alias("dir"))
-            # )
-            # # union them into one table
-            # self.infeasible_v_sq = pl.concat([infeas_pos, infeas_neg], how="vertical")
+          
+            print(f"\n--- BENDERS ITERATION {k} ---")
+            print("Master objective:", self.master_model_instance.objective()) # type: ignore
+            print("Slave objective:", self.slave_model_instance.objective()) # type: ignore
             print(self.infeasible_i_sq)
-            # if self.infeasible_i_sq.is_empty() & self.infeasible_v_sq.is_empty():
-            #     log.info(f"Master model solved in {k} iterations")
-            #     break
-            # else:
-            #     if k <= max_iters:
-            #         self.calculate_marginal_costs()
+      
             
             self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
             self.master_model_instance.slave_objective.store_values({None: self.slave_model_instance.objective()}) # type: ignore
             self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
-            self.calculate_marginal_costs()
+        
                     
 
     def calculate_marginal_costs(self) -> None:
@@ -247,31 +237,60 @@ class DigAPlan():
     
     def add_benders_cut(self, nb_iter: int, bender_cut_factor = 1e0) -> None:
         constraint_dict = {
-            "neg_node_active_power_balance": 1, 
-            "pos_node_active_power_balance": 1,
-            "neg_node_reactive_power_balance": 1, 
-            "pos_node_reactive_power_balance": 1,
+            "node_active_power_balance": 1, 
+            "node_reactive_power_balance": 1,
             "voltage_drop_lower": 1,
             "voltage_drop_upper": 1,
         }
         
+        # constraint_dict = {
+        #     "neg_node_active_power_balance": 1, 
+        #     "pos_node_active_power_balance": 1,
+        #     "neg_node_reactive_power_balance": 1, 
+        #     "pos_node_reactive_power_balance": 1,
+        #     "voltage_drop_lower": 1,
+        #     "voltage_drop_upper": 1,
+        # }
+        master_d_results = extract_optimization_results(self.master_model_instance, "d")\
+            .select(
+                # pl.when(c("d").abs() == 0).then(pl.lit(-1.0)).otherwise(pl.lit(1.0)).alias("factor"),
+                c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC"), "d"
+            )
         
+        
+        
+        # Extract marginal costs from slave model    
         
         marginal_cost_df = pl.DataFrame({
                 "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
                 "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
             }).with_columns(
                 c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
-                pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
+                # pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
             ).with_columns(
                 c("name").pipe(modify_string_col, format_str= {"]":""}).str.split("[").list.to_struct(fields=["name", "index"])
-            ).unnest("name").filter(c("name").is_in(constraint_dict.keys()))\
-            .with_columns(
-                (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
+            ).unnest("name").filter(c("name").is_in(constraint_dict.keys())).with_columns(
+                # (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
                 c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
-            ).unnest("index")\
-            .group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
+            ).unnest("index")
+            
+        self.marginal_cost_evolution[nb_iter] = master_d_results.join(marginal_cost_df.with_columns(
+            pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))\
+        .pivot(index="LC", values="marginal_cost", on="name"), on="LC", how="inner")
+            
+            
+        # marginal_cost_df = marginal_cost_df.with_columns(
+        #         (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
+        #     )
+        
+        marginal_cost_df = marginal_cost_df.group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
             .with_columns(pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
+            
+        # marginal_cost_df = marginal_cost_df\
+        #     .join(master_d_results, on="LC", how="inner").with_columns(
+        #         c("marginal_cost") * c("factor"),
+        #     )
+            
         if self.marginal_cost.is_empty():
             self.marginal_cost = marginal_cost_df.select("LC", c("marginal_cost").alias(str(nb_iter)))
         else:
