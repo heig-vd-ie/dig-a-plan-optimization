@@ -8,6 +8,7 @@ def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.big_m = pyo.Param()    # Big-M constant.
     model.slack_node = pyo.Param()     # Slack bus index.
     model.slave_objective = pyo.Param(default= 0, mutable=True)  # Slave model objective value.
-    model.marginal_cost = pyo.Param(model.LC, default= 0, mutable=True)  # Marginal cost of the system.
-    model.previous_d = pyo.Param(model.LC, default= 0, mutable=True) # Previous d candidate status.
+    model.marginal_cost = pyo.Param(model.S, default= 0, mutable=True)  # Marginal cost of the system.
+    # model.sign_factor = pyo.Param(model.S, default=1, mutable=True)  # Sign factor for the candidate status.
+    model.previous_delta = pyo.Param(model.S, default= 0, mutable=True) # Previous d candidate status.
     return model

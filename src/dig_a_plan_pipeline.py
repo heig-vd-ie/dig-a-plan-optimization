@@ -186,8 +186,10 @@ class DigAPlan():
             _ = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
             
             master_ds = self.master_model_instance.d.extract_values() # type: ignore
+            master_delta = self.master_model_instance.delta.extract_values() # type: ignore
             # This is needed to avoid infeasibility in the slave model
             master_ds  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_ds.items()))
+            master_delta  = dict(map(lambda x: (x[0], 0 if x[1] < 1e-1 else 1), master_delta.items()))
             master_ds_df = pl.DataFrame({
                     "LC": list(master_ds.keys()),
                     str(k): list(master_ds.values())
@@ -200,7 +202,7 @@ class DigAPlan():
                 self.d = self.d.join(master_ds_df, on="LC", how="inner")
             
             self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
-            self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
+ 
             
             _ = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
             
@@ -208,14 +210,14 @@ class DigAPlan():
             
             self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
-          
+
             print(f"\n--- BENDERS ITERATION {k} ---")
             print("Master objective:", self.master_model_instance.objective()) # type: ignore
             print("Slave objective:", self.slave_model_instance.objective()) # type: ignore
             print(self.infeasible_i_sq)
-      
+
             
-            self.master_model_instance.previous_d.store_values(master_ds) # type: ignore
+            self.master_model_instance.previous_delta.store_values(master_delta) # type: ignore
             self.master_model_instance.slave_objective.store_values({None: self.slave_model_instance.objective()}) # type: ignore
             self.add_benders_cut(nb_iter = k, bender_cut_factor = bender_cut_factor)
         
@@ -242,23 +244,14 @@ class DigAPlan():
             "voltage_drop_lower": 1,
             "voltage_drop_upper": 1,
         }
-        
-        # constraint_dict = {
-        #     "neg_node_active_power_balance": 1, 
-        #     "pos_node_active_power_balance": 1,
-        #     "neg_node_reactive_power_balance": 1, 
-        #     "pos_node_reactive_power_balance": 1,
-        #     "voltage_drop_lower": 1,
-        #     "voltage_drop_upper": 1,
-        # }
+    
         master_d_results = extract_optimization_results(self.master_model_instance, "d")\
             .select(
                 # pl.when(c("d").abs() == 0).then(pl.lit(-1.0)).otherwise(pl.lit(1.0)).alias("factor"),
                 c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC"), "d"
             )
         
-        
-        
+    
         # Extract marginal costs from slave model    
         
         marginal_cost_df = pl.DataFrame({
@@ -271,35 +264,51 @@ class DigAPlan():
                 c("name").pipe(modify_string_col, format_str= {"]":""}).str.split("[").list.to_struct(fields=["name", "index"])
             ).unnest("name").filter(c("name").is_in(constraint_dict.keys())).with_columns(
                 # (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
-                c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["l", "i", "j"])
+                c("index").str.split(",").cast(pl.List(pl.Int32)).list.to_struct(fields=["S", "i", "j"])
             ).unnest("index")
             
-        self.marginal_cost_evolution[nb_iter] = master_d_results.join(marginal_cost_df.with_columns(
-            pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))\
-        .pivot(index="LC", values="marginal_cost", on="name"), on="LC", how="inner")
+        marginal_cost_df: pl.DataFrame = marginal_cost_df\
+            .filter(c("S").is_in(list(self.slave_model_instance.S)))\
+            .group_by("S").agg(c("marginal_cost").sum())
+
+
+
+        marginal_cost_df = marginal_cost_df.join(
+            extract_optimization_results(self.master_model_instance, "delta"), on="S", how="inner")
+        
+
+            
+        # self.marginal_cost_evolution[nb_iter] = master_d_results.join(marginal_cost_df.with_columns(
+        #     pl.concat_list(["S", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))\
+        # .pivot(index="LC", values="marginal_cost", on="name"), on="LC", how="inner")
             
             
         # marginal_cost_df = marginal_cost_df.with_columns(
         #         (c("marginal_cost") * c("name").replace_strict(constraint_dict, default=None)).alias("marginal_cost"),
         #     )
         
-        marginal_cost_df = marginal_cost_df.group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
-            .with_columns(pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
+        # marginal_cost_df = marginal_cost_df.group_by(["l", "i", "j"]).agg(c("marginal_cost").sum()).sort(["l", "i", "j"])\
+        #     .with_columns(pl.concat_list(["l", "i", "j"]).cast(pl.List(pl.Utf8)).list.join(",").alias("LC"))
             
         # marginal_cost_df = marginal_cost_df\
         #     .join(master_d_results, on="LC", how="inner").with_columns(
         #         c("marginal_cost") * c("factor"),
         #     )
-            
+        new_value = marginal_cost_df.select("S", c("marginal_cost").alias(f"mhu_{nb_iter}"), c("delta").alias(f"delta_{nb_iter}"))    
         if self.marginal_cost.is_empty():
-            self.marginal_cost = marginal_cost_df.select("LC", c("marginal_cost").alias(str(nb_iter)))
+            self.marginal_cost = new_value
         else:
-            self.marginal_cost = self.marginal_cost.join(
-                marginal_cost_df.select("LC", c("marginal_cost").alias(str(nb_iter))), on="LC", how="inner")
+            self.marginal_cost = self.marginal_cost.join(new_value, on="S", how="inner")
         
+        
+        marginal_cost_df = marginal_cost_df.with_columns(
+            (c("marginal_cost") * pl.when(c("delta") > 0.5).then(pl.lit(1)).otherwise(pl.lit(-1))).alias("marginal_cost")
+        )
             
         self.master_model_instance.marginal_cost.store_values(  # type: ignore
-            pl_to_dict_with_tuple(marginal_cost_df.select(pl.concat_list(["l", "i", "j"]), "marginal_cost")))
+            pl_to_dict(marginal_cost_df.select("S", "marginal_cost")))
+        
+        self.master_model_instance
             
         # Extract d results from master model
         # master_d_results = extract_optimization_results(self.master_model_instance, "d")\

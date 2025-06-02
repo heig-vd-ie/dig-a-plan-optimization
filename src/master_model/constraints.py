@@ -134,6 +134,12 @@ def master_obj(m):
     )
     return base_losses + m.theta
 
+
+def benders_cuts_rule(m):
+    # Benders cuts: if the candidate is not selected, the flow must be zero.
+    return m.theta >= m.slave_objective + sum(m.marginal_cost[s] * (m.previous_delta[s] - m.delta[s]) for s in m.S)
+    
+
 # Orientation constraint.
 def orientation_rule(m, l):
 
@@ -178,8 +184,3 @@ def radiality_rule(m, n):
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 0
     else:
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
-
-def benders_cuts_rule(m):
-    # Benders cuts: if the candidate is not selected, the flow must be zero.
-    return m.theta >= m.slave_objective + sum(m.marginal_cost[l, i, j] * (m.previous_d[l, i, j] - m.d[l, i, j]) for (l, i, j) in m.LC)
-    

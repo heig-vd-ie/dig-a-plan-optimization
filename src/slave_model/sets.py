@@ -12,5 +12,6 @@ def slave_model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
     
     model.S = pyo.Set(within=model.L)
+    model.nS = pyo.Set(initialize=lambda m: [l for l in m.L if l not in m.S])
     
     return model
