@@ -9,6 +9,7 @@ def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.p_flow= pyo.Var(model.LC, domain=pyo.Reals)
     model.q_flow = pyo.Var(model.LC, domain=pyo.Reals)
     
+    model.losses = pyo.Var(domain=pyo.Reals) # Bender cuts.
     model.theta = pyo.Var(domain=pyo.Reals) # Bender cuts.
 
     return model
