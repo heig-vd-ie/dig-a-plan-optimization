@@ -181,7 +181,7 @@ def current_rotated_cone_rule(m, l, i, j):
                 + (2 * m.q_flow[l, i, j])**2 \
                 + (m.v_sq[i] / (m.n_transfo[l, i, j]**2) - m.i_sq[l, i, j])**2
         rhs = (m.v_sq[i] / (m.n_transfo[l, i, j]**2) + m.i_sq[l, i, j])**2
-        return lhs <= rhs
+        return lhs >= rhs
 
 
 # 9) Branch Current Limits

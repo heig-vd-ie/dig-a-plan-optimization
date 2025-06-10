@@ -49,7 +49,7 @@ def generate_slave_model() -> pyo.AbstractModel:
     slave_model = slave_model_parameters(slave_model)
     slave_model = slave_model_variables(slave_model)
     slave_model = slave_model_constraints(slave_model)
-    # slave_model.dual = Suffix(direction=Suffix.IMPORT)
+    slave_model.dual = Suffix(direction=Suffix.IMPORT)
     #add fix_d list
     # slave_model.fix_d = pyo.ConstraintList()
     return slave_model
@@ -80,7 +80,7 @@ class DigAPlan():
         self.master_solver.options['IntegralityFocus'] = 1
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2
-        self.slave_solver.options['QCPDual'] = 1
+        # self.slave_solver.options['QCPDual'] = 1
         self.slave_solver.options['IntegralityFocus'] = 1
 
 
@@ -155,7 +155,7 @@ class DigAPlan():
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
         # # Attach dual suffix to slave model instance for shadow prices
-        self.__slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
+        
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
@@ -233,7 +233,9 @@ class DigAPlan():
         marginal_cost_df = pl.DataFrame({
             "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
             "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
-        }).with_columns(
+        })
+        print(marginal_cost_df)
+        marginal_cost_df = marginal_cost_df.with_columns(
             c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8), # transform constraint object to name
             pl.when(c("marginal_cost").abs() <= 1e-8).then(pl.lit(0.0)).otherwise(c("marginal_cost")).alias("marginal_cost")
         ).with_columns(
@@ -243,7 +245,7 @@ class DigAPlan():
             # Split index string into list (if needed) and cast every index to integer
             c("S").cast(pl.Int64),
         )
-
+        
 
         marginal_cost_df = (
             marginal_cost_df
