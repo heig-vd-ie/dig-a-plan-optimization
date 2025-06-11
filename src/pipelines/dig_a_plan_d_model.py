@@ -222,16 +222,16 @@ class DigAPlan():
     def add_benders_cut(self) -> None:
         if self.infeasible_i_sq.height > 0:
             constraint_dict = {
-                    "node_active_power_balance": 1, 
+                    "node_active_power_balance": 1,
                     "node_reactive_power_balance": 1,
                     "voltage_drop_lower": 1,
                     "voltage_drop_upper": 1,
+                    "current_limit": 1,
+                    "current_rotated_cone": -1
                 }
         else:
             constraint_dict = {
-                    "voltage_drop_lower": 1,
-                    "voltage_drop_upper": 1,
-                    "current_rotated_cone": 1,
+                    "current_rotated_cone": -1,
                 }
         
         # Extract delta results from master model
@@ -272,14 +272,17 @@ class DigAPlan():
 
         # print(marginal_cost_df.filter(c("marginal_cost").abs()> 1e-5).sort("LC").to_pandas().to_string())
         
-        new_cut = self.slave_model_instance.objective() # type: ignore
+        new_cut = 0
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (data["d"] - data["d_variable"]) 
 
         if self.infeasible_i_sq.height > 0:
-            self.master_model_instance.infeasibility_cut.add(0 >= new_cut) # type: ignore
+            new_cut += self.slave_model_instance.objective() # type: ignore
+            # self.master_model_instance.infeasibility_cut.add(0 >= new_cut) # type: ignore
+            self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
             
         else:
+            new_cut += self.slave_model_instance.objective() # type: ignore
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
 
         
