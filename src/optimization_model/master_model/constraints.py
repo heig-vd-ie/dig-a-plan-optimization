@@ -112,8 +112,10 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     # model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
+    
+    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    
     model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
-    model.theta_initialization = pyo.Constraint(rule=theta_initialization_rule)
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
     model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
     model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
@@ -121,7 +123,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
     model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
     model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
-    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    
     
     # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = pyo.ConstraintList()
@@ -131,7 +133,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
-    return m.losses + m.theta
+    return m.theta + m.losses
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.
@@ -140,10 +142,6 @@ def ohmic_losses_rule(m):
 # def theta_initialization_rule(m):
 #     # Initialize theta to a large value to ensure it is non-negative.
 #     return m.theta == 0  # or any sufficiently large value  
-
-def theta_initialization_rule(m):
-    # Initialize theta to a large value to ensure it is non-negative.
-    return m.theta >= -1e8  # or any sufficiently large value  
 
 # Orientation constraint.
 def orientation_rule(m, l):

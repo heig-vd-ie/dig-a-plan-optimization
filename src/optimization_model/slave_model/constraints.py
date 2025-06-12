@@ -169,24 +169,20 @@ import pyomo.environ as pyo
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
-    # model.slack_voltage = pyo.Constraint(rule=slack_voltage_rule)
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
     model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
-    
-    # model.neg_node_active_power_balance = pyo.Constraint(model.LC, rule=neg_node_active_power_balance_rule)
-    # model.pos_node_active_power_balance = pyo.Constraint(model.LC, rule=pos_node_active_power_balance_rule)
-    # model.neg_node_reactive_power_balance = pyo.Constraint(model.LC, rule=neg_node_reactive_power_balance_rule)
-    # model.pos_node_reactive_power_balance = pyo.Constraint(model.LC, rule=pos_node_reactive_power_balance_rule)
-    
     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
     model.current_limit = pyo.Constraint(model.LC, rule=current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
     model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
+
     return model
+
+
     
 
 def objective_rule(m):
@@ -194,7 +190,9 @@ def objective_rule(m):
     # edge_losses = sum(m.i_sq[l, i, j] for (l, i, j) in m.LC)
     v_penalty = m.penalty_cost * sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
     i_penalty = m.penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    # return edge_losses + v_penalty + i_penalty
     return edge_losses + v_penalty + i_penalty
+
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
 # def slack_voltage_rule(m):

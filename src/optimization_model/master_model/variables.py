@@ -1,5 +1,6 @@
 # variables.py
 import pyomo.environ as pyo
+from shapely import bounds
 
 
 def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
@@ -10,6 +11,6 @@ def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.q_flow = pyo.Var(model.LC, domain=pyo.Reals)
     
     model.losses = pyo.Var(domain=pyo.Reals) # Bender cuts.
-    model.theta = pyo.Var(domain=pyo.Reals) # Bender cuts.
+    model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1e8, None)) # Bender cuts.
 
     return model
