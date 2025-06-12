@@ -277,15 +277,13 @@ class DigAPlan():
             .join(d_value, on="LC")\
             .join(d_variable, on="LC")\
 
-        new_cut = 0
+        new_cut = self.slave_obj 
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (data["d"] - data["d_variable"]) 
 
-        if self.infeasible_slave == True:
-            new_cut += self.slave_obj   
+        if self.infeasible_slave == True:  
             self.master_model_instance.infeasibility_cut.add(0  >= new_cut) # type: ignore
-        else:
-            new_cut += self.slave_obj   
+        else:   
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
 
         
