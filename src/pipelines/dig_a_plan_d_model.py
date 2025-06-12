@@ -64,9 +64,6 @@ class DigAPlan():
         self.big_m: float = big_m
         self.convergence_threshold: float = convergence_threshold
         self.slack_threshold: float = slack_threshold
-        self.penalty_cost: float = penalty_cost
-        self.marginal_cost: pl.DataFrame = pl.DataFrame()
-        self.marginal_cost_evolution: dict[int, pl.DataFrame] = {}
         self.d: pl.DataFrame = pl.DataFrame()
         self.infeasible_slave: bool
         self.slave_obj: float
@@ -198,11 +195,11 @@ class DigAPlan():
 
             results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
 
-            self.infeasible_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+            self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
                 .filter(c("slack_i_sq") > self.slack_threshold)
                 
             self.slave_obj = self.slave_model_instance.objective() # type: ignore
-            if self.infeasible_i_sq.height > 0:
+            if self.slack_i_sq.height > 0:
                 self.infeasible_slave = True
                 convergence_result = np.inf
             else:
