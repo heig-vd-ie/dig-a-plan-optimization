@@ -156,9 +156,6 @@ class DigAPlan():
         
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
-        self.__infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data) # type: ignore
-        
-        self.__infeasible_slave_model_instance.dual = Suffix(direction=Suffix.IMPORT)
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
