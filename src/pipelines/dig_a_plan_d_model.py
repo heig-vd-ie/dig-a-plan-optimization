@@ -68,6 +68,7 @@ class DigAPlan():
         self.infeasible_slave: bool
         self.slave_obj: float
         self.master_obj: float
+        self.penalty_cost: float = penalty_cost
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
