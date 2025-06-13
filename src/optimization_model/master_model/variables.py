@@ -12,6 +12,7 @@ def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     
     model.losses = pyo.Var(domain=pyo.Reals) # Bender cuts.
     model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1e8, None)) # Bender cuts.
-    model.v = pyo.Var(model.N, domain=pyo.NonNegativeReals)
+    model.v_sq = pyo.Var(model.N, domain=pyo.NonNegativeReals)
+
 
     return model

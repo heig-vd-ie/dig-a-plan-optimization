@@ -7,9 +7,10 @@ def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.q_node = pyo.Param(model.N)         # Reactive load at bus i.
     model.big_m = pyo.Param()    # Big-M constant.
     model.slack_node = pyo.Param()     # Slack bus index.
-    model.V0 = pyo.Param()               # Slack‐bus voltage magnitude (per-unit)
-        # Soft defaults for voltage limits if none are passed in:
-    model.Vmin = pyo.Param(model.N,   default=0.95)
-    model.Vmax = pyo.Param(model.N,   default=1.05)
+    model.slack_node_v_sq = pyo.Param()       # e.g. 1.0
+    model.v_min        = pyo.Param(model.N)   # per-unit
+    model.v_max        = pyo.Param(model.N)
+    model.n_transfo = pyo.Param(model.LC, default=1)  # Transformer turn ration in pu for branch l. 
+
 
     return model

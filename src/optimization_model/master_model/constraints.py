@@ -124,10 +124,13 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
     model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     
+    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    
     model.volt_drop_lower = pyo.Constraint(model.LC, rule=volt_drop_lower_rule)
     model.volt_drop_upper = pyo.Constraint(model.LC, rule=volt_drop_upper_rule)
     
-    model.voltage_bounds = pyo.Constraint(model.N, rule=voltage_bounds_rule)
+    model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
+    model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     
     
     # cuts are generated on-the-fly, so no rules are necessary.
@@ -146,7 +149,13 @@ def ohmic_losses_rule(m):
 
 # def theta_initialization_rule(m):
 #     # Initialize theta to a large value to ensure it is non-negative.
-#     return m.theta == 0  # or any sufficiently large value  
+#     return m.theta == 0  # or any sufficiently large value 
+
+def slack_voltage_rule(m, n):
+    if n == pyo.value(m.slack_node):
+        return m.v_sq[n] == m.slack_node_v_sq
+    else:
+        return pyo.Constraint.Skip 
 
 # Orientation constraint.
 def orientation_rule(m, l):
@@ -195,19 +204,22 @@ def radiality_rule(m, n):
     
 # voltage dropped lower bound 
 def volt_drop_lower_rule(m, l, i, j):
-    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
-    return m.v[j] >= m.v[i] - dv - m.big_m*(1 - m.d[l,i,j])
+    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) 
+    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.big_m*(1 - m.d[l, i, j])
 
         
 # Voltage dropped upper bound 
 
 def volt_drop_upper_rule(m, l, i, j):
-    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
-    return m.v[j] <= m.v[i] - dv + m.big_m*(1 - m.d[l,i,j])
+    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) 
+    return m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.d[l, i, j])
     
-# voltage‐bounds
-def voltage_bounds_rule(m, i):
-        return pyo.inequality(m.Vmin, m.v[i], m.Vmax)
+# Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
+def voltage_upper_limits_rule(m, n):
+    return m.v_sq[n] <= m.v_max[n]**2 
+
+def voltage_lower_limits_rule(m, n):
+    return m.v_sq[n] >= m.v_min[n]**2
 
         
     
