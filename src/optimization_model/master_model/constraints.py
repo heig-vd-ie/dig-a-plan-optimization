@@ -195,21 +195,16 @@ def radiality_rule(m, n):
     
 # voltage dropped lower bound 
 def volt_drop_lower_rule(m, l, i, j):
-        return m.v[j] >= (
-            m.v[i]
-            - (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
-            - m.big_m*(1 - m.d[l,i,j])
-        )
+    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
+    return m.v[j] >= m.v[i] - dv - m.big_m*(1 - m.d[l,i,j])
+
         
 # Voltage dropped upper bound 
 
 def volt_drop_upper_rule(m, l, i, j):
-        return m.v[j] <= (
-            m.v[i]
-            - (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
-            + m.big_m*(1 - m.d[l,i,j])
-        )
-        
+    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
+    return m.v[j] <= m.v[i] - dv + m.big_m*(1 - m.d[l,i,j])
+    
 # voltage‐bounds
 def voltage_bounds_rule(m, i):
         return pyo.inequality(m.Vmin, m.v[i], m.Vmax)
