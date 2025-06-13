@@ -12,7 +12,7 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # model.v_max = pyo.Param(model.N) # Maximum voltage (p.u.)
     # Soft defaults for voltage limits if none are passed in:
     model.v_min = pyo.Param(model.N,   default=0.95)
-    model.v_max = pyo.Param(model.N,   default=1.15)
+    model.v_max = pyo.Param(model.N,   default=1.05)
     # master_d is defined over LF: 1 if candidate is active, else 0.
     model.master_d = pyo.Param(model.LC, default= 0, mutable=True)
     

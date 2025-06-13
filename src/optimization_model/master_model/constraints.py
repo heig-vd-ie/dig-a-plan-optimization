@@ -124,6 +124,11 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
     model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     
+    model.volt_drop_lower = pyo.Constraint(model.LC, rule=volt_drop_lower_rule)
+    model.volt_drop_upper = pyo.Constraint(model.LC, rule=volt_drop_upper_rule)
+    
+    model.voltage_bounds = pyo.Constraint(model.N, rule=voltage_bounds_rule)
+    
     
     # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = pyo.ConstraintList()
@@ -187,3 +192,27 @@ def radiality_rule(m, n):
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 0
     else:
         return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
+    
+# voltage dropped lower bound 
+def volt_drop_lower_rule(m, l, i, j):
+        return m.v[j] >= (
+            m.v[i]
+            - (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
+            - m.big_m*(1 - m.d[l,i,j])
+        )
+        
+# Voltage dropped upper bound 
+
+def volt_drop_upper_rule(m, l, i, j):
+        return m.v[j] <= (
+            m.v[i]
+            - (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) / m.V0
+            + m.big_m*(1 - m.d[l,i,j])
+        )
+        
+# voltage‐bounds
+def voltage_bounds_rule(m, i):
+        return pyo.inequality(m.Vmin, m.v[i], m.Vmax)
+
+        
+    
