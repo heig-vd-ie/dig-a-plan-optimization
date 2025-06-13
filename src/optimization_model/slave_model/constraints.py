@@ -164,11 +164,10 @@ Each node voltage squared must remain within limits:
 
 
 """
-
 import pyomo.environ as pyo
 
-def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
+def feasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.objective = pyo.Objective(rule=feasible_objective_rule, sense=pyo.minimize)
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
@@ -176,22 +175,37 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
-    model.current_limit = pyo.Constraint(model.LC, rule=current_limit_rule)
-    model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
-    model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
+    model.current_limit = pyo.Constraint(model.LC, rule=feasible_current_limit_rule)
+    model.voltage_upper_limits = pyo.Constraint(model.N, rule=feasible_voltage_upper_limits_rule)
+    model.voltage_lower_limits = pyo.Constraint(model.N, rule=feasible_voltage_lower_limits_rule)
 
     return model
 
+def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.objective = pyo.Objective(rule=infeasible_objective_rule, sense=pyo.minimize)
+    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
+    model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
+    model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
+    model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
+    model.current_limit = pyo.Constraint(model.LC, rule=infeasible_current_limit_rule)
+    model.voltage_upper_limits = pyo.Constraint(model.N, rule=infeasible_voltage_upper_limits_rule)
+    model.voltage_lower_limits = pyo.Constraint(model.N, rule=infeasible_voltage_lower_limits_rule)
+
+    return model
 
     
 
-def objective_rule(m):
+def feasible_objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    # edge_losses = sum(m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    v_penalty = m.penalty_cost * sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    i_penalty = m.penalty_cost * sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-    # return edge_losses + v_penalty + i_penalty
-    return edge_losses + v_penalty + i_penalty
+    return edge_losses 
+
+def infeasible_objective_rule(m):
+    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
+    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+
+    return v_penalty + i_penalty
 
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
@@ -201,9 +215,6 @@ def slack_voltage_rule(m, n):
     if n == pyo.value(m.slack_node):
         return m.v_sq[n] == m.slack_node_v_sq
     return pyo.Constraint.Skip
-
-
-    # return m.v_sq[m.slack_node] == m.slack_voltage
 
 # (2) Node Power Balance (Real) for candidate (l,i,j).
     # For candidate (l, i, j), j is the downstream bus.
@@ -283,14 +294,23 @@ def current_rotated_cone_rule(m, l, i, j):
         return lhs <= rhs
 
 # (6) Flow Bounds for candidate (l,i,j):
-def current_limit_rule(m, l, i, j):
-    return m.i_sq[l, i, j] <= m.i_max[l]**2 + m.slack_i_sq[l, i, j]
-
+def feasible_current_limit_rule(m, l, i, j):
+    return m.i_sq[l, i, j] <= m.i_max[l]**2
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
-def voltage_upper_limits_rule(m, n):
+def feasible_voltage_upper_limits_rule(m, n):
+    return m.v_sq[n] <= m.v_max[n]**2 
+
+def feasible_voltage_lower_limits_rule(m, n):
+    return m.v_sq[n] >= m.v_min[n]**2
+
+# (6) Flow Bounds for candidate (l,i,j):
+def infeasible_current_limit_rule(m, l, i, j):
+    return m.i_sq[l, i, j] <= m.i_max[l]**2 + m.slack_i_sq[l, i, j]
+# (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
+def infeasible_voltage_upper_limits_rule(m, n):
     return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_pos[n]
 
-def voltage_lower_limits_rule(m, n):
+def infeasible_voltage_lower_limits_rule(m, n):
     return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_neg[n]
 
 

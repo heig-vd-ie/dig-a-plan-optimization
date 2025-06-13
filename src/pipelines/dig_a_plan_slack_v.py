@@ -83,6 +83,7 @@ class DigAPlan():
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
+        self.slave_solver.options["BarQCPConvTol"] = 1e-3 
         
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -238,9 +239,6 @@ class DigAPlan():
                     "node_reactive_power_balance": 1,
                     "voltage_drop_lower": 1,
                     "voltage_drop_upper": 1,
-                    # "current_limit": 1,
-                    "voltage_upper_limits": 1,
-                    "voltage_lower_limits": 1,
                 }
 
         else:
