@@ -11,5 +11,6 @@ def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.v_min        = pyo.Param(model.N)   # per-unit
     model.v_max        = pyo.Param(model.N)
     model.n_transfo = pyo.Param(model.LC, default=1)  # Transformer turn ration in pu for branch l. 
+    model.penalty_cost = pyo.Param()
 
     return model

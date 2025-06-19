@@ -142,7 +142,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
     v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    return m.theta + m.losses + v_penalty
+    return m.theta + m.losses + m.penalty_cost*v_penalty
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.

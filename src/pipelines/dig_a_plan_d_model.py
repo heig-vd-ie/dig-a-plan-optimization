@@ -25,8 +25,8 @@ from optimization_model.master_model.constraints import master_model_constraints
 
 from optimization_model.slave_model.sets import slave_model_sets
 from optimization_model.slave_model.parameters import slave_model_parameters
-from optimization_model.slave_model.variables import slave_model_variables, slack_variables
-from optimization_model.slave_model.constraints import feasible_slave_model_constraints, infeasible_slave_model_constraints
+from optimization_model.slave_model.variables import slave_model_variables
+from optimization_model.slave_model.constraints import slave_model_constraints
 
 from pyomo_utility import extract_optimization_results
 
@@ -49,19 +49,10 @@ def generate_feasible_slave_model() -> pyo.AbstractModel:
     slave_model = slave_model_sets(slave_model)
     slave_model = slave_model_parameters(slave_model)
     slave_model = slave_model_variables(slave_model)
-    slave_model = feasible_slave_model_constraints(slave_model)
+    slave_model = slave_model_constraints(slave_model)
     slave_model.dual = Suffix(direction=Suffix.IMPORT)
     return slave_model
 
-def generate_infeasible_slave_model() -> pyo.AbstractModel:
-    slave_model: pyo.AbstractModel = pyo.AbstractModel() # type: ignore
-    slave_model = slave_model_sets(slave_model)
-    slave_model = slave_model_parameters(slave_model)
-    slave_model = slave_model_variables(slave_model)
-    slave_model = slack_variables(slave_model)
-    slave_model = infeasible_slave_model_constraints(slave_model)
-    slave_model.dual = Suffix(direction=Suffix.IMPORT)
-    return slave_model
 
 
 
@@ -84,10 +75,9 @@ class DigAPlan():
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
         self.__master_model: pyo.AbstractModel = generate_master_model()
         self.__slave_model: pyo.AbstractModel = generate_feasible_slave_model()
-        self.__infeasible_slave_model: pyo.AbstractModel = generate_infeasible_slave_model()
         self.__master_model_instance: pyo.ConcreteModel
         self.__slave_model_instance: pyo.ConcreteModel
-        self.__infeasible_slave_model_instance: pyo.ConcreteModel
+
 
         self.__slack_node : int
         self.master_solver = pyo.SolverFactory('gurobi')
@@ -96,16 +86,11 @@ class DigAPlan():
         self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
         
+        self.slack_i_sq: pl.DataFrame    
+        self.slack_v_pos: pl.DataFrame
+        self.slack_v_neg: pl.DataFrame
 
-        self.infeasible_slave_solver = pyo.SolverFactory('gurobi')
-        self.infeasible_slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
-        self.infeasible_slave_solver.options["BarQCPConvTol"] = 1e-8 # To allow dual variables extraction on quadratic constraints
-        self.infeasible_slave_solver.options['NumericFocus'] = 3     # Increase numeric focus
-        self.infeasible_slave_solver.options['FeasibilityTol'] = 1e-9 # Adjust if needed
-        self.infeasible_slave_solver.options['OptimalityTol'] = 1e-9 # Adjust if needed
-        self.infeasible_slave_solver.options['ScaleFlag'] = 3   # Scale the problem to improve numerical stability
-        self.infeasible_slave_solver.options['QCPDual']       = 1
-        
+
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -119,9 +104,6 @@ class DigAPlan():
     @property
     def slave_model(self) -> pyo.AbstractModel:
         return self.__slave_model
-    @property
-    def infeasible_slave_model(self) -> pyo.AbstractModel:
-        return self.__infeasible_slave_model
 
     @property
     def slave_model_instance(self) -> pyo.ConcreteModel:
@@ -129,10 +111,7 @@ class DigAPlan():
     @property
     def master_model_instance(self) -> pyo.ConcreteModel:
         return self.__master_model_instance
-    @property
-    def infeasible_slave_model_instance(self) -> pyo.ConcreteModel:
-        return self.__infeasible_slave_model_instance
-    
+
     @property
     def slack_node(self) -> int:
         return self.__slack_node
@@ -183,8 +162,6 @@ class DigAPlan():
         
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
-        self.__infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data) # type: ignore
-        
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
@@ -223,24 +200,30 @@ class DigAPlan():
 
             self.master_obj = self.master_model_instance.objective() # type: ignore
             master_ds = self.master_model_instance.d.extract_values() # type: ignore 
-            self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
+            
+            self.__slave_model_instance.master_d.store_values(master_ds) # type: ignore
+            results = self.slave_solver.solve(self.__slave_model_instance, tee=self.verbose)
+            self.slave_obj = self.__slave_model_instance.objective() # type: ignore
+            
+            self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+                .filter(c("slack_i_sq") > self.slack_threshold)
+                
+            self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
+                .filter(c("slack_v_pos") > self.slack_threshold)
+                
+            self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
+                .filter(c("slack_v_neg") > self.slack_threshold)
 
-            results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
-
-            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            if (self.slack_i_sq.height > 0) or (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
                 self.infeasible_slave = True
                 convergence_result = np.inf
-                self.infeasible_slave_model_instance.master_d.store_values(master_ds) # type: ignore
-                results = self.infeasible_slave_solver.solve(self.infeasible_slave_model_instance, tee=self.verbose)
-                self.slave_obj = self.infeasible_slave_model_instance.objective() # type: ignore
-                
             else:
                 self.infeasible_slave = False
-                self.slave_obj = self.slave_model_instance.objective() # type: ignore
                 convergence_result = (
                     self.slave_obj - self.master_obj # type: ignore
                     + self.master_model_instance.losses.extract_values()[None] # type: ignore
                 )
+                
             pbar.set_description(
                 f"Master obj: {self.master_obj:.1E}, Slave obj: {self.slave_obj:.4E} and Gap: {convergence_result:.1E}"
                 )
@@ -258,24 +241,20 @@ class DigAPlan():
                     "node_reactive_power_balance": 1,
                     "voltage_drop_lower": 1,
                     "voltage_drop_upper": 1,
-                    # "current_limit": 1,
-                    # "voltage_upper_limits": 1,
-                    # "voltage_lower_limits": 1,
+                    "current_limit": 1,
+                    "voltage_upper_limits": 1,
+                    "voltage_lower_limits": 1,
                 }
-            marginal_cost_df = pl.DataFrame({
-                "name": list(dict(self.infeasible_slave_model_instance.dual).keys()), # type: ignore
-                "marginal_cost": list(dict(self.infeasible_slave_model_instance.dual).values()) # type: ignore
-            })
 
         else:
             constraint_dict = {
                     "current_rotated_cone":-1,
                 }
 
-            marginal_cost_df = pl.DataFrame({
-                "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
-                "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
-            })
+        marginal_cost_df = pl.DataFrame({
+            "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
+            "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
+        })
 
         # Extract delta results from master model
         d_value = extract_optimization_results(self.master_model_instance, "d").select(
