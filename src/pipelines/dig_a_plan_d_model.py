@@ -96,6 +96,7 @@ class DigAPlan():
         self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
         
+
         self.infeasible_slave_solver = pyo.SolverFactory('gurobi')
         self.infeasible_slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.infeasible_slave_solver.options["BarQCPConvTol"] = 1e-8 # To allow dual variables extraction on quadratic constraints
@@ -103,6 +104,8 @@ class DigAPlan():
         self.infeasible_slave_solver.options['FeasibilityTol'] = 1e-9 # Adjust if needed
         self.infeasible_slave_solver.options['OptimalityTol'] = 1e-9 # Adjust if needed
         self.infeasible_slave_solver.options['ScaleFlag'] = 3   # Scale the problem to improve numerical stability
+        self.infeasible_slave_solver.options['QCPDual']       = 1
+        
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -175,13 +178,13 @@ class DigAPlan():
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
                 "penalty_cost": {None: self.penalty_cost},
-                "penalty_cost": {None: self.penalty_cost},
             }
         }
         
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         self.__infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data) # type: ignore
+        
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         

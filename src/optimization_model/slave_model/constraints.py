@@ -165,6 +165,8 @@ Each node voltage squared must remain within limits:
 
 """
 import pyomo.environ as pyo
+from pyomo.environ import Constraint, value
+
 
 def feasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=feasible_objective_rule, sense=pyo.minimize)
@@ -199,6 +201,7 @@ def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.Abstract
 
 def feasible_objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    
     return edge_losses 
 
 def infeasible_objective_rule(m):
@@ -284,14 +287,23 @@ def voltage_drop_upper_rule(m, l, i, j):
 # Enforce: ||[2*p_z_up, 2*q_z_up, v_sq[i]-f(l,i,j)]||_2 <= v_sq[i]+f(l,i,j)
 # In squared form: (2*p_z_up)^2 + (2*q_z_up)^2 + (v_sq[i] - f)^2 <= (v_sq[i] + f)^2.
 def current_rotated_cone_rule(m, l, i, j):
-    if l in m.S:
-        return m.i_sq[l, i, j] == 0
-    else:       
+
+    if value(m.master_d[l,i,j]) == 1:       
         lhs = (2*m.p_flow[l, i, j])**2 + (2*m.q_flow[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
         
         # return m.master_d[l, i, j] * lhs <= rhs
         return lhs <= rhs
+    
+    
+    else:
+        return m.i_sq[l, i, j] == 0
+
+####################################################################
+
+
+
+
 
 # (6) Flow Bounds for candidate (l,i,j):
 def feasible_current_limit_rule(m, l, i, j):

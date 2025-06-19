@@ -7,7 +7,6 @@ import logging
 import tqdm
 import numpy as np
 import pyomo.environ as pyo
-
 from pyomo.environ import Suffix
 import patito as pt
 from typing import TypedDict, Unpack
@@ -25,8 +24,10 @@ from optimization_model.master_model.constraints import master_model_constraints
 
 from optimization_model.slave_model.sets import slave_model_sets
 from optimization_model.slave_model.parameters import slave_model_parameters
-from optimization_model.slave_model.variables import slave_model_variables
-from optimization_model.slave_model.constraints import slave_model_constraints
+from optimization_model.slave_model.variables import slave_model_variables, slack_variables
+from optimization_model.slave_model.constraints_mix import (
+    slave_model_constraints
+)
 
 from pyomo_utility import extract_optimization_results
 
@@ -35,6 +36,7 @@ log = generate_log(name=__name__)
 class DataSchemaPolarsModel(TypedDict, total=True):
     node_data: pl.DataFrame
     edge_data: pl.DataFrame
+
 
 def generate_master_model() -> pyo.AbstractModel:
     master_model: pyo.AbstractModel = pyo.AbstractModel() # type: ignore
@@ -54,12 +56,13 @@ def generate_slave_model() -> pyo.AbstractModel:
     return slave_model
 
 
+
+
 class DigAPlan():
     def __init__(
         self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2,
         slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
     
-        
         self.verbose: int = verbose
         self.big_m: float = big_m
         self.convergence_threshold: float = convergence_threshold
@@ -78,12 +81,15 @@ class DigAPlan():
         self.__slave_model_instance: pyo.ConcreteModel
 
         self.__slack_node : int
+
+        # Solvers
         self.master_solver = pyo.SolverFactory('gurobi')
-        self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
+        self.master_solver.options['IntegralityFocus'] = 1
+
         self.slave_solver = pyo.SolverFactory('gurobi')
-        self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
-        self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
-        self.slave_solver.options["BarQCPConvTol"] = 1e-3 
+        self.slave_solver.options['NonConvex'] = 2
+        self.slave_solver.options['QCPDual'] = 1
+
         
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -98,12 +104,14 @@ class DigAPlan():
     def slave_model(self) -> pyo.AbstractModel:
         return self.__slave_model
 
+
     @property
     def slave_model_instance(self) -> pyo.ConcreteModel:
         return self.__slave_model_instance
     @property
     def master_model_instance(self) -> pyo.ConcreteModel:
         return self.__master_model_instance
+
     @property
     def slack_node(self) -> int:
         return self.__slack_node
@@ -126,7 +134,8 @@ class DigAPlan():
         new_table_pt.validate()
         self.__edge_data = new_table_pt
         
-    def __instantiate_model(self):
+        
+    def __instantiate_model(self, master_d: dict | None = None):
         
         grid_data = {
             None: {
@@ -149,13 +158,13 @@ class DigAPlan():
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
                 "penalty_cost": {None: self.penalty_cost},
-                "penalty_cost": {None: self.penalty_cost},
             }
         }
         
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
-        self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
+        
+
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
         
         for table_name, pl_table in grid_data.items():
@@ -180,7 +189,7 @@ class DigAPlan():
         """
         self.penalty_cost = 10**round(log10(abs(self.edge_data["r_pu"].max()))) * self.penalty_cost # type: ignore
 
-    def solve_models_pipeline(self, max_iters: int, voltage_slack_threshold: float = 1e-3) -> None:
+    def solve_models_pipeline(self, max_iters: int) -> None:
         pbar = tqdm.tqdm(range(max_iters), desc="Master obj: 0, Slave obj: 0 and Gap: 1e6", disable = False)
         logging.getLogger('pyomo.core').setLevel(logging.ERROR)
         for k in pbar:
@@ -197,26 +206,16 @@ class DigAPlan():
 
             results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose)
 
-            self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
-                .filter(c("slack_i_sq") > self.slack_threshold)
-                
-            self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
-                .filter(c("slack_v_pos") > self.slack_threshold)
-                
-            self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
-                .filter(c("slack_v_neg") > self.slack_threshold)
-                
-            total_v_slack = (self.slack_v_pos["slack_v_pos"].sum() + self.slack_v_neg["slack_v_neg"].sum())
-
-                
-            self.slave_obj = self.slave_model_instance.objective() # type: ignore
-            if (self.slack_i_sq.height > 0) or (total_v_slack > voltage_slack_threshold): 
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 self.infeasible_slave = True
                 convergence_result = np.inf
+                self.infeasible_slave_model_instance.master_d.store_values(master_ds) # type: ignore
+                results = self.infeasible_slave_solver.solve(self.infeasible_slave_model_instance, tee=self.verbose)
+                self.slave_obj = self.infeasible_slave_model_instance.objective() # type: ignore
+                
             else:
                 self.infeasible_slave = False
-        
-
+                self.slave_obj = self.slave_model_instance.objective() # type: ignore
                 convergence_result = (
                     self.slave_obj - self.master_obj # type: ignore
                     + self.master_model_instance.losses.extract_values()[None] # type: ignore
@@ -226,8 +225,7 @@ class DigAPlan():
                 )
     
             if convergence_result < self.convergence_threshold:
-                if k != 0:
-                    break
+                break
 
             self.add_benders_cut()
         
@@ -239,17 +237,24 @@ class DigAPlan():
                     "node_reactive_power_balance": 1,
                     "voltage_drop_lower": 1,
                     "voltage_drop_upper": 1,
+                    # "current_limit": 1,
+                    # "voltage_upper_limits": 1,
+                    # "voltage_lower_limits": 1,
                 }
+            marginal_cost_df = pl.DataFrame({
+                "name": list(dict(self.infeasible_slave_model_instance.dual).keys()), # type: ignore
+                "marginal_cost": list(dict(self.infeasible_slave_model_instance.dual).values()) # type: ignore
+            })
 
         else:
             constraint_dict = {
                     "current_rotated_cone":-1,
                 }
 
-        marginal_cost_df = pl.DataFrame({
-            "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
-            "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
-        })
+            marginal_cost_df = pl.DataFrame({
+                "name": list(dict(self.slave_model_instance.dual).keys()), # type: ignore
+                "marginal_cost": list(dict(self.slave_model_instance.dual).values()) # type: ignore
+            })
 
         # Extract delta results from master model
         d_value = extract_optimization_results(self.master_model_instance, "d").select(
@@ -325,3 +330,4 @@ class DigAPlan():
                 self.edge_data.filter(c("type") != "switch")["eq_fk", "edge_id", "i_base"], on="edge_id", how="inner"
             )
         return edge_current
+        )

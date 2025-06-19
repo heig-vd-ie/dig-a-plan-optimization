@@ -141,7 +141,8 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
-    return m.theta + m.losses
+    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
+    return m.theta + m.losses + v_penalty
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.
@@ -216,10 +217,10 @@ def volt_drop_upper_rule(m, l, i, j):
     
 # Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
 def voltage_upper_limits_rule(m, n):
-    return m.v_sq[n] <= m.v_max[n]**2 
+    return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_pos[n]
 
 def voltage_lower_limits_rule(m, n):
-    return m.v_sq[n] >= m.v_min[n]**2
+    return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_neg[n]
 
         
     
