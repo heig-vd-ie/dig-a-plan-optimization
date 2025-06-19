@@ -90,18 +90,13 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
     ).with_columns(
         get_transfo_impedance(rated_s=c("sn_mva")*1e6, rated_v=c("vn_lv_kv")*1e3, voltage_ratio=c("vk_percent")).alias("z"),
         get_transfo_impedance(rated_s=c("sn_mva")*1e6, rated_v=c("vn_lv_kv")*1e3, voltage_ratio=c("vkr_percent")).alias("r"),
-        get_transfo_admittance(rated_s=c("sn_mva")*1e6, rated_v=c("vn_lv_kv")*1e3, oc_current_ratio=c("i0_percent")).alias("y"),
-        get_transfo_conductance(rated_v=c("vn_lv_kv")*1e3, iron_losses=c("pfe_kw")*1e3).alias("g"),
     ).with_columns(
         get_transfo_imaginary_component(module = c("z"), real = c("r")).alias("x"),
-        get_transfo_imaginary_component(module = c("y"), real = c("g")).alias("b"),
     ).select(
         "u_of_edge", "v_of_edge", 
         c("name").alias("eq_fk"),
         (c("r")/c("z_base")).alias("r_pu"),
         (c("x")/c("z_base")).alias("x_pu"),
-        (c("g")*c("z_base")).alias("g_pu"),
-        (c("b")*c("z_base")).alias("b_pu"),
         pl.lit("transformer").alias("type"),
         (c("sn_mva") *1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias("i_max_pu"),
         ((c("vn_hv_pu")/c("vn_lv_pu"))).alias("n_transfo"),

@@ -114,9 +114,11 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
     
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
+    
     
     model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
-    model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
+    
     model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
     model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
     model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
@@ -124,13 +126,13 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
     model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     
-    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    # model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
-    model.volt_drop_lower = pyo.Constraint(model.LC, rule=volt_drop_lower_rule)
-    model.volt_drop_upper = pyo.Constraint(model.LC, rule=volt_drop_upper_rule)
+    # model.volt_drop_lower = pyo.Constraint(model.LC, rule=volt_drop_lower_rule)
+    # model.volt_drop_upper = pyo.Constraint(model.LC, rule=volt_drop_upper_rule)
     
-    model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
-    model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
+    # model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
+    # model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     
     
     # cuts are generated on-the-fly, so no rules are necessary.
@@ -141,8 +143,9 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
-    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    return m.theta + m.losses + m.penalty_cost*v_penalty
+    # v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
+    # return m.theta  + m.penalty_cost*v_penalty
+    return m.theta + m.losses
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.

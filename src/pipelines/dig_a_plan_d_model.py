@@ -200,7 +200,7 @@ class DigAPlan():
 
             self.master_obj = self.master_model_instance.objective() # type: ignore
             master_ds = self.master_model_instance.d.extract_values() # type: ignore 
-            
+
             self.__slave_model_instance.master_d.store_values(master_ds) # type: ignore
             results = self.slave_solver.solve(self.__slave_model_instance, tee=self.verbose)
             self.slave_obj = self.__slave_model_instance.objective() # type: ignore
