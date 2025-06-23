@@ -1,8 +1,7 @@
-import re
+
 import polars as pl
 from polars import col as c
-from typing import Union
-import networkx as nx
+
 
 import numpy as np
 import pandapower as pp
@@ -11,11 +10,12 @@ from polars_function import (
 from networkx_function import (
     generate_tree_graph_from_edge_data, get_all_edge_data)
 
+import patito as pt
 
+from twindigrid_changes import models as changes_models
 from twindigrid_changes.schema import ChangesSchema
-from twindigrid_sql.entries.equipment_class import EXTERNAL_NETWORK, TRANSFORMER, SWITCH, BRANCH, EXTERNAL_NETWORK, TRANSFORMER
 
-from general_function import pl_to_dict
+from general_function import pl_to_dict, snake_to_camel, duckdb_to_dict
 
 
 def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) -> dict[str, pl.DataFrame]:
@@ -23,7 +23,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
     
     grid_data: dict[str, pl.DataFrame] = {}
     
-    node_data: pl.DataFrame = pl.from_pandas(net.bus)
+    node_data: pl.DataFrame = pl.from_pandas(net.bus, include_index=True).rename({"None": "node_id"})
     load: pl.DataFrame = pl.from_pandas(net.load)
     sgen: pl.DataFrame = pl.from_pandas(net.sgen)
 
@@ -43,7 +43,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
         pl.sum_horizontal([c("q_load").fill_null(0.), c("q_pv").fill_null(0.)]).alias("q_node_pu")
     )
 
-    node_data = node_data[["vn_kv", "name"]].with_row_index(name="node_id")\
+    node_data = node_data[["node_id", "vn_kv", "name"]]\
         .join(load, on="node_id", how="left")\
         .select(
             c("name").alias("cn_fk"),
@@ -56,7 +56,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
             pl.lit(s_base).alias("s_base"),
             (s_base /(c("v_base") * np.sqrt(3))).alias("i_base")
         )
-    i_base_mapping = pl_to_dict(node_data["node_id", "i_base"])
+
         
     line: pl.DataFrame = pl.from_pandas(net.line)
     line = line\
@@ -137,101 +137,98 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
 
 
 
+def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: float=1e6) -> dict[str, pl.DataFrame]:
 
+    grid_data: dict[str, pl.DataFrame] = {}
+
+
+    connectivity: pl.DataFrame = change_schema.connectivity
+    ext_grid_id = connectivity.filter(c("eq_class")== "external_network")["cn_fk"][0]
+
+    node_data = change_schema.connectivity_node.with_row_index(name="node_id").with_columns(
+        c("uuid").alias("cn_fk"),
+        c("base_voltage_fk").alias("v_base"),
+        (s_base /(c("base_voltage_fk") * np.sqrt(3))).alias("i_base")
+    )
+
+    container_mapping = pl_to_dict(
+        connectivity.filter(c("eq_class") == "energy_consumer").filter(c("container_fk").is_first_distinct())["container_fk", "cn_fk"])
+
+    measurement_value_mapping = pl_to_dict(change_schema.measurement_span["measurement_fk", "double_value"].unique("measurement_fk"))
+    measurement = change_schema.measurement.filter(c("source_fk") == "conventional_meter").with_columns(
+        c("uuid").replace_strict(measurement_value_mapping, default=None).alias("value"),
+        c("resource_fk").replace_strict(container_mapping, default=None).alias("cn_fk")
+    ).with_columns(
+        (pl.lit(10).pow(c("unit_multiplier")) * c("value")/(24*365)).alias("value")
+    ).group_by("cn_fk").agg(c("value").sum().alias("p_node_pu")/s_base)
+
+    grid_data["node_data"] = node_data.join(measurement, on="cn_fk", how="left").with_columns(
+        pl.when(c("cn_fk") == ext_grid_id)
+            .then(pl.lit("slack"))
+            .otherwise(pl.lit("pq")).alias("type"),
+    )
+
+    node_mapping = pl_to_dict(node_data["cn_fk", "node_id"])
+
+    eq_connectivity = connectivity\
+        .with_columns(c("cn_fk").replace_strict(node_mapping, default=None))\
+        .pivot(on= "side", values="cn_fk", index="eq_fk").rename({"t1": "u_of_edge", "t2": "v_of_edge"})
+        
+    branch = change_schema.branch\
+        .join(change_schema.branch_parameter_event, left_on="uuid", right_on="eq_fk", how="left")\
+        .join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
+        .join(node_data["node_id", "v_base", "i_base"], left_on="u_of_edge", right_on="node_id", how="left")\
+        .with_columns(
+            (c("v_base")**2 /s_base).alias("z_base"), 
+        ).select(
+            "u_of_edge", "v_of_edge",
+            c("uuid").alias("eq_fk"),
+            (c("r")/c("z_base")).alias("r_pu"),
+            (c("x")/c("z_base")).alias("x_pu"),
+            (c("b")*c("z_base")).alias("b_pu"),
+            (c("current_limit")/ c("i_base")).alias("i_max_pu"),
+            pl.lit("branch").alias("type"), 
+            c("i_base")
+        )
+
+    transformer_end = change_schema.transformer_end.pivot(on= "side", values="nominal_voltage", index="eq_fk").rename({"t1": "vn_hv", "t2": "vn_lv"})
+
+    transformer = change_schema.transformer\
+        .join(change_schema.transformer_parameter_event.filter(c("side")=="t2"), left_on="uuid", right_on="eq_fk", how="left")\
+        .join(transformer_end, left_on="uuid", right_on="eq_fk", how="left")\
+        .join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
+        .join(node_data.select("node_id", c("v_base").alias("v_base_hv")), left_on="u_of_edge", right_on="node_id", how="left")\
+        .join(node_data.select("node_id", c("v_base").alias("v_base_lv"), "i_base"), left_on="v_of_edge", right_on="node_id", how="left")\
+        .with_columns(
+            ((c("vn_hv")*c("v_base_lv"))/(c("vn_lv")*c("v_base_hv"))).alias("n_transfo"),
+            (c("v_base_lv")**2 / s_base).alias("z_base"), 
+        ).with_columns(
+            c("uuid").alias("eq_fk"),
+            (c("rated_s") *1e3 / (np.sqrt(3) * c("v_base_lv") * c("i_base"))).alias("i_max_pu"),
+            (c("r")/c("z_base")).alias("r_pu"),
+            (c("x")/c("z_base")).alias("x_pu"),
+            pl.lit("transformer").alias("type"),
+        )
+        
+    switch = change_schema.switch.join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
+        .join(node_data["node_id", "v_base", "i_base"], left_on="u_of_edge", right_on="node_id", how="left")\
+        .with_columns(
+            c("uuid").alias("eq_fk"),
+            pl.lit("switch").alias("type"),
+        )
+
+    grid_data["edge_data"] = pl.concat(
+            [branch, transformer, switch], how="diagonal_relaxed"
+        ).with_row_index(name="edge_id")
     
+    return grid_data
 
-def schema_to_distflow_schema(
-    changes_schema: ChangesSchema, s_base: float
-) :
-    """
-    Convert the schema to a DistFlowSchema instance and add the edge_data table to it
-    Also convert in PU the branch parameter
+def duckdb_to_changes_schema(file_path: str) -> ChangesSchema:
+    data = duckdb_to_dict(file_path = file_path)
+    schema_dict = {}
+    for table_name, table in data.items():
+        pt_model: pt.Model = getattr(changes_models, snake_to_camel(table_name))
+        schema_dict[table_name] = pt.Model.DataFrame(table).set_model(pt_model).cast()
 
-    Args:
-        changes_schema (ChangesSchema): The schema to convert from ChangesSchema to DistFlowSchema
-        s_base (float): The base power of the system
-
-    Returns:
-        dict(distflow_schema:DistFlowSchema,slack_node_id:int): The DistFlowSchema instance and the slack node id
-
-    """
-
-    ##TODO Put s_base in metadata
-    ##TODO Add the normalised error, need to be treated and add in schema
-
-    resource_data = changes_schema.resource.filter(
-        c("concrete_class").is_in([BRANCH, SWITCH, TRANSFORMER, EXTERNAL_NETWORK])
-    ).select(
-        c("uuid"), c("dso_code").alias("element_id"), c("concrete_class").alias("type")
-    )
-
-    ## Add row index to connectivity_node to give the number of node
-    ## Join connectivity_node with connectivity to get the eq_fk
-    ## Create the connectivity_node dictionnary with side+eq_fk as key and node index as value
-    cn_mapping: dict[float, str] = pl_to_dict(
-        changes_schema.connectivity_node.with_row_index()
-        .join(changes_schema.connectivity, left_on="uuid", right_on="cn_fk", how="left")
-        .select((c("side") + c("eq_fk")).alias("eq_fk_side"), c("index"))
-    )
-
-    ## Add node from and node to for each edge with side+eq_fk
-    resource_data = resource_data.with_columns(
-        ("t1" + c("uuid"))
-        .replace_strict(cn_mapping, default=None)
-        .alias(
-            "u_of_edge"
-        ),  # Replace side+eq_fk with node number from connectivity for equipment
-        ("t2" + c("uuid")).replace_strict(cn_mapping, default=None).alias("v_of_edge"),
-    )
-
-    # Add branch parameter to line_data
-    resource_data = resource_data.join(
-        changes_schema.branch_parameter_event[["uuid", "eq_fk", "r", "x", "b", "g"]],
-        left_on="uuid",
-        right_on="eq_fk",
-        how="left",
-    ).drop("uuid_right")
-
-    ## Add n_tranfo to 1, useless, because automatically added by add_table from class DistFlowSchema and by default value is 1
-    # resource_data = resource_data.with_columns(pl.lit(1).alias("n_tranfo"))
-
-    ## Search slack node id for DisFlowSchema
-    slack_node_id:int = resource_data.filter(c("type") == EXTERNAL_NETWORK)[
-        "u_of_edge"
-    ].item()
-
-    ## Remove the external network from the resource_data
-    resource_data = resource_data.filter(c("type") != EXTERNAL_NETWORK)
-
-    ## Transfo in pu
-
-    u_b = changes_schema.base_voltage["nominal_voltage"].item()  # V
-    i_b = s_base / (3**0.5 * u_b)  # A
-    z_b = u_b**2 / s_base  # Ohm
-    b_b = 1 / z_b  # S
-
-    pu_base = {
-        "U_b": u_b,
-        "I_b": i_b,
-        "Z_b": z_b,
-        "B_b": b_b,
-        "S_base": s_base,
-    }
-
-    resource_data_pu = resource_data.with_columns(
-        (c("g") * pu_base["Z_b"]).alias("g_pu"),
-        (c("r") / pu_base["Z_b"]).alias("r_pu"),
-        (c("x") / pu_base["Z_b"]).alias("x_pu"),
-        (c("b") / pu_base["B_b"]).alias("b_pu"),
-    ).drop(["r", "x", "b", "g"])
-
-    ## Check if B is negativ for branch and positiv for trafos
-    ## If type is branch, then b_pu is negative, otherwise positive (trafo and switch)
-    resource_data_pu = resource_data_pu.with_columns(
-        pl.when(c("type") == BRANCH)
-        .then(c("b_pu").abs().neg())
-        .otherwise(c("b_pu").abs())
-        .alias("b_pu")
-    )
-
-    ## Create the DistFlowSchema instance
+    return ChangesSchema().replace(
+        **schema_dict)

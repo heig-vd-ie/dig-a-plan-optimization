@@ -1,5 +1,6 @@
 import polars as pl
 from polars import col as c
+import networkx as nx
 import os
 from math import log10
 import logging
@@ -14,6 +15,7 @@ from typing import TypedDict, Unpack
 
 from general_function import pl_to_dict, generate_log, pl_to_dict_with_tuple
 from polars_function import list_to_list_of_tuple, cast_boolean, modify_string_col
+from networkx_function import generate_nx_edge, generate_bfs_tree_with_edge_data, get_all_edge_data
 
 from data_schema.node_data import NodeData
 from data_schema.edge_data import EdgeData
@@ -68,7 +70,7 @@ class DigAPlan():
         self.d: pl.DataFrame = pl.DataFrame()
         self.infeasible_slave: bool
         self.slave_obj: float
-        self.master_obj: float
+        self.master_obj: float = -1e-8
         self.penalty_cost: float = penalty_cost
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
@@ -85,6 +87,8 @@ class DigAPlan():
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
+        self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
+        
         
         self.slack_i_sq: pl.DataFrame    
         self.slack_v_pos: pl.DataFrame
@@ -188,20 +192,13 @@ class DigAPlan():
         self.penalty_cost = 10**round(log10(abs(self.edge_data["r_pu"].max()))) * self.penalty_cost # type: ignore
 
     def solve_models_pipeline(self, max_iters: int) -> None:
+        
+        self.find_initial_state_of_switches()
+        
         pbar = tqdm.tqdm(range(max_iters), desc="Master obj: 0, Slave obj: 0 and Gap: 1e6", disable = False)
         logging.getLogger('pyomo.core').setLevel(logging.ERROR)
         for k in pbar:
 
-            results = self.master_solver.solve(self.master_model_instance, tee=self.verbose)
-            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
-                pbar.disable = True
-                log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
-                break
-
-            self.master_obj = self.master_model_instance.objective() # type: ignore
-            master_ds = self.master_model_instance.d.extract_values() # type: ignore 
-
-            self.__slave_model_instance.master_d.store_values(master_ds) # type: ignore
             results = self.slave_solver.solve(self.__slave_model_instance, tee=self.verbose)
             self.slave_obj = self.__slave_model_instance.objective() # type: ignore
             
@@ -221,7 +218,6 @@ class DigAPlan():
                 self.infeasible_slave = False
                 convergence_result = (
                     self.slave_obj - self.master_obj # type: ignore
-                    + self.master_model_instance.losses.extract_values()[None] # type: ignore
                 )
                 
             pbar.set_description(
@@ -232,6 +228,17 @@ class DigAPlan():
                 break
 
             self.add_benders_cut()
+            
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                pbar.disable = True
+                log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
+                break
+
+            self.master_obj = self.master_model_instance.objective() # type: ignore
+            master_ds = self.master_model_instance.d.extract_values() # type: ignore 
+
+            self.__slave_model_instance.master_d.store_values(master_ds) # type: ignore
         
     
     def add_benders_cut(self) -> None:
@@ -257,8 +264,8 @@ class DigAPlan():
         })
 
         # Extract delta results from master model
-        d_value = extract_optimization_results(self.master_model_instance, "d").select(
-                c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC"), "d"
+        d_value = extract_optimization_results(self.slave_model_instance, "master_d").select(
+                c("LC").cast(pl.List(pl.Utf8)).list.join(",").alias("LC"), c("master_d").alias("d")
             )
 
         d_variable = pl.DataFrame(
@@ -290,6 +297,7 @@ class DigAPlan():
             .join(d_value, on="LC")\
             .join(d_variable, on="LC")\
 
+        print(marginal_cost_df)
         new_cut = self.slave_obj 
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (data["d"] - data["d_variable"]) 
@@ -330,3 +338,37 @@ class DigAPlan():
                 self.edge_data.filter(c("type") != "switch")["eq_fk", "edge_id", "i_base"], on="edge_id", how="inner"
             )
         return edge_current
+    
+    
+    
+    def find_initial_state_of_switches(self):
+        """
+        Check if the topology is a tree.
+        """
+        nx_graph = nx.Graph()
+        _ = self.edge_data.filter(~c("normal_open")).with_columns(
+            pl.struct(pl.all()).pipe(generate_nx_edge, nx_graph=nx_graph)
+        )
+        if nx.is_tree(nx_graph):
+
+            
+            slack_node_id = self.node_data.filter(c("type")=="slack")["node_id"][0]
+            digraph = generate_bfs_tree_with_edge_data(graph = nx_graph, source=slack_node_id)
+            initial_master_d = pl_to_dict_with_tuple(get_all_edge_data(digraph)\
+                .select(
+                    pl.concat_list("edge_id", "u_of_edge", "v_of_edge").alias("LC"),
+                    pl.lit(1).alias("value")
+                ))
+            
+        else:
+            log.warning(
+                "The resulting graph considering normal switch is NOT a tree.\n The initial state of switches is determined solving master model.")
+            
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
+
+            self.master_obj = self.master_model_instance.objective() # type: ignore
+            initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
+        
+        self.__slave_model_instance.master_d.store_values(initial_master_d) # type: ignore

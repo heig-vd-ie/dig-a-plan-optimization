@@ -18,5 +18,5 @@ class NodeData(pt.Model):
     p_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     q_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     q_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
-    v_node_sqr_pu: Optional[float] = pt.Field(dtype=pl.Float64)
+    v_node_sqr_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
     type: TYPES = pt.Field(dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES))

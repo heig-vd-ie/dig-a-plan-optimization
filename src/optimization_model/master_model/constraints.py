@@ -117,14 +117,14 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
     
     
-    model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
+    # model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
     
-    model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
-    model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
-    model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
-    model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
-    model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
-    model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
+    # model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
+    # model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
+    # model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
+    # model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
+    # model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
+    # model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     
     # model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
@@ -144,8 +144,8 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
     # v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    # return m.theta  + m.penalty_cost*v_penalty
-    return m.theta + m.losses
+    # return m.theta  + m.penalty_cost*v_penalty + m.losses
+    return m.theta 
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.
