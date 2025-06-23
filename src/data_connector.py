@@ -166,6 +166,9 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
         pl.when(c("cn_fk") == ext_grid_id)
             .then(pl.lit("slack"))
             .otherwise(pl.lit("pq")).alias("type"),
+        pl.when(c("cn_fk") == ext_grid_id)
+        .then(pl.lit(1.1))
+        .otherwise(pl.lit(None)).alias("v_node_sqr_pu"),
     )
 
     node_mapping = pl_to_dict(node_data["cn_fk", "node_id"])

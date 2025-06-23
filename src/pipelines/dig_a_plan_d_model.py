@@ -202,31 +202,7 @@ class DigAPlan():
             results = self.slave_solver.solve(self.__slave_model_instance, tee=self.verbose)
             self.slave_obj = self.__slave_model_instance.objective() # type: ignore
             
-            self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
-                .filter(c("slack_i_sq") > self.slack_threshold)
-                
-            self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
-                .filter(c("slack_v_pos") > self.slack_threshold)
-                
-            self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
-                .filter(c("slack_v_neg") > self.slack_threshold)
-
-            if (self.slack_i_sq.height > 0) or (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
-                self.infeasible_slave = True
-                convergence_result = np.inf
-            else:
-                self.infeasible_slave = False
-                convergence_result = (
-                    self.slave_obj - self.master_obj # type: ignore
-                )
-                
-            pbar.set_description(
-                f"Master obj: {self.master_obj:.1E}, Slave obj: {self.slave_obj:.4E} and Gap: {convergence_result:.1E}"
-                )
-    
-            if convergence_result < self.convergence_threshold:
-                break
-
+            self.check_slave_feasibility()
             self.add_benders_cut()
             
             results = self.master_solver.solve(self.master_model_instance, tee=False)
@@ -234,10 +210,24 @@ class DigAPlan():
                 pbar.disable = True
                 log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
                 break
-
+            
             self.master_obj = self.master_model_instance.objective() # type: ignore
-            master_ds = self.master_model_instance.d.extract_values() # type: ignore 
-
+            
+            if self.infeasible_slave == True:
+                convergence_result = np.inf
+            else:
+                self.infeasible_slave = False
+                convergence_result = (
+                    self.slave_obj - self.master_obj # type: ignore
+                )
+            pbar.set_description(
+                f"Master obj: {self.master_obj:.1E}, Slave obj: {self.slave_obj:.1E} and Gap: {convergence_result:.1E}"
+                ) 
+            
+            if convergence_result < self.convergence_threshold:
+                break 
+        
+            master_ds = self.master_model_instance.d.extract_values() # type: ignore
             self.__slave_model_instance.master_d.store_values(master_ds) # type: ignore
         
     
@@ -255,7 +245,7 @@ class DigAPlan():
 
         else:
             constraint_dict = {
-                    "current_rotated_cone":-1,
+                "current_rotated_cone":-1,
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -297,7 +287,6 @@ class DigAPlan():
             .join(d_value, on="LC")\
             .join(d_variable, on="LC")\
 
-        print(marginal_cost_df)
         new_cut = self.slave_obj 
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (data["d"] - data["d_variable"]) 
@@ -339,7 +328,20 @@ class DigAPlan():
             )
         return edge_current
     
-    
+    def check_slave_feasibility(self):
+        self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+                .filter(c("slack_i_sq") > self.slack_threshold)
+                
+        self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
+            .filter(c("slack_v_pos") > self.slack_threshold)
+            
+        self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
+            .filter(c("slack_v_neg") > self.slack_threshold)
+
+        if (self.slack_i_sq.height > 0) or (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
+            self.infeasible_slave = True
+        else:
+            self.infeasible_slave = False
     
     def find_initial_state_of_switches(self):
         """
@@ -356,7 +358,7 @@ class DigAPlan():
             digraph = generate_bfs_tree_with_edge_data(graph = nx_graph, source=slack_node_id)
             initial_master_d = pl_to_dict_with_tuple(get_all_edge_data(digraph)\
                 .select(
-                    pl.concat_list("edge_id", "u_of_edge", "v_of_edge").alias("LC"),
+                    pl.concat_list("edge_id", "v_of_edge", "u_of_edge").alias("LC"),
                     pl.lit(1).alias("value")
                 ))
             
