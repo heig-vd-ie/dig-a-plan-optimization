@@ -108,34 +108,20 @@ Each non-slack node must have **exactly one** incoming active branch. For the sl
 import pyomo.environ as pyo
 from pyomo.environ import ConstraintList
 
-def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
+def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
     
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
-    
-    # cuts are generated on-the-fly, so no rules are necessary.
-    model.infeasibility_cut = pyo.ConstraintList()
-    model.optimality_cut = pyo.ConstraintList()
-    
-    return model
 
-def master_model_constraints_2(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    
-    model.objective = pyo.Objective(rule=master_obj_2, sense=pyo.minimize)
-    
-    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
-    model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
-
-    model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
     
     model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
     model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
-    model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
-    model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
+
     model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
-    model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
+
     
     # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = pyo.ConstraintList()
@@ -146,9 +132,6 @@ def master_model_constraints_2(model: pyo.AbstractModel) -> pyo.AbstractModel:
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
     return m.theta 
-
-def master_obj_2(m):
-    return m.theta + m.losses
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
 def radiality_rule(m, n):
@@ -165,21 +148,11 @@ def orientation_rule(m, l):
     else:
         return sum(m.d[l_, i, j] for (l_, i, j) in m.LC if l_ == l) == 1
 
-def ohmic_losses_rule(m):
-    # Objective function to minimize resistive losses.
-    return sum(m.r[l] * (m.p_flow[l, i, j]**2 + m.q_flow[l, i, j]**2) for (l, i, j) in m.LC) == m.losses
-
-# def theta_initialization_rule(m):
-#     # Initialize theta to a large value to ensure it is non-negative.
-#     return m.theta == 0  # or any sufficiently large value 
-
 def slack_voltage_rule(m, n):
     if n == pyo.value(m.slack_node):
         return m.v_sq[n] == m.slack_node_v_sq
     else:
         return pyo.Constraint.Skip 
-
-
 
 # Big-M constraints for real power flows.
 def flow_P_lower_rule(m, l, i, j):
@@ -188,48 +161,35 @@ def flow_P_lower_rule(m, l, i, j):
 def flow_P_upper_rule(m, l, i, j):
     return m.p_flow[l, i, j] <= m.big_m * m.d[l, i, j]
 
-# Big-M constraints for reactive power flows.
-def flow_Q_lower_rule(m, l, i, j):
-    return m.q_flow[l, i, j] >= -m.big_m * m.d[l, i, j]
-
-def flow_Q_upper_rule(m, l, i, j):
-    return m.q_flow[l, i, j] <= m.big_m * m.d[l, i, j]
-
 # Real power balance.
 def power_balance_real_rule(m, n):
     if n == m.slack_node:
         return pyo.Constraint.Skip
     p_in = sum(m.p_flow[l, a, b] for (l, a, b) in m.LC if b == n)
     p_out = sum(m.p_flow[l, a, b] for (l, a, b) in m.LC if a == n)
-    return p_in - p_out == m.p_node[n]
+    return p_in - p_out == -1
 
-    # Reactive power balance.
-def power_balance_reactive_rule(m, n):
-    if n == m.slack_node:
-        return pyo.Constraint.Skip
-    q_in = sum(m.q_flow[l, a, b] for (l, a, b) in m.LC if b == n)
-    q_out = sum(m.q_flow[l, a, b] for (l, a, b) in m.LC if a == n)
-    return q_in - q_out == m.q_node[n]
+#     # Reactive power balance.
+# def power_balance_reactive_rule(m, n):
+#     if n == m.slack_node:
+#         return pyo.Constraint.Skip
+#     q_in = sum(m.q_flow[l, a, b] for (l, a, b) in m.LC if b == n)
+#     q_out = sum(m.q_flow[l, a, b] for (l, a, b) in m.LC if a == n)
+#     return q_in - q_out == m.q_node[n]
 
+# # Big-M constraints for reactive power flows.
+# def flow_Q_lower_rule(m, l, i, j):
+#     return m.q_flow[l, i, j] >= -m.big_m * m.d[l, i, j]
 
-# voltage dropped lower bound 
-def volt_drop_lower_rule(m, l, i, j):
-    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) 
-    return  m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.big_m*(1 - m.d[l, i, j])
+# def flow_Q_upper_rule(m, l, i, j):
+#     return m.q_flow[l, i, j] <= m.big_m * m.d[l, i, j]
 
-        
-# Voltage dropped upper bound 
+# def ohmic_losses_rule(m):
+#     # Objective function to minimize resistive losses.
+#     return sum(m.r[l] * (m.p_flow[l, i, j]**2 + m.q_flow[l, i, j]**2) for (l, i, j) in m.LC) == m.losses
 
-def volt_drop_upper_rule(m, l, i, j):
-    dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) 
-    return m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.d[l, i, j])
-    
-# Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
-def voltage_upper_limits_rule(m, n):
-    return m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_pos[n]
-
-def voltage_lower_limits_rule(m, n):
-    return m.v_sq[n] >= m.v_min[n]**2 - m.slack_v_neg[n]
-
+# def theta_initialization_rule(m):
+#     # Initialize theta to a large value to ensure it is non-negative.
+#     return m.theta == 0  # or any sufficiently large value 
         
     

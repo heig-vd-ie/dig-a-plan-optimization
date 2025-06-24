@@ -23,7 +23,7 @@ from data_schema.edge_data import EdgeData
 from optimization_model.master_model.sets import master_model_sets
 from optimization_model.master_model.parameters import master_model_parameters
 from optimization_model.master_model.variables import master_model_variables
-from optimization_model.master_model.constraints import master_model_constraints, master_model_constraints_2
+from optimization_model.master_model.constraints import master_model_constraints
 
 from optimization_model.slave_model.sets import slave_model_sets
 from optimization_model.slave_model.parameters import slave_model_parameters
@@ -46,14 +46,6 @@ def generate_master_model() -> pyo.AbstractModel:
     master_model = master_model_constraints(master_model)
     return master_model
 
-def generate_master_model_2() -> pyo.AbstractModel:
-    master_model: pyo.AbstractModel = pyo.AbstractModel() # type: ignore
-    master_model = master_model_sets(master_model)
-    master_model = master_model_parameters(master_model)
-    master_model = master_model_variables(master_model)
-    master_model = master_model_constraints_2(master_model)
-    return master_model
-
 def generate_feasible_slave_model() -> pyo.AbstractModel:
     slave_model: pyo.AbstractModel = pyo.AbstractModel() # type: ignore
     slave_model = slave_model_sets(slave_model)
@@ -62,8 +54,6 @@ def generate_feasible_slave_model() -> pyo.AbstractModel:
     slave_model = slave_model_constraints(slave_model)
     slave_model.dual = Suffix(direction=Suffix.IMPORT)
     return slave_model
-
-
 
 
 class DigAPlan():
@@ -84,12 +74,10 @@ class DigAPlan():
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
         self.__master_model: pyo.AbstractModel = generate_master_model()
-        self.__master_model_2: pyo.AbstractModel = generate_master_model_2()
         
         self.__slave_model: pyo.AbstractModel = generate_feasible_slave_model()
         self.__master_model_instance: pyo.ConcreteModel
         self.__slave_model_instance: pyo.ConcreteModel
-        self.__master_model_instance_2: pyo.ConcreteModel
         
 
         self.__slack_node : int
@@ -182,7 +170,6 @@ class DigAPlan():
         }
         
         self.__master_model_instance = self.master_model.create_instance(grid_data) # type: ignore
-        self.__master_model_instance_2 = self.__master_model_2.create_instance(grid_data) # type: ignore
         self.__slave_model_instance = self.slave_model.create_instance(grid_data) # type: ignore
         
     def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
@@ -231,13 +218,12 @@ class DigAPlan():
             
             self.master_obj = self.master_model_instance.objective() # type: ignore
             
-            if (self.infeasible_slave == True) or (k == 0):
+            if self.infeasible_slave == True:
                 convergence_result = np.inf
             else:
                 self.infeasible_slave = False
                 convergence_result = (
                     self.slave_obj - self.master_obj # type: ignore
-                    + self.master_model_instance.losses.extract_values()[None] # type: ignore
                 )
             pbar.set_description(
                 f"Master obj: {self.master_obj:.1E}, Slave obj: {self.slave_obj:.1E} and Gap: {convergence_result:.1E}"
@@ -254,17 +240,25 @@ class DigAPlan():
         if self.infeasible_slave == True:
             constraint_dict = {
                     "node_active_power_balance": 1,
-                    "node_reactive_power_balance": 1,
-                    "voltage_drop_lower": 1,
-                    "voltage_drop_upper": 1,
-                    "current_limit": 1,
-                    "voltage_upper_limits": 1,
-                    "voltage_lower_limits": 1,
+                    # "node_reactive_power_balance": 1,
+                    # "voltage_drop_lower": 1,
+                    # "voltage_drop_upper": -1,
+                    # "current_limit": 1,
+                    # "voltage_upper_limits": 1,
+                    # "voltage_lower_limits": 1,
+                    "current_rotated_cone": -1,
                 }
 
         else:
             constraint_dict = {
-                "current_rotated_cone":-1,
+                "node_active_power_balance": 1,
+                # "node_reactive_power_balance": 1,
+                # "voltage_drop_lower": 1,
+                # "voltage_drop_upper": -1,
+                # "current_limit": 1,
+                # "voltage_upper_limits": 1,
+                # "voltage_lower_limits": 1,
+                "current_rotated_cone": -1,
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -299,8 +293,8 @@ class DigAPlan():
             )      
         
         marginal_cost_df: pl.DataFrame = marginal_cost_df\
-            .group_by("LC").agg(c("marginal_cost").sum())
-            # .filter(c("marginal_cost").abs() >=1e-7)
+            .group_by("LC").agg(c("marginal_cost").sum())\
+            .filter(c("marginal_cost").abs() >=1e-7)
     
         self.marginal_cost = marginal_cost_df
         
@@ -386,11 +380,11 @@ class DigAPlan():
             log.warning(
                 "The resulting graph considering normal switch is NOT a tree.\n The initial state of switches is determined solving master model.")
             
-            results = self.master_solver.solve(self.master_model_instance_2, tee=False)
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
 
-        self.master_obj = self.master_model_instance_2.objective() # type: ignore
-        initial_master_d = self.master_model_instance_2.d.extract_values() # type: ignore 
-        
+            self.master_obj = self.master_model_instance.objective() # type: ignore
+            initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
+            
         self.slave_model_instance.master_d.store_values(initial_master_d) # type: ignore
