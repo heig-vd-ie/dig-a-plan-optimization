@@ -229,10 +229,11 @@ def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.Abstract
 
 
 def objective_rule(m):
-    edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    line_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    # switch_losses = sum(10e-4 * m.i_sq[l, i, j] for (l, i, j) in m.LC if l in m.S)
     v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
     i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-    return edge_losses  + m.penalty_cost *(v_penalty + i_penalty)
+    return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
 
 def feasible_objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
@@ -333,15 +334,39 @@ def current_rotated_cone_rule_2(m, l, i, j):
         else:
             return m.i_sq[l, i, j] == 0
 
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+
+#         lhs = (2*m.p_flow[l, i, j])**2 + (2*m.q_flow[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
+#         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
+
+
+#         return lhs <= rhs
+
 def current_rotated_cone_rule(m, l, i, j):
     if l in m.S:
         return m.i_sq[l, i, j] == 0
     else:
 
-        lhs = (2*m.p_flow[l, i, j])**2 + (2*m.q_flow[l, i, j])**2 + (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
-        rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
+        lhs = m.p_flow[l, i, j]**2 + m.q_flow[l, i, j]**2
+        rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) * m.i_sq[l, i, j])
 
+        
         return lhs <= rhs
+
+
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+
+#         lhs = m.p_flow[l, i, j]**2 + m.q_flow[l, i, j]**2
+#         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) * m.i_sq[l, i, j])
+
+        
+#         return lhs <= rhs
 
 
 ####################################################################

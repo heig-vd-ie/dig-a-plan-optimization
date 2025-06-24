@@ -110,30 +110,32 @@ from pyomo.environ import ConstraintList
 
 def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
-    # model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
     
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
     
+    # cuts are generated on-the-fly, so no rules are necessary.
+    model.infeasibility_cut = pyo.ConstraintList()
+    model.optimality_cut = pyo.ConstraintList()
     
-    # model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
+    return model
+
+def master_model_constraints_2(model: pyo.AbstractModel) -> pyo.AbstractModel:
     
-    # model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
-    # model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
-    # model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
-    # model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
-    # model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
-    # model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
+    model.objective = pyo.Objective(rule=master_obj_2, sense=pyo.minimize)
     
-    # model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
+
+    model.ohmic_losses = pyo.Constraint(rule=ohmic_losses_rule)
     
-    # model.volt_drop_lower = pyo.Constraint(model.LC, rule=volt_drop_lower_rule)
-    # model.volt_drop_upper = pyo.Constraint(model.LC, rule=volt_drop_upper_rule)
-    
-    # model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
-    # model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
-    
+    model.flow_P_lower = pyo.Constraint(model.LC, rule=flow_P_lower_rule)
+    model.flow_P_upper = pyo.Constraint(model.LC, rule=flow_P_upper_rule)
+    model.flow_Q_lower = pyo.Constraint(model.LC, rule=flow_Q_lower_rule)
+    model.flow_Q_upper = pyo.Constraint(model.LC, rule=flow_Q_upper_rule)
+    model.power_balance_real = pyo.Constraint(model.N, rule=power_balance_real_rule)
+    model.power_balance_reactive = pyo.Constraint(model.N, rule=power_balance_reactive_rule)
     
     # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = pyo.ConstraintList()
@@ -143,9 +145,25 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
 # Objective: approximate losses + Benders cuts
 def master_obj(m):
-    # v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    # return m.theta  + m.penalty_cost*v_penalty + m.losses
     return m.theta 
+
+def master_obj_2(m):
+    return m.theta + m.losses
+
+# Radiality constraint: each non-slack bus must have one incoming candidate.
+def radiality_rule(m, n):
+    if n == m.slack_node:
+        return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 0
+    else:
+        return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
+    
+# Orientation constraint.
+def orientation_rule(m, l):
+
+    if l in m.S:
+        return sum(m.d[l_, i, j] for (l_, i, j) in m.LC if l_ == l) == m.delta[l]
+    else:
+        return sum(m.d[l_, i, j] for (l_, i, j) in m.LC if l_ == l) == 1
 
 def ohmic_losses_rule(m):
     # Objective function to minimize resistive losses.
@@ -161,13 +179,7 @@ def slack_voltage_rule(m, n):
     else:
         return pyo.Constraint.Skip 
 
-# Orientation constraint.
-def orientation_rule(m, l):
 
-    if l in m.S:
-        return sum(m.d[l_, i, j] for (l_, i, j) in m.LC if l_ == l) == m.delta[l]
-    else:
-        return sum(m.d[l_, i, j] for (l_, i, j) in m.LC if l_ == l) == 1
 
 # Big-M constraints for real power flows.
 def flow_P_lower_rule(m, l, i, j):
@@ -199,13 +211,7 @@ def power_balance_reactive_rule(m, n):
     q_out = sum(m.q_flow[l, a, b] for (l, a, b) in m.LC if a == n)
     return q_in - q_out == m.q_node[n]
 
-# Radiality constraint: each non-slack bus must have one incoming candidate.
-def radiality_rule(m, n):
-    if n == m.slack_node:
-        return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 0
-    else:
-        return sum(m.d[l, a, b] for (l, a, b) in m.LC if a == n) == 1
-    
+
 # voltage dropped lower bound 
 def volt_drop_lower_rule(m, l, i, j):
     dv = (m.r[l]*m.p_flow[l,i,j] + m.x[l]*m.q_flow[l,i,j]) 

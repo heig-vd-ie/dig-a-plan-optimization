@@ -85,14 +85,15 @@ class DigAPlan():
         self.master_solver = pyo.SolverFactory('gurobi')
         self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory('gurobi')
-        self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
+        self.slave_solver.options['NonConvex'] = 1 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
-        self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
+        # self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
         
         
         self.slack_i_sq: pl.DataFrame    
         self.slack_v_pos: pl.DataFrame
         self.slack_v_neg: pl.DataFrame
+        self.marginal_cost: pl.DataFrame
 
 
 
@@ -236,6 +237,7 @@ class DigAPlan():
             constraint_dict = {
                     "node_active_power_balance": 1,
                     "node_reactive_power_balance": 1,
+                    # # "current_rotated_cone":-1,
                     "voltage_drop_lower": 1,
                     "voltage_drop_upper": 1,
                     "current_limit": 1,
@@ -281,8 +283,10 @@ class DigAPlan():
         
         marginal_cost_df: pl.DataFrame = marginal_cost_df\
             .group_by("LC").agg(c("marginal_cost").sum())
+            # .filter(c("marginal_cost").abs() >=1e-7)
     
-
+        self.marginal_cost = marginal_cost_df
+        
         marginal_cost_df = marginal_cost_df\
             .join(d_value, on="LC")\
             .join(d_variable, on="LC")\
@@ -292,19 +296,18 @@ class DigAPlan():
             new_cut += data["marginal_cost"] * (data["d"] - data["d_variable"]) 
 
         if self.infeasible_slave == True:  
-            self.master_model_instance.infeasibility_cut.add(0  >= new_cut) # type: ignore
+            self.master_model_instance.infeasibility_cut.add(0 >= new_cut) # type: ignore
         else:   
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
 
-        
-    def extract_switch_status(self) -> dict[str, bool]:
-        switch_status = self.master_model_instance.delta.extract_values() # type: ignore
-        return pl_to_dict(
-            self.edge_data.filter(c("type") == "switch")
-                .with_columns(
-                    c("edge_id").replace_strict(switch_status, default=None).pipe(cast_boolean).alias("closed")
-            )["eq_fk", "closed"]
-        )
+    def extract_switch_status(self) -> pl.DataFrame:
+        switch_status = self.edge_data.filter(c("type") == "switch")\
+            .with_columns(
+            (~c("edge_id").replace_strict(self.master_model_instance.delta.extract_values(), default=None) # type: ignore
+            .pipe(cast_boolean)
+            ).alias("open")
+        )["eq_fk", "normal_open", "open"]
+        return switch_status
     
     def extract_node_voltage(self) -> pl.DataFrame:
         node_voltage: pl.DataFrame = extract_optimization_results(self.slave_model_instance, "v_sq")\
@@ -370,7 +373,7 @@ class DigAPlan():
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
 
-            self.master_obj = self.master_model_instance.objective() # type: ignore
-            initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
+        self.master_obj = self.master_model_instance.objective() # type: ignore
+        initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
         
         self.__slave_model_instance.master_d.store_values(initial_master_d) # type: ignore

@@ -22,8 +22,11 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
     
     
     grid_data: dict[str, pl.DataFrame] = {}
+
+    bus = net["bus"]
+    bus.index.name="node_id"
     
-    node_data: pl.DataFrame = pl.from_pandas(net.bus, include_index=True).rename({"None": "node_id"})
+    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index())
     load: pl.DataFrame = pl.from_pandas(net.load)
     sgen: pl.DataFrame = pl.from_pandas(net.sgen)
 
