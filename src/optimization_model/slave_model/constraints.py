@@ -198,8 +198,8 @@ def slave_model_constraints_2(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
 
 
-def feasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    model.objective = pyo.Objective(rule=feasible_objective_rule, sense=pyo.minimize)
+def test_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.objective = pyo.Objective(rule=test_objective_rule, sense=pyo.minimize)
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
@@ -207,25 +207,25 @@ def feasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractMo
     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
-    model.current_limit = pyo.Constraint(model.LC, rule=feasible_current_limit_rule)
-    model.voltage_upper_limits = pyo.Constraint(model.N, rule=feasible_voltage_upper_limits_rule)
-    model.voltage_lower_limits = pyo.Constraint(model.N, rule=feasible_voltage_lower_limits_rule)
+    # model.current_limit = pyo.Constraint(model.LC, rule=feasible_current_limit_rule)
+    # model.voltage_upper_limits = pyo.Constraint(model.N, rule=feasible_voltage_upper_limits_rule)
+    # model.voltage_lower_limits = pyo.Constraint(model.N, rule=feasible_voltage_lower_limits_rule)
 
     return model
 
-def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    model.objective = pyo.Objective(rule=infeasible_objective_rule, sense=pyo.minimize)
-    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
-    model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
-    model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
-    model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
-    model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
-    model.current_limit = pyo.Constraint(model.LC, rule=infeasible_current_limit_rule)
-    model.voltage_upper_limits = pyo.Constraint(model.N, rule=infeasible_voltage_upper_limits_rule)
-    model.voltage_lower_limits = pyo.Constraint(model.N, rule=infeasible_voltage_lower_limits_rule)
+# def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+#     model.objective = pyo.Objective(rule=infeasible_objective_rule, sense=pyo.minimize)
+#     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+#     model.node_active_power_balance = pyo.Constraint(model.LC, rule=node_active_power_balance_rule)
+#     model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
+#     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
+#     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
+#     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
+#     model.current_limit = pyo.Constraint(model.LC, rule=infeasible_current_limit_rule)
+#     model.voltage_upper_limits = pyo.Constraint(model.N, rule=infeasible_voltage_upper_limits_rule)
+#     model.voltage_lower_limits = pyo.Constraint(model.N, rule=infeasible_voltage_lower_limits_rule)
 
-    return model
+#     return model
 
 
 def objective_rule(m):
@@ -235,7 +235,7 @@ def objective_rule(m):
     i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
     return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
 
-def feasible_objective_rule(m):
+def test_objective_rule(m):
     edge_losses = sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.LC)
     
     return edge_losses 
@@ -370,9 +370,6 @@ def current_rotated_cone_rule(m, l, i, j):
 
 
 ####################################################################
-
-
-
 
 
 # (6) Flow Bounds for candidate (l,i,j):

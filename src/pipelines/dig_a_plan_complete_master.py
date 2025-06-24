@@ -115,11 +115,6 @@ class DigAPlan():
     @property
     def master_model_instance(self) -> pyo.ConcreteModel:
         return self.__master_model_instance
-    
-    @property
-    def master_model_instance_2(self) -> pyo.ConcreteModel:
-        return self.__master_model_instance_2
-
 
     @property
     def slack_node(self) -> int:
@@ -240,7 +235,7 @@ class DigAPlan():
         if self.infeasible_slave == True:
             constraint_dict = {
                     "node_active_power_balance": 1,
-                    # "node_reactive_power_balance": 1,
+                    "node_reactive_power_balance": 1,
                     # "voltage_drop_lower": 1,
                     # "voltage_drop_upper": -1,
                     # "current_limit": 1,
@@ -252,7 +247,7 @@ class DigAPlan():
         else:
             constraint_dict = {
                 "node_active_power_balance": 1,
-                # "node_reactive_power_balance": 1,
+                "node_reactive_power_balance": 1,
                 # "voltage_drop_lower": 1,
                 # "voltage_drop_upper": -1,
                 # "current_limit": 1,
@@ -310,6 +305,7 @@ class DigAPlan():
             self.master_model_instance.infeasibility_cut.add(0 >= new_cut) # type: ignore
         else:   
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
+            
 
     def extract_switch_status(self) -> pl.DataFrame:
         switch_status = self.edge_data.filter(c("type") == "switch")\
@@ -380,11 +376,11 @@ class DigAPlan():
             log.warning(
                 "The resulting graph considering normal switch is NOT a tree.\n The initial state of switches is determined solving master model.")
             
-            results = self.master_solver.solve(self.master_model_instance, tee=False)
-            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
-                log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
+        results = self.master_solver.solve(self.master_model_instance, tee=False)
+        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
 
-            self.master_obj = self.master_model_instance.objective() # type: ignore
-            initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
+        self.master_obj = self.master_model_instance.objective() # type: ignore
+        initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
             
         self.slave_model_instance.master_d.store_values(initial_master_d) # type: ignore
