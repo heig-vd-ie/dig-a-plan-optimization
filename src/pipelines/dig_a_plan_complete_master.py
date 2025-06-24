@@ -84,9 +84,9 @@ class DigAPlan():
         self.master_solver = pyo.SolverFactory('gurobi')
         self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory('gurobi')
-        self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
-        self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
-        self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
+        # self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
+        # self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
+        # self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
         
         
         self.slack_i_sq: pl.DataFrame    
@@ -237,11 +237,11 @@ class DigAPlan():
                     "node_active_power_balance": 1,
                     "node_reactive_power_balance": 1,
                     # "voltage_drop_lower": 1,
-                    # "voltage_drop_upper": -1,
-                    # "current_limit": 1,
-                    # "voltage_upper_limits": 1,
-                    # "voltage_lower_limits": 1,
-                    "current_rotated_cone": -1,
+                    # "voltage_drop_upper": 1,
+                    "current_limit": -1,
+                    "voltage_upper_limits": 1,
+                    "voltage_lower_limits": -1,
+                    # "current_rotated_cone": 1,
                 }
 
         else:
@@ -249,7 +249,7 @@ class DigAPlan():
                 "node_active_power_balance": 1,
                 "node_reactive_power_balance": 1,
                 # "voltage_drop_lower": 1,
-                # "voltage_drop_upper": -1,
+                # "voltage_drop_upper": 1,
                 # "current_limit": 1,
                 # "voltage_upper_limits": 1,
                 # "voltage_lower_limits": 1,
@@ -313,7 +313,7 @@ class DigAPlan():
             (~c("edge_id").replace_strict(self.master_model_instance.delta.extract_values(), default=None) # type: ignore
             .pipe(cast_boolean)
             ).alias("open")
-        )["eq_fk", "normal_open", "open"]
+        )["eq_fk", "edge_id","normal_open", "open"]
         return switch_status
     
     def extract_node_voltage(self) -> pl.DataFrame:

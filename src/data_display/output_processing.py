@@ -3,7 +3,7 @@ import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
 
-from pipelines.dig_a_plan_d_model import DigAPlan
+from pipelines.dig_a_plan_complete_master import DigAPlan
 
 def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerNet):
     # ─────────── Apply Switch Status & Run AC PF ───────────
