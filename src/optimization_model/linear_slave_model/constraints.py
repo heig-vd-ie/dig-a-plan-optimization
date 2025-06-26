@@ -165,7 +165,6 @@ Each node voltage squared must remain within limits:
 
 """
 import pyomo.environ as pyo
-from pyomo.environ import value
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
@@ -175,29 +174,16 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.node_reactive_power_balance = pyo.Constraint(model.LC, rule=node_reactive_power_balance_rule)
     model.voltage_drop_lower = pyo.Constraint(model.LC, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
-    model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
-    model.current_limit = pyo.Constraint(model.LC, rule=current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
     model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     return model
 
 
 def objective_rule(m):
-    line_losses = sum(m.r[l] * m.current_factor* m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    line_losses = sum(m.r[l] * m.power_factor* m.p_flow[l, i, j] for (l, i, j) in m.LC)
     v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-    return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
-
-def test_objective_rule(m):
-    edge_losses = sum(m.r[l] * m.current_factor* m.i_sq[l, i, j] for (l, i, j) in m.LC)
-    
-    return edge_losses 
-
-def infeasible_objective_rule(m):
-    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
-    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
-
-    return v_penalty + i_penalty
+    # i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    return line_losses  + m.penalty_cost *(v_penalty)
 
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
@@ -213,7 +199,7 @@ def slack_voltage_rule(m, n):
     
 def node_active_power_balance_rule(m, l, i, j):
     downstream_power_flow = sum(
-        m.r[l_] * m.current_factor* m.i_sq[l_, i_, j_] - m.power_factor * m.p_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
+         - m.power_factor * m.p_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
     )
     return m.power_factor * m.p_flow[l, i, j] + m.master_d[l, i, j] * (m.p_node[i] + downstream_power_flow) == 0
 
@@ -221,7 +207,7 @@ def node_active_power_balance_rule(m, l, i, j):
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
 def node_reactive_power_balance_rule(m, l, i, j):
     downstream_power_flow = sum(
-        m.x[l_] *m.current_factor* m.i_sq[l_, i_, j_] - m.power_factor * m.q_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
+        m.power_factor * m.q_flow[l_, i_, j_] for (l_, i_, j_) in m.LC if (j_ == i) and (i_ != j)
     )
     transversal_power = sum(
         - m.b[l_]/2 * m.voltage_factor *m.v_sq[i] for (l_, i_, _) in m.LC if (i_ == i)
@@ -233,12 +219,12 @@ def node_reactive_power_balance_rule(m, l, i, j):
 # Let expr = v_sq[i] - 2*(r[l]*p_z_up(l,i,j) + x[l]*q_z_up(l,i,j)) + (r[l]^2+x[l]^2)*f_c(l,i,j).
 # We then enforce two separate inequalities:
 def voltage_drop_lower_rule(m, l, i, j):   
-    dv =  2 * (m.r[l] * m.power_factor * m.p_flow[l, i, j] + m.x[l]* m.power_factor * m.q_flow[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.current_factor* m.i_sq[l, i, j]
+    dv =  2 * (m.r[l] * m.power_factor * m.p_flow[l, i, j] + m.x[l]* m.power_factor * m.q_flow[l, i, j])
     
     return  m.voltage_factor * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.voltage_factor * m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv >= - m.big_m*(1 - m.master_d[l, i, j])
 
 def voltage_drop_upper_rule(m, l, i, j):
-    dv =  2 * (m.r[l] * m.power_factor * m.p_flow[l, i, j] + m.x[l]*m.power_factor * m.q_flow[l, i, j]) - (m.r[l]**2 + m.x[l]**2) * m.current_factor* m.i_sq[l, i, j]
+    dv =  2 * (m.r[l] * m.power_factor * m.p_flow[l, i, j] + m.x[l]*m.power_factor * m.q_flow[l, i, j])
     
     return  m.voltage_factor * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.voltage_factor * m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.master_d[l, i, j])
 
@@ -247,23 +233,14 @@ def voltage_drop_upper_rule(m, l, i, j):
 # In squared form: (2*p_z_up)^2 + (2*q_z_up)^2 + (v_sq[i] - f)^2 <= (v_sq[i] + f)^2.
 
 
-def current_rotated_cone_rule(m, l, i, j):
-    if l in m.S:
-        return m.i_sq[l, i, j] == 0
-    else:
-
-        lhs = (m.power_factor * m.p_flow[l, i, j])**2 + (m.power_factor * m.q_flow[l, i, j])**2
-        rhs = (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) * m.current_factor * m.i_sq[l, i, j])
-
-        return lhs <= rhs
 
 
 
 ####################################################################
 
-# (6) Flow Bounds for candidate (l,i,j):
-def current_limit_rule(m, l, i, j):
-    return m.current_factor * m.i_sq[l, i, j] <= m.i_max[l]**2 + m.slack_i_sq[l, i, j]
+# # (6) Flow Bounds for candidate (l,i,j):
+# def current_limit_rule(m, l, i, j):
+#     return m.current_factor * m.i_sq[l, i, j] <= m.i_max[l]**2 + m.slack_i_sq[l, i, j]
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
 def voltage_upper_limits_rule(m, n):
     return m.voltage_factor * m.v_sq[n] <= m.v_max[n]**2 + m.slack_v_pos[n]

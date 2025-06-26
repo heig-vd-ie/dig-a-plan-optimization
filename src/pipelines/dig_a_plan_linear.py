@@ -25,10 +25,10 @@ from optimization_model.master_model.parameters import master_model_parameters
 from optimization_model.master_model.variables import master_model_variables
 from optimization_model.master_model.constraints import master_model_constraints
 
-from optimization_model.slave_model.sets import slave_model_sets
-from optimization_model.slave_model.parameters import slave_model_parameters
-from optimization_model.slave_model.variables import slave_model_variables
-from optimization_model.slave_model.constraints import slave_model_constraints
+from optimization_model.linear_slave_model.sets import slave_model_sets
+from optimization_model.linear_slave_model.parameters import slave_model_parameters
+from optimization_model.linear_slave_model.variables import slave_model_variables
+from optimization_model.linear_slave_model.constraints import slave_model_constraints
 
 from pyomo_utility import extract_optimization_results
 
@@ -93,7 +93,7 @@ class DigAPlan():
         self.slave_solver = pyo.SolverFactory('gurobi')
         # self.slave_solver.options['NonConvex'] = 2
         # self.slave_solver.options['QCPDual'] = 1
-        # self.slave_solver.options['BarQCPConvTol'] = 1e-5
+        self.slave_solver.options['BarQCPConvTol'] = 1e-5
         
         
         self.slack_i_sq: pl.DataFrame    
@@ -246,11 +246,10 @@ class DigAPlan():
                     "node_active_power_balance": self.infeasibility_factor,
                     "node_reactive_power_balance": self.infeasibility_factor,
                     "voltage_drop_lower": self.infeasibility_factor,
-                    "voltage_drop_upper": -self.infeasibility_factor,
-                    "current_limit": -self.infeasibility_factor,
+                    "voltage_drop_upper": -self.infeasibility_factor, 
                     "voltage_upper_limits": -self.infeasibility_factor,
-                    "voltage_lower_limits": self.infeasibility_factor,
-                    "current_rotated_cone": self.infeasibility_factor,
+                    "voltage_lower_limits": self.infeasibility_factor
+    
                 }
 
         else:
@@ -259,10 +258,8 @@ class DigAPlan():
                 "node_reactive_power_balance": self.optimality_factor,
                 "voltage_drop_lower": self.optimality_factor,
                 "voltage_drop_upper": -self.optimality_factor,
-                "current_limit": -self.optimality_factor,
                 "voltage_upper_limits": -self.optimality_factor,
-                "voltage_lower_limits": self.optimality_factor,
-                "current_rotated_cone": self.optimality_factor,
+                "voltage_lower_limits": self.optimality_factor
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -348,8 +345,6 @@ class DigAPlan():
         return edge_current
     
     def check_slave_feasibility(self):
-        self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
-                .filter(c("slack_i_sq") > self.slack_threshold)
                 
         self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
             .filter(c("slack_v_pos") > self.slack_threshold)
@@ -357,7 +352,7 @@ class DigAPlan():
         self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
             .filter(c("slack_v_neg") > self.slack_threshold)
 
-        if (self.slack_i_sq.height > 0) or (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
+        if (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
             self.infeasible_slave = True
         else:
             self.infeasible_slave = False

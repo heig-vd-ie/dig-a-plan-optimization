@@ -163,7 +163,7 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
         c("resource_fk").replace_strict(container_mapping, default=None).alias("cn_fk")
     ).with_columns(
         (pl.lit(10).pow(c("unit_multiplier")) * c("value")/(24*365)).alias("value")
-    ).group_by("cn_fk").agg(c("value").sum().alias("p_node_pu")/s_base)
+    ).group_by("cn_fk").agg((c("value").sum()/s_base).alias("p_node_pu"))
 
     grid_data["node_data"] = node_data.join(measurement, on="cn_fk", how="left").with_columns(
         pl.when(c("cn_fk") == ext_grid_id)
