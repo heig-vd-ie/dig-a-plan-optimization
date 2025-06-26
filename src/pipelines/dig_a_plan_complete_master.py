@@ -58,7 +58,7 @@ def generate_feasible_slave_model() -> pyo.AbstractModel:
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2,
+        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2, scale_factor: float = 1e2,
         slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
     
         self.verbose: int = verbose
@@ -70,6 +70,7 @@ class DigAPlan():
         self.slave_obj: float
         self.master_obj: float = -1e-8
         self.penalty_cost: float = penalty_cost
+        self.scale_factor: float = scale_factor
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
@@ -161,6 +162,7 @@ class DigAPlan():
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
                 "penalty_cost": {None: self.penalty_cost},
+                "scale_factor": {None: self.scale_factor},
             }
         }
         
@@ -234,26 +236,26 @@ class DigAPlan():
     def add_benders_cut(self) -> None:
         if self.infeasible_slave == True:
             constraint_dict = {
-                    "node_active_power_balance": 1,
-                    "node_reactive_power_balance": 1,
-                    # "voltage_drop_lower": 1,
-                    # "voltage_drop_upper": 1,
-                    "current_limit": -1,
-                    "voltage_upper_limits": 1,
-                    "voltage_lower_limits": -1,
-                    # "current_rotated_cone": 1,
+                    "node_active_power_balance": 2,
+                    "node_reactive_power_balance": 2,
+                    "voltage_drop_lower": 2,
+                    "voltage_drop_upper": -2,
+                    "current_limit": -2,
+                    "voltage_upper_limits": -2,
+                    "voltage_lower_limits": 2,
+                    "current_rotated_cone": 2,
                 }
 
         else:
             constraint_dict = {
                 "node_active_power_balance": 1,
                 "node_reactive_power_balance": 1,
-                # "voltage_drop_lower": 1,
-                # "voltage_drop_upper": 1,
-                # "current_limit": 1,
-                # "voltage_upper_limits": 1,
-                # "voltage_lower_limits": 1,
-                "current_rotated_cone": -1,
+                "voltage_drop_lower": 1,
+                "voltage_drop_upper": -1,
+                "current_limit": -1,
+                "voltage_upper_limits": -1,
+                "voltage_lower_limits": 1,
+                "current_rotated_cone": 1,
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -288,8 +290,8 @@ class DigAPlan():
             )      
         
         marginal_cost_df: pl.DataFrame = marginal_cost_df\
-            .group_by("LC").agg(c("marginal_cost").sum())\
-            .filter(c("marginal_cost").abs() >=1e-7)
+            .group_by("LC").agg(c("marginal_cost").sum())
+            # .filter(c("marginal_cost").abs() >=1e-7)
     
         self.marginal_cost = marginal_cost_df
         
@@ -330,7 +332,7 @@ class DigAPlan():
     def extract_edge_current(self) -> pl.DataFrame:
         edge_current: pl.DataFrame = extract_optimization_results(self.slave_model_instance, "i_sq")\
             .select(
-                c("i_sq").sqrt().alias("i_pu"),
+                (self.scale_factor*c("i_sq")).sqrt().alias("i_pu"),
                 c("LC").list.get(0).alias("edge_id")
             ).group_by("edge_id").agg(c("i_pu").max()).sort("edge_id")\
             .join(

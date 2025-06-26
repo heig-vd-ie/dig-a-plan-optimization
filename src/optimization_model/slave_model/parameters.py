@@ -23,5 +23,6 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.big_m          = pyo.Param()
     model.penalty_cost = pyo.Param()
 
+    model.scale_factor = pyo.Param(default=1e2)  # Scale factor for the objective function.
 
     return model

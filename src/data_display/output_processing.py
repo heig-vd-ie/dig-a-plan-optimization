@@ -35,8 +35,7 @@ def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerN
     edge_current = edge_current.join(
         edge_current_pp, on = "eq_fk", how="left"
         ).with_columns((c("i_pp") / c("i_base")))\
-        .with_columns((c("i_pp") - c("i_pu")).abs().alias("i_diff"))
-        
+        .with_columns((c("i_pp") - c("i_pu")).abs().alias("i_diff")) 
         
     print(f"Max voltage difference: {node_voltage["v_diff"].max():.1E} pu")
     print(f"Max current difference: {edge_current["i_diff"].max():.1E} pu")
