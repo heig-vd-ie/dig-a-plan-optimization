@@ -1,7 +1,12 @@
-Name,Description
-:math:`r`,Resistance for branch :math:`l`
-:math:`x`,Reactance for branch :math:`l`
-:math:`p_{i}`,Real power injection (or load) at bus :math:`i`
-:math:`q_{i}`,Reactive power injection (or load) at bus :math:`i`
-:math:`slack_\text{node}`,Index of the slack bus
-:math:`M`,Big-M constant used in voltage drop constraints
+Name,Description,Type,Default,Units
+:math:`r_l`,Electrical resistance for branch :math:`l`,:math:`\mathbb{R}^{+}`,,Ω
+:math:`x_l`,Electrical reactance for branch :math:`l`,:math:`\mathbb{R}^{+}`,,Ω
+:math:`p_i^{\text{node}}`,Active power load at node :math:`i`,:math:`\mathbb{R}`,,MW
+:math:`q_i^{\text{node}}`,Reactive power load at node :math:`i`,:math:`\mathbb{R}`,,MVar
+:math:`M`,Big-M constant for constraints,:math:`\mathbb{R}^{+}`,,–
+:math:`i_{\text{slack}}`,Index of the slack node,:math:`\mathbb{N}`,,–
+:math:`V_{\text{slack}}`,Voltage square at slack node,:math:`\mathbb{R}^{+}`,,pu²
+:math:`V_i^{\min}`,Minimum voltage at node :math:`i`,:math:`\mathbb{R}^{+}`,,pu
+:math:`V_i^{\max}`,Maximum voltage at node :math:`i`,:math:`\mathbb{R}^{+}`,,pu
+:math:`n^{\text{transfo}}_{l}`,Transformer turn ratio for candidate branch :math:`l`,:math:`\mathbb{R}^{+}`,1,pu
+:math:`c^{\text{penalty}}`,Penalty cost (e.g. for Benders infeasibility),:math:`\mathbb{R}^{+}`,,–

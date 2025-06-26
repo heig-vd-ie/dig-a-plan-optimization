@@ -1,11 +1,11 @@
 r"""
-1. Initialization
+Initialization
 ~~~~~~~~~~~~~~~~~~~~~
 
 This section describes the optimization model used in the **master problem**, which selects the network topology and flow variables. 
 The objective is to minimize resistive losses and a Benders auxiliary variable.
 
-2. Objective Function
+Objective Function
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
@@ -13,54 +13,66 @@ The objective is to minimize resistive losses and a Benders auxiliary variable.
     :nowrap:
 
     \begin{align}
-        \min \sum_{l~i~j} r_l \cdot \left( p_{l~i~j}^2 + q_{l~i~j}^2 \right) + \Theta
+        \min \Theta
     \end{align}
 
-- The first term represents approximate losses across all branches.
+- :math:\Theta is an auxiliary variable used in Benders decomposition to represent the lower bound on the total cost. Resistive losses are handled implicitly in the slave problem.
 
-- :math:`\Theta` is an auxiliary variable for Benders decomposition (used to include slave model costs).
-
-3. Orientation Constraint
+Orientation Constraint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For each branch :math:`l`, the master model ensures that:
+This constraint determines how the binary variables control branch status:
 
-- If :math:`l` is switchable, it is active only when one of its associated candidate connections is selected.
-
-- If :math:`l` is non-switchable, one candidate connection must be active.
+- If the branch :math:`l` is switchable (i.e., :math:`l \in S`), then its activation depends on the switch status :math:`\delta_l`.
+- If the branch is not switchable, then exactly one candidate connection must be selected.
 
 .. math::
     :label: master-orientation
     :nowrap:
 
     \begin{align}
-        d_{l~i~j} + d_{l~j~i} = 
+        \sum_{(i,j): (l,i,j) \in LC} d_{lij} =
         \begin{cases}
             \delta_l & \text{if } l \in S \\
             1 & \text{otherwise}
         \end{cases}
     \end{align}
 
-4. Power Flow
+
+Radiality Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~
+Each non-slack node must have exactly one incoming active branch, while the slack node must have zero:
+
+.. math::
+    :label: master-radiality
+    :nowrap:
+
+    \begin{align}
+        \sum_{(l,a,b) \in LC: a = n} d_{lab} =
+        \begin{cases}
+            0 & \text{if } n = \text{slack node} \\
+            1 & \text{otherwise}
+        \end{cases}
+    \end{align}
+
+
+Power Flow Constraints
 ~~~~~~~~~~~~~~~
 
-The real and reactive power flows are restricted using Big-M logic:
+These constraints enforce upper and lower bounds on real power flows using Big-M formulation:
 
 .. math::
     :label: master-flow-limits
     :nowrap:
 
     \begin{align}
-        -M \cdot d_{l~i~j} &\le p_{l~i~j} \le M \cdot d_{l~i~j} \\
-        -M \cdot d_{l~i~j} &\le q_{l~i~j} \le M \cdot d_{l~i~j}
+        -M \cdot d_{l~i~j} &\le p_{l~i~j} \le M \cdot d_{l~i~j}
     \end{align}
 
-These bounds ensure that when :math:`d_{l~i~j} = 0`, the flow is forced to zero.
-
-    
+This ensures that when a line is inactive (:math:d_{l~i~j} = 0), its power flow is also zero.
 
 
-5. Power Balance Constraints
+Power Balance Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each bus :math:`n \ne \text{slack}`:
@@ -70,33 +82,23 @@ For each bus :math:`n \ne \text{slack}`:
     :nowrap:
 
     \begin{align}
-        \sum_{l~i~j:\, j=n} p_{l~i~j} - \sum_{l~i~j:\, i=n} p_{l~i~j} &= p_n^{\text{node}} \\
-        \sum_{l~i~j:\, j=n} q_{l~i~j} - \sum_{l~i~j:\, i=n} q_{l~i~j} &= q_n^{\text{node}}
+        \sum_{(l,a,b) \in LC: b=n} p_{lab} - \sum_{(l,a,b) \in LC: a=n} p_{lab} = -1
     \end{align}
 
+This reflects a constant net demand of 1 unit at each non-slack bus, while the slack bus provides the balancing power.
 
 
 
-6. Radiality Constraint
+
+6. Bender cuts Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Each non-slack node must have **exactly one** incoming active branch. For the slack node, this value is zero:
+Two constraint lists are reserved for dynamic Benders cuts:
 
-.. math::
-    :label: master-radiality
-    :nowrap:
+infeasibility_cut: captures configurations that violate feasibility in the slave problem.
 
-    \begin{align}
-        \sum_{l~i~j:\, j = n} d_{l~i~j} =
-        \begin{cases}
-            0 & \text{if } n = \text{slack node} \\
-            1 & \text{otherwise}
-        \end{cases}
-    \end{align}
+optimality_cut: bounds the objective value using dual information from the slave.
 
-
-
-
-
+These are populated during the iterative Benders loop.
 
 
 
