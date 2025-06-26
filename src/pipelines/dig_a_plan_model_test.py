@@ -28,7 +28,7 @@ from optimization_model.master_model.constraints import master_model_constraints
 from optimization_model.slave_model.sets import slave_model_sets
 from optimization_model.slave_model.parameters import slave_model_parameters
 from optimization_model.slave_model.variables import slave_model_variables
-from optimization_model.slave_model.constraints import test_slave_model_constraints
+from optimization_model.slave_model.constraints import slave_model_constraints
 
 from itertools import combinations
 from copy import deepcopy
@@ -49,35 +49,39 @@ def generate_master_model() -> pyo.AbstractModel:
     master_model = master_model_constraints(master_model)
     return master_model
 
-def generate_feasible_slave_model() -> pyo.AbstractModel:
+def generate_slave_model() -> pyo.AbstractModel:
     slave_model: pyo.AbstractModel = pyo.AbstractModel() # type: ignore
     slave_model = slave_model_sets(slave_model)
     slave_model = slave_model_parameters(slave_model)
     slave_model = slave_model_variables(slave_model)
-    slave_model = test_slave_model_constraints(slave_model)
+    slave_model = slave_model_constraints(slave_model)
     return slave_model
 
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2,
+        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3, current_factor: float = 1e2,
+        voltage_factor: float = 1e1, power_factor: float = 1e1,
         slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
     
         self.verbose: int = verbose
         self.big_m: float = big_m
         self.convergence_threshold: float = convergence_threshold
+        self.current_factor: float = current_factor
+        self.voltage_factor: float = voltage_factor
+        self.power_factor: float = power_factor
         self.slack_threshold: float = slack_threshold
         self.d: pl.DataFrame = pl.DataFrame()
         self.infeasible_slave: bool
         self.slave_obj: float
-        self.master_obj: float = -1e-8
+        self.master_obj: float = -1e8
         self.penalty_cost: float = penalty_cost
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
         self.__master_model: pyo.AbstractModel = generate_master_model()
         
-        self.__slave_model: pyo.AbstractModel = generate_feasible_slave_model()
+        self.__slave_model: pyo.AbstractModel = generate_slave_model()
         self.__master_model_instance: pyo.ConcreteModel
         self.__slave_model_instance: pyo.ConcreteModel
         
@@ -160,6 +164,9 @@ class DigAPlan():
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
                 "penalty_cost": {None: self.penalty_cost},
+                "current_factor": {None: self.current_factor},
+                "voltage_factor": {None: self.voltage_factor},
+                "power_factor": {None: self.power_factor},
             }
         }
         

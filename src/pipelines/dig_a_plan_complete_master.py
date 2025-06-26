@@ -58,7 +58,9 @@ def generate_feasible_slave_model() -> pyo.AbstractModel:
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e2, scale_factor: float = 1e2,
+        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3, current_factor: float = 1e2,
+        voltage_factor: float = 1e1, power_factor: float = 1e1,
+        infeasibility_factor: float = 4, optimality_factor: float = 1,
         slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
     
         self.verbose: int = verbose
@@ -68,9 +70,13 @@ class DigAPlan():
         self.d: pl.DataFrame = pl.DataFrame()
         self.infeasible_slave: bool
         self.slave_obj: float
-        self.master_obj: float = -1e-8
+        self.master_obj: float = -1e8
         self.penalty_cost: float = penalty_cost
-        self.scale_factor: float = scale_factor
+        self.current_factor: float = current_factor
+        self.voltage_factor: float = voltage_factor
+        self.power_factor: float = power_factor
+        self.infeasibility_factor: float = infeasibility_factor
+        self.optimality_factor: float = optimality_factor
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
@@ -85,17 +91,11 @@ class DigAPlan():
         self.master_solver = pyo.SolverFactory('gurobi')
         self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory('gurobi')
-        # self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
-        # self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
-        # self.slave_solver.options["NumericFocus"] = 1 # To allow dual variables extraction on quadratic constraints
-        
         
         self.slack_i_sq: pl.DataFrame    
         self.slack_v_pos: pl.DataFrame
         self.slack_v_neg: pl.DataFrame
         self.marginal_cost: pl.DataFrame
-
-
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -162,7 +162,9 @@ class DigAPlan():
                 "slack_node_v_sq": {None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]},
                 "big_m": {None: self.big_m},
                 "penalty_cost": {None: self.penalty_cost},
-                "scale_factor": {None: self.scale_factor},
+                "current_factor": {None: self.current_factor},
+                "voltage_factor": {None: self.voltage_factor},
+                "power_factor": {None: self.power_factor},
             }
         }
         
@@ -235,27 +237,28 @@ class DigAPlan():
     
     def add_benders_cut(self) -> None:
         if self.infeasible_slave == True:
+            
             constraint_dict = {
-                    "node_active_power_balance": 2,
-                    "node_reactive_power_balance": 2,
-                    "voltage_drop_lower": 2,
-                    "voltage_drop_upper": -2,
-                    "current_limit": -2,
-                    "voltage_upper_limits": -2,
-                    "voltage_lower_limits": 2,
-                    "current_rotated_cone": 2,
+                    "node_active_power_balance": self.infeasibility_factor,
+                    "node_reactive_power_balance": self.infeasibility_factor,
+                    "voltage_drop_lower": self.infeasibility_factor,
+                    "voltage_drop_upper": -self.infeasibility_factor,
+                    "current_limit": -self.infeasibility_factor,
+                    "voltage_upper_limits": -self.infeasibility_factor,
+                    "voltage_lower_limits": self.infeasibility_factor,
+                    "current_rotated_cone": self.infeasibility_factor,
                 }
 
         else:
             constraint_dict = {
-                "node_active_power_balance": 1,
-                "node_reactive_power_balance": 1,
-                "voltage_drop_lower": 1,
-                "voltage_drop_upper": -1,
-                "current_limit": -1,
-                "voltage_upper_limits": -1,
-                "voltage_lower_limits": 1,
-                "current_rotated_cone": 1,
+                "node_active_power_balance": self.optimality_factor,
+                "node_reactive_power_balance": self.optimality_factor,
+                "voltage_drop_lower": self.optimality_factor,
+                "voltage_drop_upper": -self.optimality_factor,
+                "current_limit": -self.optimality_factor,
+                "voltage_upper_limits": -self.optimality_factor,
+                "voltage_lower_limits": self.optimality_factor,
+                "current_rotated_cone": self.optimality_factor,
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -321,7 +324,7 @@ class DigAPlan():
     def extract_node_voltage(self) -> pl.DataFrame:
         node_voltage: pl.DataFrame = extract_optimization_results(self.slave_model_instance, "v_sq")\
         .select(
-            c("v_sq").sqrt().alias("v_pu"),
+            (self.voltage_factor*c("v_sq")).sqrt().alias("v_pu"),
             c("N").alias("node_id")
         ).join(
             self.node_data["cn_fk", "node_id", "v_base"], on="node_id", how="left"
@@ -332,7 +335,7 @@ class DigAPlan():
     def extract_edge_current(self) -> pl.DataFrame:
         edge_current: pl.DataFrame = extract_optimization_results(self.slave_model_instance, "i_sq")\
             .select(
-                (self.scale_factor*c("i_sq")).sqrt().alias("i_pu"),
+                (self.current_factor*c("i_sq")).sqrt().alias("i_pu"),
                 c("LC").list.get(0).alias("edge_id")
             ).group_by("edge_id").agg(c("i_pu").max()).sort("edge_id")\
             .join(
