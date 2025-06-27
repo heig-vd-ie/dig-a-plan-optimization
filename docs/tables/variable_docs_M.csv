@@ -1,6 +1,5 @@
 Name,Dimension,Description,Type,Units
-:math:`d_{l}`,3,"Line activation decisions (candidate branches)",:math:`\mathbb{B}`,-
-:math:`\delta_l`,1,"Switch status (1 = closed)",:math:`\mathbb{B}`,-
+:math:`d_{l}`,3,"Line activation decisions (candidate branches)",:math:`\mathbb{B}`,–
+:math:`\delta_l`,1,"Switch status (1 = closed)",:math:`\mathbb{B}`,–
 :math:`p_{\text{flow}}`,3,"Real power flow in candidate line :math:`(i,j)`",:math:`\mathbb{R}`,MW
-:math:`\Theta`,1,"Auxiliary scalar variable for Benders objective ",:math:`\mathbb{R}`,-
-
+:math:`\Theta`,1,"Auxiliary scalar variable for Benders objective ",:math:`\mathbb{R}`,–

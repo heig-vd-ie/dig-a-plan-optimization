@@ -1,14 +1,4 @@
-r"""
 
-
-.. math::
-    :label: distflow-initialization
-    :nowrap:
-    
-    \begin{align} 
-        v_{\text{slack}}^{2} = V_{\text{ref}}^{2}
-    \end{align}
-"""
 
 import pyomo.environ as pyo
 

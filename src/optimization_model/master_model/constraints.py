@@ -1,12 +1,12 @@
 r"""
-Initialization
-~~~~~~~~~~~~~~~~~~~~~
+1.4.1. Initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This section describes the optimization model used in the **master problem**, which selects the network topology and flow variables. 
 The objective is to minimize resistive losses and a Benders auxiliary variable.
 
-Objective Function
-~~~~~~~~~~~~~~~~~~~~~~
+1.4.2. Objective Function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
     :label: master-objective
@@ -16,10 +16,27 @@ Objective Function
         \min \Theta
     \end{align}
 
-- :math:\Theta is an auxiliary variable used in Benders decomposition to represent the lower bound on the total cost. Resistive losses are handled implicitly in the slave problem.
+- :math:`\Theta` is an auxiliary variable used in Benders decomposition to represent the lower bound on the total cost. Resistive losses are handled implicitly in the slave problem.
 
-Orientation Constraint
-~~~~~~~~~~~~~~~~~~~~~~~~~
+1.4.3. Slack Voltage Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To anchor the voltage profile, the squared voltage magnitude at the slack node is fixed to a known value. This ensures the voltage reference point is defined and consistent across iterations:
+
+.. math::
+    :label: master-slack-voltage
+    :nowrap:
+
+    \begin{align}
+        V_n = V_{\text{slack}} \quad \text{if } n = \text{slack}_{\text{node}}
+    \end{align}
+
+- This constraint is only applied at the slack node. For all other nodes, the condition is skipped.
+- :math:`V_{\text{slack}}` is a model parameter defined externally and used to initialize or maintain voltage consistency.
+
+
+1.4.4. Orientation Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This constraint determines how the binary variables control branch status:
 
@@ -31,7 +48,7 @@ This constraint determines how the binary variables control branch status:
     :nowrap:
 
     \begin{align}
-        \sum_{(i,j): (l,i,j) \in LC} d_{lij} =
+        d_{l~i~j} + d_{l~j~i} =
         \begin{cases}
             \delta_l & \text{if } l \in S \\
             1 & \text{otherwise}
@@ -39,8 +56,8 @@ This constraint determines how the binary variables control branch status:
     \end{align}
 
 
-Radiality Constraint
-~~~~~~~~~~~~~~~~~~~~~~~~
+1.4.5. Radiality Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Each non-slack node must have exactly one incoming active branch, while the slack node must have zero:
 
 .. math::
@@ -48,16 +65,16 @@ Each non-slack node must have exactly one incoming active branch, while the slac
     :nowrap:
 
     \begin{align}
-        \sum_{(l,a,b) \in LC: a = n} d_{lab} =
+        \sum_{(l~i~j) \in LC: i = n} d_{l~i~j} =
         \begin{cases}
-            0 & \text{if } n = \text{slack node} \\
+            0 & \text{if } n = \text{slack}_{\text{node}} \\
             1 & \text{otherwise}
         \end{cases}
     \end{align}
 
 
-Power Flow Constraints
-~~~~~~~~~~~~~~~
+1.4.6. Power Flow Constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These constraints enforce upper and lower bounds on real power flows using Big-M formulation:
 
@@ -69,10 +86,10 @@ These constraints enforce upper and lower bounds on real power flows using Big-M
         -M \cdot d_{l~i~j} &\le p_{l~i~j} \le M \cdot d_{l~i~j}
     \end{align}
 
-This ensures that when a line is inactive (:math:d_{l~i~j} = 0), its power flow is also zero.
+This ensures that when a line is inactive (:math:`d_{l~i~j}` = 0), its power flow is also zero.
 
 
-Power Balance Constraints
+1.4.7. Power Balance Constraints
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For each bus :math:`n \ne \text{slack}`:
@@ -82,7 +99,7 @@ For each bus :math:`n \ne \text{slack}`:
     :nowrap:
 
     \begin{align}
-        \sum_{(l,a,b) \in LC: b=n} p_{lab} - \sum_{(l,a,b) \in LC: a=n} p_{lab} = -1
+        \sum_{(l~i~j) \in LC: j=n} p_{l~i~j} - \sum_{(l~i~j) \in LC: i=n} p_{l~i~j} = -1
     \end{align}
 
 This reflects a constant net demand of 1 unit at each non-slack bus, while the slack bus provides the balancing power.
@@ -90,13 +107,13 @@ This reflects a constant net demand of 1 unit at each non-slack bus, while the s
 
 
 
-6. Bender cuts Constraints
-~~~~~~~~~~~~~~~~~~~~~~~~
+1.4.8. Bender cuts Constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Two constraint lists are reserved for dynamic Benders cuts:
 
-infeasibility_cut: captures configurations that violate feasibility in the slave problem.
+- infeasibility_cut: captures configurations that violate feasibility in the slave problem.
 
-optimality_cut: bounds the objective value using dual information from the slave.
+- optimality_cut: bounds the objective value using dual information from the slave.
 
 These are populated during the iterative Benders loop.
 

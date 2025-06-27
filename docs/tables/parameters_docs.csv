@@ -1,13 +1,18 @@
-Name,Description
-:math:`r`,Resistance for branch :math:`l`
-:math:`x`,Reactance for branch :math:`l`
-:math:`b`,Shunt susceptance for branch :math:`l`
-:math:`p_{\text{node}}`,Real power injection (or load) at bus :math:`i`
-:math:`q_{\text{node}}`,Reactive power injection (or load) at bus :math:`i`
-:math:`i_{\max}`,Maximum allowable current magnitude at bus :math:`i`
-:math:`v_{\min}`,Minimum voltage level (per unit) at bus :math:`i`
-:math:`v_{\max}`,Maximum voltage level (per unit) at bus :math:`i`
-:math:`d^{\text{master}}`,Binary indicator: 1 if active and for notactive 0  
-:math:`v_{\text{slack}}`,Squared slack bus voltage (per unit)
-:math:`\text{slack node}`,Index of the slack bus
-:math:`M`,Big-M constant used in voltage drop constraints
+Name,Dimension,Description,Type,Default,Units
+:math:`r_l`,1,Branch resistance in per unit,:math:`\mathbb{R}`,–,p.u.
+:math:`x_l`,1,Branch reactance in per unit,:math:`\mathbb{R}`,–,p.u.
+:math:`b_l`,1,Shunt susceptance in per unit,:math:`\mathbb{R}`,–,p.u.
+:math:`n_{lij}`,3,Transformer turn ratio (candidate branch),:math:`\mathbb{R}^{+}`,1,–
+:math:`p_n^{\text{node}}`,1,Active load at bus :math:`n`,:math:`\mathbb{R}`,–,MW
+:math:`q_n^{\text{node}}`,1,Reactive load at bus :math:`n`,:math:`\mathbb{R}`,–,MVAr
+:math:`i^{\text{max}}_l`,1,Maximum current per unit (branch limit),:math:`\mathbb{R}^{+}`,–,p.u.
+:math:`v_n^{\min}`,1,Minimum voltage at bus :math:`n`,:math:`\mathbb{R}^{+}`,0.95,p.u.
+:math:`v_n^{\max}`,1,Maximum voltage at bus :math:`n`,:math:`\mathbb{R}^{+}`,1.05,p.u.
+:math:`d_{lij}^{\text{master}}`,3,Line activation from master model (0/1),:math:`\mathbb{B}`,0,–
+:math:`v_{\text{slack}}`,1,Squared voltage at the slack bus,:math:`\mathbb{R}^{+}`,–,p.u.
+:math:`n_{\text{slack}}`,1,Slack bus index (integer),:math:`\mathbb{Z}^{+}`,–,–
+:math:`M`,1,Big-M constant for constraint enforcement,:math:`\mathbb{R}^{+}`,–,–
+:math:`c^{\text{penalty}}`,1,Penalty cost for constraint violation,:math:`\mathbb{R}^{+}`,–,–
+:math:`f^{\text{current}}`,1,Weight factor for current magnitude in objective,:math:`\mathbb{R}^{+}`,1,–
+:math:`f^{\text{voltage}}`,1,Weight factor for voltage deviation in objective,:math:`\mathbb{R}^{+}`,1,–
+:math:`f^{\text{power}}`,1,Weight factor for power mismatch in objective,:math:`\mathbb{R}^{+}`,1,–

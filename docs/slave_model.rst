@@ -17,6 +17,7 @@
 .. csv-table:: 
    :file: /tables/variable_docs.csv
    :header-rows: 1
+   :widths: 20, 10, 40, 10, 10
    
 
 2.3. Parameters
@@ -25,12 +26,13 @@
 .. csv-table:: 
    :file: /tables/parameters_docs.csv
    :header-rows: 1
+   :widths: 20, 10, 40, 10, 10, 10
 
 
 2.4. Constraints and Objective
 ----------------------------------
 
-.. automodule:: slave_model.constraints
+.. automodule:: optimization_model.slave_model.constraints
    :no-index:
 
 

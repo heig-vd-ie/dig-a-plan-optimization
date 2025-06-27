@@ -4,7 +4,7 @@ Name,Description,Type,Default,Units
 :math:`p_i^{\text{node}}`,Active power load at node :math:`i`,:math:`\mathbb{R}`,,MW
 :math:`q_i^{\text{node}}`,Reactive power load at node :math:`i`,:math:`\mathbb{R}`,,MVar
 :math:`M`,Big-M constant for constraints,:math:`\mathbb{R}^{+}`,,–
-:math:`i_{\text{slack}}`,Index of the slack node,:math:`\mathbb{N}`,,–
+:math:`slack_{\text{node}}`,Index of the slack node,:math:`\mathbb{N}`,,–
 :math:`V_{\text{slack}}`,Voltage square at slack node,:math:`\mathbb{R}^{+}`,,pu²
 :math:`V_i^{\min}`,Minimum voltage at node :math:`i`,:math:`\mathbb{R}^{+}`,,pu
 :math:`V_i^{\max}`,Maximum voltage at node :math:`i`,:math:`\mathbb{R}^{+}`,,pu

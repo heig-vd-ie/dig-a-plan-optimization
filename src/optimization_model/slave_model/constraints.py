@@ -1,23 +1,25 @@
 r"""
-1. Initialization
+2.4.1. Initialization
 ~~~~~~~~~~~~~~~~~~~~~
 
 The **slave model** solves a **DistFlow optimization problem** for a fixed network topology (as determined by the master model).
 
-The network topology is fixed by the master through parameters :math:`d^{master}_{l~i~j}` in slave model decomposition:
+The topology is passed via the binary parameter :math:`d^{\text{master}}_{l~i~j}`:
 
 
-- In the **master model**, :math:`d_{l~i~j}` is a binary variable that selects whether candidate branch :math:`(l~i~j)` is part of the network.
-- In the **slave model**, this value is passed as a fixed parameter :math:`d^{master}_{l~i~j}`.
-- When :math:`d_{l~i~j} = 0`, the corresponding branch is disabled: power flows are zero, voltage constraints are relaxed, and SOC constraints are deactivated.
-- This variable enables the decomposition of the overall problem into a master (topology planning) and a slave (power flow evaluation) problem.
+- In the **master model**, :math:`d_{l~i~j}` is a binary variable indicating whether candidate branch :math:`(l~i~j)` is active.
+- In the **slave model**, :math:`d^{\text{master}}_{l~i~j}` is a fixed parameter based on the master's decision.
+- When :math:`d^{\text{master}}_{l~i~j} = 0`, the branch is disabled (power flow = 0, voltage drop and SOC constraints deactivated).
+
+This structure enables decomposition into:
+
+- **Master**: network planning (topology)
+- **Slave**: feasibility and cost evaluation via power flow analysis
 
 
-
-
-2. Objective: Minimize losses with penalties
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The optimization aims to minimize total resistive losses while softly enforcing operational constraints on voltage and current magnitudes.
+2.4.2. Objective: Minimize Losses and Slack Penalties constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The objective minimizes line losses and penalizes voltage and current violations:
 
 .. math::
     :label: distflow-objective
@@ -25,139 +27,163 @@ The optimization aims to minimize total resistive losses while softly enforcing 
 
     \begin{align}
         \text{Objective} =\ 
-        \sum_{l~i~j} r_l \cdot i_{l~i~j}\ 
-        + \lambda_v \cdot \sum_{n} V_n^{\text{slack}}\
-        + \lambda_i \cdot \sum_{l~i~j} i_{l~i~j}^{\text{slack}}
+        \sum_{l~i~j} r_l \cdot f^{\text{current}} \cdot i_{l~i~j}\ 
+        + c^{\text{penalty}} \cdot \left( \sum_{n} (V_n^{+} + V_n^{-}) + \sum_{l~i~j} i_{l~i~j}^{\text{slack}} \right)
     \end{align}
 
 Where:
 
-- The first term, :math:`\sum_{l~i~j} r_l \cdot i_{l~i~j}`, represents the total Joule heating losses in the network, i.e., :math:`P_{\text{loss}} = R \cdot I^2`.
-- The second and third terms penalize constraint violations using slack variables that allow small violations of voltage and current limits.
+- :math:`f^{\text{current}}` scales the squared current to model Joule losses.
 
-Slack variables:
+- :math:`c^{\text{penalty}}` weights slack penalties to discourage limit violations.
 
-- :math:`V_n^{\text{slack}}`: allows soft violation of voltage bounds at node :math:`n`.
-- :math:`i_{l~i~j}^{\text{slack}}`: allows soft violation of current limits in branch :math:`(l~i~j)`.
+- :math:`V_n^{+}`, :math:`V_n^{-}`: slack variables for over/under-voltage.
 
-Penalty weights:
-
-- :math:`\lambda_v`: penalty coefficient for voltage violations.
-- :math:`\lambda_i`: penalty coefficient for current violations.
-
-These penalty terms ensure feasibility while strongly discouraging violations unless absolutely necessary.
+- :math:`i_{l~i~j}^{\text{slack}}` : slack variable for current constraint violation.
 
 
-3. Slack bus
-~~~~~~~~~~~~~~~~~~
+
+2.4.3. Slack bus constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The slack bus (or reference bus) is used to set the overall voltage level of the network. This constraint fixes the squared voltage at the slack node to a predetermined value:
 
-----------------------
 
-.. automodule:: slave_model.variables
-   :no-index:
+.. math::
+    :label: distflow-slack
+    :nowrap:
 
-4. Power update
-~~~~~~~~~~~~~~~~~~
+    \begin{align}
+        f^{\text{voltage}} \cdot v_n = v_{\text{slack}} \quad \text{if } n = n_{\text{slack}}
+    \end{align}
+
+
+2.4.4. Real Power Balance (Active Power) constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This constraint enforces Kirchhoff’s Current Law (KCL) for **active power** at each downstream node:
+
 
 .. math::
     :label: distflow-power
     :nowrap:
 
     \begin{align}
-        P^{dn}_{l~i~j} &= d^{master}_{l~i~j} \cdot \left( -p_{j}^{\text{node}}
-        - \sum_{\substack{l'~i'~j' \\ j'=i,\, i' \ne j}} P^{up}_{l'~i'~j'} \right) \\[1ex]
-        Q^{dn}_{l~i~j} &= d^{master}_{l~i~j} \cdot \left( -q_{j}^{\text{node}}
-        - \sum_{\substack{l'~i'~j' \\ j'=i,\, i' \ne j}} \left( Q^{up}_{l'~i'~j'} + \frac{b(l')}{2} v_i \right) \right) \\[1ex]
-        P^{up}_{l~i~j} &= d^{master}_{l~i~j} \cdot \left( r(l) \cdot i_{l~i~j} - P^{dn}_{l~i~j} \right) \\[1ex]
-        Q^{up}_{l~i~j} &= d^{master}_{l~i~j} \cdot \left( x(l) \cdot i_{l~i~j} - Q^{dn}_{l~i~j} \right)
+        f^{\text{power}} \cdot p_{l~i~j} = d^{\text{master}}_{l~i~j} \cdot \left( - p_i^{\text{node}} - \sum_{l',i',j': j'=i, i'\ne j} \left( r_{l'} \cdot f^{\text{current}} \cdot i_{l'i'j'} - f^{\text{power}} \cdot p_{l'i'j'} \right) \right)
+    \end{align}
+    
+- Ensures that incoming power equals outgoing power + local demand.
+- Accumulates downstream real power and resistive losses.
+- Deactivated when :math:`d^{\text{master}}_{lij} = 0`.
+- :math:`f^{\text{power}}` scales real and reactive power variables in downstream branches.
+- :math:`f^{\text{current}}` scales squared current terms.
+
+2.4.5. Reactive Power Balance constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to real power, this enforces reactive power consistency at downstream buses:
+
+.. math::
+    :label: distflow-power1
+    :nowrap:
+
+    \begin{align}
+        f^{\text{power}} \cdot q_{l~i~j} = d^{\text{master}}_{l~i~j} \cdot \left( - q_i^{\text{node}} - \sum_{l',i',j': j'=i, i'\ne j} \left( x_{l'} \cdot f^{\text{current}} \cdot i_{l'i'j'} - f^{\text{power}} \cdot q_{l'i'j'} \right) + \sum_{l',i'} \frac{b_{l'}}{2} \cdot f^{\text{voltage}} \cdot v_i \right)
     \end{align}
 
+- The shunt susceptance effects are account at node :math:`i`.
+- :math:`f^{\text{power}}` and :math:`f^{\text{current}}` are scaling constants.
+- :math:`f^{\text{voltage}}` rescales the node voltages.
 
-5. Voltage Drop Across Branch
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2.4.6. Voltage Drop constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Models voltage drop along candidate branch :math:`(l, i, j)` with relaxation using a Big-M formulation:
 
 .. math::
     :label: voltage-drop
     :nowrap:
-    
+
     \begin{align}
-
-    \Delta v_{l~i~j} = -2 \cdot \left( r(l) \cdot P^{up}_{l~i~j} + x(l) \cdot Q^{up}_{l~i~j} \right)
-    + \left( r(l)^2 + x(l)^2 \right) \cdot i_{l~i~j}
-    
+        \frac{f^{\text{voltage}} \cdot v_i}{\tau_{l~i~j}^2} - \frac{f^{\text{voltage}} \cdot v_j}{\tau_{l~j~i}^2} \le \text{drop}_{l~i~j} + M(1 - d^{\text{master}}_{l~i~j})
     \end{align}
-
-Voltage drop constraints are enforced using transformer tap ratios and big-M logic:
 
 .. math:: 
     :label: voltage-drop1
     :nowrap:
     
     \begin{align}
-
-    \frac{v_i}{\tau_{l~i~j}} - \frac{v_j}{\tau_{l~i~j}} - \Delta v_{l~i~j} \in [-M(1-d^{master}_{l~i~j} ), M(1-d^{master}_{l~i~j} )]
-    
+        \frac{f^{\text{voltage}} \cdot v_i}{\tau_{l~i~j}^2} - \frac{f^{\text{voltage}} \cdot v_j}{\tau_{l~j~i}^2} \ge \text{drop}_{l~i~j} - M(1 - d^{\text{master}}_{l~i~j})
     \end{align}
-    
+
+Where 
+
+- :math:`\text{drop}_{l~i~j} = 2(r_l \cdot f^{\text{power}} \cdot p_{l~i~j} + x_l \cdot f^{\text{power}} \cdot q_{l~i~j}) - (r_l^2 + x_l^2) \cdot f^{\text{current}} \cdot i_{l~i~j}`.
 
 
-6. Rotated Second Order Cone (SOC) Constraint
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Tap-changing transformer effects are incorporated via :math:`\tau_{lij}`.
+- If the line is not activate (:math:`d = 0`),  the constraint is deactivated using a Big-M relaxation.
+
+
+
+2.4.7. Rotated Second Order Cone (SOC) Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A **rotated second-order cone (SOC)** constraint ensures a convex relationship between the power flow and the current in each branch. It provides a safe approximation of the power flow physics in radial distribution networks and allows efficient optimization.
+
+The SOC constraint is given by:
 
 .. math::
-    :label: distflow-rotated-cone-norm
+    :label: soc-cone
     :nowrap:
 
     \begin{align*}
-        & v_{j} + i_{l~i~j} \ge 
-        \left\lVert
-        \begin{pmatrix}
-            2P^{\text{up}}_{l~i~j} \\
-            2Q^{\text{up}}_{l~i~j} \\
-            v_{j} - i_{l~i~j}
-        \end{pmatrix}
-        \right\rVert_2
+        (f^{\text{power}} \cdot p_{l~i~j})^2 + (f^{\text{power}} \cdot q_{l~i~j})^2 \le (\frac{f^{\text{voltage}} \cdot v_i}{\tau_{l~i~j}^2}) \cdot f^{\text{current}} \cdot i_{l~i~j}
     \end{align*}
+    
+    
+with condition of:
+
+- Deactivated for branches in switchable set :math:`S`.
 
 
+2.4.8. Current Limit Constraint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This constrains allow soft violations in current when strict feasibility is not possible:
 
-
-7. Current (Flow) Bounds
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. math::
     :label: current
     :nowrap:
     
     \begin{align}
-
-    i_{l~i~j} \le i_{\max,l} + i_{l~i~j}^{\text{slack}}
-    
+        f^{\text{current}} \cdot i_{l~i~j} \le (i_{l}^{\max})^2 + i_{l~i~j}^{\text{slack}}
     \end{align}
     
+- :math:`i_{l~i~j}^{\text{slack}}` is penalized in the objective if activated.
     
-8. Voltage Bounds
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+2.4.9. Voltage Bound Constraints
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each node voltage squared must remain within limits:
+Ensures voltage magnitudes remain within safety limits with slacks:
 
 .. math::
     :label: Voltage Bounds 1
     :nowrap:
     
     \begin{align}
-    v_n \le v_{\text{max},n} + V_n^{\text{slack}}
+        f^{\text{voltage}} \cdot v_n \le (v_n^{\max})^2 + V^{+}_n
     \end{align}
+    
 .. math::
     :label: Voltage Bounds 2
     :nowrap:
     
     \begin{align}
-    v_n \ge v_{\text{min},n} - V_n^{\text{slack}}
+        f^{\text{voltage}} \cdot v_n \ge (v_n^{\min})^2 - V^{-}_n
     \end{align}
 
+- Slack variables allow soft violations when strict feasibility is not possible and are penalized in the objective function.
 
 
 
