@@ -109,29 +109,27 @@ Performs the main optimization loop using Benders decomposition:
 1. **Initialize topology** using :code:`find_initial_state_of_switches()`:
    - Builds a graph of normally closed switches.
    - If it forms a **spanning tree**, a BFS tree is used to initialize :math:`d_{l~i~j}`.
-   - Otherwise, the master problem is solved once to find a valid topology.
+   - Otherwise, a first call to the master problem generates a feasible topology.
 
-2. **Solve the slave model** using the current fixed topology decision :math:`d_{l~i~j}`.
+2. **Solve the slave model** using the fixed topology from the current master solution:
 3. **Check feasibility** using slack variable violations:
 
    - Overcurrent: :math:`i_{l~i~j}^{\text{slack}}`
    - Overvoltage: :math:`V_n^{+}`
    - Undervoltage: :math:`V_n^{-}`
+   - Sets self.infeasible_slave = True if any slack violations are present.
 
 4. **Generate a Benders cut** using dual values from slave constraints.
+
+    - If the slave is infeasible → infeasibility cut
+
+    - If the slave is feasible → optimality cut
+
 5. **Solve the master model** with the updated cuts.
 6. **Repeat** until convergence or max iteration count.
 
 Progress and convergence are tracked using `tqdm`, based on the gap between master and slave objectives.
 
-.. math::
-
-    \theta \geq \sum_{l,i,j} \mu_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
-
-Where:
-
-- :math:`\mu_{l~i~j}` are dual values (marginal costs) from the slave problem.
-- :math:`\hat{d}_{l~i~j}` is the active configuration from the previous iteration.
 
 
 
@@ -145,31 +143,33 @@ Generates a Benders cut based on dual information from the slave problem. The pr
 
 Steps performed:
 
-1. **Select dual multipliers**:
+1. **Determine constraint weights**:
 
-   - Dual variables (shadow prices) are extracted from the slave model using `self.slave_model_instance.dual`.
-
-   - Each dual value is mapped to a specific constraint name and indexed by branch tuple :math:`(l,i,j)`.
-
-
-2. **Scale duals by constraint type**:
-
-   - A dictionary of weights is defined depending on the feasibility of the slave solution:
-
-     - If the slave is **infeasible**, constraints like `node_active_power_balance` or `voltage_drop_lower` are weighted by `infeasibility_factor`.
-     - If the slave is **feasible**, the same constraints are scaled by `optimality_factor`.
+   - A `constraint_dict` is defined to associate each relevant constraint in the slave model with a scalar multiplier:
+     - If the slave is **infeasible**, the constraints are scaled by `self.infeasibility_factor`.
+     - If the slave is **feasible**, they are scaled by `self.optimality_factor`.
+   - These multipliers define how each dual is weighted in the Benders cut.
 
 
-3. **Filter and reshape duals**:
 
-   - The constraint names are parsed and cleaned to extract the associated line and node indices.
-   - Duals are grouped and summed by candidate connection :math:`(l,i,j)`.
+2. **Extract duals from slave model**:
+
+   - Dual values (`self.slave_model_instance.dual`) are extracted and converted into a Polars DataFrame, mapping constraint names to marginal costs (shadow prices).
+   - Constraint names are parsed and cleaned (e.g., removing array-like syntax) to isolate:
+     - The base constraint name (e.g., `voltage_drop_lower`)
+     - Its associated indices `(l, i, j)`.
 
 
-4. **Link to master decisions**:
+3. **Rescale and aggregate duals**:
 
-   - Extracts current values of the binary variable :math:`d_{l~i~j}` (denoted `d`) from the slave instance.
-   - Retrieves symbolic Pyomo variables (`d_variable`) from the master instance.
+   - Each dual is scaled by the corresponding weight from `constraint_dict`.
+   - The indexed duals are grouped by the connection key `LC = (l, i, j)` and summed to compute the total marginal cost per connection.
+
+
+4. **Link slave and master variables**:
+
+   - Extracts the value of :math:`d_{l~i~j}` from the slave solution (:math:`d`).
+   - Retrieves the symbolic decision variables :math:`d_{variable}` from the master model.
 
 
 5. **Construct the Benders cut**:
@@ -181,27 +181,27 @@ Steps performed:
      
      .. math::
 
-        \hat{\mu}_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
+        \mu_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
 
      where:
 
-     - :math:`\hat{\mu}_{l~i~j}` is the aggregated dual multiplier from the slave.
+     - :math:`\mu_{l~i~j}` is the aggregated dual multiplier from the slave.
      - :math:`\hat{d}_{l~i~j}` is the evaluated value of the binary decision variable.
 
 
 6. **Add cut to master model**:
 
-   - If the slave is **infeasible**, the resulting cut ensures:
+   - If the slave is **infeasible**, the cut forces the master to exclude the current topology:
 
      .. math::
 
-        0 \geq \theta + \sum_{l,i,j} \hat{\mu}_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
+        0 \geq \text{obj}_{\text{slave}} + \sum_{l,i,j} \mu_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
 
-   - If the slave is **feasible**, it imposes the optimality cut:
+   - **If the slave is feasible**, the optimality cut ensures that the master’s cost estimate :math:`\theta` is no better than the slave’s solution:
 
      .. math::
 
-        \theta \geq \theta + \sum_{l,i,j} \hat{\mu}_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
+        \theta \geq \text{obj}_{\text{slave}}  + \sum_{l,i,j} \mu_{l~i~j} \cdot (d_{l~i~j} - \hat{d}_{l~i~j})
 
    - These cuts are added to the appropriate constraint lists in the master model (`infeasibility_cut` or `optimality_cut`).
 
