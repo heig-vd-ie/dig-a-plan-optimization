@@ -58,7 +58,7 @@ def generate_slave_model() -> pyo.AbstractModel:
     return slave_model
 
 
-class DigAPlan():
+class DigAPlanTest():
     def __init__(
         self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3, current_factor: float = 1e2,
         voltage_factor: float = 1e1, power_factor: float = 1e1,
@@ -92,7 +92,9 @@ class DigAPlan():
         self.slave_solver = pyo.SolverFactory('gurobi')
         self.slave_solver.options['NonConvex'] = 2 # To allow non-convex optimization
         self.slave_solver.options["QCPDual"] = 1 # To allow dual variables extraction on quadratic constraints
-        
+        self.slack_i_sq: pl.DataFrame    
+        self.slack_v_pos: pl.DataFrame
+        self.slack_v_neg: pl.DataFram
         
         self.switch_combination : pl.DataFrame    
 
@@ -190,7 +192,7 @@ class DigAPlan():
         self.__instantiate_model()
         
     
-    def test_switch_combinations(self) -> None:
+    def test_all_switch_combinations(self) -> None:
         switch_list = self.edge_data.filter(c("type")== "switch")["edge_id"].to_list()
 
         master_feasible = []
@@ -232,5 +234,38 @@ class DigAPlan():
             pl.Series(slave_results).alias("slave_results")
         ).filter(c("master_feasible") == True)
                 
+    
+    def test_one_switch_combinations(self, open_switches_list: list[int]) -> None:    
+        
+        open_switches = dict(zip(open_switches_list, [0]*len(open_switches_list)))
+        master_model_copy = deepcopy(self.master_model_instance)
+        logging.getLogger('pyomo.core').setLevel(logging.ERROR)
+        master_model_copy.delta.store_values(open_switches) # type: ignore
         
 
+        results = self.master_solver.solve(master_model_copy, tee=False)
+
+        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            log.error("Master model is infeasible with the given switch combination.")
+            return None
+
+        master_ds = master_model_copy.d.extract_values() # type: ignore
+        self.slave_model_instance.master_d.store_values(master_ds) # type: ignore
+        try:
+            results = self.slave_solver.solve(self.slave_model_instance, tee=self.verbose) 
+        except Exception as e:
+            log.error(f"Slave model failed to solve: {e}")
+            return None
+        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            log.error("Slave model is infeasible with the given switch combination.")
+            return None
+            
+        self.slack_i_sq = extract_optimization_results(self.slave_model_instance, "slack_i_sq")\
+                .filter(c("slack_i_sq") > self.slack_threshold)
+                
+        self.slack_v_pos = extract_optimization_results(self.slave_model_instance, "slack_v_pos")\
+            .filter(c("slack_v_pos") > self.slack_threshold)
+            
+        self.slack_v_neg = extract_optimization_results(self.slave_model_instance, "slack_v_neg")\
+            .filter(c("slack_v_neg") > self.slack_threshold)
+                

@@ -17,6 +17,6 @@ class EdgeData(pt.Model):
     b_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     g_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     n_transfo: float = pt.Field(dtype=pl.Float64, default=1.0)
-    i_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=0.0)
+    i_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
     normal_open: bool = pt.Field(dtype=pl.Boolean, default=False)
     type: TYPES = pt.Field(dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES))

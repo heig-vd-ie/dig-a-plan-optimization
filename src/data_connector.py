@@ -179,10 +179,11 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
     eq_connectivity = connectivity\
         .with_columns(c("cn_fk").replace_strict(node_mapping, default=None))\
         .pivot(on= "side", values="cn_fk", index="eq_fk").rename({"t1": "u_of_edge", "t2": "v_of_edge"})
+    branch_parameter_event = pl.DataFrame(change_schema.branch_parameter_event)
+    branch = pl.DataFrame(change_schema.branch)\
+        .join(branch_parameter_event, left_on="uuid", right_on="eq_fk", how="left")
         
-    branch = change_schema.branch\
-        .join(change_schema.branch_parameter_event, left_on="uuid", right_on="eq_fk", how="left")\
-        .join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
+    branch = branch.join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
         .join(node_data["node_id", "v_base", "i_base"], left_on="u_of_edge", right_on="node_id", how="left")\
         .with_columns(
             (c("v_base")**2 /s_base).alias("z_base"), 
@@ -199,7 +200,7 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
 
     transformer_end = change_schema.transformer_end.pivot(on= "side", values="nominal_voltage", index="eq_fk").rename({"t1": "vn_hv", "t2": "vn_lv"})
 
-    transformer = change_schema.transformer\
+    transformer = pl.DataFrame(change_schema.transformer)\
         .join(change_schema.transformer_parameter_event.filter(c("side")=="t2"), left_on="uuid", right_on="eq_fk", how="left")\
         .join(transformer_end, left_on="uuid", right_on="eq_fk", how="left")\
         .join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
@@ -216,7 +217,7 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
             pl.lit("transformer").alias("type"),
         )
         
-    switch = change_schema.switch.join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
+    switch = pl.DataFrame(change_schema.switch).join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\
         .join(node_data["node_id", "v_base", "i_base"], left_on="u_of_edge", right_on="node_id", how="left")\
         .with_columns(
             c("uuid").alias("eq_fk"),

@@ -92,8 +92,9 @@ class DigAPlan():
         self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory('gurobi')
         # self.slave_solver.options['NonConvex'] = 2
-        # self.slave_solver.options['QCPDual'] = 1
+        self.slave_solver.options['QCPDual'] = 1
         # self.slave_solver.options['BarQCPConvTol'] = 1e-5
+        self.slave_solver.options['BarHomogeneous'] = 1
         
         
         self.slack_i_sq: pl.DataFrame    
@@ -246,23 +247,38 @@ class DigAPlan():
                     "node_active_power_balance": self.infeasibility_factor,
                     "node_reactive_power_balance": self.infeasibility_factor,
                     "voltage_drop_lower": self.infeasibility_factor,
+                    # "voltage_lower_limits": self.infeasibility_factor,
+                    "current_rotated_cone": -self.infeasibility_factor,
+                    
                     "voltage_drop_upper": -self.infeasibility_factor,
-                    "current_limit": -self.infeasibility_factor,
-                    "voltage_upper_limits": -self.infeasibility_factor,
-                    "voltage_lower_limits": self.infeasibility_factor,
-                    "current_rotated_cone": self.infeasibility_factor,
+                    # "current_limit": -self.infeasibility_factor,
+                    # "voltage_upper_limits": -self.infeasibility_factor,
+                    # "current_flow": -self.infeasibility_factor,
+                    
+                    # "voltage_drop_upper": self.infeasibility_factor,
+                    # "current_limit": self.infeasibility_factor,
+                    # "voltage_upper_limits": self.infeasibility_factor,
+                    # "current_flow": self.infeasibility_factor,
                 }
+            
 
         else:
             constraint_dict = {
                 "node_active_power_balance": self.optimality_factor,
                 "node_reactive_power_balance": self.optimality_factor,
                 "voltage_drop_lower": self.optimality_factor,
-                "voltage_drop_upper": -self.optimality_factor,
-                "current_limit": -self.optimality_factor,
-                "voltage_upper_limits": -self.optimality_factor,
                 "voltage_lower_limits": self.optimality_factor,
                 "current_rotated_cone": self.optimality_factor,
+                
+                "voltage_drop_upper": -self.infeasibility_factor,
+                "current_limit": -self.infeasibility_factor,
+                "voltage_upper_limits": -self.infeasibility_factor,
+                "current_flow": -self.infeasibility_factor,
+                
+                # "voltage_drop_upper": self.infeasibility_factor,
+                # "current_limit": self.infeasibility_factor,
+                # "voltage_upper_limits": self.infeasibility_factor,
+                # "current_flow": self.infeasibility_factor,
                 }
 
         marginal_cost_df = pl.DataFrame({
@@ -385,11 +401,11 @@ class DigAPlan():
             log.warning(
                 "The resulting graph considering normal switch is NOT a tree.\n The initial state of switches is determined solving master model.")
             
-        results = self.master_solver.solve(self.master_model_instance, tee=False)
-        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
-            log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")
 
-        self.master_obj = self.master_model_instance.objective() # type: ignore
-        initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
+            self.master_obj = self.master_model_instance.objective() # type: ignore
+            initial_master_d = self.master_model_instance.d.extract_values() # type: ignore 
             
         self.slave_model_instance.master_d.store_values(initial_master_d) # type: ignore

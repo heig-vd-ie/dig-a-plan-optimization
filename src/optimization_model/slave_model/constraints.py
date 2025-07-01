@@ -190,10 +190,12 @@ Ensures voltage magnitudes remain within safety limits with slacks:
 
 
 """
+import pyomo.kernel as pmo
 import pyomo.environ as pyo
 from pyomo.environ import value
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    # model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     
@@ -203,6 +205,7 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.voltage_drop_upper = pyo.Constraint(model.LC, rule=voltage_drop_upper_rule)
     model.current_rotated_cone = pyo.Constraint(model.LC, rule=current_rotated_cone_rule)
     model.current_limit = pyo.Constraint(model.LC, rule=current_limit_rule)
+    model.current_flow = pyo.Constraint(model.LC, rule=current_flow_rule)
     model.voltage_upper_limits = pyo.Constraint(model.N, rule=voltage_upper_limits_rule)
     model.voltage_lower_limits = pyo.Constraint(model.N, rule=voltage_lower_limits_rule)
     return model
@@ -213,6 +216,14 @@ def objective_rule(m):
     v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
     i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
     return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
+
+
+def objective_2_rule(m):
+    line_losses = sum(1/(m.i_max[l]**2) * m.current_factor* m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
+    i_penalty = sum(1/(m.i_max[l]**2) * m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
+
 
 def test_objective_rule(m):
     edge_losses = sum(m.r[l] * m.current_factor* m.i_sq[l, i, j] for (l, i, j) in m.LC)
@@ -278,14 +289,64 @@ def current_rotated_cone_rule(m, l, i, j):
         return m.i_sq[l, i, j] == 0
     else:
 
-        lhs = (m.power_factor * m.p_flow[l, i, j])**2 + (m.power_factor * m.q_flow[l, i, j])**2
-        rhs = (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) * m.current_factor * m.i_sq[l, i, j])
+        lhs = (
+            (2 * m.power_factor * m.p_flow[l, i, j])**2 + 
+            (2 * m.power_factor * m.q_flow[l, i, j])**2 + 
+            (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.current_factor * m.i_sq[l, i, j])**2
+        )
+        rhs = (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.current_factor * m.i_sq[l, i, j])**2
 
         return lhs <= rhs
 
+# def current_rotated_cone_rule(m, l, i, j):
+    
+#     lhs = (
+#         (2 * m.power_factor * m.p_flow[l, i, j])**2 + 
+#         (2 * m.power_factor * m.q_flow[l, i, j])**2 + 
+#         (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.current_factor * m.i_sq[l, i, j])**2
+#     )
+#     rhs = (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.current_factor * m.i_sq[l, i, j])**2
 
+#     return lhs <= rhs
+
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+
+#         lhs = (
+#             (m.power_factor * m.p_flow[l, i, j])**2 + 
+#             (m.power_factor * m.q_flow[l, i, j])**2 
+#         )
+#         rhs = m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) * m.current_factor * m.i_sq[l, i, j]
+
+#         return lhs <= rhs
+
+
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+#         # Define the terms for the RSOC constraint
+#         # Ensure that m.v_sq and m.i_sq are defined with non-negative bounds (e.g., bounds=(0, None))
+#         # Ensure power_factor, voltage_factor, current_factor, n_transfo are positive constants or bounded to be positive.
+
+#         # The term that would be 'x' in x^2 + y^2 <= z*w
+#         x_0 = 2 * m.power_factor * m.p_flow[l, i, j]
+#         x_1 = 2 * m.power_factor * m.q_flow[l, i, j]
+#         x_2 = m.voltage_factor * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.current_factor * m.i_sq[l, i, j]
+        
+#         r = m.voltage_factor * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) + m.current_factor * m.i_sq[l, i, j]
+
+#         return pmo.conic.quadratic(x=[x_0, x_1, x_2], r=r)
+
+    
 
 ####################################################################
+
+# (6) Flow Bounds for candidate (l,i,j):
+def current_flow_rule(m, l, i, j):
+    return m.current_factor * m.i_sq[l, i, j] <= m.big_m * m.master_d[l, i, j]
 
 # (6) Flow Bounds for candidate (l,i,j):
 def current_limit_rule(m, l, i, j):
