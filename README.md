@@ -1,16 +1,28 @@
-Dig-A-Plan optimization
-==========================
+# Dig-A-Plan Optimization
 
+Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
 
-### Install on new machine
+## Initial Setup
 
-Run the following command:
+To install all dependencies on a new machine, run:
 ```sh
 make install-all
 ```
 
-Other well known commands are in `Makefile`, you can see the help by running `make` in shell.
+## Updating the Virtual Environment or Packages
 
-## Update venv and new package
+If you need to update packages listed in `pyproject.toml`, use:
+```sh
+make poetry-update
+```
+or
+```sh
+poetry update
+```
 
-Run `make poetry-update` or `poetry update`
+## Activating the Virtual Environment and Setting Environment Variables
+
+Each time you start working on the project, activate the virtual environment by running:
+```sh
+make enable-venv
+```

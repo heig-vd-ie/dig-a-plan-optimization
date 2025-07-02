@@ -43,7 +43,7 @@ install-poetry: ## Install Poetry using pipx
 install-deps: ## Install system dependencies
 	@echo "Installing system dependencies..."
 	sudo apt update
-	sudo apt install -y libpq-dev gcc python3-dev build-essential
+	sudo apt install -y libpq-dev gcc python3-dev build-essential direnv
 
 _venv: ## Create a virtual environment if it doesn't exist
 	@echo "Creating virtual environment with Python $(PYTHON_VERSION)..."
@@ -86,3 +86,14 @@ uninstall-venv: ## Uninstall the virtual environment
 	@echo "Uninstalling virtual environment..."
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
+
+enable-direnv:  ## Enable direnv for the project
+	@echo "Enabling direnv..."
+	@echo 'layout python $(PYTHON_VERSION)'
+	@bash -c 'eval "$$(direnv hook bash)"'
+	direnv allow
+
+enable-venv: ## Enable environment variables for the project
+	@echo "Enabling environment variables..."
+	@$(MAKE) enable-direnv
+	@$(MAKE) venv-activate
