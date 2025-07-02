@@ -1,9 +1,6 @@
-grid-synthesizer
-=============
+Dig-A-Plan optimization
+==========================
 
-(Description to come...)
-
-## Grid-synthesizer
 
 ### 1. Install pipx on wsl
 

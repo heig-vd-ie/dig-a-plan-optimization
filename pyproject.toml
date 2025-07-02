@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "dig-a-plan-optimization"
+version = "0.1.0"
+description = ""
+authors = ["adeleh1379 <adelehmg@gmail.com>"]
+readme = "README.md"
+package-mode = false 
+
+[tool.poetry.dependencies]
+python = "^3.12,<3.14"
+polars = "^1.25.2"
+utility-functions = {git = "git@github.com:heig-vd-ie/utility-functions.git"}
+pyocclient = "^0.6"
+twindigrid-schema = {git = "git@github.com:heig-vd-ie/dataschema.git", rev = "dig_a_plan"}
+pyomo = "^6.9.1"
+gurobipy = ">=12.0.1,<13.0.0"
+pandapower = "^3.0.0"
+sphinx = "^8.1.3"
+nbsphinx = "^0.9.7"
+myst-parser = "^4.0.1"
+sphinx-copybutton = "^0.5.2"
+pydata-sphinx-theme = "^0.16.1"
+sphinx-rtd-size = "^0.2.0"
+sphinx-rtd-theme = "^3.0.2"
+ghp-import = "^2.1.0"
+plotly = "^6.0.1"
+matplotlib = "^3.10.3"
+mosek = "^11.0.24"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

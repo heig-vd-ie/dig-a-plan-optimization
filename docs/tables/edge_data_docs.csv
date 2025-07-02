@@ -1,0 +1,15 @@
+﻿Name,Type,Default,Mandatory,Explanation
+eq_fk,String,,No,Equipment unique identifier
+u_of_edge,Integer,,Yes,Upstream node index
+v_of_edge,Integer,,Yes,Downstream node index
+r_pu,Float,0,Yes,Longitudinal resistance in pu
+x_pu,Float,0,Yes,Longitudinal reactance in pu
+g_pu,Float,0,Yes,Transverse conductance in pu
+b_pu,Float,0,Yes,Transverse suseptance in pu
+n_transfo,Float,1,Yes,Transformer turn ratio in pu
+i_max_pu,Float,,No,Maximum admisible current
+type,branch | transformer | switch,,Yes,Type of equipment
+std_p_up,Float,1.00E-03,Yes,Standard deviation of the measured upstream active power error
+std_q_up,Float,1.00E-03,Yes,Standard deviation of the measured upstream reactive power error
+std_p_down,Float,1.00E-03,Yes,Standard deviation of the measured downstream active power error
+std_q_down,Float,1.00E-03,Yes,Standard deviation of the measured downstream reactive power error

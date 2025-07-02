@@ -1,0 +1,7 @@
+﻿Name,Dimension,Sub index,Description
+:math:`N`,1,,Set of buses (nodes)
+:math:`L`,1,,Set of branches (lines)
+:math:`C`,2,:math:`\ell \in L`,Candidate bus pairs for each branch
+:math:`LC`,3,:math:`(l~i~j)`,Set of directed candidate line connections including both directions for each candidate pair
+:math:`S`,1,:math:`\subseteq L`,Set of switchable branches
+:math:`\text{nS}`,1,:math:`\subseteq L`,Set of non-switchable branches

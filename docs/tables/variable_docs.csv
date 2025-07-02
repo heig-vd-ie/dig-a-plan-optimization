@@ -1,0 +1,8 @@
+Name,Dimension,Description,Type,Units
+:math:`p_{\text{flow}}`,3,"Real power flow in candidate line :math:`(i,j)`",:math:`\mathbb{R}`,MW
+:math:`q_{\text{flow}}`,3,"Reactive power flow in candidate line :math:`(i,j)`",:math:`\mathbb{R}`,MVar
+:math:`i`,3,"Squared current magnitude in line :math:`(i,j)`",:math:`\mathbb{R}^+`,"(pu)^2"
+:math:`v_n`,1,"Squared voltage magnitude at bus :math:`n`",:math:`\mathbb{R}^+`,"(pu)^2"
+:math:`V_n^{+}`,1,"Slack variable for upper voltage constraint at bus :math:`n`",:math:`\mathbb{R}^+`,"(pu)^2"
+:math:`V_n^{-}`,1,"Slack variable for lower voltage constraint at bus :math:`n`",:math:`\mathbb{R}^+`,"(pu)^2"
+:math:`i_{l~i~j}^{\text{slack}}`,3,"Slack variable for current constraint in line :math:`(i,j)`",:math:`\mathbb{R}^+`,"(pu)^2"
