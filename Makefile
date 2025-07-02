@@ -52,7 +52,7 @@ _venv: ## Create a virtual environment if it doesn't exist
 venv-activate: SHELL:=/bin/bash
 venv-activate: ## enter venv in a subshell
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."') -i
+	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; . scripts/enable-direnv.sh') -i
 
 poetry-use: ## Install Python packages using Poetry
 	@echo "Installing Python packages using Poetry..."
@@ -71,7 +71,7 @@ venv-activate-and-poetry-use-update: SHELL:=/bin/bash
 venv-activate-and-poetry-use-update: ## Activate venv and install packages
 	@echo "Activating virtual environment and installing packages..."
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update') -i
+	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
 
 install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-pipx
@@ -86,14 +86,3 @@ uninstall-venv: ## Uninstall the virtual environment
 	@echo "Uninstalling virtual environment..."
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
-
-enable-direnv:  ## Enable direnv for the project
-	@echo "Enabling direnv..."
-	@echo 'layout python $(PYTHON_VERSION)'
-	@bash -c 'eval "$$(direnv hook bash)"'
-	direnv allow
-
-enable-venv: ## Enable environment variables for the project
-	@echo "Enabling environment variables..."
-	@$(MAKE) enable-direnv
-	@$(MAKE) venv-activate
