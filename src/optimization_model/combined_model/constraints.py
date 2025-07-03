@@ -195,8 +195,8 @@ import pyomo.environ as pyo
 from pyomo.environ import value
 
 def model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    # model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
     model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
-    # model.objective = pyo.Objective(rule=objective_2_rule, sense=pyo.minimize)
     
     model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
     model.orientation = pyo.Constraint(model.L, rule=orientation_rule)
@@ -234,6 +234,11 @@ def objective_2_rule(m):
     i_penalty = sum(1/(m.i_max[l]**2) * m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
     return line_losses  + m.penalty_cost *(v_penalty + i_penalty)
 
+def objective_3_rule(m):
+    # line_losses = sum(1/(m.i_max[l]**2) * m.current_factor* m.i_sq[l, i, j] for (l, i, j) in m.LC)
+    v_penalty = sum(m.slack_v_pos[n]  + m.slack_v_neg[n]  for n in m.N)
+    i_penalty = sum(1/(m.i_max[l]**2) * m.slack_i_sq[l, i, j] for (l, i, j) in m.LC)
+    return m.penalty_cost *(v_penalty + i_penalty)
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
 def radiality_rule(m, n):
@@ -298,6 +303,7 @@ def node_reactive_power_balance_rule_3(m, l, i, j):
         - m.b[l_]/2 * m.voltage_factor *m.v_sq[i] for (l_, i_, _) in m.LC if (i_ == i)
     )
     q_total = - m.q_node[i] - downstream_power_flow - transversal_power
+    
     return m.power_factor * m.q_flow[l, i, j] <= q_total + m.big_m *(1- m.d[l, i, j])
 
 def node_reactive_power_balance_rule_4(m, l, i, j):
@@ -308,6 +314,7 @@ def node_reactive_power_balance_rule_4(m, l, i, j):
         - m.b[l_]/2 * m.voltage_factor *m.v_sq[i] for (l_, i_, _) in m.LC if (i_ == i)
     )
     q_total = - m.q_node[i] - downstream_power_flow - transversal_power
+
     return m.power_factor * m.q_flow[l, i, j] >= q_total - m.big_m *(1- m.d[l, i, j])
 
 # (4) Voltage Drop along Branch for candidate (l,i,j).
@@ -323,10 +330,6 @@ def voltage_drop_upper_rule(m, l, i, j):
     
     return  m.voltage_factor * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.voltage_factor * m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)  - dv <= m.big_m*(1 - m.d[l, i, j])
 
-# (5) Rotated Cone (SOC) Current Constraint for candidate (l,i,j):
-# Enforce: ||[2*p_z_up, 2*q_z_up, v_sq[i]-f(l,i,j)]||_2 <= v_sq[i]+f(l,i,j)
-# In squared form: (2*p_z_up)^2 + (2*q_z_up)^2 + (v_sq[i] - f)^2 <= (v_sq[i] + f)^2.
-
 
 def current_rotated_cone_rule(m, l, i, j):
     if l in m.S:
@@ -341,6 +344,20 @@ def current_rotated_cone_rule(m, l, i, j):
         rhs = (m.voltage_factor * m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.current_factor * m.i_sq[l, i, j])**2
 
         return lhs <= rhs 
+
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+
+#         lhs = (
+#             (m.power_factor * m.p_flow[l, i, j])**2 + 
+#             (m.power_factor * m.q_flow[l, i, j])**2 
+#         )
+#         rhs = m.slack_node_v_sq + m.current_factor * m.i_sq[l, i, j]
+
+#         return lhs <= rhs 
+
 
 ####################################################################
 

@@ -3,9 +3,7 @@ import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
 
-from pipelines.dig_a_plan_complete_master import DigAPlan
-
-def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerNet):
+def compare_dig_a_plan_with_pandapower(dig_a_plan,  net: pp.pandapowerNet):
     # ─────────── Apply Switch Status & Run AC PF ───────────
     switch_status = pl_to_dict(dig_a_plan.extract_switch_status().select("eq_fk", ~c("open")))
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
@@ -37,5 +35,8 @@ def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerN
         ).with_columns((c("i_pp") / c("i_base")))\
         .with_columns((c("i_pp") - c("i_pu")).abs().alias("i_diff")) 
         
-    print(f"Max voltage difference: {node_voltage["v_diff"].max():.1E} pu")
-    print(f"Max current difference: {edge_current["i_diff"].max():.1E} pu")
+    # print(f"Max voltage difference: {node_voltage["v_diff"].max():.1E} pu")
+    # print(f"Max current difference: {edge_current["i_diff"].max():.1E} pu")
+    
+    return node_voltage, edge_current
+
