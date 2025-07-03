@@ -123,8 +123,12 @@ class DigAPlan():
             None: {
                 "N": {None: self.node_data["node_id"].to_list()},
                 "L": {None: self.edge_data["edge_id"].to_list()},
-                "C": pl_to_dict(
-                    self.edge_data.select("edge_id", pl.concat_list("u_of_edge", "v_of_edge").pipe(list_to_list_of_tuple))),
+                "C": dict(zip(
+                                    self.edge_data["edge_id"].to_list(),
+                                    map(lambda x: [tuple(x)],
+                                        self.edge_data.select(pl.concat_list("u_of_edge", "v_of_edge").alias("nodes"))["nodes"].to_list()
+                                    )
+                                )),
                 "S": {None: self.edge_data.filter(c("type") == "switch")["edge_id"].to_list()},
                 "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                 "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),

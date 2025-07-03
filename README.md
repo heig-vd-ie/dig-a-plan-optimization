@@ -1,93 +1,28 @@
-Dig-A-Plan optimization
-==========================
+# Dig-A-Plan Optimization
 
+Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
 
-### 1. Install pipx on wsl
+## Initial Setup
 
-```bash
-sudo apt update
-sudo apt install pipx
-pipx ensurepath --force
+To install all dependencies on a new machine, run:
+```sh
+make install-all
 ```
 
-### 2. Install python 3.12 on wsl (if not installed)
+## Updating the Virtual Environment or Packages
 
-```bash
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.12
-sudo apt install python3.12-venv
+If you need to update packages listed in `pyproject.toml`, use:
+```sh
+make poetry-update
 ```
-
-Reference: [Tutorial is the following link](https://www.linuxtuto.com/how-to-install-python-3-12-on-ubuntu-22-04/)
-
-### 3. Install Poetry
-
-```bash
-pipx install poetry
-```
-
-### 4. Create virtual environment
-
-```bash
-python3.12 -m venv .venv
-poetry env use .venv/bin/python3.12
-```
-
-### 5. Update .venv library
-
-```bash
+or
+```sh
 poetry update
 ```
 
-> [!IMPORTANT]
-> If psycopg-c installation raise the [error](https://stackoverflow.com/questions/77727508/problem-installing-psycopg2-for-python-venv-through-poetry): _psycopg-c (3.1.18) not supporting PEP 517 builds_
+## Activating the Virtual Environment and Setting Environment Variables
 
-```bash
-    sudo apt install libpq-dev gcc
-```
-
-### 6. [Download docker](https://www.docker.com/)
-
-### 7. Create docker container
-
-```bash
-docker compose up
-```
-
-## Other command
-
-### Check which python is installed
-
-```bash
-which python3.12
-```
-
-### Check python version
-
-```bash
-/usr/bin/python3 --version
-```
-
-or
-
-```bash
-python3.12 --version
-```
-### Check the poetry linked environment
-
-```bash
-poetry3.12 env info
-```
-
-### Check the Ubuntu
-
-```bash
-lsb_release -a
-```
-
-### Initialize pyproject.toml
-
-```bash
-poetry init
+Each time you start working on the project, activate the virtual environment by running:
+```sh
+make enable-venv
 ```
