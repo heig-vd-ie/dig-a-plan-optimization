@@ -332,18 +332,18 @@ def voltage_drop_upper_rule(m, l, i, j):
     
 def switch_active_power_lower_bound_rule(m, l, i, j):
     if l in m.S:
-        return m.p_flow[l, i, j] >= - m.big_m * m.delta[l]
+        return - m.p_flow[l, i, j] <= m.big_m * m.delta[l]
     else:
         return pyo.Constraint.Skip
 def switch_active_power_upper_bound_rule(m, l, i, j):
     if l in m.S:
-        return m.p_flow[l, i, j] <=  m.big_m * m.delta[l]
+        return m.p_flow[l, i, j] <= m.big_m * m.delta[l]
     else:
         return pyo.Constraint.Skip
 
 def switch_reactive_power_lower_bound_rule(m, l, i, j):
     if l in m.S:
-        return m.q_flow[l, i, j] >= - m.big_m * m.delta[l]
+        return - m.q_flow[l, i, j] <= m.big_m * m.delta[l]
     else:
         return pyo.Constraint.Skip
 def switch_reactive_power_upper_bound_rule(m, l, i, j):
@@ -355,6 +355,7 @@ def switch_reactive_power_upper_bound_rule(m, l, i, j):
 
 def optimal_current_limit_rule(m, l, i, j):
     return m.i_sq[l, i, j] <= m.i_max[l]**2
+
 def optimal_voltage_upper_limits_rule(m, n):
     return m.v_sq[n] <= m.v_max[n]**2
 

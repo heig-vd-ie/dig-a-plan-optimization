@@ -9,18 +9,10 @@ import tqdm
 import numpy as np
 import pyomo.environ as pyo
 
-from plotly.subplots import make_subplots
 from pyomo.environ import Suffix
 import patito as pt
 from typing import TypedDict, Unpack
 
-import dash
-from dash import dcc
-from dash import html
-from dash.dependencies import Output, Input
-import plotly.graph_objects as go
-import threading
-import time
 
 from general_function import pl_to_dict, generate_log, pl_to_dict_with_tuple
 from polars_function import list_to_list_of_tuple, cast_boolean, modify_string_col
