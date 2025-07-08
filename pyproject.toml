@@ -26,6 +26,8 @@ ghp-import = "^2.1.0"
 plotly = "^6.0.1"
 matplotlib = "^3.10.3"
 mosek = "^11.0.24"
+anywidget = "^0.9.18"
+dash = "^3.1.1"
 
 
 [build-system]

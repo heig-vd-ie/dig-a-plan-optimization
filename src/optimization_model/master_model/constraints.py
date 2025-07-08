@@ -132,7 +132,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
     
-    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    model.radial = pyo.Constraint(model.N, rule=radial_rule)
     model.edge_propagation = pyo.Constraint(model.L, rule=edge_propagation_rule)
 
     model.upper_switch_propagation = pyo.Constraint(model.C, rule=upper_switch_propagation_rule)
@@ -149,9 +149,8 @@ def master_obj(m):
     return m.theta 
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
-def radiality_rule(m, n):
+def radial_rule(m, n):
     if n == m.slack_node:
-        # return pyo.Constraint.Skip
         return sum(m.d[l, i, j] for l, i, j in m.C if i == n) >= m.epsilon  * (len(m.N) - 1)
     else:
         return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == - m.epsilon

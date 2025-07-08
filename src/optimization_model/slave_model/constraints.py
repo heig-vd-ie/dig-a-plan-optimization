@@ -296,6 +296,19 @@ def current_rotated_cone_rule(m, l, i, j):
 
         return lhs <= rhs
     
+
+# def current_rotated_cone_rule(m, l, i, j):
+#     if l in m.S:
+#         return m.i_sq[l, i, j] == 0
+#     else:
+
+#         lhs = (
+#             ( m.p_flow[l, i, j])**2 + 
+#             ( m.q_flow[l, i, j])**2 
+#         )
+#         rhs = m.i_sq[l, i, j] * m.slack_node_v_sq
+
+#         return lhs <= rhs
     
 # (4) Voltage Drop along Branch for candidate (l,i,j).
 # Let expr = v_sq[i] - 2*(r[l]*p_z_up(l,i,j) + x[l]*q_z_up(l,i,j)) + (r[l]^2+x[l]^2)*f_c(l,i,j).
@@ -307,7 +320,7 @@ def voltage_drop_lower_rule(m, l, i, j):
     if l in m.S:
         return voltage_diff >= - m.big_m * (1 - m.delta[l])
     else:
-        return voltage_diff >= 0
+        return voltage_diff == 0
 
 def voltage_drop_upper_rule(m, l, i, j):
     dv =   - 2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l]* m.q_flow[l, i, j]) + (m.r[l]**2  + m.x[l]**2) * m.i_sq[l, i, j] 
@@ -315,7 +328,7 @@ def voltage_drop_upper_rule(m, l, i, j):
     if l in m.S:
         return voltage_diff <= m.big_m * (1 - m.delta[l])
     else:
-        return voltage_diff <= 0
+        return pyo.Constraint.Skip
     
 def switch_active_power_lower_bound_rule(m, l, i, j):
     if l in m.S:

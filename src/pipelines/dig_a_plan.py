@@ -9,9 +9,18 @@ import tqdm
 import numpy as np
 import pyomo.environ as pyo
 
+from plotly.subplots import make_subplots
 from pyomo.environ import Suffix
 import patito as pt
 from typing import TypedDict, Unpack
+
+import dash
+from dash import dcc
+from dash import html
+from dash.dependencies import Output, Input
+import plotly.graph_objects as go
+import threading
+import time
 
 from general_function import pl_to_dict, generate_log, pl_to_dict_with_tuple
 from polars_function import list_to_list_of_tuple, cast_boolean, modify_string_col
@@ -79,6 +88,10 @@ class DigAPlan():
         self.infeasible_slave: bool
         self.slave_obj: float
         self.master_obj: float = -1e8
+        
+        self.master_obj_list = []
+        self.slave_obj_list = []
+        
         self.penalty_cost: float = penalty_cost
         self.current_factor: float = current_factor
         self.voltage_factor: float = voltage_factor
@@ -111,6 +124,11 @@ class DigAPlan():
         self.slack_v_pos: pl.DataFrame
         self.slack_v_neg: pl.DataFrame
         self.marginal_cost: pl.DataFrame
+        
+        
+        # These lists will be updated by the optimization and read by Dash
+        self.master_obj_list = []
+        self.slave_obj_list = []
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -275,6 +293,9 @@ class DigAPlan():
                 f"Master obj: {self.master_obj:.2E}, Slave obj: {self.slave_obj:.2E} and Gap: {convergence_result:.2E}"
                 ) 
             
+            self.master_obj_list.append(self.master_obj)
+            self.slave_obj_list.append(self.slave_obj)
+            
             if convergence_result < self.convergence_threshold:
                 break 
             master_delta = self.master_model_instance.delta.extract_values() # type: ignore
@@ -313,24 +334,20 @@ class DigAPlan():
         marginal_cost_df = marginal_cost_df\
             .join(delta_value, on="S")\
             .join(self.delta_variable, on="S")
-
-
-        marginal_cost_df = marginal_cost_df.with_columns(
-                # (1 - 2*c("master_delta")).alias("factor")
-                pl.lit(1).alias("factor") # type: ignore
-            )
-        # if self.infeasible_slave:
-        #     marginal_cost_df= marginal_cost_df.filter(c("master_delta") == 1)
             
         self.marginal_cost = marginal_cost_df
         
         new_cut = self.slave_obj 
         for data in marginal_cost_df.to_dicts():
-            new_cut += data["marginal_cost"] *data["factor"] * (data["delta_variable"] - data["master_delta"])
+            new_cut += data["marginal_cost"] * (data["delta_variable"] - data["master_delta"])
+            
         if self.infeasible_slave == True:  
             self.master_model_instance.infeasibility_cut.add(0 >= new_cut) # type: ignore
         else:   
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
+        
+        self.master_obj_list.append(self.master_obj)
+        self.slave_obj_list.append(self.slave_obj)
             
 
     def extract_switch_status(self) -> pl.DataFrame:
@@ -409,4 +426,5 @@ class DigAPlan():
             self.master_obj = self.master_model_instance.objective() # type: ignore
             initial_master_delta = self.master_model_instance.delta.extract_values() # type: ignore 
         return initial_master_delta    
+
 

@@ -4,6 +4,9 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
+import plotly.graph_objects as go  
+from plotly.subplots import make_subplots
+from IPython.display import display
 
 def plot_grid_from_pandapower(net: pp.pandapowerNet, dig_a_plan, node_size: int = 22, width: int=800,  height: int=700) -> None:
     
@@ -124,3 +127,13 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, dig_a_plan, node_size: int 
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         )
     fig.show()
+import plotly.graph_objects as go  
+from plotly.subplots import make_subplots
+
+def generate_interactive_plot():
+    data = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01, row_titles = ['Slave objective', 'Master objective'])
+    data.add_trace(go.Scatter(go.Scatter(y=[]), mode='lines', name='Slave objective'), row=1, col=1)
+    data.add_trace(go.Scatter(go.Scatter(y=[]), mode='lines', name='Master objective'), row=2, col=1)
+    data.update_layout(height= 400, width=600, margin=dict(t=10, l=20, r= 10, b=10))
+        
+    return go.FigureWidget(data)
