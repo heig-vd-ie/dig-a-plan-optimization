@@ -11,6 +11,7 @@ def slave_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.v_sq = pyo.Var(model.N, domain=pyo.NonNegativeReals)
 
     model.delta = pyo.Var(model.S, domain=pyo.Reals, bounds=(0, 1))  # Candidate active (1) or not (0).
+
     model.p_slack_node = pyo.Var(domain=pyo.Reals)  # Real power at the slack node.
     model.q_slack_node = pyo.Var(domain=pyo.Reals)  # Reactive power at the slack node.
 

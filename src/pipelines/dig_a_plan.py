@@ -67,10 +67,7 @@ def generate_infeasible_slave_model() -> pyo.AbstractModel:
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, penalty_cost: float = 1e3, current_factor: float = 1e2,
-        voltage_factor: float = 1e1, power_factor: float = 1e1,
-        infeasibility_factor: float = 4, optimality_factor: float = 1,
-        slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
+        self, verbose: bool = False, big_m: float = 1e4, slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
         
         self.verbose: int = verbose
         self.big_m: float = big_m
@@ -84,12 +81,6 @@ class DigAPlan():
         self.master_obj_list = []
         self.slave_obj_list = []
         
-        self.penalty_cost: float = penalty_cost
-        self.current_factor: float = current_factor
-        self.voltage_factor: float = voltage_factor
-        self.power_factor: float = power_factor
-        self.infeasibility_factor: float = infeasibility_factor
-        self.optimality_factor: float = optimality_factor
         
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(schema=NodeData.columns).cast()
         self.__edge_data: pt.DataFrame[EdgeData] = EdgeData.DataFrame(schema=EdgeData.columns).cast()
@@ -106,8 +97,8 @@ class DigAPlan():
         self.master_solver = pyo.SolverFactory('gurobi')
         self.master_solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory('gurobi')
-        self.slave_solver.options['NonConvex'] = 2
-        self.slave_solver.options['QCPDual'] = 1
+        # self.slave_solver.options['NonConvex'] = 2
+        # self.slave_solver.options['QCPDual'] = 1
         # # self.slave_solver.options['BarQCPConvTol'] = 1e-5
         # self.slave_solver.options['BarHomogeneous'] = 1
         
@@ -121,6 +112,7 @@ class DigAPlan():
         # These lists will be updated by the optimization and read by Dash
         self.master_obj_list = []
         self.slave_obj_list = []
+        self.convergence_list= []
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -233,14 +225,6 @@ class DigAPlan():
         
         self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
         self.__instantiate_model()
-        self.__adapt_penalty_cost()
-        
-    
-    def __adapt_penalty_cost(self):
-        """
-        Returns the penalty factor used in the optimization.
-        """
-        self.penalty_cost = 10**round(log10(abs(self.edge_data["r_pu"].max()))) * self.penalty_cost # type: ignore
 
     def solve_models_pipeline(self, max_iters: int) -> None:
         convergence_result = np.inf
@@ -249,6 +233,8 @@ class DigAPlan():
         pbar = tqdm.tqdm(range(max_iters), desc="Master obj: 0, Slave obj: 0 and Gap: 1e6", disable = False)
         logging.getLogger('pyomo.core').setLevel(logging.ERROR)
         for k in pbar:
+            # master_delta = dict(map(lambda x: (x[0], 1 if x[1] > 0.5 else 0), master_delta.items()))
+            # print(master_delta)
             try:
                 self.optimal_slave_model_instance.master_delta.store_values(master_delta) # type: ignore
                 results = self.slave_solver.solve(self.optimal_slave_model_instance, tee=self.verbose)
@@ -287,7 +273,7 @@ class DigAPlan():
             
             self.master_obj_list.append(self.master_obj)
             self.slave_obj_list.append(self.slave_obj)
-            
+            self.convergence_list.append(self.slave_obj - self.master_obj) # type: ignore
             if convergence_result < self.convergence_threshold:
                 break 
             master_delta = self.master_model_instance.delta.extract_values() # type: ignore
@@ -329,7 +315,11 @@ class DigAPlan():
             
         self.marginal_cost = marginal_cost_df
         
-        new_cut = self.slave_obj 
+        
+        marginal_cost_df = marginal_cost_df.filter(c("master_delta") == 1)
+        
+
+        new_cut = self.slave_obj
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (data["delta_variable"] - data["master_delta"])
             
@@ -338,15 +328,13 @@ class DigAPlan():
         else:   
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut) # type: ignore
         
-        self.master_obj_list.append(self.master_obj)
-        self.slave_obj_list.append(self.slave_obj)
             
 
     def extract_switch_status(self) -> pl.DataFrame:
         switch_status = self.edge_data.filter(c("type") == "switch")\
             .with_columns(
-            c("edge_id").replace_strict(self.master_model_instance.delta.extract_values(), default=None).alias("delta"), # type: ignore
-            (~c("edge_id").replace_strict(self.master_model_instance.delta.extract_values(), default=None) # type: ignore
+            c("edge_id").replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None).alias("delta"), # type: ignore
+            (~c("edge_id").replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None) # type: ignore
             .pipe(cast_boolean)
             ).alias("open")
         )["eq_fk", "edge_id", "delta", "normal_open", "open"]
@@ -355,7 +343,7 @@ class DigAPlan():
     def extract_node_voltage(self) -> pl.DataFrame:
         node_voltage: pl.DataFrame = extract_optimization_results(self.optimal_slave_model_instance, "v_sq")\
         .select(
-            (self.voltage_factor*c("v_sq")).sqrt().alias("v_pu"),
+            (c("v_sq")).sqrt().alias("v_pu"),
             c("N").alias("node_id")
         ).join(
             self.node_data["cn_fk", "node_id", "v_base"], on="node_id", how="left"
@@ -366,7 +354,7 @@ class DigAPlan():
     def extract_edge_current(self) -> pl.DataFrame:
         edge_current: pl.DataFrame = extract_optimization_results(self.optimal_slave_model_instance, "i_sq")\
             .select(
-                (self.current_factor*c("i_sq")).sqrt().alias("i_pu"),
+                (c("i_sq")).sqrt().alias("i_pu"),
                 c("C").list.get(0).alias("edge_id")
             ).group_by("edge_id").agg(c("i_pu").max()).sort("edge_id")\
             .join(
@@ -383,11 +371,6 @@ class DigAPlan():
             
         self.slack_v_neg = extract_optimization_results(self.infeasible_slave_model_instance, "slack_v_neg")\
             .filter(c("slack_v_neg") > self.slack_threshold)
-
-        # if (self.slack_i_sq.height > 0) or (self.slack_v_pos.height > 0) or (self.slack_v_neg.height > 0):
-        #     self.infeasible_slave = True
-        # else:
-        #     self.infeasible_slave = False
     
     def find_initial_state_of_switches(self):
         """
@@ -409,8 +392,8 @@ class DigAPlan():
             
         else:
             log.warning(
-                "The resulting graph considering normal switch is NOT a tree.\n The initial state of switches is determined solving master model.")
-            
+                "The resulting graph considering normal switch status is NOT a tree.\n The initial state of switches is determined solving master model.")
+
             results = self.master_solver.solve(self.master_model_instance, tee=False)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.warning(f"\nMaster model did not converge: {results.solver.termination_condition}")

@@ -32,7 +32,7 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, dig_a_plan, node_size: int 
     
     fig = go.Figure()
 
-    for data in line.filter(c("max_i_ka") > 1e-2).to_dicts():
+    for data in line.filter(c("max_i_ka") > 5e-2).to_dicts():
         
         fig.add_trace(
             go.Scatter(
@@ -44,7 +44,7 @@ def plot_grid_from_pandapower(net: pp.pandapowerNet, dig_a_plan, node_size: int 
                 showlegend=False
             )
         )
-    for data in line.filter(c("max_i_ka") <= 1e-2).to_dicts():
+    for data in line.filter(c("max_i_ka") <= 5e-2).to_dicts():
         
         fig.add_trace(
             go.Scatter(

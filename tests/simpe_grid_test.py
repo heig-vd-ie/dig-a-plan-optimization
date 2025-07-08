@@ -52,21 +52,22 @@ net["line"].loc[:, "max_i_ka"] = 1
 net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 # %%
 base_grid_data = pandapower_to_dig_a_plan_schema(net)
-dig_a_plan: DigAPlan = DigAPlan(verbose= True, big_m = 1e2)
+dig_a_plan: DigAPlan = DigAPlan(verbose=False, big_m = 1e2)
 
 dig_a_plan.add_grid_data(**base_grid_data)
 dig_a_plan.solve_models_pipeline(max_iters = 1)
 
 # %%
-fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01, row_titles = ['Slave objective', 'Master objective'])
+fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.01, row_titles = ['Slave objective', 'Master objective'])
 fig.add_trace(go.Scatter(go.Scatter(y=dig_a_plan.slave_obj_list[1:]), mode='lines', name='Slave objective'), row=1, col=1)
 fig.add_trace(go.Scatter(go.Scatter(y=dig_a_plan.master_obj_list[1:]), mode='lines', name='Master objective'), row=2, col=1)
-fig.update_layout(height= 400, width=600, margin=dict(t=10, l=20, r= 10, b=10))
+fig.add_trace(go.Scatter(go.Scatter(y=dig_a_plan.convergence_list[1:]), mode='lines', name='Convergence'), row=3, col=1)
+fig.update_layout(height= 600, width=600, margin=dict(t=10, l=20, r= 10, b=10))
 
-fig.show()
+# fig.show()
 
 # %%
-# node_data, edge_data =  compare_dig_a_plan_with_pandapower(dig_a_plan=dig_a_plan, net=net)
+node_data, edge_data =  compare_dig_a_plan_with_pandapower(dig_a_plan=dig_a_plan, net=net)
 plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
 # %%
@@ -78,3 +79,10 @@ dig_a_plan.slave_obj
 # %%
 print(dig_a_plan.marginal_cost.to_pandas().to_string())
 # %%
+
+
+print(extract_optimization_results(dig_a_plan.master_model_instance, "delta").to_pandas().to_string())
+# %%
+print(extract_optimization_results(dig_a_plan.optimal_slave_model_instance, "p_slack_node").to_pandas().to_string())
+# %%
+net["load"]

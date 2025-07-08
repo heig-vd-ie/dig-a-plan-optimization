@@ -13,6 +13,7 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.v_max = pyo.Param(model.N,   default=1.05)
     # master_d is defined over LF: 1 if candidate is active, else 0.
     model.master_delta = pyo.Param(model.S, default= 0, mutable=True)
+    model.master_d = pyo.Param(model.C, default= 0, mutable=True)
     
     model.slack_node_v_sq = pyo.Param()             # Slack bus voltage (p.u.)
     model.slack_node = pyo.Param()                  # Slack bus index.
