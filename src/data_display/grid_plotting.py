@@ -7,6 +7,8 @@ from general_function import pl_to_dict
 
 def plot_grid_from_pandapower(net: pp.pandapowerNet, dig_a_plan, node_size: int = 22, width: int=800,  height: int=700) -> None:
     
+    switch_status = pl_to_dict(dig_a_plan.extract_switch_status().select("eq_fk", ~c("open")))
+    net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     bus: pl.DataFrame = pl.from_pandas(net["bus"])
     
     switch_mapping ={
