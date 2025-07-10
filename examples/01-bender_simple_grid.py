@@ -10,7 +10,6 @@ from polars import col as c
 from pipelines.dig_a_plan import DigAPlan
 from polars import selectors as cs
 
-# from pipelines.dig_a_plan_d_model import DigAPlan
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_connector import pandapower_to_dig_a_plan_schema
