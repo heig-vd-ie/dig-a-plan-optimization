@@ -31,3 +31,21 @@ Each time you start working on the project, activate the virtual environment by 
 make enable-venv
 ```
 
+## Project structure:
+
+```
+.
+├── .github/         # GitHub workflows and configuration files
+├── .vscode/         # VS Code workspace settings and recommended extensions
+├── data/            # Input datasets or sample data for optimization tasks
+├── docs/            # Project documentation and additional resources
+├── dry-run/         # Scripts or outputs for test runs and experimentation
+├── examples/        # Example scripts or notebooks demonstrating usage
+├── src/             # Core optimization code and modules
+├── tests/           # Unit tests for the optimization logic
+├── .envrc           # Environment variable configuration for direnv
+├── .gitignore       # Specifies files and directories to be ignored by Git
+├── Makefile         # Common commands for setup, development, and testing
+├── pyproject.toml   # Python dependencies and project configuration
+└── README.md        # Project overview and instructions (this file)
+```
