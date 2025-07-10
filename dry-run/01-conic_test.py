@@ -8,7 +8,7 @@ from polars import col as c
 # %%
 m = pmo.block()
 
-m.idx = pmo.set(initialize=range(3))  # type: ignore
+m.idx = range(3)  # type: ignore
 m.P = pmo.variable_dict()
 m.Q = pmo.variable_dict()
 m.I = pmo.variable_dict()

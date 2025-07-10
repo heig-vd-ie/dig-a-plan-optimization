@@ -9,7 +9,9 @@ To install all dependencies on a new machine, run:
 make install-all
 ```
 
-You will also need a Gurobi license. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/license/gurobi.lic`.
+You will need a Gurobi license to run this project. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/gurobi_license/gurobi.lic`.
+
+Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
 
 ## Updating the Virtual Environment or Packages
 

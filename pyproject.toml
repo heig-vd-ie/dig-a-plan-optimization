@@ -30,6 +30,8 @@ mosek = "^11.0.24"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
+mypy = "^1.16.1"
+pytest = "^8.4.1"
 
 [build-system]
 requires = ["poetry-core"]

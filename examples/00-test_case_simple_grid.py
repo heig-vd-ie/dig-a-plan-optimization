@@ -10,18 +10,15 @@ from general_function import pl_to_dict, build_non_existing_dirs
 if __name__ == "__main__":
     net = create_cigre_network_mv(with_der="all")  # type: ignore
 
-    bus: pl.DataFrame = (
-        pl.from_pandas(net["bus"])
-        .with_columns(
-            c("geo")
-            .map_elements(
-                lambda x: list(from_geojson(x).coords)[0],
-                return_dtype=pl.List(pl.Float64),
-            )
-            .alias("coords"),
+    bus: pl.DataFrame = pl.from_pandas(net["bus"])
+    bus: pl.DataFrame = bus.with_columns(
+        c("geo")
+        .map_elements(
+            lambda x: list(from_geojson(x).coords)[0],
+            return_dtype=pl.List(pl.Float64),
         )
-        .with_row_index(name="bus_id")
-    )
+        .alias("coords"),
+    ).with_row_index(name="bus_id")
 
     geo_mapping = pl_to_dict(bus["bus_id", "coords"])
 

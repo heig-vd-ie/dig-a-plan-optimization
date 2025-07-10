@@ -6,6 +6,7 @@ from data_schema._constraints import literal_constraint
 
 TYPES = Literal["branch", "transformer", "switch"]
 
+
 class EdgeData(pt.Model):
     eq_fk: str = pt.Field(dtype=pl.Utf8, unique=True)
     edge_id: int = pt.Field(dtype=pl.Int32, unique=True)
@@ -20,4 +21,6 @@ class EdgeData(pt.Model):
     i_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
     p_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=10.0)
     normal_open: bool = pt.Field(dtype=pl.Boolean, default=False)
-    type: TYPES = pt.Field(dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES))
+    type: TYPES = pt.Field(
+        dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
+    )
