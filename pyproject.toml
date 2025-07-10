@@ -28,6 +28,9 @@ matplotlib = "^3.10.3"
 mosek = "^11.0.24"
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
