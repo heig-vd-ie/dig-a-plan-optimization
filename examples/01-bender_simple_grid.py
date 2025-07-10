@@ -1,23 +1,15 @@
 # %%
 import os
 import pandapower as pp
-import pandas as pd
-from plotly.graph_objects import Figure
 import plotly.graph_objs as go
-import polars as pl
-from polars import col as c
 
-from pipelines.dig_a_plan import DigAPlan
-from polars import selectors as cs
-
+from data_connector import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_connector import pandapower_to_dig_a_plan_schema
-from general_function import pl_to_dict
+from pipelines.dig_a_plan import DigAPlan
 
 from pyomo_utility import extract_optimization_results
 from plotly.subplots import make_subplots
-import matplotlib.pyplot as plt
 
 os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
@@ -37,13 +29,10 @@ NB_TEST = 0
 # set input data
 
 net = pp.from_pickle("data/simple_grid.p")
-# combination_results = pl.read_csv("data/load_facotr_1_results.csv").with_columns(
-#     pl.concat_list(cs.starts_with("switch")).alias("switch_list")
-# )
+
 
 net["load"]["p_mw"] = net["load"]["p_mw"] * LOAD_FACTOR
 net["load"]["q_mvar"] = net["load"]["q_mvar"] * LOAD_FACTOR
-
 
 net["line"].loc[:, "max_i_ka"] = 1
 net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
@@ -97,8 +86,6 @@ fig.add_trace(
 )
 fig.update_layout(height=600, width=600, margin=dict(t=10, l=20, r=10, b=10))
 
-# fig.show()
-
 # %%
 node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
@@ -114,7 +101,6 @@ dig_a_plan.slave_obj
 # %%
 print(dig_a_plan.marginal_cost.to_pandas().to_string())
 # %%
-
 
 print(
     extract_optimization_results(dig_a_plan.master_model_instance, "delta")

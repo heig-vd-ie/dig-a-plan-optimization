@@ -1,6 +1,7 @@
 # variables.py
 import pyomo.environ as pyo
-from shapely import bounds
+
+# from shapely import bounds
 
 
 def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:

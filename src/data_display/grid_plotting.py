@@ -1,12 +1,9 @@
-from plotly.graph_objects import Figure
-import plotly.graph_objs as go
 import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from IPython.display import display
 
 
 def plot_grid_from_pandapower(

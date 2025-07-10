@@ -144,8 +144,8 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
     model.nb_closed_switches = pyo.Constraint(rule=nb_closed_switches_rule)
     # # cuts are generated on-the-fly, so no rules are necessary.
-    model.infeasibility_cut = pyo.ConstraintList()
-    model.optimality_cut = pyo.ConstraintList()
+    model.infeasibility_cut = ConstraintList()
+    model.optimality_cut = ConstraintList()
 
     return model
 

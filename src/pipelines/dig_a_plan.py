@@ -1,8 +1,6 @@
 import polars as pl
 from polars import col as c
 import networkx as nx
-import os
-from math import log10
 import logging
 
 import tqdm
@@ -13,9 +11,8 @@ from pyomo.environ import Suffix
 import patito as pt
 from typing import TypedDict, Unpack, Literal
 
-
 from general_function import pl_to_dict, generate_log, pl_to_dict_with_tuple
-from polars_function import list_to_list_of_tuple, cast_boolean, modify_string_col
+from polars_function import cast_boolean, modify_string_col
 from networkx_function import (
     generate_nx_edge,
     generate_bfs_tree_with_edge_data,
@@ -25,20 +22,17 @@ from networkx_function import (
 from data_schema.node_data import NodeData
 from data_schema.edge_data import EdgeData
 
-from optimization_model.master_model.sets import master_model_sets
-from optimization_model.master_model.parameters import master_model_parameters
-from optimization_model.master_model.variables import master_model_variables
-from optimization_model.master_model.constraints import master_model_constraints
-
-from optimization_model.slave_model.sets import slave_model_sets
-from optimization_model.slave_model.parameters import slave_model_parameters
-from optimization_model.slave_model.variables import (
+from optimization_model import (
+    master_model_sets,
+    master_model_parameters,
+    master_model_variables,
+    master_model_constraints,
+    slave_model_sets,
+    slave_model_parameters,
     slave_model_variables,
-    infeasible_slave_model_variables,
-)
-from optimization_model.slave_model.constraints import (
     optimal_slave_model_constraints,
     infeasible_slave_model_constraints,
+    infeasible_slave_model_variables,
 )
 
 from pyomo_utility import extract_optimization_results
@@ -332,14 +326,14 @@ class DigAPlan:
 
         self.__scaled_optimal_slave_model_instance = pyo.TransformationFactory(
             "core.scale_model"
-        ).create_using(
+        ).create_using(  # type: ignore
             self.optimal_slave_model_instance
-        )  # type: ignore
+        )
         self.__scaled_infeasible_slave_model_instance = pyo.TransformationFactory(
             "core.scale_model"
-        ).create_using(
+        ).create_using(  # type: ignore
             self.infeasible_slave_model_instance
-        )  # type: ignore
+        )
 
     def solve_models_pipeline(self, max_iters: int) -> None:
         convergence_result = np.inf
