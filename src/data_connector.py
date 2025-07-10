@@ -49,6 +49,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
     node_data = node_data[["node_id", "vn_kv", "name"]]\
         .join(load, on="node_id", how="left")\
         .select(
+            pl.lit([1]).alias("neighbors"),
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv")*1e3).alias("v_base"),
@@ -77,7 +78,8 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
             (c("c_nf_per_km")*c("length_km")*1e-9*2*np.pi*50*c("z_base")).alias("b_pu"),
             (c("max_i_ka") * 1e3 / c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"), 
-            c("i_base")
+            c("i_base"),
+            (np.sqrt(3)*c("max_i_ka") * 1e3 *c("v_base")/s_base).alias("p_max_pu")
         )
     trafo: pl.DataFrame = pl.from_pandas(net.trafo)
     
@@ -103,8 +105,8 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
         pl.lit("transformer").alias("type"),
         (c("sn_mva") *1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias("i_max_pu"),
         ((c("vn_hv_pu")/c("vn_lv_pu"))).alias("n_transfo"),
-        c("i_base")
-        
+        c("i_base"),
+        (c("sn_mva")*1e6/s_base).alias("p_max_pu")
     )
 
     switch: pl.DataFrame = pl.from_pandas(net.switch)
@@ -121,6 +123,18 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
         [line, trafo, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
+
+    u_of_edge = grid_data["edge_data"].group_by("u_of_edge").agg("v_of_edge").rename({"u_of_edge": "node_id"})
+
+    v_of_edge = grid_data["edge_data"].group_by("v_of_edge").agg("u_of_edge").rename({"v_of_edge": "node_id"})
+
+    neighbors_mapping = pl_to_dict(
+        u_of_edge.join(v_of_edge, on="node_id", how="full", coalesce=True)
+        .select(
+        "node_id",
+        pl.concat_list(c("v_of_edge", "u_of_edge").fill_null(pl.lit([]))).alias("neighbors")
+        ))
+
     ext_grid : pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
         raise ValueError("ext_grid should have only 1 row")
@@ -134,6 +148,7 @@ def pandapower_to_dig_a_plan_schema(net: pp.pandapowerNet, s_base: float=1e6) ->
         pl.when(c("node_id") == slack_node_id)
         .then(pl.lit("slack"))
         .otherwise(pl.lit("pq")).alias("type"),
+        c("node_id").replace_strict(neighbors_mapping).alias("neighbors"),
     )
     
     return grid_data
@@ -179,6 +194,7 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
     eq_connectivity = connectivity\
         .with_columns(c("cn_fk").replace_strict(node_mapping, default=None))\
         .pivot(on= "side", values="cn_fk", index="eq_fk").rename({"t1": "u_of_edge", "t2": "v_of_edge"})
+        
     branch_parameter_event = pl.DataFrame(change_schema.branch_parameter_event)
     branch = pl.DataFrame(change_schema.branch)\
         .join(branch_parameter_event, left_on="uuid", right_on="eq_fk", how="left")
@@ -195,7 +211,8 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
             (c("b")*c("z_base")).alias("b_pu"),
             (c("current_limit")/ c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"), 
-            c("i_base")
+            c("i_base"),
+            (np.sqrt(3)*c("current_limit")*c("v_base")/s_base).alias("p_max_pu")
         )
 
     transformer_end = change_schema.transformer_end.pivot(on= "side", values="nominal_voltage", index="eq_fk").rename({"t1": "vn_hv", "t2": "vn_lv"})
@@ -215,6 +232,7 @@ def change_schema_to_dig_a_plan_schema(change_schema: ChangesSchema, s_base: flo
             (c("r")/c("z_base")).alias("r_pu"),
             (c("x")/c("z_base")).alias("x_pu"),
             pl.lit("transformer").alias("type"),
+            (c("rated_s")*1e3/s_base).alias("p_max_pu")
         )
         
     switch = pl.DataFrame(change_schema.switch).join(eq_connectivity, left_on="uuid", right_on="eq_fk", how="left")\

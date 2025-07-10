@@ -76,6 +76,8 @@ class DigAPlan():
         self.__slack_node : int
         self.solver = pyo.SolverFactory('gurobi')
         self.solver.options['IntegralityFocus'] = 1 # To insure master binary variable remains binary
+        # self.solver.options['NumericFocus'] = 3 # To insure master binary variable remains binary
+        # self.solver.options['TimeLimit'] = 60 # To insure master binary variable remains binary
         
         self.slack_i_sq: pl.DataFrame    
         self.slack_v_pos: pl.DataFrame
@@ -179,9 +181,11 @@ class DigAPlan():
     def solve_models_pipeline(self) -> None:
         
         logging.getLogger('pyomo.core').setLevel(logging.ERROR)
-        _ = self.solver.solve(self.__model_instance, tee=self.verbose)
-        self.check_slave_feasibility()
-        self.model_obj = self.__model_instance.objective() # type: ignore
+        with tqdm.tqdm(total=1, desc="Solving model") as pbar:
+            _ = self.solver.solve(self.__model_instance, tee=self.verbose)
+            self.check_slave_feasibility()
+            self.model_obj = self.__model_instance.objective() # type: ignore
+            pbar.update()
 
 
     def extract_switch_status(self) -> pl.DataFrame:
