@@ -86,3 +86,6 @@ uninstall-venv: ## Uninstall the virtual environment
 	@echo "Uninstalling virtual environment..."
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
+
+pytest: ## Run tests using pytest (check venv is activated otherwise activated)
+	@poetry run pytest

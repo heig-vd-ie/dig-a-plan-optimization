@@ -40,8 +40,5 @@
   "files.autoSaveDelay": 1000,
   "files.exclude": {
     "**/__pycache__": true
-  },
-  "python.linting.mypyEnabled": true,
-  "python.linting.enabled": true,
-  "python.linting.mypyArgs": ["--ignore-missing-imports"]
+  }
 }
