@@ -43,5 +43,8 @@
   "editor.formatOnSaveMode": "file",
   "python.formatting.provider": "black",
   "files.autoSave": "afterDelay",  // or "onWindowChange" / "onFocusChange"
-  "files.autoSaveDelay": 1000      // delay in milliseconds
+  "files.autoSaveDelay": 1000,      // delay in milliseconds
+  "files.exclude": {
+    "**/__pycache__": true
+},
 }
