@@ -9,6 +9,8 @@ To install all dependencies on a new machine, run:
 make install-all
 ```
 
+You will also need a Gurobi license. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/license/gurobi.lic`.
+
 ## Updating the Virtual Environment or Packages
 
 If you need to update packages listed in `pyproject.toml`, use:
@@ -26,3 +28,4 @@ Each time you start working on the project, activate the virtual environment by 
 ```sh
 make enable-venv
 ```
+
