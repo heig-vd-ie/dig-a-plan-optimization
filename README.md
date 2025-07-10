@@ -9,7 +9,7 @@ To install all dependencies on a new machine, run:
 make install-all
 ```
 
-You will also need a Gurobi license. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/license/gurobi.lic`.
+You will also need a Gurobi license. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/gurobi_license/gurobi.lic`.
 
 ## Updating the Virtual Environment or Packages
 
