@@ -67,7 +67,10 @@ def generate_infeasible_slave_model() -> pyo.AbstractModel:
 
 class DigAPlan():
     def __init__(
-        self, verbose: bool = False, big_m: float = 1e4, slack_threshold: float = 1e-5, convergence_threshold=1e-4) -> None:
+        self, verbose: bool = False, big_m: float = 1e4, slack_threshold: float = 1e-5, convergence_threshold=1e-4,
+        power_factor: float = 1.0, current_factor: float = 1.0, voltage_factor: float = 1.0,
+        slave_objective_type: Literal['losses', 'line_loading'] = 'losses', master_relaxed: bool = False
+        ) -> None:
         
         self.verbose: int = verbose
         self.big_m: float = big_m
@@ -77,6 +80,9 @@ class DigAPlan():
         self.infeasible_slave: bool
         self.slave_obj: float
         self.master_obj: float = -1e8
+        self.power_factor: float = power_factor
+        self.current_factor: float = current_factor
+        self.voltage_factor: float = voltage_factor
         
         self.master_obj_list = []
         self.slave_obj_list = []
@@ -92,6 +98,9 @@ class DigAPlan():
         self.__master_model_instance: pyo.ConcreteModel
         self.__optimal_slave_model_instance: pyo.ConcreteModel
         self.__infeasible_slave_model_instance: pyo.ConcreteModel
+        
+        self.__scaled_optimal_slave_model_instance: pyo.ConcreteModel
+        self.__scaled_infeasible_slave_model_instance: pyo.ConcreteModel
 
         self.__slack_node : int
         self.master_solver = pyo.SolverFactory('gurobi')
@@ -143,12 +152,36 @@ class DigAPlan():
         return self.__infeasible_slave_model_instance
     
     @property
+    def scaled_optimal_slave_model_instance(self) -> pyo.ConcreteModel:
+        return self.__scaled_optimal_slave_model_instance
+    
+    @property
+    def scaled_infeasible_slave_model_instance(self) -> pyo.ConcreteModel:
+        return self.__scaled_infeasible_slave_model_instance
+    
+    @property
     def slack_node(self) -> int:
         return self.__slack_node
     
     @property
     def delta_variable(self) -> pl.DataFrame:
         return self.__delta_variable
+    
+    def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
+        
+        for table_name, pl_table in grid_data.items():
+            if table_name  == "node_data":
+                self.__node_data_setter(node_data = pl_table) # type: ignore
+            elif table_name  == "edge_data":
+                self.__edge_data_setter(edge_data = pl_table) # type: ignore
+            else:
+                raise ValueError(f"{table_name} is not a valid name")
+        
+        if self.node_data.filter(c("type") == "slack").height != 1:
+            raise ValueError("There must be only one slack node")
+        
+        self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
+        self.__instantiate_model()
 
     def __node_data_setter(self, node_data: pl.DataFrame):
         old_table: pl.DataFrame = self.__node_data.clear()
@@ -205,26 +238,26 @@ class DigAPlan():
         self.__optimal_slave_model_instance = self.optimal_slave_model.create_instance(grid_data) # type: ignore
         self.__infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data) # type: ignore
         
+        self.__scale_slave_models()
+        
         self.__delta_variable = pl.DataFrame(
             self.master_model_instance.delta.items(), # type: ignore
             schema=["S", "delta_variable"]
         )
 
-    def add_grid_data(self, **grid_data: Unpack[DataSchemaPolarsModel]) -> None:
-        
-        for table_name, pl_table in grid_data.items():
-            if table_name  == "node_data":
-                self.__node_data_setter(node_data = pl_table) # type: ignore
-            elif table_name  == "edge_data":
-                self.__edge_data_setter(edge_data = pl_table) # type: ignore
-            else:
-                raise ValueError(f"{table_name} is not a valid name")
-        
-        if self.node_data.filter(c("type") == "slack").height != 1:
-            raise ValueError("There must be only one slack node")
-        
-        self.__slack_node: int = self.node_data.filter(c("type") == "slack")["node_id"][0]
-        self.__instantiate_model()
+    def __scale_slave_models(self) -> None:
+
+        for model in [self.optimal_slave_model_instance, self.infeasible_slave_model_instance]:
+            model.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
+            model.scaling_factor[model.p_flow] = self.power_factor
+            model.scaling_factor[model.q_flow] = self.power_factor
+            model.scaling_factor[model.i_sq] = self.current_factor
+            model.scaling_factor[model.v_sq] = self.voltage_factor
+
+        self.__scaled_optimal_slave_model_instance = pyo.TransformationFactory('core.scale_model')\
+            .create_using(self.optimal_slave_model_instance) # type: ignore
+        self.__scaled_infeasible_slave_model_instance = pyo.TransformationFactory('core.scale_model')\
+            .create_using(self.infeasible_slave_model_instance) # type: ignore
 
     def solve_models_pipeline(self, max_iters: int) -> None:
         convergence_result = np.inf
@@ -233,19 +266,23 @@ class DigAPlan():
         pbar = tqdm.tqdm(range(max_iters), desc="Master obj: 0, Slave obj: 0 and Gap: 1e6", disable = False)
         logging.getLogger('pyomo.core').setLevel(logging.ERROR)
         for k in pbar:
-            # master_delta = dict(map(lambda x: (x[0], 1 if x[1] > 0.5 else 0), master_delta.items()))
-            # print(master_delta)
             try:
                 self.optimal_slave_model_instance.master_delta.store_values(master_delta) # type: ignore
-                results = self.slave_solver.solve(self.optimal_slave_model_instance, tee=self.verbose)
+                self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta) # type: ignore
+                results = self.slave_solver.solve(self.scaled_optimal_slave_model_instance, tee=self.verbose)
 
                 if results.solver.termination_condition == pyo.TerminationCondition.optimal:
+                    pyo.TransformationFactory('core.scale_model').propagate_solution( # type: ignore
+                        self.scaled_optimal_slave_model_instance, self.optimal_slave_model_instance)
                     self.slave_obj = self.optimal_slave_model_instance.objective() # type: ignore
                     self.infeasible_slave = False
                 else:
                     self.infeasible_slave_model_instance.master_delta.store_values(master_delta) # type: ignore
-                    _ = self.slave_solver.solve(self.infeasible_slave_model_instance, tee=self.verbose)
-                    self.slave_obj = self.infeasible_slave_model_instance.objective() # type: ignore
+                    self.scaled_infeasible_slave_model_instance.master_delta.store_values(master_delta) # type: ignore
+                    _ = self.slave_solver.solve(self.scaled_infeasible_slave_model_instance, tee=self.verbose)
+                    pyo.TransformationFactory('core.scale_model').propagate_solution( # type: ignore
+                        self.scaled_infeasible_slave_model_instance, self.infeasible_slave_model_instance)
+                    self.slave_obj = self.scaled_infeasible_slave_model_instance.objective() # type: ignore
                     self.check_slave_feasibility()
                     self.infeasible_slave = True
             except Exception as e:
