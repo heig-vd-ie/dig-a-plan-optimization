@@ -1,8 +1,6 @@
 {
   "terminal.integrated.commandsToSkipShell": [
-    // Ensure the toggle sidebar visibility keybinding skips the shell
     "workbench.action.toggleSidebarVisibility",
-    // Send quick open's keybinding to the shell
     "-workbench.action.quickOpen",
   ],
   "typescript.inlayHints.parameterTypes.enabled": true,
@@ -16,9 +14,6 @@
   "terminal.integrated.env.windows": {
     "PYTHONPATH": "${workspaceFolder}/src",
   },
-  // "python.terminal.launchArgs": [
-  //   "-i"
-  // ],
   "terminal.integrated.fontSize": 12,
   "explorer.autoReveal": false,
   "workbench.action.terminal.setDimension": 1000,
@@ -35,16 +30,18 @@
     "--max-module-lines=10000",
   ],
   "python.analysis.typeCheckingMode": "basic",
-  "files.autoSave": "afterDelay",
-  "editor.defaultFormatter": "njpwerner.autodocstring",
+  "editor.defaultFormatter": "ms-python.black-formatter",
   "autoDocstring.docstringFormat": "numpy",
-  "jupyter.runStartupCommands": [direnv allow .],
+  "jupyter.runStartupCommands": ["direnv allow ."],
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
   "python.formatting.provider": "black",
-  "files.autoSave": "afterDelay",  // or "onWindowChange" / "onFocusChange"
-  "files.autoSaveDelay": 1000,      // delay in milliseconds
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
   "files.exclude": {
     "**/__pycache__": true
-},
+  },
+  "python.linting.mypyEnabled": true,
+  "python.linting.enabled": true,
+  "python.linting.mypyArgs": ["--ignore-missing-imports"]
 }
