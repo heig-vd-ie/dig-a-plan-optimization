@@ -266,16 +266,17 @@ def optimal_objective_rule(m):
 
     return (
         sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.C if not (l in m.S))
-        + (
-            sum(m.i_sq[l, i, j] ** 2 for (l, i, j) in m.C if not (l in m.S))
-            + m.p_slack_node**2
-            + m.q_slack_node**2
-            + sum(m.v_sq[n] ** 2 for n in m.N)
-            + sum(m.delta[s] ** 2 for s in m.S)
-            + sum(m.p_flow[l, i, j] ** 2 for (l, i, j) in m.C)
-            + sum(m.q_flow[l, i, j] ** 2 for (l, i, j) in m.C)
-        )
-        * 0
+        * 0.001
+        # + (
+        #     sum(m.i_sq[l, i, j] ** 2 for (l, i, j) in m.C if not (l in m.S))
+        #     + m.p_slack_node**2
+        #     + m.q_slack_node**2
+        #     + sum(m.v_sq[n] ** 2 for n in m.N)
+        #     + sum(m.delta[s] ** 2 for s in m.S)
+        #     + sum(m.p_flow[l, i, j] ** 2 for (l, i, j) in m.C)
+        #     + sum(m.q_flow[l, i, j] ** 2 for (l, i, j) in m.C)
+        # )
+        # * 0
     )
 
 
