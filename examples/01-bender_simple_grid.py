@@ -86,36 +86,15 @@ fig.add_trace(
 )
 fig.update_layout(height=600, width=600, margin=dict(t=10, l=20, r=10, b=10))
 
-# # %% compare with pandapower
-# node_data, edge_data = compare_dig_a_plan_with_pandapower(
-#     dig_a_plan=dig_a_plan, net=net
-# )
-# plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
+# %% compare with pandapower
+node_data, edge_data = compare_dig_a_plan_with_pandapower(
+    dig_a_plan=dig_a_plan, net=net
+)
+plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
-# # %% print("Convergence:", dig_a_plan.convergence_list)
-# dig_a_plan.master_obj_list
-
-# # %% print(dig_a_plan.slave_obj_list)
-# dig_a_plan.slave_obj
-
-# # %% print(dig_a_plan.slave_model_instance.objective.expr.to_string())
-# print(dig_a_plan.marginal_cost.to_pandas().to_string())
-
-# # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
-# print(
-#     extract_optimization_results(dig_a_plan.master_model_instance, "delta")
-#     .to_pandas()
-#     .to_string()
-# )
-
-# # %% print(dig_a_plan.optimal_slave_model_instance.objective.expr.to_string())
-# print(
-#     extract_optimization_results(
-#         dig_a_plan.optimal_slave_model_instance, "p_slack_node"
-#     )
-#     .to_pandas()
-#     .to_string()
-# )
-
-# # %% print(dig_a_plan.optimal_slave_model_instance.objective.expr.to_string())
-# net["load"]
+# %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
+print(
+    extract_optimization_results(dig_a_plan.master_model_instance, "delta")
+    .to_pandas()
+    .to_string()
+)
