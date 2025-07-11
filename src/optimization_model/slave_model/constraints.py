@@ -264,12 +264,12 @@ def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.Abstract
 
 def optimal_objective_rule(m):
 
-    return sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.C)
+    return sum(m.r[l] * m.i_sq[l, i, j] * 0.01 for (l, i, j) in m.C)
 
 
 def infeasible_objective_rule(m):
-    v_penalty = sum(m.slack_v_pos[n] + m.slack_v_neg[n] for n in m.N)
-    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.C)
+    v_penalty = sum(m.slack_v_pos[n] + m.slack_v_neg[n] for n in m.N) * 0.01
+    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.C) * 0.01
 
     return v_penalty + i_penalty
 
