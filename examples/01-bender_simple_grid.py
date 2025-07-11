@@ -44,7 +44,6 @@ dig_a_plan: DigAPlan = DigAPlan(
     power_factor=1e-3,
     voltage_factor=1,
     current_factor=1e-3,
-    slave_objective_type="line_loading",
     master_relaxed=False,
 )
 
