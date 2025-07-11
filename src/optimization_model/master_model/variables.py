@@ -13,6 +13,6 @@ def master_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
 
-    model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1e-5, None))  # Bender cuts.
+    model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
 
     return model
