@@ -45,11 +45,11 @@ class DataSchemaPolarsModel(TypedDict, total=True):
     edge_data: pl.DataFrame
 
 
-def generate_master_model() -> pyo.AbstractModel:
+def generate_master_model(relaxed: bool = False) -> pyo.AbstractModel:
     master_model: pyo.AbstractModel = pyo.AbstractModel()  # type: ignore
     master_model = master_model_sets(master_model)
     master_model = master_model_parameters(master_model)
-    master_model = master_model_variables(master_model)
+    master_model = master_model_variables(master_model, relaxed=relaxed)
     master_model = master_model_constraints(master_model)
     return master_model
 
@@ -84,7 +84,6 @@ class DigAPlan:
         power_factor: float = 1.0,
         current_factor: float = 1.0,
         voltage_factor: float = 1.0,
-        slave_objective_type: Literal["losses", "line_loading"] = "losses",
         master_relaxed: bool = False,
     ) -> None:
 
@@ -99,6 +98,7 @@ class DigAPlan:
         self.power_factor: float = power_factor
         self.current_factor: float = current_factor
         self.voltage_factor: float = voltage_factor
+        self.master_relaxed: bool = master_relaxed
 
         self.master_obj_list = []
         self.slave_obj_list = []
@@ -111,7 +111,9 @@ class DigAPlan:
         ).cast()
         self.__delta_variable: pl.DataFrame
 
-        self.__master_model: pyo.AbstractModel = generate_master_model()
+        self.__master_model: pyo.AbstractModel = generate_master_model(
+            relaxed=self.master_relaxed
+        )
         self.__optimal_slave_model: pyo.AbstractModel = generate_optimal_slave_model()
         self.__infeasible_slave_model: pyo.AbstractModel = (
             generate_infeasible_slave_model()

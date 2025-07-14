@@ -229,6 +229,7 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.switch_reactive_power_upper_bound = pyo.Constraint(
         model.C, rule=switch_reactive_power_upper_bound_rule
     )
+    model.current_balance = pyo.Constraint(model.C, rule=current_balance_rule)
 
     return model
 
@@ -263,12 +264,16 @@ def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.Abstract
 
 def optimal_objective_rule(m):
 
-    return sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.C)
+    return (
+        sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.C if not (l in m.S))
+        * 0.01
+        # + (sum(m.i_sq[l, i, j] ** 2 for (l, i, j) in m.C if not (l in m.S))) * 0.0001
+    )
 
 
 def infeasible_objective_rule(m):
-    v_penalty = sum(m.slack_v_pos[n] + m.slack_v_neg[n] for n in m.N)
-    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.C)
+    v_penalty = sum(m.slack_v_pos[n] + m.slack_v_neg[n] for n in m.N) * 0.01
+    i_penalty = sum(m.slack_i_sq[l, i, j] for (l, i, j) in m.C) * 0.01
 
     return v_penalty + i_penalty
 
@@ -310,45 +315,57 @@ def node_reactive_power_balance_rule(m, n):
 
 
 def edge_active_power_balance_rule(m, l):
-    return (
-        sum(
-            m.p_flow[l_, i, j] - m.r[l_] / 2 * m.i_sq[l_, i, j]
-            for (l_, i, j) in m.C
-            if l_ == l
+    if l in m.S:
+        return sum(m.p_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
+    else:
+        return (
+            sum(
+                m.p_flow[l_, i, j] - m.r[l_] / 2 * m.i_sq[l_, i, j]
+                for (l_, i, j) in m.C
+                if l_ == l
+            )
+            == 0
         )
-        == 0
-    )
 
 
 def edge_reactive_power_balance_rule(m, l):
-    return (
-        sum(
-            m.q_flow[l_, i, j] - m.x[l_] / 2 * m.i_sq[l_, i, j]
-            for (l_, i, j) in m.C
-            if l_ == l
+    if l in m.S:
+        return sum(m.q_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
+    else:
+        return (
+            sum(
+                m.q_flow[l_, i, j] - m.x[l_] / 2 * m.i_sq[l_, i, j]
+                for (l_, i, j) in m.C
+                if l_ == l
+            )
+            == 0
         )
-        == 0
-    )
+
+
+def current_balance_rule(m, l, i, j):
+    return (
+        m.i_sq[l, i, j] == m.i_sq[l, j, i]
+    )  # Ensure current balance in both directions
 
 
 # def current_rotated_cone_rule(m, l, i, j):
 #     if l in m.S:
-#         return m.i_sq[l, i, j] == 0
+#         return pyo.Constraint.Skip
 #     else:
 
 #         lhs = (
-#             (2 * m.p_flow[l, i, j])**2 +
-#             (2 * m.q_flow[l, i, j])**2 +
-#             (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j])**2
+#             (2 * m.p_flow[l, i, j]) ** 2
+#             + (2 * m.q_flow[l, i, j]) ** 2
+#             + (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j]) ** 2
 #         )
-#         rhs = (m.v_sq[i]/ (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j])**2
+#         rhs = (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j]) ** 2
 
 #         return lhs <= rhs
 
 
 def current_rotated_cone_rule(m, l, i, j):
     if l in m.S:
-        return m.i_sq[l, i, j] == 0
+        return pyo.Constraint.Skip
     else:
 
         lhs = (m.p_flow[l, i, j]) ** 2 + (m.q_flow[l, i, j]) ** 2
@@ -362,33 +379,24 @@ def current_rotated_cone_rule(m, l, i, j):
 
 
 def voltage_drop_lower_rule(m, l, i, j):
-    dv = (
-        -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
-        + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
-    )
-    voltage_diff = (
-        m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
     if l in m.S:
-        return voltage_diff >= -m.big_m * (1 - m.delta[l])
+        return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.delta[l])
     else:
+        dv = (
+            -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
+            + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
+        )
+        voltage_diff = (
+            m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
+            - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
+            + dv
+        )
         return voltage_diff == 0
 
 
 def voltage_drop_upper_rule(m, l, i, j):
-    dv = (
-        -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
-        + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
-    )
-    voltage_diff = (
-        m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
     if l in m.S:
-        return voltage_diff <= m.big_m * (1 - m.delta[l])
+        return m.v_sq[i] - m.v_sq[j] <= m.big_m * (1 - m.delta[l])
     else:
         return pyo.Constraint.Skip
 
@@ -422,7 +430,10 @@ def switch_reactive_power_upper_bound_rule(m, l, i, j):
 
 
 def optimal_current_limit_rule(m, l, i, j):
-    return m.i_sq[l, i, j] <= m.i_max[l] ** 2
+    if l in m.S:
+        return pyo.Constraint.Skip
+    else:
+        return m.i_sq[l, i, j] <= m.i_max[l] ** 2
 
 
 def optimal_voltage_upper_limits_rule(m, n):
@@ -435,7 +446,10 @@ def optimal_voltage_lower_limits_rule(m, n):
 
 # (6) Flow Bounds for candidate (l,i,j):
 def infeasible_current_limit_rule(m, l, i, j):
-    return m.i_sq[l, i, j] <= m.i_max[l] ** 2 + m.slack_i_sq[l, i, j]
+    if l in m.S:
+        return pyo.Constraint.Skip
+    else:
+        return m.i_sq[l, i, j] <= m.i_max[l] ** 2 + m.slack_i_sq[l, i, j]
 
 
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
