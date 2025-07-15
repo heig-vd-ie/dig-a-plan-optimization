@@ -1,7 +1,7 @@
 import pyomo.environ as pyo
 from pyomo.environ import ConstraintList
 
-def model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
+def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Radiality: each non-slack node has one incoming flow
     model.flow_balance = pyo.Constraint(model.N, rule=flow_balance_rule)
     model.edge_propagation = pyo.Constraint(model.L, rule=edge_propagation_rule)
