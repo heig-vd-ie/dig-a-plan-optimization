@@ -1,0 +1,59 @@
+# %% import libraries
+import os
+
+from data_connector import (
+    change_schema_to_dig_a_plan_schema,
+    duckdb_to_changes_schema,
+)
+from pipelines import DigAPlan
+from pipelines.configs import CombinedConfig, PipelineType
+
+
+# ensure working directory is project root
+os.chdir(os.getcwd().replace("/src", ""))
+os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
+
+# %% set parameters
+LOAD_FACTOR = 1
+TEST_CONFIG = [
+    {"line_list": [], "switch_list": []},
+    {"line_list": [6, 9], "switch_list": [25, 28]},
+    {"line_list": [2, 6, 9], "switch_list": [21, 25, 28]},
+    {"line_list": [16], "switch_list": [35]},
+    {"line_list": [1], "switch_list": [20]},
+    {"line_list": [10], "switch_list": [29]},
+    {"line_list": [7, 11], "switch_list": [26, 30]},
+]
+NB_TEST = 0
+
+
+change_schema = duckdb_to_changes_schema(".cache/boisy_grid.db")
+
+
+base_grid_data = change_schema_to_dig_a_plan_schema(change_schema, 1000)
+
+
+# %% initialize DigAPlan
+
+config = CombinedConfig(
+    verbose=False,
+    big_m=1e2,
+    factor_p=1e-3,
+    factor_q=1e-3,
+    factor_v=1,
+    factor_i=1e-3,
+    pipeline_type=PipelineType.COMBINED,
+)
+dig_a_plan = DigAPlan(config=config)
+
+# %% add grid data and solve the combined model
+dig_a_plan.add_grid_data(base_grid_data)
+dig_a_plan.solve_model()  # one‐shot solve
+
+# %% extract and compare results
+# Switch status
+switches = dig_a_plan.result_manager.extract_switch_status()
+# Node voltages
+voltages = dig_a_plan.result_manager.extract_node_voltage()
+# Line currents
+currents = dig_a_plan.result_manager.extract_edge_current()
