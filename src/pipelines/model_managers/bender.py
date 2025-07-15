@@ -259,53 +259,6 @@ class PipelineModelManagerBender:
         else:
             self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut)  # type: ignore
 
-    def extract_switch_status(self) -> pl.DataFrame:
-        switch_status = self.data_manager.edge_data.filter(
-            c("type") == "switch"
-        ).with_columns(
-            c("edge_id").replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None).alias("delta"),  # type: ignore
-            (
-                ~c("edge_id")
-                .replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None)  # type: ignore
-                .pipe(cast_boolean)
-            ).alias("open"),
-        )[
-            "eq_fk", "edge_id", "delta", "normal_open", "open"
-        ]
-        return switch_status
-
-    def extract_node_voltage(self) -> pl.DataFrame:
-        node_voltage: pl.DataFrame = (
-            extract_optimization_results(self.optimal_slave_model_instance, "v_sq")
-            .select((c("v_sq")).sqrt().alias("v_pu"), c("N").alias("node_id"))
-            .join(
-                self.data_manager.node_data["cn_fk", "node_id", "v_base"],
-                on="node_id",
-                how="left",
-            )
-        )
-
-        return node_voltage
-
-    def extract_edge_current(self) -> pl.DataFrame:
-        edge_current: pl.DataFrame = (
-            extract_optimization_results(self.optimal_slave_model_instance, "i_sq")
-            .select(
-                (c("i_sq")).sqrt().alias("i_pu"), c("C").list.get(0).alias("edge_id")
-            )
-            .group_by("edge_id")
-            .agg(c("i_pu").max())
-            .sort("edge_id")
-            .join(
-                self.data_manager.edge_data.filter(c("type") != "switch")[
-                    "eq_fk", "edge_id", "i_base"
-                ],
-                on="edge_id",
-                how="inner",
-            )
-        )
-        return edge_current
-
     def check_slave_feasibility(self):
         self.slack_i_sq = extract_optimization_results(
             self.infeasible_slave_model_instance, "slack_i_sq"

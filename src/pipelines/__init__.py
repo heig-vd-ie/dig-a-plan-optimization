@@ -1,5 +1,6 @@
 from data_schema import NodeEdgeModel
 from pipelines.data_manager import PipelineDataManager
+from pipelines.result_manager import PipelineResultManager
 from pipelines.configs import CombinedConfig, PipelineConfig, BenderConfig, PipelineType
 from pipelines.model_managers.bender import PipelineModelManagerBender
 from pipelines.model_managers.combined import PipelineModelManagerCombined
@@ -29,6 +30,10 @@ class DigAPlan:
                 f"Pipeline type {config.pipeline_type} is not supported. "
                 "Please use PipelineType.BENDER or PipelineType.COMBINED."
             )
+        self.result_manager = PipelineResultManager(
+            data_manager=self.data_manager,
+            model_manager=self.model_manager,
+        )
 
     def add_grid_data(self, grid_data: NodeEdgeModel):
         """

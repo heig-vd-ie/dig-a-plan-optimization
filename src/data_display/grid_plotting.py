@@ -17,7 +17,7 @@ def plot_grid_from_pandapower(
 ) -> None:
 
     switch_status = pl_to_dict(
-        dig_a_plan.model_manager.extract_switch_status().select("eq_fk", ~c("open"))
+        dig_a_plan.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
     )
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     bus: pl.DataFrame = pl.from_pandas(net["bus"])
