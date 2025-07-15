@@ -1,0 +1,358 @@
+import pyomo.environ as pyo
+import tqdm
+import polars as pl
+import numpy as np
+import logging
+import networkx as nx
+from general_function import pl_to_dict_with_tuple, generate_log
+from polars import col as c
+from polars_function import cast_boolean, modify_string_col
+from networkx_function import (
+    generate_nx_edge,
+    generate_bfs_tree_with_edge_data,
+    get_all_edge_data,
+)
+from pipelines.data_manager import PipelineDataManager
+from pipelines.configs import BenderConfig, PipelineType
+from optimization_model import (
+    generate_master_model,
+    generate_infeasible_slave_model,
+    generate_optimal_slave_model,
+)
+from pyomo_utility import extract_optimization_results
+
+log = generate_log(name=__name__)
+
+
+class PipelineModelManagerBender:
+
+    def __init__(self, config: BenderConfig, data_manager: PipelineDataManager) -> None:
+        """Initialize the Bender model manager with configuration and data manager"""
+        if config.pipeline_type != PipelineType.BENDER:
+            raise ValueError(
+                f"Pipeline type must be {PipelineType.BENDER}, got {config.pipeline_type}"
+            )
+
+        self.config = config
+        self.data_manager = data_manager
+
+        self.delta_variable: pl.DataFrame
+        self.master_model: pyo.AbstractModel = generate_master_model(
+            relaxed=config.master_relaxed
+        )
+        self.optimal_slave_model: pyo.AbstractModel = generate_optimal_slave_model()
+        self.infeasible_slave_model: pyo.AbstractModel = (
+            generate_infeasible_slave_model()
+        )
+        self.master_model_instance: pyo.ConcreteModel
+        self.optimal_slave_model_instance: pyo.ConcreteModel
+        self.infeasible_slave_model_instance: pyo.ConcreteModel
+        self.scaled_optimal_slave_model_instance: pyo.ConcreteModel
+        self.scaled_infeasible_slave_model_instance: pyo.ConcreteModel
+
+        self.d: pl.DataFrame = pl.DataFrame()
+        self.infeasible_slave: bool = False
+        self.slave_obj: float = 0.0
+        self.master_obj: float = -1e8
+
+        self.master_obj_list = []
+        self.slave_obj_list = []
+
+        self.slack_i_sq: pl.DataFrame = pl.DataFrame()
+        self.slack_v_pos: pl.DataFrame = pl.DataFrame()
+        self.slack_v_neg: pl.DataFrame = pl.DataFrame()
+        self.marginal_cost: pl.DataFrame = pl.DataFrame()
+
+        # These lists will be updated by the optimization and read by Dash
+        self.master_obj_list = []
+        self.slave_obj_list = []
+        self.convergence_list = []
+
+        self.master_solver = pyo.SolverFactory(config.master_solver_name)
+        self.master_solver.options["IntegralityFocus"] = (
+            config.master_solver_integrality_focus
+        )  # To insure master binary variable remains binary
+        self.slave_solver = pyo.SolverFactory(config.slave_solver_name)
+        if config.slave_solver_non_convex is not None:
+            self.slave_solver.options["NonConvex"] = config.slave_solver_non_convex
+        if config.slave_solver_qcp_dual is not None:
+            self.slave_solver.options["QCPDual"] = config.slave_solver_qcp_dual
+        if config.slave_solver_bar_qcp_conv_tol is not None:
+            self.slave_solver.options["BarQCPConvTol"] = (
+                config.slave_solver_bar_qcp_conv_tol
+            )
+        if config.slave_solver_bar_homogeneous is not None:
+            self.slave_solver.options["BarHomogeneous"] = (
+                config.slave_solver_bar_homogeneous
+            )
+
+    def __scale_slave_models(
+        self, factor_p: float, factor_q: float, factor_i: float, factor_v: float
+    ) -> None:
+
+        for model in [
+            self.optimal_slave_model_instance,
+            self.infeasible_slave_model_instance,
+        ]:
+            model.scaling_factor = pyo.Suffix(direction=pyo.Suffix.EXPORT)
+            model.scaling_factor[model.p_flow] = factor_p
+            model.scaling_factor[model.q_flow] = factor_q
+            model.scaling_factor[model.i_sq] = factor_i
+            model.scaling_factor[model.v_sq] = factor_v
+
+        self.scaled_optimal_slave_model_instance = pyo.TransformationFactory(
+            "core.scale_model"
+        ).create_using(  # type: ignore
+            self.optimal_slave_model_instance
+        )
+        self.scaled_infeasible_slave_model_instance = pyo.TransformationFactory(
+            "core.scale_model"
+        ).create_using(  # type: ignore
+            self.infeasible_slave_model_instance
+        )
+
+    def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
+        self.master_model_instance = self.master_model.create_instance(grid_data_parameters_dict)  # type: ignore
+        self.optimal_slave_model_instance = self.optimal_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
+        self.infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
+
+        self.delta_variable = pl.DataFrame(
+            self.master_model_instance.delta.items(),  # type: ignore
+            schema=["S", "delta_variable"],
+        )
+        self.__scale_slave_models(
+            factor_p=self.config.factor_p,
+            factor_q=self.config.factor_q,
+            factor_i=self.config.factor_i,
+            factor_v=self.config.factor_v,
+        )
+
+    def solve_models_pipeline(self, max_iters: int) -> None:
+        convergence_result = np.inf
+        master_delta = self.find_initial_state_of_switches()
+
+        pbar = tqdm.tqdm(
+            range(max_iters),
+            desc="Master obj: 0, Slave obj: 0 and Gap: 1e6",
+            disable=False,
+        )
+        logging.getLogger("pyomo.core").setLevel(logging.ERROR)
+        for k in pbar:
+            try:
+                self.optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                results = self.slave_solver.solve(
+                    self.scaled_optimal_slave_model_instance, tee=self.config.verbose
+                )
+
+                if (
+                    results.solver.termination_condition
+                    == pyo.TerminationCondition.optimal
+                ):
+                    pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
+                        self.scaled_optimal_slave_model_instance,
+                        self.optimal_slave_model_instance,
+                    )
+                    self.slave_obj = self.optimal_slave_model_instance.objective()  # type: ignore
+                    self.infeasible_slave = False
+                else:
+                    self.infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                    self.scaled_infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                    _ = self.slave_solver.solve(
+                        self.scaled_infeasible_slave_model_instance,
+                        tee=self.config.verbose,
+                    )
+                    pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
+                        self.scaled_infeasible_slave_model_instance,
+                        self.infeasible_slave_model_instance,
+                    )
+                    self.slave_obj = self.scaled_infeasible_slave_model_instance.objective()  # type: ignore
+                    self.check_slave_feasibility()
+                    self.infeasible_slave = True
+            except Exception as e:
+                log.error(f"Slave model did not converge: {e}")
+                break
+
+            self.add_benders_cut()
+
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                pbar.disable = True
+                log.warning(
+                    f"\nMaster model did not converge: {results.solver.termination_condition}"
+                )
+                break
+
+            self.master_obj = self.master_model_instance.objective()  # type: ignore
+
+            if self.infeasible_slave == False:
+                convergence_result = self.slave_obj - self.master_obj  # type: ignore
+
+            pbar.set_description(
+                f"Master obj: {self.master_obj:.2E}, Slave obj: {self.slave_obj:.2E} and Gap: {convergence_result:.2E}"
+            )
+
+            self.master_obj_list.append(self.master_obj)
+            self.slave_obj_list.append(self.slave_obj)
+            self.convergence_list.append(self.slave_obj - self.master_obj)  # type: ignore
+            if convergence_result < self.config.convergence_threshold:
+                break
+            master_delta = self.master_model_instance.delta.extract_values()  # type: ignore
+
+    def add_benders_cut(self) -> None:
+        constraint_name = ["master_switch_status_propagation"]
+        if self.infeasible_slave == True:
+
+            marginal_cost_df = pl.DataFrame(
+                {
+                    "name": list(dict(self.infeasible_slave_model_instance.dual).keys()),  # type: ignore
+                    "marginal_cost": list(dict(self.infeasible_slave_model_instance.dual).values()),  # type: ignore
+                }
+            )
+            delta_value = extract_optimization_results(
+                self.infeasible_slave_model_instance, "master_delta"
+            )
+
+        else:
+            marginal_cost_df = pl.DataFrame(
+                {
+                    "name": list(dict(self.optimal_slave_model_instance.dual).keys()),  # type: ignore
+                    "marginal_cost": list(dict(self.optimal_slave_model_instance.dual).values()),  # type: ignore
+                }
+            )
+
+            delta_value = extract_optimization_results(
+                self.optimal_slave_model_instance, "master_delta"
+            )
+
+        marginal_cost_df = (
+            marginal_cost_df.with_columns(
+                c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
+            )
+            .with_columns(
+                c("name")
+                .pipe(modify_string_col, format_str={"]": ""})
+                .str.split("[")
+                .list.to_struct(fields=["name", "S"])
+            )
+            .unnest("name")
+            .filter(c("name").is_in(constraint_name))
+            .with_columns(c("S").cast(pl.Int64))
+        )
+
+        marginal_cost_df = marginal_cost_df.join(delta_value, on="S").join(
+            self.delta_variable, on="S"
+        )
+
+        self.marginal_cost = marginal_cost_df
+
+        marginal_cost_df = marginal_cost_df.filter(c("master_delta") == 1)
+
+        new_cut = self.slave_obj
+        for data in marginal_cost_df.to_dicts():
+            new_cut += data["marginal_cost"] * (
+                data["delta_variable"] - data["master_delta"]
+            )
+
+        if self.infeasible_slave == True:
+            self.master_model_instance.infeasibility_cut.add(0 >= new_cut)  # type: ignore
+        else:
+            self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut)  # type: ignore
+
+    def extract_switch_status(self) -> pl.DataFrame:
+        switch_status = self.data_manager.edge_data.filter(
+            c("type") == "switch"
+        ).with_columns(
+            c("edge_id").replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None).alias("delta"),  # type: ignore
+            (
+                ~c("edge_id")
+                .replace_strict(self.optimal_slave_model_instance.delta.extract_values(), default=None)  # type: ignore
+                .pipe(cast_boolean)
+            ).alias("open"),
+        )[
+            "eq_fk", "edge_id", "delta", "normal_open", "open"
+        ]
+        return switch_status
+
+    def extract_node_voltage(self) -> pl.DataFrame:
+        node_voltage: pl.DataFrame = (
+            extract_optimization_results(self.optimal_slave_model_instance, "v_sq")
+            .select((c("v_sq")).sqrt().alias("v_pu"), c("N").alias("node_id"))
+            .join(
+                self.data_manager.node_data["cn_fk", "node_id", "v_base"],
+                on="node_id",
+                how="left",
+            )
+        )
+
+        return node_voltage
+
+    def extract_edge_current(self) -> pl.DataFrame:
+        edge_current: pl.DataFrame = (
+            extract_optimization_results(self.optimal_slave_model_instance, "i_sq")
+            .select(
+                (c("i_sq")).sqrt().alias("i_pu"), c("C").list.get(0).alias("edge_id")
+            )
+            .group_by("edge_id")
+            .agg(c("i_pu").max())
+            .sort("edge_id")
+            .join(
+                self.data_manager.edge_data.filter(c("type") != "switch")[
+                    "eq_fk", "edge_id", "i_base"
+                ],
+                on="edge_id",
+                how="inner",
+            )
+        )
+        return edge_current
+
+    def check_slave_feasibility(self):
+        self.slack_i_sq = extract_optimization_results(
+            self.infeasible_slave_model_instance, "slack_i_sq"
+        ).filter(c("slack_i_sq") > self.config.slack_threshold)
+
+        self.slack_v_pos = extract_optimization_results(
+            self.infeasible_slave_model_instance, "slack_v_pos"
+        ).filter(c("slack_v_pos") > self.config.slack_threshold)
+
+        self.slack_v_neg = extract_optimization_results(
+            self.infeasible_slave_model_instance, "slack_v_neg"
+        ).filter(c("slack_v_neg") > self.config.slack_threshold)
+
+    def find_initial_state_of_switches(self):
+        """
+        Check if the topology is a tree.
+        """
+        nx_graph = nx.Graph()
+        _ = self.data_manager.edge_data.filter(~c("normal_open")).with_columns(
+            pl.struct(pl.all()).pipe(generate_nx_edge, nx_graph=nx_graph)
+        )
+        if nx.is_tree(nx_graph):
+
+            slack_node_id = self.data_manager.node_data.filter(c("type") == "slack")[
+                "node_id"
+            ][0]
+            digraph = generate_bfs_tree_with_edge_data(
+                graph=nx_graph, source=slack_node_id
+            )
+            initial_master_delta = pl_to_dict_with_tuple(
+                get_all_edge_data(digraph).select(
+                    pl.concat_list("edge_id", "v_of_edge", "u_of_edge").alias("LC"),
+                    pl.lit(1).alias("value"),
+                )
+            )
+
+        else:
+            log.warning(
+                "The resulting graph considering normal switch status is NOT a tree.\n The initial state of switches is determined solving master model."
+            )
+
+            results = self.master_solver.solve(self.master_model_instance, tee=False)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                log.warning(
+                    f"\nMaster model did not converge: {results.solver.termination_condition}"
+                )
+
+            self.master_obj = self.master_model_instance.objective()  # type: ignore
+            initial_master_delta = self.master_model_instance.delta.extract_values()  # type: ignore
+        return initial_master_delta

@@ -1,6 +1,6 @@
 import polars as pl
 from polars import col as c
-
+from data_schema import NodeEdgeModel
 import numpy as np
 import pandapower as pp
 from polars_function import (
@@ -18,7 +18,7 @@ from general_function import pl_to_dict, snake_to_camel, duckdb_to_dict
 
 def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet, s_base: float = 1e6
-) -> dict[str, pl.DataFrame]:
+) -> NodeEdgeModel:
 
     grid_data: dict[str, pl.DataFrame] = {}
 
@@ -206,12 +206,15 @@ def pandapower_to_dig_a_plan_schema(
         c("node_id").replace_strict(neighbors_mapping).alias("neighbors"),
     )
 
-    return grid_data
+    return NodeEdgeModel(
+        node_data=grid_data["node_data"],
+        edge_data=grid_data["edge_data"],
+    )
 
 
 def change_schema_to_dig_a_plan_schema(
     change_schema: ChangesSchema, s_base: float = 1e6
-) -> dict[str, pl.DataFrame]:
+) -> NodeEdgeModel:
 
     grid_data: dict[str, pl.DataFrame] = {}
 
@@ -370,7 +373,10 @@ def change_schema_to_dig_a_plan_schema(
         [branch, transformer, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-    return grid_data
+    return NodeEdgeModel(
+        node_data=grid_data["node_data"],
+        edge_data=grid_data["edge_data"],
+    )
 
 
 def duckdb_to_changes_schema(file_path: str) -> ChangesSchema:
