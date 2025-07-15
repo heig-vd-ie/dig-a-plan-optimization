@@ -15,6 +15,10 @@ from optimization_model.slave_model.constraints import (
     optimal_slave_model_constraints,
     infeasible_slave_model_constraints,
 )
+from optimization_model.combined_model.sets import model_sets
+from optimization_model.combined_model.parameters import model_parameters
+from optimization_model.combined_model.variables import model_variables
+from optimization_model.combined_model.constraints import combined_model_constraints
 
 
 def generate_master_model(relaxed: bool = False) -> pyo.AbstractModel:
@@ -44,3 +48,13 @@ def generate_infeasible_slave_model() -> pyo.AbstractModel:
     slave_model = infeasible_slave_model_constraints(slave_model)
     slave_model.dual = Suffix(direction=Suffix.IMPORT)
     return slave_model
+
+
+def generate_combined_model() -> pyo.AbstractModel:
+    """Builds the single combined radial + DistFlow model."""
+    combined_model: pyo.AbstractModel = pyo.AbstractModel()  # type: ignore
+    combined_model = model_sets(combined_model)
+    combined_model = model_parameters(combined_model)
+    combined_model = model_variables(combined_model)
+    combined_model = combined_model_constraints(combined_model)
+    return combined_model

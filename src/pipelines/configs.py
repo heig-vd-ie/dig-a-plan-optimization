@@ -40,3 +40,17 @@ class BenderConfig(PipelineConfig):
     slave_solver_qcp_dual: int | None = None
     slave_solver_bar_qcp_conv_tol: float | None = None
     slave_solver_bar_homogeneous: int | None = None
+
+
+@dataclass
+class CombinedConfig(PipelineConfig):
+    """Configuration for Bender's decomposition pipeline"""
+
+    # Solver configurations
+    combined_solver_options: dict | None = None
+    combined_solver_name: str = "gurobi"
+    combined_solver_integrality_focus: int = 1
+    combined_solver_non_convex: int | None = None
+    combined_solver_qcp_dual: int | None = None
+    combined_solver_bar_qcp_conv_tol: float | None = None
+    combined_solver_bar_homogeneous: int | None = None

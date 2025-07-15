@@ -2,7 +2,7 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
-from pipelines.dig_a_plan import DigAPlan
+from pipelines import DigAPlan
 
 
 def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerNet):

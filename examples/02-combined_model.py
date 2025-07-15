@@ -1,15 +1,12 @@
 # %% import libraries
 import os
 import pandapower as pp
-import plotly.graph_objs as go
 
 from data_connector import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
-from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines.combined_dig_a_plan import DigAPlan  
+from pipelines import DigAPlan
+from pipelines.configs import CombinedConfig, PipelineType
 
-from pyomo_utility import extract_optimization_results
-from plotly.subplots import make_subplots
 
 # ensure working directory is project root
 os.chdir(os.getcwd().replace("/src", ""))
@@ -40,26 +37,29 @@ net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% initialize DigAPlan
-dig_a_plan = DigAPlan(
+
+config = CombinedConfig(
     verbose=False,
-    big_m=1e2,          # your big‐M value
-    power_factor=1e-3,  # scaling for p_flow/q_flow
-    current_factor=1e-3,
-    voltage_factor=1.0,
+    big_m=1e2,
+    factor_p=1e-3,
+    factor_q=1e-3,
+    factor_v=1,
+    factor_i=1e-3,
+    pipeline_type=PipelineType.COMBINED,
 )
+dig_a_plan = DigAPlan(config=config)
 
 # %% add grid data and solve the combined model
-dig_a_plan.add_grid_data(**base_grid_data)
-dig_a_plan.solve_combined_model()  # one‐shot solve
+dig_a_plan.add_grid_data(base_grid_data)
+dig_a_plan.solve_model()  # one‐shot solve
 
 # %% extract and compare results
 # Switch status
-switches = dig_a_plan.extract_switch_status()
+switches = dig_a_plan.model_manager.extract_switch_status()
 # Node voltages
-voltages = dig_a_plan.extract_node_voltage()
+voltages = dig_a_plan.model_manager.extract_node_voltage()
 # Line currents
-currents = dig_a_plan.extract_edge_current()
+currents = dig_a_plan.model_manager.extract_edge_current()
 
 # %% plot the grid annotated with DigAPlan results
 fig = plot_grid_from_pandapower(net, dig_a_plan)
-

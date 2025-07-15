@@ -5,7 +5,7 @@ from general_function import pl_to_dict
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from pipelines.dig_a_plan import DigAPlan
+from pipelines import DigAPlan
 
 
 def plot_grid_from_pandapower(

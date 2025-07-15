@@ -127,7 +127,7 @@ class PipelineModelManagerBender:
             factor_v=self.config.factor_v,
         )
 
-    def solve_models_pipeline(self, max_iters: int) -> None:
+    def solve_model(self, max_iters: int) -> None:
         convergence_result = np.inf
         master_delta = self.find_initial_state_of_switches()
 
