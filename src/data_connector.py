@@ -53,7 +53,6 @@ def pandapower_to_dig_a_plan_schema(
         node_data[["node_id", "vn_kv", "name"]]
         .join(load, on="node_id", how="left")
         .select(
-            pl.lit([1]).alias("neighbors"),
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
@@ -179,14 +178,6 @@ def pandapower_to_dig_a_plan_schema(
         .rename({"v_of_edge": "node_id"})
     )
 
-    neighbors_mapping = pl_to_dict(
-        u_of_edge.join(v_of_edge, on="node_id", how="full", coalesce=True).select(
-            "node_id",
-            pl.concat_list(c("v_of_edge", "u_of_edge").fill_null(pl.lit([]))).alias(
-                "neighbors"
-            ),
-        )
-    )
 
     ext_grid: pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
@@ -203,7 +194,6 @@ def pandapower_to_dig_a_plan_schema(
         .then(pl.lit("slack"))
         .otherwise(pl.lit("pq"))
         .alias("type"),
-        c("node_id").replace_strict(neighbors_mapping).alias("neighbors"),
     )
 
     return NodeEdgeModel(
