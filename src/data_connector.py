@@ -178,7 +178,6 @@ def pandapower_to_dig_a_plan_schema(
         .rename({"v_of_edge": "node_id"})
     )
 
-
     ext_grid: pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
         raise ValueError("ext_grid should have only 1 row")
