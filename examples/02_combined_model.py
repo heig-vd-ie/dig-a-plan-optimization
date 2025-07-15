@@ -52,3 +52,14 @@ dig_a_plan = DigAPlan(
 dig_a_plan.add_grid_data(**base_grid_data)
 dig_a_plan.solve_combined_model()  # one‐shot solve
 
+# %% extract and compare results
+# Switch status
+switches = dig_a_plan.extract_switch_status()
+# Node voltages
+voltages = dig_a_plan.extract_node_voltage()
+# Line currents
+currents = dig_a_plan.extract_edge_current()
+
+# %% plot the grid annotated with DigAPlan results
+fig = plot_grid_from_pandapower(net, dig_a_plan)
+

@@ -223,25 +223,24 @@ class DigAPlan:
     solve = solve_combined_model
 
     def extract_switch_status(self) -> pl.DataFrame:
-        # Build switch status: delta ∈ {0,1}, open when delta == 0
-        df = (
-            self.__edge_data
-            .filter(c("type") == "switch")
-            .with_columns(
-                # Map each switch edge_id to its delta (default 0 if missing)
-                c("edge_id")
-                    .replace_strict(
-                        self.__combined_model_instance.delta.extract_values(),
-                        default=0
-                    )
-                    .cast(pl.Int64)
-                    .alias("delta"),
-                # 'open' is True precisely when delta == 0
-                (c("delta") == 0).alias("open"),
-            )
+        # Pull out only the switch edges...
+        ss = self.__edge_data.filter(c("type") == "switch")
+        # Build a Polars mapping from edge_id -> {0,1}
+        delta_map = self.__combined_model_instance.delta.extract_values()
+        # 1) Create a 'delta' column exactly as before
+        ss = ss.with_columns(
+            c("edge_id")
+                .replace_strict(delta_map, default=None)  # None for missing entries
+                .alias("delta")                           # still 0,1 or None
         )
-        # Return only the desired columns
-        return df.select(["eq_fk", "edge_id", "delta", "normal_open", "open"])
+        # 2) Create 'open' by bitwise‐not on the Boolean view of delta
+        ss = ss.with_columns(
+            (~c("delta").pipe(cast_boolean)).alias("open")
+        )
+        # Finally select the columns you care about
+        return ss.select([
+            "eq_fk", "edge_id", "delta", "normal_open", "open"
+        ])
 
     def extract_node_voltage(self) -> pl.DataFrame:
         return (
