@@ -4,8 +4,10 @@ import pandapower as pp
 
 from data_connector import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
+from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
 from pipelines.configs import CombinedConfig, PipelineType
+from pipelines.model_managers.bender import PipelineModelManagerBender
 
 
 # ensure working directory is project root
@@ -61,5 +63,15 @@ voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
 
+
 # %% plot the grid annotated with DigAPlan results
 fig = plot_grid_from_pandapower(net, dig_a_plan)
+
+# %% compare DigAPlan results with pandapower results
+if isinstance(dig_a_plan.model_manager, PipelineModelManagerBender):
+    raise ValueError(
+        "The model manager is not a Combined model manager, but a Bender model manager."
+    )
+node_data, edge_data = compare_dig_a_plan_with_pandapower(
+    dig_a_plan=dig_a_plan, net=net
+)

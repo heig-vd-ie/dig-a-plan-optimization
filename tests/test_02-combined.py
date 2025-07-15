@@ -4,10 +4,9 @@ import polars as pl
 from data_connector import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
-from pipelines.configs import BenderConfig, PipelineType
+from pipelines.configs import CombinedConfig, PipelineType
 
-from pipelines.model_managers.combined import PipelineModelManagerCombined
-from pyomo_utility import extract_optimization_results
+from pipelines.model_managers.bender import PipelineModelManagerBender
 
 
 def test_bender_model_simple_example():
@@ -30,38 +29,44 @@ def test_bender_model_simple_example():
 
     net["line"].loc[:, "max_i_ka"] = 1
     net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
+
     base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
-    config = BenderConfig(
+    config = CombinedConfig(
         verbose=False,
         big_m=1e2,
         factor_p=1e-3,
         factor_q=1e-3,
         factor_v=1,
         factor_i=1e-3,
-        master_relaxed=False,
-        pipeline_type=PipelineType.BENDER,
+        pipeline_type=PipelineType.COMBINED,
     )
     dig_a_plan = DigAPlan(config=config)
 
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(max_iters=10)
+    dig_a_plan.solve_model()  # one‐shot solve
+
+    # Switch status
+    switches = dig_a_plan.result_manager.extract_switch_status()
+    # Node voltages
+    voltages = dig_a_plan.result_manager.extract_node_voltage()
+    # Line currents
+    currents = dig_a_plan.result_manager.extract_edge_current()
+
     node_data, edge_data = compare_dig_a_plan_with_pandapower(
         dig_a_plan=dig_a_plan, net=net
     )
     assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
-    assert edge_data.get_column("i_diff").abs().max() < 0.1  # type: ignore
-    if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined):
+    assert edge_data.get_column("i_diff").abs().max() < 1e-3  # type: ignore
+    if isinstance(dig_a_plan.model_manager, PipelineModelManagerBender):
         raise ValueError(
-            "The model manager is not a Bender model manager, but a Combined model manager."
+            "The model manager is not a Combined model manager, but a Bender model manager."
         )
-    delta = extract_optimization_results(
-        dig_a_plan.model_manager.master_model_instance, "delta"
-    )
-    assert delta.filter(pl.col("delta") == 0).get_column("S").sort().to_list() == [
-        23,
-        24,
-        28,
-        30,
-        35,
+
+    assert switches.filter(pl.col("open")).get_column("eq_fk").sort().to_list() == [
+        "switch 13",
+        "switch 14",
+        "switch 15",
+        "switch 3",
+        "switch 6",
     ]
