@@ -31,6 +31,9 @@ Each time you start working on the project, activate the virtual environment by 
 make enable-venv
 ```
 
+## Install Julia
+Check following doc [here](docs/Julia/01-install-julia.md).
+
 ## Project structure:
 
 ```

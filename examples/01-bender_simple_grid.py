@@ -1,4 +1,5 @@
 # %% import libraries
+from logging import config
 import os
 import pandapower as pp
 import plotly.graph_objs as go
@@ -6,8 +7,10 @@ import plotly.graph_objs as go
 from data_connector import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines.dig_a_plan import DigAPlan
+from pipelines import DigAPlan
+from pipelines.configs import BenderConfig, PipelineType
 
+from pipelines.model_managers.combined import PipelineModelManagerCombined
 from pyomo_utility import extract_optimization_results
 from plotly.subplots import make_subplots
 
@@ -38,18 +41,26 @@ net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% initialize DigAPlan
-dig_a_plan: DigAPlan = DigAPlan(
+config = BenderConfig(
     verbose=False,
     big_m=1e2,
-    power_factor=1e-3,
-    voltage_factor=1,
-    current_factor=1e-3,
+    factor_p=1e-3,
+    factor_q=1e-3,
+    factor_v=1,
+    factor_i=1e-3,
     master_relaxed=False,
+    pipeline_type=PipelineType.BENDER,
 )
+dig_a_plan = DigAPlan(config=config)
 
 # %% add grid data and solve models pipeline
-dig_a_plan.add_grid_data(**base_grid_data)
-dig_a_plan.solve_models_pipeline(max_iters=1000)
+dig_a_plan.add_grid_data(base_grid_data)
+dig_a_plan.solve_model(max_iters=10)
+if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined):
+    raise ValueError(
+        "The model manager is not a Bender model manager, but a Combined model manager."
+    )
+
 
 # %% plot the results
 fig = make_subplots(
@@ -61,7 +72,7 @@ fig = make_subplots(
 )
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.slave_obj_list[1:]),
+        go.Scatter(y=dig_a_plan.model_manager.slave_obj_list[1:]),
         mode="lines",
         name="Slave objective",
     ),
@@ -70,7 +81,7 @@ fig.add_trace(
 )
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.master_obj_list[1:]),
+        go.Scatter(y=dig_a_plan.model_manager.master_obj_list[1:]),
         mode="lines",
         name="Master objective",
     ),
@@ -79,7 +90,9 @@ fig.add_trace(
 )
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.convergence_list[1:]), mode="lines", name="Convergence"
+        go.Scatter(y=dig_a_plan.model_manager.convergence_list[1:]),
+        mode="lines",
+        name="Convergence",
     ),
     row=3,
     col=1,
@@ -94,7 +107,9 @@ plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
 print(
-    extract_optimization_results(dig_a_plan.master_model_instance, "delta")
+    extract_optimization_results(
+        dig_a_plan.model_manager.master_model_instance, "delta"
+    )
     .to_pandas()
     .to_string()
 )

@@ -5,17 +5,19 @@ from general_function import pl_to_dict
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from pipelines import DigAPlan
+
 
 def plot_grid_from_pandapower(
     net: pp.pandapowerNet,
-    dig_a_plan,
+    dig_a_plan: DigAPlan,
     node_size: int = 22,
     width: int = 800,
     height: int = 700,
 ) -> None:
 
     switch_status = pl_to_dict(
-        dig_a_plan.extract_switch_status().select("eq_fk", ~c("open"))
+        dig_a_plan.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
     )
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     bus: pl.DataFrame = pl.from_pandas(net["bus"])
@@ -94,7 +96,9 @@ def plot_grid_from_pandapower(
             )
         )
 
-    switch_id_mapping = pl_to_dict(dig_a_plan.edge_data["eq_fk", "edge_id"])
+    switch_id_mapping = pl_to_dict(
+        dig_a_plan.data_manager.edge_data["eq_fk", "edge_id"]
+    )
     switch_id = switch.select(
         c("x_coords", "y_coords").list.mean(),
         "color",

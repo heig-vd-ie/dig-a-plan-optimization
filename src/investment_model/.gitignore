@@ -1,0 +1,4 @@
+*.log
+.cache/*
+*.cuts.json
+*.mof.json

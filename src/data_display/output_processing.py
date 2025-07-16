@@ -2,19 +2,19 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
-from pipelines.dig_a_plan import DigAPlan
+from pipelines import DigAPlan
 
 
 def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerNet):
     # ─────────── Apply Switch Status & Run AC PF ───────────
     switch_status = pl_to_dict(
-        dig_a_plan.extract_switch_status().select("eq_fk", ~c("open"))
+        dig_a_plan.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
     )
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     pp.runpp(net)
 
     # ─────────── Compare Voltages ───────────
-    node_voltage = dig_a_plan.extract_node_voltage()
+    node_voltage = dig_a_plan.result_manager.extract_node_voltage()
     node_voltage_pp = pl.from_pandas(net.res_bus.reset_index())[
         "node_id", "vm_pu", "va_degree"
     ]
@@ -22,7 +22,7 @@ def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerN
         node_voltage_pp, on="node_id", how="left"
     ).with_columns((c("v_pu") - c("vm_pu")).abs().alias("v_diff"))
 
-    edge_current = dig_a_plan.extract_edge_current()
+    edge_current = dig_a_plan.result_manager.extract_edge_current()
     edge_current_pp = pl.concat(
         [
             pl.from_pandas(net.res_line.reset_index())

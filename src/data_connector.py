@@ -1,6 +1,6 @@
 import polars as pl
 from polars import col as c
-
+from data_schema import NodeEdgeModel
 import numpy as np
 import pandapower as pp
 from polars_function import (
@@ -9,7 +9,7 @@ from polars_function import (
 )
 
 import patito as pt
-
+import networkx as nx
 from twindigrid_changes import models as changes_models
 from twindigrid_changes.schema import ChangesSchema
 
@@ -18,7 +18,7 @@ from general_function import pl_to_dict, snake_to_camel, duckdb_to_dict
 
 def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet, s_base: float = 1e6
-) -> dict[str, pl.DataFrame]:
+) -> NodeEdgeModel:
 
     grid_data: dict[str, pl.DataFrame] = {}
 
@@ -53,7 +53,6 @@ def pandapower_to_dig_a_plan_schema(
         node_data[["node_id", "vn_kv", "name"]]
         .join(load, on="node_id", how="left")
         .select(
-            pl.lit([1]).alias("neighbors"),
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
@@ -165,29 +164,6 @@ def pandapower_to_dig_a_plan_schema(
         [line, trafo, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-    u_of_edge = (
-        grid_data["edge_data"]
-        .group_by("u_of_edge")
-        .agg("v_of_edge")
-        .rename({"u_of_edge": "node_id"})
-    )
-
-    v_of_edge = (
-        grid_data["edge_data"]
-        .group_by("v_of_edge")
-        .agg("u_of_edge")
-        .rename({"v_of_edge": "node_id"})
-    )
-
-    neighbors_mapping = pl_to_dict(
-        u_of_edge.join(v_of_edge, on="node_id", how="full", coalesce=True).select(
-            "node_id",
-            pl.concat_list(c("v_of_edge", "u_of_edge").fill_null(pl.lit([]))).alias(
-                "neighbors"
-            ),
-        )
-    )
-
     ext_grid: pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
         raise ValueError("ext_grid should have only 1 row")
@@ -203,15 +179,17 @@ def pandapower_to_dig_a_plan_schema(
         .then(pl.lit("slack"))
         .otherwise(pl.lit("pq"))
         .alias("type"),
-        c("node_id").replace_strict(neighbors_mapping).alias("neighbors"),
     )
 
-    return grid_data
+    return NodeEdgeModel(
+        node_data=grid_data["node_data"],
+        edge_data=grid_data["edge_data"],
+    )
 
 
 def change_schema_to_dig_a_plan_schema(
     change_schema: ChangesSchema, s_base: float = 1e6
-) -> dict[str, pl.DataFrame]:
+) -> NodeEdgeModel:
 
     grid_data: dict[str, pl.DataFrame] = {}
 
@@ -370,7 +348,28 @@ def change_schema_to_dig_a_plan_schema(
         [branch, transformer, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-    return grid_data
+    ## FIXME: The following logic is a workaround to ensure the grid is connected.
+    # It finds the largest connected component in the graph and filters the node and edge data accordingly
+    g = nx.Graph()
+
+    grid_data["node_data"].to_pandas().apply(
+        lambda row: g.add_node(row["node_id"]), axis=1
+    )
+    grid_data["edge_data"].to_pandas().apply(
+        lambda row: g.add_edge(row["u_of_edge"], row["v_of_edge"]), axis=1
+    )
+    connected_components = list(nx.connected_components(g))
+    len_connected_components = [len(c) for c in connected_components]
+    find_max_component = np.argmax(len_connected_components)
+    nodes_to_keep = connected_components[find_max_component]
+
+    return NodeEdgeModel(
+        node_data=grid_data["node_data"].filter(pl.col("node_id").is_in(nodes_to_keep)),
+        edge_data=grid_data["edge_data"].filter(
+            pl.col("u_of_edge").is_in(nodes_to_keep)
+            & pl.col("v_of_edge").is_in(nodes_to_keep)
+        ),
+    )
 
 
 def duckdb_to_changes_schema(file_path: str) -> ChangesSchema:
