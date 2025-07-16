@@ -92,17 +92,6 @@ class PipelineDataManager:
             None: {
                 "N": {None: self.node_data["node_id"].to_list()},
                 "L": {None: self.edge_data["edge_id"].to_list()},
-                "C": dict(
-                    zip(
-                        self.edge_data["edge_id"].to_list(),
-                        map(
-                            lambda x: [tuple(x)],
-                            self.edge_data.select(
-                                pl.concat_list("u_of_edge", "v_of_edge").alias("nodes")
-                            )["nodes"].to_list(),
-                        ),
-                    )
-                ),
                 "S": {
                     None: self.edge_data.filter(c("type") == "switch")[
                         "edge_id"
