@@ -1,5 +1,4 @@
 import pyomo.environ as pyo
-from pyomo.environ import ConstraintList
 
 
 def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
@@ -13,9 +12,9 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     #     model.C, rule=lower_switch_propagation_rule
     # )
     # model.nb_closed_switches = pyo.Constraint(rule=nb_closed_switches_rule)
-    # model.parent_node = pyo.Constraint(model.C, rule=parent_node_rule)
-    # model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
-    # model.edge_direction = pyo.Constraint(model.L, rule=edge_direction_rule)
+    model.parent_node = pyo.Constraint(model.C, rule=parent_node_rule)
+    model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    model.edge_direction = pyo.Constraint(model.L, rule=edge_direction_rule)
     # DistFlow and power balance
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
