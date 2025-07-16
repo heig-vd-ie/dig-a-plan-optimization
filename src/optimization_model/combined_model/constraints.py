@@ -4,15 +4,18 @@ from pyomo.environ import ConstraintList
 
 def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Radiality: each non-slack node has one incoming flow
-    model.flow_balance = pyo.Constraint(model.N, rule=flow_balance_rule)
-    model.edge_propagation = pyo.Constraint(model.L, rule=edge_propagation_rule)
-    model.upper_switch_propagation = pyo.Constraint(
-        model.C, rule=upper_switch_propagation_rule
-    )
-    model.lower_switch_propagation = pyo.Constraint(
-        model.C, rule=lower_switch_propagation_rule
-    )
-    model.nb_closed_switches = pyo.Constraint(rule=nb_closed_switches_rule)
+    # model.flow_balance = pyo.Constraint(model.N, rule=flow_balance_rule)
+    # model.edge_propagation = pyo.Constraint(model.L, rule=edge_propagation_rule)
+    # model.upper_switch_propagation = pyo.Constraint(
+    #     model.C, rule=upper_switch_propagation_rule
+    # )
+    # model.lower_switch_propagation = pyo.Constraint(
+    #     model.C, rule=lower_switch_propagation_rule
+    # )
+    # model.nb_closed_switches = pyo.Constraint(rule=nb_closed_switches_rule)
+    # model.parent_node = pyo.Constraint(model.C, rule=parent_node_rule)
+    # model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
+    # model.edge_direction = pyo.Constraint(model.L, rule=edge_direction_rule)
     # DistFlow and power balance
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
@@ -68,11 +71,11 @@ def objective_rule_infeasibility(m):
 def flow_balance_rule(m, n):
     # For each node, the sum of flows into the node equals the sum of flows out
     if n == m.slack_node:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.epsilon * (
+        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.small_m * (
             len(m.N) - 1
         )
     else:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.epsilon
+        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.small_m
 
 
 def edge_propagation_rule(m, l):
@@ -81,19 +84,40 @@ def edge_propagation_rule(m, l):
 
 def upper_switch_propagation_rule(m, l, i, j):
     if l in m.S:
-        return m.flow[l, i, j] <= m.epsilon * len(m.N) * m.delta[l]
+        return m.flow[l, i, j] <= m.small_m * len(m.N) * m.delta[l]
     return pyo.Constraint.Skip
 
 
 def lower_switch_propagation_rule(m, l, i, j):
     if l in m.S:
-        return m.flow[l, i, j] >= -m.epsilon * len(m.N) * m.delta[l]
+        return m.flow[l, i, j] >= -m.small_m * len(m.N) * m.delta[l]
     return pyo.Constraint.Skip
 
 
 def nb_closed_switches_rule(m):
     # Exactly |N|-|nS|-1 switches closed for radial network
     return sum(m.delta[l] for l in m.S) == len(m.N) - len(m.nS) - 1
+
+
+def parent_node_rule(m, l, i, j):
+    if i == m.slack_node:
+        return m.d[l, i, j] == 0
+    else:
+        return pyo.Constraint.Skip
+
+
+def radiality_rule(m, n):
+    if n != m.slack_node:
+        return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 1
+    else:
+        return pyo.Constraint.Skip
+
+
+def edge_direction_rule(m, l):
+    if l in m.S:
+        return sum(m.d[l_, i, j] for l_, i, j in m.C if l_ == l) == m.delta[l]
+    else:
+        return pyo.Constraint.Skip
 
 
 def slack_voltage_rule(m, n):
@@ -161,7 +185,6 @@ def voltage_drop_lower_rule(m, l, i, j):
     if l in m.S:
         return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.delta[l])
     else:
-
         dv = (
             -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
             + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
@@ -171,7 +194,7 @@ def voltage_drop_lower_rule(m, l, i, j):
             - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
             + dv
         )
-    return voltage_diff == 0
+        return voltage_diff == 0
 
 
 def voltage_drop_upper_rule(m, l, i, j):
@@ -213,7 +236,7 @@ def current_limit_rule(m, l, i, j):
     if l in m.S:
         return pyo.Constraint.Skip
     else:
-        return m.i_sq[l, i, j] <= m.i_max[l] ** 2
+        return m.i_sq[l, i, j] <= m.i_max[l] ** 2 + m.i_sq_relax[l, i, j]
 
 
 def voltage_upper_limits_rule(m, n):

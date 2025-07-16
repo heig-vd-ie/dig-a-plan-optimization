@@ -113,8 +113,17 @@ class PipelineDataManager:
                 "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                 "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
                 "n_transfo": pl_to_dict_with_tuple(
-                    self.edge_data.select(
-                        pl.concat_list("edge_id", "u_of_edge", "v_of_edge"), "n_transfo"
+                    pl.concat(
+                        [
+                            self.edge_data.select(
+                                pl.concat_list("edge_id", "u_of_edge", "v_of_edge"),
+                                "n_transfo",
+                            ),
+                            self.edge_data.select(
+                                pl.concat_list("edge_id", "v_of_edge", "u_of_edge"),
+                                "n_transfo",
+                            ),
+                        ]
                     )
                 ),
                 "p_node": pl_to_dict(self.node_data["node_id", "p_node_pu"]),
@@ -124,9 +133,7 @@ class PipelineDataManager:
                 "v_max": pl_to_dict(self.node_data["node_id", "v_max_pu"]),
                 "slack_node": {None: self.slack_node},
                 "slack_node_v_sq": {
-                    None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][
-                        0
-                    ]
+                    None: 1  # self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]
                 },
                 "big_m": {None: self.big_m},
                 "small_m": {None: self.small_m},
