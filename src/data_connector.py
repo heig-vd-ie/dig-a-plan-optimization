@@ -164,20 +164,6 @@ def pandapower_to_dig_a_plan_schema(
         [line, trafo, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-    u_of_edge = (
-        grid_data["edge_data"]
-        .group_by("u_of_edge")
-        .agg("v_of_edge")
-        .rename({"u_of_edge": "node_id"})
-    )
-
-    v_of_edge = (
-        grid_data["edge_data"]
-        .group_by("v_of_edge")
-        .agg("u_of_edge")
-        .rename({"v_of_edge": "node_id"})
-    )
-
     ext_grid: pl.DataFrame = pl.from_pandas(net.ext_grid)
     if ext_grid.height != 1:
         raise ValueError("ext_grid should have only 1 row")

@@ -10,7 +10,7 @@ class DigAPlan:
     def __init__(self, config: PipelineConfig | BenderConfig) -> None:
 
         self.config = config or PipelineConfig()
-        self.data_manager = PipelineDataManager(self.config.big_m)
+        self.data_manager = PipelineDataManager(self.config.big_m, self.config.small_m)
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig
         ):

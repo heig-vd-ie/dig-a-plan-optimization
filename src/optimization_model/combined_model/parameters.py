@@ -4,7 +4,7 @@ import pyomo.environ as pyo
 def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Topology & radiality
     model.slack_node = pyo.Param()  # Slack bus index
-    model.epsilon = pyo.Param(default=1)  # Small constant for radiality constraints
+    model.small_m = pyo.Param()  # Small constant for radiality constraints
     # Line parameters
     model.r = pyo.Param(model.L)  # Resistance (pu)
     model.x = pyo.Param(model.L)  # Reactance (pu)
