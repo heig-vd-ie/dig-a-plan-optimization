@@ -77,3 +77,41 @@ class PipelineResultManager:
                 how="inner",
             )
         )
+
+    def extract_edge_active_power_flow(self) -> pl.DataFrame:
+        self.init_model_instance()
+        return (
+            extract_optimization_results(self.model_instance, "p_flow")
+            .select(
+                c("p_flow").alias("p_pu"),
+                c("C").list.get(0).alias("edge_id"),
+                c("C").list.get(1).alias("from_node_id"),
+                c("C").list.get(2).alias("to_node_id"),
+            )
+            .join(
+                self.data_manager.edge_data.filter(c("type") != "switch")[
+                    ["eq_fk", "edge_id"]
+                ],
+                on="edge_id",
+                how="inner",
+            )
+        )
+
+    def extract_edge_reactive_power_flow(self) -> pl.DataFrame:
+        self.init_model_instance()
+        return (
+            extract_optimization_results(self.model_instance, "q_flow")
+            .select(
+                c("q_flow").alias("q_pu"),
+                c("C").list.get(0).alias("edge_id"),
+                c("C").list.get(1).alias("from_node_id"),
+                c("C").list.get(2).alias("to_node_id"),
+            )
+            .join(
+                self.data_manager.edge_data.filter(c("type") != "switch")[
+                    ["eq_fk", "edge_id"]
+                ],
+                on="edge_id",
+                how="inner",
+            )
+        )
