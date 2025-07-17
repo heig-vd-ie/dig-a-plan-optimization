@@ -52,7 +52,7 @@ _venv: ## Create a virtual environment if it doesn't exist
 venv-activate: SHELL:=/bin/bash
 venv-activate: ## enter venv in a subshell
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; . scripts/enable-direnv.sh') -i
+	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; . scripts/enable-direnv.sh') -i
 
 poetry-use: ## Install Python packages using Poetry
 	@echo "Installing Python packages using Poetry..."
@@ -71,7 +71,7 @@ venv-activate-and-poetry-use-update: SHELL:=/bin/bash
 venv-activate-and-poetry-use-update: ## Activate venv and install packages
 	@echo "Activating virtual environment and installing packages..."
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo 'set -e; . ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
+	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
 
 install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-pipx
