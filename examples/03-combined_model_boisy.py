@@ -31,29 +31,9 @@ base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     # pl.lit(0.001).alias("x_pu"),
     pl.lit(0).alias("b_pu"),
 )
-
-# %%
-nx_graph = nx.Graph()
-_ = base_grid_data.edge_data.with_columns(
-    pl.struct(pl.all()).pipe(generate_nx_edge, nx_graph=nx_graph)
-)
-
-max_n_trafo = 1
-edge_id = (
-    get_connected_edges_data(nx_graph=nx_graph)
-    .filter(c("graph_id") != 0)["edge_id"]
-    .to_list()
-)
-node_id = (
-    get_connected_edges_data(nx_graph=nx_graph)
-    .filter(c("graph_id") != 0)
-    .unpivot(on=["u_of_edge", "v_of_edge"])["value"]
-    .to_list()
-)
-
-base_grid_data.edge_data = base_grid_data.edge_data.filter(~c("edge_id").is_in(edge_id))
-base_grid_data.node_data = base_grid_data.node_data.filter(
-    ~c("node_id").is_in(node_id + [252])
+base_grid_data.node_data = base_grid_data.node_data.with_columns(
+    # (c("p_node_pu")*5e-1).alias("p_node_pu"),
+    (c("p_node_pu") * 1e-1).alias("q_node_pu")
 )
 
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
@@ -61,47 +41,8 @@ base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     for col in ["b_pu", "r_pu", "x_pu"]
 ).with_columns(
     pl.lit(1.0).alias("n_transfo"),
-    c("normal_open").fill_null(False).alias("normal_open"),
+    c("normal_open").fill_null(False),
 )
-
-base_grid_data.node_data = base_grid_data.node_data.with_columns(
-    # (c("p_node_pu")*5e-1).alias("p_node_pu"),
-    (c("p_node_pu") * 1e-1).alias("q_node_pu")
-)
-edge_id = (
-    base_grid_data.edge_data.unpivot(
-        on=["u_of_edge", "v_of_edge"], index=["edge_id", "type"]
-    )
-    .filter(c("value").is_unique())
-    .filter(c("type") == "switch")["edge_id"]
-    .to_list()
-)
-
-base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
-    pl.when(c("edge_id").is_in(edge_id))
-    .then(pl.lit(False))
-    .otherwise(c("normal_open"))
-    .alias("normal_open")
-)
-
-base_grid_data.edge_data = base_grid_data.edge_data.filter(~c("normal_open"))
-
-# %%
-
-g = nx.Graph()
-base_grid_data.node_data.to_pandas().apply(
-    lambda row: g.add_node(row["node_id"]), axis=1
-)
-base_grid_data.edge_data.filter(pl.col("type") == "branch").to_pandas().apply(
-    lambda row: g.add_edge(row["u_of_edge"], row["v_of_edge"]), axis=1
-)
-base_grid_data.edge_data.filter(
-    (pl.col("type") == "switch") & (~pl.col("normal_open"))
-).to_pandas().apply(lambda row: g.add_edge(row["u_of_edge"], row["v_of_edge"]), axis=1)
-
-nx.is_connected(g)  # Check if the graph is connected
-connected_component = list(nx.connected_components(g))
-
 
 # %% initialize DigAPlan
 
