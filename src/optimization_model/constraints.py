@@ -260,6 +260,14 @@ def optimal_voltage_lower_limits_rule(m, n):
     return m.v_sq[n] >= m.v_min[n] ** 2
 
 
+def optimal_voltage_upper_limits_distflow_rule(m, n):
+    return m.v_sq[n] <= 1.05
+
+
+def optimal_voltage_lower_limits_distflow_rule(m, n):
+    return m.v_sq[n] >= 0.95
+
+
 # (6) Flow Bounds for candidate (l,i,j):
 def infeasible_current_limit_rule(m, l, i, j):
     if l in m.S:

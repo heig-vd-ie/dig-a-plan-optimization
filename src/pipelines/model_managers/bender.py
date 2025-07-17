@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+import gurobipy as gp
 import tqdm
 import polars as pl
 import numpy as np
@@ -140,11 +141,17 @@ class PipelineModelManagerBender:
         for k in pbar:
             self.optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
             self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-            results = self.slave_solver.solve(
-                self.scaled_optimal_slave_model_instance, tee=self.config.verbose
-            )
+            try:
+                results = self.slave_solver.solve(
+                    self.scaled_optimal_slave_model_instance, tee=self.config.verbose
+                )
+                quadratic_infeasible = False
+            except gp.GurobiError as e:
+                quadratic_infeasible = True
 
-            if results.solver.termination_condition == pyo.TerminationCondition.optimal:
+            if (
+                results.solver.termination_condition == pyo.TerminationCondition.optimal
+            ) and (not quadratic_infeasible):
                 pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
                     self.scaled_optimal_slave_model_instance,
                     self.optimal_slave_model_instance,
@@ -238,6 +245,8 @@ class PipelineModelManagerBender:
         )
 
         self.marginal_cost = marginal_cost_df
+
+        marginal_cost_df = marginal_cost_df.filter(c("master_delta") == 1)
 
         new_cut = self.slave_obj
         for data in marginal_cost_df.to_dicts():

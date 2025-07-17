@@ -167,10 +167,10 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.C, rule=voltage_drop_upper_lindistflow_rule
     )
     model.voltage_upper_limits = pyo.Constraint(
-        model.N, rule=optimal_voltage_upper_limits_rule
+        model.N, rule=optimal_voltage_upper_limits_distflow_rule
     )
     model.voltage_lower_limits = pyo.Constraint(
-        model.N, rule=optimal_voltage_lower_limits_rule
+        model.N, rule=optimal_voltage_lower_limits_distflow_rule
     )
     model.switch_active_power_lower_bound = pyo.Constraint(
         model.C, rule=switch_active_power_lower_bound_rule
