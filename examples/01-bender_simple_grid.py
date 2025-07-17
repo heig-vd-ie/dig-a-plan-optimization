@@ -55,7 +55,7 @@ dig_a_plan = DigAPlan(config=config)
 
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)
-dig_a_plan.solve_model(max_iters=1000)
+dig_a_plan.solve_model(max_iters=100)
 if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined):
     raise ValueError(
         "The model manager is not a Bender model manager, but a Combined model manager."

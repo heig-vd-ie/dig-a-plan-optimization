@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+from traitlets import default
 
 
 def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
@@ -10,13 +11,13 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.q_node = pyo.Param(model.N)  # Reactive load at bus i.
     model.i_max = pyo.Param(model.L)  # Minimum current (p.u.)
     # Soft defaults for voltage limits if none are passed in:
-    model.v_min = pyo.Param(model.N)
-    model.v_max = pyo.Param(model.N)
+    model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (p.u.)
+    model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (p.u.)
     # master_d is defined over LF: 1 if candidate is active, else 0.
     model.master_delta = pyo.Param(model.S, default=0, mutable=True)
     model.master_d = pyo.Param(model.C, default=0, mutable=True)
 
-    model.slack_node_v_sq = pyo.Param()  # Slack bus voltage (p.u.)
+    model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)
     model.slack_node = pyo.Param()  # Slack bus index.
 
     # Big-M and penalty costs: give safe defaults and allow mutation

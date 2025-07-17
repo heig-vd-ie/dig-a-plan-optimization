@@ -24,6 +24,6 @@ def master_model_variables(
     model.p_slack_node = pyo.Var(domain=pyo.Reals)
     model.q_slack_node = pyo.Var(domain=pyo.Reals)
 
-    model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
+    model.theta = pyo.Var(domain=pyo.Reals, bounds=(0, None))  # Bender cuts.
 
     return model

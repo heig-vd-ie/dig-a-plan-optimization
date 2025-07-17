@@ -239,8 +239,6 @@ class PipelineModelManagerBender:
 
         self.marginal_cost = marginal_cost_df
 
-        marginal_cost_df = marginal_cost_df.filter(c("master_delta") == 1)
-
         new_cut = self.slave_obj
         for data in marginal_cost_df.to_dicts():
             new_cut += data["marginal_cost"] * (

@@ -5,7 +5,6 @@ from shapely import bounds
 def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Switch binary variables for topology
     model.delta = pyo.Var(model.S, domain=pyo.Binary)
-    model.d = pyo.Var(model.C, domain=pyo.Binary)
     # Flow orientation for radiality
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
     # DistFlow variables
