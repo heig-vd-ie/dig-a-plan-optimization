@@ -1,30 +1,22 @@
-# from attr import mutable
 import pyomo.environ as pyo
-
-# from traitlets import default
+from traitlets import default
 
 
 def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    # model.r = pyo.Param(model.L)         # Resistance for branch l.
-    # model.x = pyo.Param(model.L)         # Reactance for branch l.
-    # model.p_node = pyo.Param(model.N)         # Real node at bus i.
-    # model.q_node = pyo.Param(model.N)         # Reactive load at bus i.
+    model.r = pyo.Param(model.L)  # Resistance for branch l.
+    model.x = pyo.Param(model.L)  # Reactance for branch l.
+    model.b = pyo.Param(model.L)  # Susceptance for branch l.
+    model.p_node = pyo.Param(model.N)  # Real node at bus i.
+    model.q_node = pyo.Param(model.N)  # Reactive load at bus i.
 
     model.slack_node = pyo.Param()  # Slack bus index.
-    model.epsilon = pyo.Param(default=1)  # Small value for numerical stability.
-    # model.slack_node_v_sq = pyo.Param()       # e.g. 1.0
-    # model.v_min        = pyo.Param(model.N)   # per-unit
-    # model.v_max        = pyo.Param(model.N)
-    # model.n_transfo = pyo.Param(model.LC, default=1)  # Transformer turn ration in pu for branch l.
-    # model.penalty_cost = pyo.Param()
+    model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)
+    model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (p.u.)
+    model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (p.u.)
+    model.n_transfo = pyo.Param(
+        model.C, default=1.0
+    )  # Transformer turn ratio in pu for branch l.
+    model.big_m = pyo.Param(default=1e6)  # Big M value for constraints.
+    model.small_m = pyo.Param(default=1e-6)  # Small M value for constraints.
 
     return model
-
-
-# def test_master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
-#     model.big_m = pyo.Param()    # Big-M constant.
-#     model.slack_node = pyo.Param()     # Slack bus index.
-
-#     model.delta = pyo.Param(model.S, default=1, mutable=True)  # Default value for delta, mutable for testing.
-
-#     return model

@@ -1,4 +1,5 @@
 import pyomo.environ as pyo
+import gurobipy as gp
 import tqdm
 import polars as pl
 import numpy as np
@@ -138,40 +139,39 @@ class PipelineModelManagerBender:
         )
         logging.getLogger("pyomo.core").setLevel(logging.ERROR)
         for k in pbar:
+            self.optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+            self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
             try:
-                self.optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-                self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
                 results = self.slave_solver.solve(
                     self.scaled_optimal_slave_model_instance, tee=self.config.verbose
                 )
+                quadratic_infeasible = False
+            except gp.GurobiError as e:
+                quadratic_infeasible = True
 
-                if (
-                    results.solver.termination_condition
-                    == pyo.TerminationCondition.optimal
-                ):
-                    pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
-                        self.scaled_optimal_slave_model_instance,
-                        self.optimal_slave_model_instance,
-                    )
-                    self.slave_obj = self.optimal_slave_model_instance.objective()  # type: ignore
-                    self.infeasible_slave = False
-                else:
-                    self.infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-                    self.scaled_infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-                    _ = self.slave_solver.solve(
-                        self.scaled_infeasible_slave_model_instance,
-                        tee=self.config.verbose,
-                    )
-                    pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
-                        self.scaled_infeasible_slave_model_instance,
-                        self.infeasible_slave_model_instance,
-                    )
-                    self.slave_obj = self.scaled_infeasible_slave_model_instance.objective()  # type: ignore
-                    self.check_slave_feasibility()
-                    self.infeasible_slave = True
-            except Exception as e:
-                log.error(f"Slave model did not converge: {e}")
-                break
+            if (
+                results.solver.termination_condition == pyo.TerminationCondition.optimal
+            ) and (not quadratic_infeasible):
+                pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
+                    self.scaled_optimal_slave_model_instance,
+                    self.optimal_slave_model_instance,
+                )
+                self.slave_obj = self.optimal_slave_model_instance.objective()  # type: ignore
+                self.infeasible_slave = False
+            else:
+                self.infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                self.scaled_infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                _ = self.slave_solver.solve(
+                    self.scaled_infeasible_slave_model_instance,
+                    tee=self.config.verbose,
+                )
+                pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
+                    self.scaled_infeasible_slave_model_instance,
+                    self.infeasible_slave_model_instance,
+                )
+                self.slave_obj = self.scaled_infeasible_slave_model_instance.scaled_objective()  # type: ignore
+                self.check_slave_feasibility()
+                self.infeasible_slave = True
 
             self.add_benders_cut()
 
