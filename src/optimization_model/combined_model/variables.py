@@ -18,12 +18,8 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.q_slack_node = pyo.Var(domain=pyo.Reals)
 
     # Relaxation variables
-    model.i_sq_relax = pyo.Var(model.C, domain=pyo.NonNegativeReals)
-    model.v_sq_relax_pos = pyo.Var(
-        model.N, domain=pyo.NonNegativeReals, bounds=(0, None)
-    )
-    model.v_sq_relax_neg = pyo.Var(
-        model.N, domain=pyo.NonNegativeReals, bounds=(0, None)
-    )
+    model.slack_i_sq = pyo.Var(model.C, domain=pyo.NonNegativeReals)
+    model.slack_v_pos = pyo.Var(model.N, domain=pyo.NonNegativeReals)
+    model.slack_v_neg = pyo.Var(model.N, domain=pyo.NonNegativeReals)
 
     return model

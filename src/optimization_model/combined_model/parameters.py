@@ -11,13 +11,13 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.b = pyo.Param(model.L)  # Shunt susceptance (pu)
     model.i_max = pyo.Param(model.L)  # Current limit (pu)
     # Candidate-to-actual transformer turns
-    model.n_transfo = pyo.Param(model.C, default=1)
+    model.n_transfo = pyo.Param(model.C)
     # Nodal loads
     model.p_node = pyo.Param(model.N)  # Real load (pu)
     model.q_node = pyo.Param(model.N)  # Reactive load (pu)
     # Voltage limits
-    model.v_min = pyo.Param(model.N, default=0.95)
-    model.v_max = pyo.Param(model.N, default=1.05)
+    model.v_min = pyo.Param(model.N)
+    model.v_max = pyo.Param(model.N)
     # Slack bus voltage
     model.slack_node_v_sq = pyo.Param()
     # Big-M for switch on/off

@@ -125,78 +125,67 @@ These are populated during the iterative Benders loop.
 # constraints.py
 import pyomo.environ as pyo
 from pyomo.environ import ConstraintList
+from optimization_model.constraints import *
 
 
 def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
 
-    model.flow_balance = pyo.Constraint(model.N, rule=flow_balance_rule)
-    model.edge_propagation = pyo.Constraint(model.L, rule=edge_propagation_rule)
-    # model.radiality = pyo.Constraint(model.N, rule=radiality_rule)
-    # model.edge_direction = pyo.Constraint(model.L, rule=edge_direction_rule)
+    model.flow_balance = pyo.Constraint(model.N, rule=imaginary_flow_balance_rule)
+    model.edge_propagation = pyo.Constraint(
+        model.L, rule=imaginary_flow_edge_propagation_rule
+    )
 
     model.upper_switch_propagation = pyo.Constraint(
-        model.C, rule=upper_switch_propagation_rule
+        model.C, rule=imaginary_flow_upper_switch_propagation_rule
     )
     model.lower_switch_propagation = pyo.Constraint(
-        model.C, rule=lower_switch_propagation_rule
+        model.C, rule=imaginary_flow_lower_switch_propagation_rule
     )
-    model.nb_closed_switches = pyo.Constraint(rule=nb_closed_switches_rule)
+    model.nb_closed_switches = pyo.Constraint(
+        rule=imaginary_flow_nb_closed_switches_rule
+    )
+
+    model.edge_active_power_balance = pyo.Constraint(
+        model.L, rule=edge_active_power_balance_lindistflow_rule
+    )
+    model.edge_reactive_power_balance = pyo.Constraint(
+        model.L, rule=edge_reactive_power_balance_lindistflow_rule
+    )
+    model.node_active_power_balance = pyo.Constraint(
+        model.N, rule=node_active_power_balance_rule
+    )
+    model.node_reactive_power_balance = pyo.Constraint(
+        model.N, rule=node_reactive_power_balance_rule
+    )
+    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.voltage_drop_lower = pyo.Constraint(
+        model.C, rule=voltage_drop_lower_lindistflow_rule
+    )
+    model.voltage_drop_upper = pyo.Constraint(
+        model.C, rule=voltage_drop_upper_lindistflow_rule
+    )
+    model.voltage_upper_limits = pyo.Constraint(
+        model.N, rule=optimal_voltage_upper_limits_rule
+    )
+    model.voltage_lower_limits = pyo.Constraint(
+        model.N, rule=optimal_voltage_lower_limits_rule
+    )
+    model.switch_active_power_lower_bound = pyo.Constraint(
+        model.C, rule=switch_active_power_lower_bound_rule
+    )
+    model.switch_active_power_upper_bound = pyo.Constraint(
+        model.C, rule=switch_active_power_upper_bound_rule
+    )
+    model.switch_reactive_power_lower_bound = pyo.Constraint(
+        model.C, rule=switch_reactive_power_lower_bound_rule
+    )
+    model.switch_reactive_power_upper_bound = pyo.Constraint(
+        model.C, rule=switch_reactive_power_upper_bound_rule
+    )
     # # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = ConstraintList()
     model.optimality_cut = ConstraintList()
 
     return model
-
-
-# Objective: approximate losses + Benders cuts
-def master_obj(m):
-    return m.theta
-
-
-# Radiality constraint: each non-slack bus must have one incoming candidate.
-def flow_balance_rule(m, n):
-    if n == m.slack_node:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.epsilon * (
-            len(m.N) - 1
-        )
-    else:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.epsilon
-
-
-# Orientation constraint.
-def edge_propagation_rule(m, l):
-    return sum(m.flow[l_, i, j] for l_, i, j in m.C if l_ == l) == 0
-
-
-def upper_switch_propagation_rule(m, l, i, j):
-    if l in m.S:
-        return m.flow[l, i, j] <= m.epsilon * len(m.N) * m.delta[l]
-    else:
-        return pyo.Constraint.Skip
-
-
-def lower_switch_propagation_rule(m, l, i, j):
-    if l in m.S:
-        return m.flow[l, i, j] >= -m.epsilon * len(m.N) * m.delta[l]
-    else:
-        return pyo.Constraint.Skip
-
-
-def nb_closed_switches_rule(m):
-    # Ensure that the number of open switches is less than or equal to the number of switches.
-    return sum(m.delta[l] for l in m.S) == len(m.N) - len(m.nS) - 1
-
-
-# def radiality_rule(m, n):
-#     if n == m.slack_node:
-#         return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 0
-#     else:
-#         return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 1
-
-# def edge_direction_rule(m, l):
-#     if l in m.S:
-#         return sum(m.d[l_, i, j] for  l_, i, j in m.C if l_==l) == m.delta[l]
-#     else:
-#         return sum(m.d[l_, i, j] for  l_, i, j in m.C if l_==l) == 1
