@@ -55,7 +55,5 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.voltage_lower_limits = pyo.Constraint(
         model.N, rule=infeasible_voltage_lower_limits_rule
     )
-    model.objective = pyo.Objective(
-        rule=objective_rule_infeasibility, sense=pyo.minimize
-    )
+    model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     return model

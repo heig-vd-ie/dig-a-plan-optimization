@@ -1,7 +1,7 @@
 import pandapower as pp
 import polars as pl
 
-from data_connector import pandapower_to_dig_a_plan_schema
+from local_data_exporter import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
 from pipelines.configs import CombinedConfig, PipelineType
@@ -9,7 +9,7 @@ from pipelines.configs import CombinedConfig, PipelineType
 from pipelines.model_managers.bender import PipelineModelManagerBender
 
 
-def test_bender_model_simple_example():
+def test_combined_model_simple_example():
     LOAD_FACTOR = 1
     TEST_CONFIG = [
         {"line_list": [], "switch_list": []},
@@ -63,10 +63,11 @@ def test_bender_model_simple_example():
             "The model manager is not a Combined model manager, but a Bender model manager."
         )
 
+    print(switches.filter(pl.col("open")).get_column("eq_fk").sort().to_list())
     assert switches.filter(pl.col("open")).get_column("eq_fk").sort().to_list() == [
         "switch 13",
         "switch 14",
         "switch 15",
-        "switch 3",
         "switch 6",
+        "switch 9",
     ]

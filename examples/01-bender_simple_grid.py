@@ -4,7 +4,7 @@ import os
 import pandapower as pp
 import plotly.graph_objs as go
 
-from data_connector import pandapower_to_dig_a_plan_schema
+from local_data_exporter import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
