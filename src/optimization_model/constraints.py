@@ -66,6 +66,14 @@ def objective_rule_infeasibility(m):
     return v_penalty + i_penalty
 
 
+def objective_rule_combined(m):
+    # Minimize network losses and infeasibility penalties
+    return (
+        objective_rule_loss(m)
+        + objective_rule_infeasibility(m) * m.weight_infeasibility
+    )
+
+
 def master_switch_status_propagation_rule(m, s):
     return m.delta[s] == m.master_delta[s]
 
@@ -261,11 +269,11 @@ def optimal_voltage_lower_limits_rule(m, n):
 
 
 def optimal_voltage_upper_limits_distflow_rule(m, n):
-    return m.v_sq[n] <= 1.05
+    return m.v_sq[n] <= m.slack_node_v_sq + 0.05
 
 
 def optimal_voltage_lower_limits_distflow_rule(m, n):
-    return m.v_sq[n] >= 0.95
+    return m.v_sq[n] >= m.slack_node_v_sq - 0.05
 
 
 # (6) Flow Bounds for candidate (l,i,j):

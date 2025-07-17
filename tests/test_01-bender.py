@@ -1,7 +1,7 @@
 import pandapower as pp
 import polars as pl
 
-from data_connector import pandapower_to_dig_a_plan_schema
+from local_data_exporter import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
 from pipelines.configs import BenderConfig, PipelineType
@@ -60,8 +60,8 @@ def test_bender_model_simple_example():
     )
     assert delta.filter(pl.col("delta") == 0).get_column("S").sort().to_list() == [
         23,
-        24,
-        28,
-        30,
-        35,
+        25,
+        32,
+        33,
+        34,
     ]

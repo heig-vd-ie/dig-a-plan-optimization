@@ -4,7 +4,7 @@ import networkx as nx
 from polars import col as c
 from networkx import connected_components
 import polars as pl
-from data_connector import (
+from local_data_exporter import (
     change_schema_to_dig_a_plan_schema,
     duckdb_to_changes_schema,
 )

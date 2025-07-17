@@ -10,7 +10,7 @@ from general_function import pl_to_dict, pl_to_dict_with_tuple
 class PipelineDataManager:
     """Manages grid data validation and processing"""
 
-    def __init__(self, big_m: float, small_m: float):
+    def __init__(self, big_m: float, small_m: float, weight_infeasibility: float = 1.0):
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(
             schema=NodeData.columns
         ).cast()
@@ -21,6 +21,7 @@ class PipelineDataManager:
         self.big_m: float = big_m
         self.small_m: float = small_m
         self.grid_data_parameters_dict: dict | None = None
+        self.weight_infeasibility: float = weight_infeasibility
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -133,9 +134,12 @@ class PipelineDataManager:
                 "v_max": pl_to_dict(self.node_data["node_id", "v_max_pu"]),
                 "slack_node": {None: self.slack_node},
                 "slack_node_v_sq": {
-                    None: 1  # self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][0]
+                    None: self.node_data.filter(c("type") == "slack")["v_node_sqr_pu"][
+                        0
+                    ]
                 },
                 "big_m": {None: self.big_m},
                 "small_m": {None: self.small_m},
+                "weight_infeasibility": {None: self.weight_infeasibility},
             }
         }

@@ -23,5 +23,6 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (pu)
     # Big-M for switch on/off
     model.big_m = pyo.Param()
+    model.weight_infeasibility = pyo.Param(default=1.0)
 
     return model

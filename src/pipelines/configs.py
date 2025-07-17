@@ -24,6 +24,7 @@ class PipelineConfig:
     factor_q: float = 1.0
     factor_i: float = 1.0
     factor_v: float = 1.0
+    weight_infeasibility: float = 1.0
 
 
 @dataclass
