@@ -11,8 +11,6 @@ class NodeData(pt.Model):
     cn_fk: str = pt.Field(dtype=pl.Utf8, unique=True)
     node_id: int = pt.Field(dtype=pl.Int32, unique=True)
     v_base: float = pt.Field(dtype=pl.Float64)
-    p_node_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
-    q_node_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     v_min_pu: float = pt.Field(dtype=pl.Float64, default=0.9)
     v_max_pu: float = pt.Field(dtype=pl.Float64, default=1.1)
     p_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)

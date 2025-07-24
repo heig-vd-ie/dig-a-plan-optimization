@@ -17,11 +17,35 @@ from general_function import pl_to_dict, snake_to_camel, duckdb_to_dict
 
 
 def pandapower_to_dig_a_plan_schema(
-    net: pp.pandapowerNet, s_base: float = 1e6
+    net: pp.pandapowerNet, s_base: float = 1e6, n_scenarios: int = 50, seed: int = 42
 ) -> NodeEdgeModel:
+    
+    """
+    Convert a pandapower network into NodeEdgeModel.
 
+    Parameters
+    ----------
+    net : pandapowerNet
+        The pandapower network object.
+    s_base : float, optional
+        Base apparent power [VA], by default 1e6.
+    n_scenarios : int, optional
+        Number of randomized load scenarios to generate. 
+    seed : int, optional
+        Random seed for scenario generation.
+
+    Returns
+    -------
+    NodeEdgeModel
+        node_data  : static network nodes 
+        edge_data  : static network branches/transformers/switches
+        load_data  : dict of {scenario_id: DataFrame(node_id, p_node_pu, q_node_pu)}
+    """
+    # initialize container for static data
     grid_data: dict[str, pl.DataFrame] = {}
-
+    
+    
+    # --- STATIC NODE DATA --
     bus = net["bus"]
     bus.index.name = "node_id"
 
@@ -65,6 +89,9 @@ def pandapower_to_dig_a_plan_schema(
             (s_base / (c("v_base") * np.sqrt(3))).alias("i_base"),
         )
     )
+    
+    
+    # --- STATIC EDGE DATA ---
 
     line: pl.DataFrame = pl.from_pandas(net.line)
     line = (
@@ -181,10 +208,31 @@ def pandapower_to_dig_a_plan_schema(
         .otherwise(pl.lit("pq"))
         .alias("type"),
     )
+    
+    # --- RANDOMIZED LOAD SCENARIOS ---
+    scenarios: Dict[str, pl.DataFrame] = {}
+    if n_scenarios > 0:
+        rng = np.random.default_rng(seed)
+        for i in range(1, n_scenarios+1):
+            df = node_data.clone().with_columns([
+                pl.Series(rng.uniform(df["p_node_min_pu"].to_list(), df["p_node_max_pu"].to_list())).alias("p_node_pu"),
+                pl.Series(rng.uniform(df["q_node_min_pu"].to_list(), df["q_node_max_pu"].to_list())).alias("q_node_pu"),
+            ])
+            df_pt = (
+                pt.DataFrame(df)
+                  .set_model(NodeData)
+                  .fill_null(strategy="defaults")
+                  .cast(strict=True)
+            )
+            df_pt.validate()
+            scenarios[str(i)] = df_pt.to_polars()
+
+    grid_data["load_data"] = scenarios
 
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
         edge_data=grid_data["edge_data"],
+        load_data=grid_data["load_data"]
     )
 
 
@@ -352,6 +400,7 @@ def change_schema_to_dig_a_plan_schema(
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
         edge_data=grid_data["edge_data"],
+        load_data=grid_data["load_data"]
     )
 
 
