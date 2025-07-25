@@ -1,12 +1,15 @@
 import polars as pl
 from polars import col as c
 from data_schema import NodeEdgeModel
+from data_schema.node_data import NodeData as NodeStatic   # static node schema
+from typing import Dict, Tuple
 import numpy as np
 import pandapower as pp
 from polars_function import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
 )
+from scenarios import generate_random_load_scenarios 
 
 import patito as pt
 import networkx as nx
@@ -17,83 +20,74 @@ from general_function import pl_to_dict, snake_to_camel, duckdb_to_dict
 
 
 def pandapower_to_dig_a_plan_schema(
-    net: pp.pandapowerNet, s_base: float = 1e6, n_scenarios: int = 50, seed: int = 42
+    net: pp.pandapowerNet,
+    s_base: float = 1e6,
+    n_scenarios: int = 50,
+    seed: int = 42,
+    p_bounds: Tuple[float, float] = (-0.5, 1.0),
+    q_bounds: Tuple[float, float] = (-0.5, 1.0),
 ) -> NodeEdgeModel:
-    
-    """
-    Convert a pandapower network into NodeEdgeModel.
 
-    Parameters
-    ----------
-    net : pandapowerNet
-        The pandapower network object.
-    s_base : float, optional
-        Base apparent power [VA], by default 1e6.
-    n_scenarios : int, optional
-        Number of randomized load scenarios to generate. 
-    seed : int, optional
-        Random seed for scenario generation.
+    grid_data: Dict[str, pl.DataFrame] = {}
 
-    Returns
-    -------
-    NodeEdgeModel
-        node_data  : static network nodes 
-        edge_data  : static network branches/transformers/switches
-        load_data  : dict of {scenario_id: DataFrame(node_id, p_node_pu, q_node_pu)}
-    """
-    # initialize container for static data
-    grid_data: dict[str, pl.DataFrame] = {}
-    
-    
-    # --- STATIC NODE DATA --
+    # ------------------------
+    # --- STATIC NODE DATA ---
+    # ------------------------
     bus = net["bus"]
     bus.index.name = "node_id"
 
-    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index())
-    load: pl.DataFrame = pl.from_pandas(net.load)
-    sgen: pl.DataFrame = pl.from_pandas(net.sgen)
+    node_pd = net.bus.reset_index()
+    node_data = pl.from_pandas(node_pd)
 
-    sgen = sgen.group_by("bus").agg(
-        (-c("p_mw").sum() * 1e6 / s_base).alias("p_pv"),
-        (-c("q_mvar").sum() * 1e6 / s_base).alias("q_pv"),
-    )
-
-    load = load.group_by("bus").agg(
-        (c("p_mw").sum() * 1e6 / s_base).alias("p_load"),
-        (c("q_mvar").sum() * 1e6 / s_base).alias("q_load"),
-    )
-
-    load = load.join(sgen, on="bus", how="full", coalesce=True).select(
-        c("bus").alias("node_id"),
-        pl.sum_horizontal([c("p_load").fill_null(0.0), c("p_pv").fill_null(0.0)]).alias(
-            "p_node_pu"
-        ),
-        pl.sum_horizontal([c("q_load").fill_null(0.0), c("q_pv").fill_null(0.0)]).alias(
-            "q_node_pu"
-        ),
-    )
 
     node_data = (
         node_data[["node_id", "vn_kv", "name"]]
-        .join(load, on="node_id", how="left")
         .select(
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
-            c("p_node_pu").fill_null(0.0),
-            c("q_node_pu").fill_null(0.0),
             pl.lit(None).cast(pl.Float64).alias("v_node_sqr_pu"),
         )
         .with_columns(
             pl.lit(s_base).alias("s_base"),
             (s_base / (c("v_base") * np.sqrt(3))).alias("i_base"),
+            # add the defaults explicitly to avoid Patito's fill_null broadcasting bug
+            pl.lit(0.9).alias("v_min_pu"),
+            pl.lit(1.1).alias("v_max_pu"),
         )
     )
-    
-    
-    # --- STATIC EDGE DATA ---
 
-    line: pl.DataFrame = pl.from_pandas(net.line)
+    # ext_grid -> slack identification
+    ext_grid = pl.from_pandas(net.ext_grid)
+    if ext_grid.height != 1:
+        raise ValueError("ext_grid should have only 1 row")
+    slack_node_id: int = int(ext_grid["bus"][0])
+    v_slack_node_sqr_pu: float = float(ext_grid["vm_pu"][0] ** 2)
+
+    node_data = node_data.with_columns(
+        pl.when(c("node_id") == slack_node_id)
+        .then(pl.lit(v_slack_node_sqr_pu))
+        .otherwise(c("v_node_sqr_pu"))
+        .alias("v_node_sqr_pu"),
+        pl.when(c("node_id") == slack_node_id)
+        .then(pl.lit("slack"))
+        .otherwise(pl.lit("pq"))
+        .alias("type"),
+    )
+
+    # validate static node data
+    node_data_pt = (
+        pt.DataFrame(node_data)
+        .set_model(NodeStatic)
+        .cast(strict=True)         
+    )
+    
+    node_data = node_data_pt.as_polars()
+
+    # ------------------------
+    # --- STATIC EDGE DATA ---
+    # ------------------------
+    line = pl.from_pandas(net.line)
     line = (
         line.with_columns(
             c("from_bus").cast(pl.Int32).alias("u_of_edge"),
@@ -105,9 +99,7 @@ def pandapower_to_dig_a_plan_schema(
             right_on="node_id",
             how="left",
         )
-        .with_columns(
-            (c("v_base") ** 2 / s_base).alias("z_base"),
-        )
+        .with_columns((c("v_base") ** 2 / s_base).alias("z_base"))
         .select(
             "u_of_edge",
             "v_of_edge",
@@ -123,8 +115,8 @@ def pandapower_to_dig_a_plan_schema(
             (np.sqrt(3) * c("max_i_ka") * 1e3 * c("v_base") / s_base).alias("p_max_pu"),
         )
     )
-    trafo: pl.DataFrame = pl.from_pandas(net.trafo)
 
+    trafo = pl.from_pandas(net.trafo)
     trafo = (
         trafo.with_columns(
             c("hv_bus").cast(pl.Int32).alias("u_of_edge"),
@@ -169,9 +161,7 @@ def pandapower_to_dig_a_plan_schema(
             (c("r") / c("z_base")).alias("r_pu"),
             (c("x") / c("z_base")).alias("x_pu"),
             pl.lit("transformer").alias("type"),
-            (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias(
-                "i_max_pu"
-            ),
+            (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias("i_max_pu"),
             ((c("vn_hv_pu") / c("vn_lv_pu"))).alias("n_transfo"),
             c("i_base"),
             (c("sn_mva") * 1e6 / s_base).alias("p_max_pu"),
@@ -192,47 +182,29 @@ def pandapower_to_dig_a_plan_schema(
         [line, trafo, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-    ext_grid: pl.DataFrame = pl.from_pandas(net.ext_grid)
-    if ext_grid.height != 1:
-        raise ValueError("ext_grid should have only 1 row")
-    slack_node_id: int = ext_grid["bus"][0]
-    v_slack_node_sqr_pu: float = ext_grid["vm_pu"][0] ** 2
 
-    grid_data["node_data"] = node_data.with_columns(
-        pl.when(c("node_id") == slack_node_id)
-        .then(pl.lit(v_slack_node_sqr_pu))
-        .otherwise(c("v_node_sqr_pu"))
-        .alias("v_node_sqr_pu"),
-        pl.when(c("node_id") == slack_node_id)
-        .then(pl.lit("slack"))
-        .otherwise(pl.lit("pq"))
-        .alias("type"),
+    # ---------------------------------
+    # --- RANDOM SCENARIOS ------------
+    # ---------------------------------
+    scenarios: Dict[str, pl.DataFrame] = {} 
+    rand_scenarios = generate_random_load_scenarios(
+        node_static=node_data,
+        n_scenarios=n_scenarios,
+        seed=seed,
+        p_bounds=p_bounds,
+        q_bounds=q_bounds,
+        zero_slack=True,
     )
-    
-    # --- RANDOMIZED LOAD SCENARIOS ---
-    scenarios: Dict[str, pl.DataFrame] = {}
-    if n_scenarios > 0:
-        rng = np.random.default_rng(seed)
-        for i in range(1, n_scenarios+1):
-            df = node_data.clone().with_columns([
-                pl.Series(rng.uniform(df["p_node_min_pu"].to_list(), df["p_node_max_pu"].to_list())).alias("p_node_pu"),
-                pl.Series(rng.uniform(df["q_node_min_pu"].to_list(), df["q_node_max_pu"].to_list())).alias("q_node_pu"),
-            ])
-            df_pt = (
-                pt.DataFrame(df)
-                  .set_model(NodeData)
-                  .fill_null(strategy="defaults")
-                  .cast(strict=True)
-            )
-            df_pt.validate()
-            scenarios[str(i)] = df_pt.to_polars()
+    scenarios.update(rand_scenarios)
 
-    grid_data["load_data"] = scenarios
+    # pack and return
+    grid_data["node_data"] = node_data
+    grid_data["load_data"] = scenarios #type:ignore
 
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
         edge_data=grid_data["edge_data"],
-        load_data=grid_data["load_data"]
+        load_data=grid_data["load_data"],
     )
 
 
@@ -400,7 +372,7 @@ def change_schema_to_dig_a_plan_schema(
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
         edge_data=grid_data["edge_data"],
-        load_data=grid_data["load_data"]
+        load_data=grid_data["load_data"] #type:ignore
     )
 
 
