@@ -42,7 +42,7 @@ class PipelineResultManager:
             .alias("delta")  # still 0,1 or None
         )
         # 2) Create 'open' by bitwise‐not on the Boolean view of delta
-        ss = ss.with_columns((~c("delta").pipe(cast_boolean)).alias("open"))
+        ss = ss.with_columns((~(c("delta") > 0.5).pipe(cast_boolean)).alias("open"))
         # Finally select the columns you care about
         return ss.select(["eq_fk", "edge_id", "delta", "normal_open", "open"])
 
