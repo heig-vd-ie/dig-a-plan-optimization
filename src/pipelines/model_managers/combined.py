@@ -36,6 +36,11 @@ class PipelineModelManagerCombined:
         self.combined_solver.options["IntegralityFocus"] = (
             config.combined_solver_integrality_focus
         )  # To insure master binary variable remains binary
+        self.combined_solver.options["Method"] = 2
+        self.combined_solver.options["TimeLimit"] = 60
+        self.combined_solver.options["OptimalityTol"] = 1e-5
+        self.combined_solver.options["FeasibilityTol"] = 1e-5
+        self.combined_solver.options["BarConvTol"] = 1e-5
         if config.combined_solver_non_convex is not None:
             self.combined_solver.options["NonConvex"] = (
                 config.combined_solver_non_convex
