@@ -1,10 +1,11 @@
 import pyomo.environ as pyo
-from shapely import bounds
 
 
 def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Switch binary variables for topology
-    model.delta = pyo.Var(model.S, domain=pyo.Binary)
+    model.delta = pyo.Var(model.S, domain=pyo.NonNegativeReals, bounds=(0, 1))
+    model.delta_penalty = pyo.Var(model.S, domain=pyo.NonNegativeReals)
+
     # Flow orientation for radiality
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
     # DistFlow variables

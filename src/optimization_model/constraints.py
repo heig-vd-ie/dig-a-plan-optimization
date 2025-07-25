@@ -36,7 +36,6 @@ def imaginary_flow_lower_switch_propagation_rule(m, l, i, j):
 
 
 def imaginary_flow_nb_closed_switches_rule(m):
-    # Ensure that the number of open switches is less than or equal to the number of switches.
     return sum(m.delta[l] for l in m.S) == len(m.N) - len(m.nS) - 1
 
 
@@ -66,11 +65,17 @@ def objective_rule_infeasibility(m):
     return v_penalty + i_penalty
 
 
+def objective_rule_penalty(m):
+    # Minimize the sum of the slack variables
+    return sum(m.delta_penalty[l] for l in m.S)
+
+
 def objective_rule_combined(m):
     # Minimize network losses and infeasibility penalties
     return (
         objective_rule_loss(m)
         + objective_rule_infeasibility(m) * m.weight_infeasibility
+        + objective_rule_penalty(m) * m.weight_penalty
     )
 
 

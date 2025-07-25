@@ -1,5 +1,4 @@
 import pyomo.environ as pyo
-from traitlets import default
 
 
 def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
@@ -24,5 +23,6 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Big-M for switch on/off
     model.big_m = pyo.Param()
     model.weight_infeasibility = pyo.Param(default=1.0)
+    model.weight_penalty = pyo.Param(default=1e-6)
 
     return model

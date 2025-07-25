@@ -1,3 +1,4 @@
+import numpy as np
 from optimization_model.constraints import *
 import pyomo.environ as pyo
 
@@ -55,5 +56,19 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.voltage_lower_limits = pyo.Constraint(
         model.N, rule=infeasible_voltage_lower_limits_rule
     )
+
+    breakpoints = np.linspace(0, 1, 20).tolist()
+    values = [x * (1 - x) for x in breakpoints]
+
+    model.piecewise_penalty = pyo.Piecewise(
+        model.S,
+        model.delta_penalty,
+        model.delta,
+        pw_pts=breakpoints,
+        f_rule=values,
+        pw_constr_type="EQ",
+        pw_repn="SOS2",
+    )
+
     model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     return model
