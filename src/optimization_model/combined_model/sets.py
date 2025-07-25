@@ -2,6 +2,7 @@ import pyomo.environ as pyo
 
 
 def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.SCEN = pyo.Set() # Scenario index
     # Node, line, switch and candidate arc definitions
     model.N = pyo.Set()  # Nodes indices
     model.L = pyo.Set()  # Edges indices

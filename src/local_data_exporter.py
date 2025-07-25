@@ -117,6 +117,8 @@ def pandapower_to_dig_a_plan_schema(
     )
 
     trafo = pl.from_pandas(net.trafo)
+    if "name" in trafo.columns and "eq_fk" not in trafo.columns:
+        trafo = trafo.rename({"name": "eq_fk"})
     trafo = (
         trafo.with_columns(
             c("hv_bus").cast(pl.Int32).alias("u_of_edge"),
@@ -169,6 +171,8 @@ def pandapower_to_dig_a_plan_schema(
     )
 
     switch: pl.DataFrame = pl.from_pandas(net.switch)
+    if "name" in switch.columns and "eq_fk" not in switch.columns:
+        switch = switch.rename({"name": "eq_fk"})
 
     switch = switch.select(
         (c("name") if "eq_fk" not in switch.columns else c("eq_fk")).alias("eq_fk"),

@@ -91,7 +91,7 @@ def validate_node_edge_model(
     print("✔ NodeEdgeModel validated: shapes, schema, bounds, connectivity, slack.")
 
 
-def small_summary(model: NodeEdgeModel):
+def small_summary(model: NodeEdgeModel, n_first_scenarios:int =3):
     node_df: pl.DataFrame = model.node_data
     edge_df: pl.DataFrame = model.edge_data
     scenarios: dict[str, pl.DataFrame] = model.load_data
@@ -106,9 +106,13 @@ def small_summary(model: NodeEdgeModel):
     print(edge_df.head())
     # show first scenario head
     if scenarios:
-        first_sid = sorted(scenarios.keys(), key=lambda x: int(x) if x.isdigit() else x)[0]
-        print(f"First 5 rows of scenario {first_sid}:")
-        print(scenarios[first_sid].head())
+        # sort scenario ids numerically when possible
+        sorted_sids = sorted(scenarios.keys(), key=lambda x: int(x) if x.isdigit() else x)
+        print("\nScenario IDs:", sorted_sids)
+
+        for sid in sorted_sids[:n_first_scenarios]:
+            print(f"\nFirst 5 rows of scenario {sid}:")
+            print(scenarios[sid].head())
     print("-------------\n")
 
 
