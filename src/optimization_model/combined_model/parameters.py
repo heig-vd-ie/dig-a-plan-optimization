@@ -5,6 +5,7 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Topology & radiality
     model.slack_node = pyo.Param()  # Slack bus index
     model.small_m = pyo.Param()  # Small constant for radiality constraints
+    model.rho = pyo.Param(default=1.0)  # ADMM penalty parameter
     # Line parameters
     model.r = pyo.Param(model.L)  # Resistance (pu)
     model.x = pyo.Param(model.L)  # Reactance (pu)

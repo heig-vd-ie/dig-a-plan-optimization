@@ -1,3 +1,4 @@
+import pyomo.environ as pyo
 from data_schema import NodeEdgeModel
 from pipelines.data_manager import PipelineDataManager
 from pipelines.result_manager import PipelineResultManager
@@ -7,11 +8,22 @@ from pipelines.model_managers.combined import PipelineModelManagerCombined
 
 
 class DigAPlan:
+    """
+    Top‐level entrypoint for either Bender or Combined (ADMM) pipelines.
+    When running a COMBINED pipeline, we loop for max_iters and do:
+      1) radial subproblem (only x‐update penalty term)
+      2) DistFlow subproblem (loss + penalty)
+      3) z, u updates
+      until convergence.
+    """
     def __init__(self, config: PipelineConfig | BenderConfig) -> None:
 
         self.config = config or PipelineConfig()
+        # Pull rho from the config (only used in the COMBINED/ADMM pipeline)
+        rho = getattr(self.config, "rho", None)
+         # 2) build the DataManager (holds big_m, small_m, rho, etc)
         self.data_manager = PipelineDataManager(
-            self.config.big_m, self.config.small_m, self.config.weight_infeasibility
+            self.config.big_m, self.config.small_m, rho, self.config.weight_infeasibility
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig
@@ -26,6 +38,7 @@ class DigAPlan:
             self.model_manager = PipelineModelManagerCombined(
                 config=config,
                 data_manager=self.data_manager,
+                rho=rho,
             )
         else:
             raise ValueError(
