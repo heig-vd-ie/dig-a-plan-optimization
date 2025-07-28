@@ -1,10 +1,6 @@
 from typing import Optional
 import patito as pt
 import polars as pl
-from typing_extensions import Literal
-from data_schema._constraints import literal_constraint
-
-TYPES = Literal["slack", "pq", "pv"]
 
 
 class NodeData(pt.Model):
@@ -15,7 +11,7 @@ class NodeData(pt.Model):
     v_base: float = pt.Field(dtype=pl.Float64)
     v_min_pu: float = pt.Field(dtype=pl.Float64, default=0.9)
     v_max_pu: float = pt.Field(dtype=pl.Float64, default=1.1)
-    v_node_sqr_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
-    type: TYPES = pt.Field(
-        dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
-    )
+    p_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
+    p_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
+    q_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
+    q_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)

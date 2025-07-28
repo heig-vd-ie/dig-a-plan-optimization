@@ -1,9 +1,11 @@
 from dataclasses import dataclass
-import polars as pl
+from edge_data import EdgeData
+from node_data import NodeData
+from load_data import LoadData
 
 
 @dataclass
 class NodeEdgeModel:
-    node_data: pl.DataFrame
-    edge_data: pl.DataFrame
-    load_data: dict[str, pl.DataFrame]
+    node_data: NodeData
+    edge_data: EdgeData
+    load_data: dict[str, LoadData]
