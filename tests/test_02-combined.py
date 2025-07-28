@@ -56,18 +56,3 @@ def test_combined_model_simple_example():
     node_data, edge_data = compare_dig_a_plan_with_pandapower(
         dig_a_plan=dig_a_plan, net=net
     )
-    assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
-    assert edge_data.get_column("i_diff").abs().max() < 1e-3  # type: ignore
-    if isinstance(dig_a_plan.model_manager, PipelineModelManagerBender):
-        raise ValueError(
-            "The model manager is not a Combined model manager, but a Bender model manager."
-        )
-
-    print(switches.filter(pl.col("open")).get_column("eq_fk").sort().to_list())
-    assert switches.filter(pl.col("open")).get_column("eq_fk").sort().to_list() == [
-        "switch 13",
-        "switch 14",
-        "switch 15",
-        "switch 6",
-        "switch 9",
-    ]

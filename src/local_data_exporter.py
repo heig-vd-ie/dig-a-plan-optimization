@@ -84,7 +84,7 @@ def pandapower_to_dig_a_plan_schema(
         .select(
             "u_of_edge",
             "v_of_edge",
-            (c("eq_fk") if "eq_fk" in line.columns else c("name")).alias("eq_fk"),
+            (c("name") if "eq_fk" not in line.columns else c("eq_fk")).alias("eq_fk"),
             (c("r_ohm_per_km") * c("length_km") / c("z_base")).alias("r_pu"),
             (c("x_ohm_per_km") * c("length_km") / c("z_base")).alias("x_pu"),
             (
@@ -138,7 +138,7 @@ def pandapower_to_dig_a_plan_schema(
         .select(
             "u_of_edge",
             "v_of_edge",
-            (c("eq_fk") if "eq_fk" in line.columns else c("name")).alias("eq_fk"),
+            (c("name") if "eq_fk" not in trafo.columns else c("eq_fk")).alias("eq_fk"),
             (c("r") / c("z_base")).alias("r_pu"),
             (c("x") / c("z_base")).alias("x_pu"),
             pl.lit("transformer").alias("type"),
@@ -154,7 +154,7 @@ def pandapower_to_dig_a_plan_schema(
     switch: pl.DataFrame = pl.from_pandas(net.switch)
 
     switch = switch.select(
-        (c("eq_fk") if "eq_fk" in line.columns else c("name")).alias("eq_fk"),
+        (c("name") if "eq_fk" not in switch.columns else c("eq_fk")).alias("eq_fk"),
         c("bus").cast(pl.Int32).alias("u_of_edge"),
         c("element").cast(pl.Int32).alias("v_of_edge"),
         (~c("closed").cast(pl.Boolean)).alias("normal_open"),
