@@ -5,24 +5,23 @@ import pyomo.environ as pyo
 def master_obj(m):
     return m.theta
 
+
 def ADMM_objective_rule(m):
     # base_cost:  losses, penalties, etc.
-    base_cost = (
-        m.weight_infeasibility * (
-            sum(m.slack_i_sq[sc, c] for sc in m.SCEN for c in m.C) +
-            sum(m.slack_v_pos[sc, n] + m.slack_v_neg[sc, n] for sc in m.SCEN for n in m.N)
-        )
-        + m.weight_penalty * sum(m.delta_penalty[sc, s] for sc in m.SCEN for s in m.S)
-        
-    )
+    base_cost = m.weight_infeasibility * (
+        sum(m.slack_i_sq[sc, c] for sc in m.SCEN for c in m.C)
+        + sum(m.slack_v_pos[sc, n] + m.slack_v_neg[sc, n] for sc in m.SCEN for n in m.N)
+    ) + m.weight_penalty * sum(m.delta_penalty[sc, s] for sc in m.SCEN for s in m.S)
 
     # consensus-ADMM augmentation on delta
-    aug = (m.rho/2.0) * sum(
-        (m.delta[sc, s] - m.del_param[sc, s] + m.u_param[sc, s])**2
-        for sc in m.SCEN for s in m.S
+    aug = (m.rho / 2.0) * sum(
+        (m.delta[sc, s] - m.del_param[sc, s] + m.u_param[sc, s]) ** 2
+        for sc in m.SCEN
+        for s in m.S
     )
 
     return base_cost + aug
+
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
 def imaginary_flow_balance_rule(m, sc, n):
@@ -57,7 +56,6 @@ def imaginary_flow_nb_closed_switches_rule(m, sc):
     return sum(m.delta[sc, l] for l in m.S) == len(m.N) - len(m.nS) - 1
 
 
-
 def radiality_rule(m, n):
     if n != m.slack_node:
         return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 1
@@ -74,22 +72,25 @@ def edge_direction_rule(m, l):
 
 def objective_rule_loss(m):
     # Minimize network losses
-    return sum(m.r[l] * m.i_sq[sc, l, i, j] for sc in m.SCEN for (l, i, j) in m.C if l not in m.S)
+    return sum(
+        m.r[l] * m.i_sq[sc, l, i, j]
+        for sc in m.SCEN
+        for (l, i, j) in m.C
+        if l not in m.S
+    )
 
 
 def objective_rule_infeasibility(m):
-    v_penalty = sum(m.slack_v_pos[sc, n] + m.slack_v_neg[sc, n] for sc in m.SCEN for n in m.N)
+    v_penalty = sum(
+        m.slack_v_pos[sc, n] + m.slack_v_neg[sc, n] for sc in m.SCEN for n in m.N
+    )
     i_penalty = sum(m.slack_i_sq[sc, l, i, j] for sc in m.SCEN for (l, i, j) in m.C)
 
     return v_penalty + i_penalty
 
 
 def objective_rule_penalty(m):
-    return sum(
-        m.delta_penalty[sc, l]
-        for sc in m.SCEN
-        for l in m.S
-    )
+    return sum(m.delta_penalty[sc, l] for sc in m.SCEN for l in m.S)
 
 
 def objective_rule_combined(m):
@@ -129,7 +130,9 @@ def node_active_power_balance_rule(m, sc, n):
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
 def node_reactive_power_balance_rule(m, sc, n):
     q_flow_tot = sum(
-        m.q_flow[sc, l, i, j] - m.b[l] / 2 * m.v_sq[sc, i] for (l, i, j) in m.C if (i == n)
+        m.q_flow[sc, l, i, j] - m.b[l] / 2 * m.v_sq[sc, i]
+        for (l, i, j) in m.C
+        if (i == n)
     )
     if n == m.slack_node:
         return q_flow_tot == -m.q_slack_node[sc, n]

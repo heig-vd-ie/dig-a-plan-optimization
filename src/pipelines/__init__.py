@@ -16,14 +16,18 @@ class DigAPlan:
       3) z, u updates
       until convergence.
     """
+
     def __init__(self, config: PipelineConfig | BenderConfig) -> None:
 
         self.config = config or PipelineConfig()
         # Pull rho from the config (only used in the COMBINED/ADMM pipeline)
         rho = getattr(self.config, "rho", None)
-         # 2) build the DataManager (holds big_m, small_m, rho, etc)
+        # 2) build the DataManager (holds big_m, small_m, rho, etc)
         self.data_manager = PipelineDataManager(
-            self.config.big_m, self.config.small_m, rho, self.config.weight_infeasibility
+            self.config.big_m,
+            self.config.small_m,
+            rho,
+            self.config.weight_infeasibility,
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig

@@ -4,7 +4,7 @@ import numpy as np
 import polars as pl
 import patito as pt
 
-from data_schema.load_data import NodeData as NodeLoad  
+from data_schema.load_data import NodeData as NodeLoad
 
 
 def generate_random_load_scenarios(
@@ -70,7 +70,7 @@ def generate_random_load_scenarios(
                 "p_node_min_pu": np.full(n_nodes, p_min),
                 "q_node_max_pu": np.full(n_nodes, q_max),
                 "q_node_min_pu": np.full(n_nodes, q_min),
-                "type": types,  
+                "type": types,
             }
         )
 
@@ -83,7 +83,7 @@ def generate_random_load_scenarios(
         )
         df_pt.validate()
 
-        df_valid: pl.DataFrame = df_pt.as_polars() 
+        df_valid: pl.DataFrame = df_pt.as_polars()
         scenarios[str(i)] = df_valid
 
     return scenarios

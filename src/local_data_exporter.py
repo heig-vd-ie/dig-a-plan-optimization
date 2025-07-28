@@ -1,7 +1,7 @@
 import polars as pl
 from polars import col as c
 from data_schema import NodeEdgeModel
-from data_schema.node_data import NodeData as NodeStatic   # static node schema
+from data_schema.node_data import NodeData as NodeStatic  # static node schema
 from typing import Dict, Tuple
 import numpy as np
 import pandapower as pp
@@ -9,7 +9,7 @@ from polars_function import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
 )
-from scenarios import generate_random_load_scenarios 
+from scenarios import generate_random_load_scenarios
 
 import patito as pt
 import networkx as nx
@@ -38,7 +38,6 @@ def pandapower_to_dig_a_plan_schema(
 
     node_pd = net.bus.reset_index()
     node_data = pl.from_pandas(node_pd)
-
 
     node_data = (
         node_data[["node_id", "vn_kv", "name"]]
@@ -76,12 +75,8 @@ def pandapower_to_dig_a_plan_schema(
     )
 
     # validate static node data
-    node_data_pt = (
-        pt.DataFrame(node_data)
-        .set_model(NodeStatic)
-        .cast(strict=True)         
-    )
-    
+    node_data_pt = pt.DataFrame(node_data).set_model(NodeStatic).cast(strict=True)
+
     node_data = node_data_pt.as_polars()
 
     # ------------------------
@@ -163,7 +158,9 @@ def pandapower_to_dig_a_plan_schema(
             (c("r") / c("z_base")).alias("r_pu"),
             (c("x") / c("z_base")).alias("x_pu"),
             pl.lit("transformer").alias("type"),
-            (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias("i_max_pu"),
+            (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias(
+                "i_max_pu"
+            ),
             ((c("vn_hv_pu") / c("vn_lv_pu"))).alias("n_transfo"),
             c("i_base"),
             (c("sn_mva") * 1e6 / s_base).alias("p_max_pu"),
@@ -186,11 +183,10 @@ def pandapower_to_dig_a_plan_schema(
         [line, trafo, switch], how="diagonal_relaxed"
     ).with_row_index(name="edge_id")
 
-
     # ---------------------------------
     # --- RANDOM SCENARIOS ------------
     # ---------------------------------
-    scenarios: Dict[str, pl.DataFrame] = {} 
+    scenarios: Dict[str, pl.DataFrame] = {}
     rand_scenarios = generate_random_load_scenarios(
         node_static=node_data,
         n_scenarios=n_scenarios,
@@ -203,7 +199,7 @@ def pandapower_to_dig_a_plan_schema(
 
     # pack and return
     grid_data["node_data"] = node_data
-    grid_data["load_data"] = scenarios #type:ignore
+    grid_data["load_data"] = scenarios  # type:ignore
 
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
@@ -376,7 +372,7 @@ def change_schema_to_dig_a_plan_schema(
     return NodeEdgeModel(
         node_data=grid_data["node_data"],
         edge_data=grid_data["edge_data"],
-        load_data=grid_data["load_data"] #type:ignore
+        load_data=grid_data["load_data"],  # type:ignore
     )
 
 

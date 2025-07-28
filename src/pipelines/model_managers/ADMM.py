@@ -65,21 +65,21 @@ class PipelineModelManagerCombined:
         # Solver
 
         self.combined_obj_list: list[float] = []
-        
+
         # ADMM artifacts
         self.admm_z: dict | None = None  # consensus per switch: {s: z_s}
         self.admm_u: dict | None = None  # scaled duals: {(sc, s): u_sc,s}
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict)  # type: ignore
-                # delta is indexed by (SCEN, S); extract both indices
+        # delta is indexed by (SCEN, S); extract both indices
         m = self.combined_model_instance
-        scen = list(m.SCEN) # type: ignore
-        sw = list(m.S) # type: ignore
+        scen = list(m.SCEN)  # type: ignore
+        sw = list(m.S)  # type: ignore
         records = []
         for sc in scen:
             for s in sw:
-                records.append((sc, s, pyo.value(m.delta[sc, s]))) # type: ignore
+                records.append((sc, s, pyo.value(m.delta[sc, s])))  # type: ignore
         self.delta_variable = pl.DataFrame(
             records, schema=["SCEN", "S", "delta_variable"]
         )
@@ -91,27 +91,27 @@ class PipelineModelManagerCombined:
     def _extract_delta_matrix(self) -> tuple[list, list, np.ndarray]:
         """Return (scen_list, switch_list, delta[sc, s] as 2D np.array)."""
         m = self.combined_model_instance
-        scen = list(m.SCEN) # type: ignore
-        sw = list(m.S) # type: ignore
+        scen = list(m.SCEN)  # type: ignore
+        sw = list(m.S)  # type: ignore
         arr = np.zeros((len(scen), len(sw)))
         for i, sc in enumerate(scen):
             for j, s in enumerate(sw):
-                arr[i, j] = pyo.value(m.delta[sc, s]) # type: ignore
+                arr[i, j] = pyo.value(m.delta[sc, s])  # type: ignore
         return scen, sw, arr
 
     def _set_del_param_from_z(self, z_per_switch: dict) -> None:
         """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
         m = self.combined_model_instance
-        for sc in m.SCEN: # type: ignore
-            for s in m.S: # type: ignore
-                m.del_param[sc, s].set_value(z_per_switch[s]) # type: ignore
+        for sc in m.SCEN:  # type: ignore
+            for s in m.S:  # type: ignore
+                m.del_param[sc, s].set_value(z_per_switch[s])  # type: ignore
 
     def _set_u_param(self, u_map: dict) -> None:
         """Set u_param[sc, s] from dictionary u_map[(sc, s)]."""
         m = self.combined_model_instance
-        for sc in m.SCEN: # type: ignore
-            for s in m.S: # type: ignore
-                m.u_param[sc, s].set_value(u_map[(sc, s)]) # type: ignore
+        for sc in m.SCEN:  # type: ignore
+            for s in m.S:  # type: ignore
+                m.u_param[sc, s].set_value(u_map[(sc, s)])  # type: ignore
 
     def solve_with_admm(
         self,
@@ -131,8 +131,8 @@ class PipelineModelManagerCombined:
         m = self.combined_model_instance
 
         # Sets
-        scen_list = list(m.SCEN) # type: ignore
-        sw_list = list(m.S) # type: ignore
+        scen_list = list(m.SCEN)  # type: ignore
+        sw_list = list(m.S)  # type: ignore
         S = len(scen_list)
 
         # Initialize consensus and duals
@@ -141,7 +141,7 @@ class PipelineModelManagerCombined:
 
         # Set rho in the model (single scalar for all terms)
         if hasattr(m, "rho"):
-            m.rho.set_value(rho) # type: ignore
+            m.rho.set_value(rho)  # type: ignore
 
         # ADMM iterations
         for k in range(1, max_iters + 1):
@@ -152,7 +152,9 @@ class PipelineModelManagerCombined:
             # Solve multi‑scenario instance
             results = self.combined_solver.solve(m, tee=self.config.verbose)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
-                log.error(f"[ADMM {k}] solve failed: {results.solver.termination_condition}")
+                log.error(
+                    f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
+                )
                 break
 
             # Gather local delta
@@ -189,10 +191,10 @@ class PipelineModelManagerCombined:
             if adapt_rho:
                 if r_norm > mu * s_norm:
                     rho *= tau_incr
-                    m.rho.set_value(rho) # type: ignore
+                    m.rho.set_value(rho)  # type: ignore
                 elif s_norm > mu * r_norm:
                     rho /= tau_decr
-                    m.rho.set_value(rho) # type: ignore
+                    m.rho.set_value(rho)  # type: ignore
 
         # Store results
         self.admm_z = z
@@ -204,7 +206,11 @@ class PipelineModelManagerCombined:
             {
                 "SCEN": [sc for sc in scen for _ in sw],
                 "S": [s for _ in scen for s in sw],
-                "delta_variable": [delta_mat[i, j] for i, _ in enumerate(scen) for j, _ in enumerate(sw)],
+                "delta_variable": [
+                    delta_mat[i, j]
+                    for i, _ in enumerate(scen)
+                    for j, _ in enumerate(sw)
+                ],
             }
         )
         # store objective value

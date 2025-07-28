@@ -15,7 +15,7 @@ from data_schema.load_data import NodeData as NodeLoad
 
 
 # %% --- config ---
-PP_NET_PATH = "data/simple_grid.p"   
+PP_NET_PATH = "data/simple_grid.p"
 LOAD_FACTOR = 1.0
 TEST_CONFIG = [
     {"line_list": [], "switch_list": []},
@@ -27,12 +27,12 @@ TEST_CONFIG = [
     {"line_list": [7, 11], "switch_list": [26, 30]},
 ]
 NB_TEST = 0
-EXPECTED_SCENARIOS = None  
-ZERO_SLACK = True  
-
+EXPECTED_SCENARIOS = None
+ZERO_SLACK = True
 
 
 # %% --- config --
+
 
 def validate_node_edge_model(
     model: NodeEdgeModel,
@@ -52,23 +52,27 @@ def validate_node_edge_model(
     assert node_df.height > 0, "node_data is empty"
     assert edge_df.height > 0, "edge_data is empty"
     if expected_n_scenarios is not None:
-        assert len(scenarios) == expected_n_scenarios, (
-            f"Expected {expected_n_scenarios} scenarios, got {len(scenarios)}"
-        )
+        assert (
+            len(scenarios) == expected_n_scenarios
+        ), f"Expected {expected_n_scenarios} scenarios, got {len(scenarios)}"
 
     # ---- schema validation for static nodes
     pt.DataFrame(node_df).set_model(NodeStatic).cast(strict=True).validate()
 
     # ---- single slack check
     slack_nodes = node_df.filter(pl.col("type") == "slack")
-    assert slack_nodes.height == 1, f"Expected exactly 1 slack node, found {slack_nodes.height}"
+    assert (
+        slack_nodes.height == 1
+    ), f"Expected exactly 1 slack node, found {slack_nodes.height}"
     slack_node_id = int(slack_nodes["node_id"][0])
 
     # ---- edges connect existing nodes
     nid_set = set(node_df["node_id"].to_list())
     missing_u = edge_df.filter(~pl.col("u_of_edge").is_in(nid_set))
     missing_v = edge_df.filter(~pl.col("v_of_edge").is_in(nid_set))
-    assert missing_u.height == 0 and missing_v.height == 0, "Some edges reference unknown node_ids"
+    assert (
+        missing_u.height == 0 and missing_v.height == 0
+    ), "Some edges reference unknown node_ids"
 
     # ---- validate scenarios
     for sid, sdf in scenarios.items():
@@ -76,22 +80,34 @@ def validate_node_edge_model(
         pt.DataFrame(sdf).set_model(NodeLoad).cast(strict=True).validate()
 
         # bounds
-        assert (sdf["p_node_pu"] >= sdf["p_node_min_pu"]).all(), f"p lower bound violated in scenario {sid}"
-        assert (sdf["p_node_pu"] <= sdf["p_node_max_pu"]).all(), f"p upper bound violated in scenario {sid}"
-        assert (sdf["q_node_pu"] >= sdf["q_node_min_pu"]).all(), f"q lower bound violated in scenario {sid}"
-        assert (sdf["q_node_pu"] <= sdf["q_node_max_pu"]).all(), f"q upper bound violated in scenario {sid}"
+        assert (
+            sdf["p_node_pu"] >= sdf["p_node_min_pu"]
+        ).all(), f"p lower bound violated in scenario {sid}"
+        assert (
+            sdf["p_node_pu"] <= sdf["p_node_max_pu"]
+        ).all(), f"p upper bound violated in scenario {sid}"
+        assert (
+            sdf["q_node_pu"] >= sdf["q_node_min_pu"]
+        ).all(), f"q lower bound violated in scenario {sid}"
+        assert (
+            sdf["q_node_pu"] <= sdf["q_node_max_pu"]
+        ).all(), f"q upper bound violated in scenario {sid}"
 
         # zero slack if enforced
         if zero_slack:
             slack_rows = sdf.filter(pl.col("node_id") == slack_node_id)
             if slack_rows.height > 0:
-                assert float(slack_rows["p_node_pu"][0]) == 0.0, f"Slack p != 0 in scenario {sid}"
-                assert float(slack_rows["q_node_pu"][0]) == 0.0, f"Slack q != 0 in scenario {sid}"
+                assert (
+                    float(slack_rows["p_node_pu"][0]) == 0.0
+                ), f"Slack p != 0 in scenario {sid}"
+                assert (
+                    float(slack_rows["q_node_pu"][0]) == 0.0
+                ), f"Slack q != 0 in scenario {sid}"
 
     print("✔ NodeEdgeModel validated: shapes, schema, bounds, connectivity, slack.")
 
 
-def small_summary(model: NodeEdgeModel, n_first_scenarios:int =3):
+def small_summary(model: NodeEdgeModel, n_first_scenarios: int = 3):
     node_df: pl.DataFrame = model.node_data
     edge_df: pl.DataFrame = model.edge_data
     scenarios: dict[str, pl.DataFrame] = model.load_data
@@ -107,7 +123,9 @@ def small_summary(model: NodeEdgeModel, n_first_scenarios:int =3):
     # show first scenario head
     if scenarios:
         # sort scenario ids numerically when possible
-        sorted_sids = sorted(scenarios.keys(), key=lambda x: int(x) if x.isdigit() else x)
+        sorted_sids = sorted(
+            scenarios.keys(), key=lambda x: int(x) if x.isdigit() else x
+        )
         print("\nScenario IDs:", sorted_sids)
 
         for sid in sorted_sids[:n_first_scenarios]:
@@ -118,7 +136,7 @@ def small_summary(model: NodeEdgeModel, n_first_scenarios:int =3):
 
 # %% --- main ---
 if __name__ == "__main__":
-    
+
     os.chdir(os.getcwd().replace("/src", ""))
 
     # load pandapower net
@@ -141,7 +159,6 @@ if __name__ == "__main__":
         zero_slack=ZERO_SLACK,
     )
 
-    
     small_summary(base_grid_data)
 
     print("All tests passed ✅")
