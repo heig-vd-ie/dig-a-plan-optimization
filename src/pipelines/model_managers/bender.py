@@ -7,7 +7,7 @@ import logging
 import networkx as nx
 from general_function import pl_to_dict_with_tuple, generate_log
 from polars import col as c
-from polars_function import cast_boolean, modify_string_col
+from polars_function import modify_string_col
 from networkx_function import (
     generate_nx_edge,
     generate_bfs_tree_with_edge_data,
@@ -21,23 +21,22 @@ from optimization_model import (
     generate_optimal_slave_model,
 )
 from pyomo_utility import extract_optimization_results
+from pipelines.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 
 
-class PipelineModelManagerBender:
+class PipelineModelManagerBender(PipelineModelManager):
 
-    def __init__(self, config: BenderConfig, data_manager: PipelineDataManager) -> None:
+    def __init__(
+        self,
+        config: BenderConfig,
+        data_manager: PipelineDataManager,
+        pipeline_type=PipelineType.BENDER,
+    ) -> None:
         """Initialize the Bender model manager with configuration and data manager"""
-        if config.pipeline_type != PipelineType.BENDER:
-            raise ValueError(
-                f"Pipeline type must be {PipelineType.BENDER}, got {config.pipeline_type}"
-            )
+        super().__init__(config, data_manager, pipeline_type)
 
-        self.config = config
-        self.data_manager = data_manager
-
-        self.delta_variable: pl.DataFrame
         self.master_model: pyo.AbstractModel = generate_master_model(
             relaxed=config.master_relaxed
         )
@@ -69,23 +68,19 @@ class PipelineModelManagerBender:
         self.slave_obj_list = []
         self.convergence_list = []
 
-        self.master_solver = pyo.SolverFactory(config.master_solver_name)
+        self.master_solver = pyo.SolverFactory(config.solver_name)
         self.master_solver.options["IntegralityFocus"] = (
             config.master_solver_integrality_focus
         )  # To insure master binary variable remains binary
-        self.slave_solver = pyo.SolverFactory(config.slave_solver_name)
-        if config.slave_solver_non_convex is not None:
-            self.slave_solver.options["NonConvex"] = config.slave_solver_non_convex
-        if config.slave_solver_qcp_dual is not None:
-            self.slave_solver.options["QCPDual"] = config.slave_solver_qcp_dual
-        if config.slave_solver_bar_qcp_conv_tol is not None:
-            self.slave_solver.options["BarQCPConvTol"] = (
-                config.slave_solver_bar_qcp_conv_tol
-            )
-        if config.slave_solver_bar_homogeneous is not None:
-            self.slave_solver.options["BarHomogeneous"] = (
-                config.slave_solver_bar_homogeneous
-            )
+        self.slave_solver = pyo.SolverFactory(config.solver_name)
+        if config.solver_non_convex is not None:
+            self.slave_solver.options["NonConvex"] = config.solver_non_convex
+        if config.solver_qcp_dual is not None:
+            self.slave_solver.options["QCPDual"] = config.solver_qcp_dual
+        if config.solver_bar_qcp_conv_tol is not None:
+            self.slave_solver.options["BarQCPConvTol"] = config.solver_bar_qcp_conv_tol
+        if config.solver_bar_homogeneous is not None:
+            self.slave_solver.options["BarHomogeneous"] = config.solver_bar_homogeneous
 
     def __scale_slave_models(
         self, factor_p: float, factor_q: float, factor_i: float, factor_v: float
@@ -117,8 +112,8 @@ class PipelineModelManagerBender:
         self.optimal_slave_model_instance = self.optimal_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
         self.infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
 
-        self.delta_variable = pl.DataFrame(
-            self.master_model_instance.delta.items(),  # type: ignore
+        self.δ_variable = pl.DataFrame(
+            self.master_model_instance.δ.items(),  # type: ignore
             schema=["S", "delta_variable"],
         )
         self.__scale_slave_models(
@@ -197,7 +192,7 @@ class PipelineModelManagerBender:
             self.convergence_list.append(self.slave_obj - self.master_obj)  # type: ignore
             if convergence_result < self.config.convergence_threshold:
                 break
-            master_delta = self.master_model_instance.delta.extract_values()  # type: ignore
+            master_delta = self.master_model_instance.δ.extract_values()  # type: ignore
 
     def add_benders_cut(self) -> None:
         constraint_name = ["master_switch_status_propagation"]
@@ -241,7 +236,7 @@ class PipelineModelManagerBender:
         )
 
         marginal_cost_df = marginal_cost_df.join(delta_value, on="S").join(
-            self.delta_variable, on="S"
+            self.δ_variable, on="S"
         )
 
         self.marginal_cost = marginal_cost_df
@@ -307,5 +302,5 @@ class PipelineModelManagerBender:
                 )
 
             self.master_obj = self.master_model_instance.objective()  # type: ignore
-            initial_master_delta = self.master_model_instance.delta.extract_values()  # type: ignore
+            initial_master_delta = self.master_model_instance.δ.extract_values()  # type: ignore
         return initial_master_delta

@@ -2,9 +2,16 @@ import pyomo.environ as pyo
 from data_schema import NodeEdgeModel
 from pipelines.data_manager import PipelineDataManager
 from pipelines.result_manager import PipelineResultManager
-from pipelines.configs import CombinedConfig, PipelineConfig, BenderConfig, PipelineType
+from pipelines.configs import (
+    CombinedConfig,
+    PipelineConfig,
+    BenderConfig,
+    ADMMConfig,
+    PipelineType,
+)
 from pipelines.model_managers.bender import PipelineModelManagerBender
 from pipelines.model_managers.combined import PipelineModelManagerCombined
+from pipelines.model_managers.admm import PipelineModelManagerADMM
 
 
 class DigAPlan:
@@ -17,16 +24,14 @@ class DigAPlan:
       until convergence.
     """
 
-    def __init__(self, config: PipelineConfig | BenderConfig) -> None:
+    def __init__(self, config: PipelineConfig | BenderConfig | ADMMConfig) -> None:
 
         self.config = config or PipelineConfig()
-        # Pull rho from the config (only used in the COMBINED/ADMM pipeline)
-        rho = getattr(self.config, "rho", None)
-        # 2) build the DataManager (holds big_m, small_m, rho, etc)
+        # Pull ρ from the config (only used in the COMBINED/ADMM pipeline)
         self.data_manager = PipelineDataManager(
             self.config.big_m,
             self.config.small_m,
-            rho,
+            self.config.ρ,
             self.config.weight_infeasibility,
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
@@ -42,7 +47,13 @@ class DigAPlan:
             self.model_manager = PipelineModelManagerCombined(
                 config=config,
                 data_manager=self.data_manager,
-                rho=rho,
+            )
+        elif (config.pipeline_type == PipelineType.ADMM) and isinstance(
+            config, ADMMConfig
+        ):
+            self.model_manager = PipelineModelManagerADMM(
+                config=config,
+                data_manager=self.data_manager,
             )
         else:
             raise ValueError(

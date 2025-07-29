@@ -3,6 +3,7 @@ from polars import col as c
 from pipelines.data_manager import PipelineDataManager
 from pipelines.model_managers.combined import PipelineModelManagerCombined
 from pipelines.model_managers.bender import PipelineModelManagerBender
+from pipelines.model_managers.admm import PipelineModelManagerADMM
 from polars_function import cast_boolean
 from pyomo_utility import extract_optimization_results
 
@@ -15,7 +16,11 @@ class PipelineResultManager:
     def __init__(
         self,
         data_manager: PipelineDataManager,
-        model_manager: PipelineModelManagerCombined | PipelineModelManagerBender,
+        model_manager: (
+            PipelineModelManagerCombined
+            | PipelineModelManagerBender
+            | PipelineModelManagerADMM
+        ),
     ):
         """
         Initialize the result manager with a data manager and a model manager.
@@ -34,7 +39,7 @@ class PipelineResultManager:
         # Pull out only the switch edges...
         ss = self.data_manager.edge_data.filter(c("type") == "switch")
         # Build a Polars mapping from edge_id -> {0,1}
-        delta_map = self.model_instance.delta.extract_values()  # type: ignore
+        delta_map = self.model_instance.δ.extract_values()  # type: ignore
         # 1) Create a 'delta' column exactly as before
         ss = ss.with_columns(
             c("edge_id")
