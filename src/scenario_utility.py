@@ -10,7 +10,7 @@ def generate_random_load_scenarios(
     node_data: pt.DataFrame[NodeData],
     v_slack_node_sqr_pu: float,
     load_data: pl.DataFrame,
-    n_scenarios: int = 50,
+    n_scenarios: int = 3,
     seed: int = 42,
     p_bounds: Tuple[float, float] = (-0.5, 1.0),
     q_bounds: Tuple[float, float] = (-0.5, 1.0),

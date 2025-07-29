@@ -5,7 +5,7 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Topology & radiality
     model.slack_node = pyo.Param()  # Slack bus index
     model.small_m = pyo.Param()  # Small constant for radiality constraints
-    model.ρ = pyo.Param(default=1.0)  # ADMM penalty parameter
+    model.ρ = pyo.Param(mutable=True, default=1.0)  # ADMM penalty parameter
     # Line parameters
     model.r = pyo.Param(model.L)  # Resistance (pu)
     model.x = pyo.Param(model.L)  # Reactance (pu)
@@ -28,7 +28,7 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.weight_admm_penalty = pyo.Param(default=1.0)
 
     # ADMM params, now scenario‐indexed:
-    model.z = pyo.Param(model.S, initialize=0.0)
-    model.λ = pyo.Param(model.S, initialize=0.0)
+    model.z = pyo.Param(model.S, mutable=True, initialize=0.0)
+    model.λ = pyo.Param(model.S, mutable=True, initialize=0.0)
 
     return model
