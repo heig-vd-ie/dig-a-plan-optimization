@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 import patito as pt
-from edge_data import EdgeData
-from node_data import NodeData
-from load_data import LoadData
+from data_schema.edge_data import EdgeData
+from data_schema.node_data import NodeData
+from data_schema.load_data import LoadData
 
 
 @dataclass(frozen=True)
@@ -13,4 +13,4 @@ class NodeEdgeModel:
     edge_data: pt.DataFrame = field(
         default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
     )
-    load_data: dict[str, pt.DataFrame] = field(default_factory=dict)
+    load_data: dict[str, pt.DataFrame[LoadData]] = field(default_factory=dict)

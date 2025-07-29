@@ -3,17 +3,18 @@ from typing import Dict, Tuple
 import numpy as np
 import polars as pl
 import patito as pt
-from data_schema.node_data import NodeData
-from data_schema.load_data import LoadData
+from data_schema import NodeData, LoadData
 
 
 def generate_random_load_scenarios(
     node_data: pt.DataFrame[NodeData],
+    v_slack_node_sqr_pu: float,
+    load_data: pl.DataFrame,
     n_scenarios: int = 50,
     seed: int = 42,
     p_bounds: Tuple[float, float] = (-0.5, 1.0),
     q_bounds: Tuple[float, float] = (-0.5, 1.0),
-    v_bounds: Tuple[float, float] = (0.9, 1.1),
+    v_bounds: Tuple[float, float] = (0.95, 1.05),
 ) -> Dict[str, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
@@ -38,9 +39,9 @@ def generate_random_load_scenarios(
         df = pl.DataFrame(
             {
                 "node_id": node_ids,
-                "p_node_pu": p_rand,
-                "q_node_pu": q_rand,
-                "v_node_sqr_pu": v_rand**2,
+                "p_node_pu": p_rand if i != 1 else load_data["p_node_pu"],
+                "q_node_pu": q_rand if i != 1 else load_data["q_node_pu"],
+                "v_node_sqr_pu": v_rand if i != 1 else v_slack_node_sqr_pu,
             }
         )
 

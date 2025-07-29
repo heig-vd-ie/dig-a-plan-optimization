@@ -159,6 +159,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.node_reactive_power_balance = pyo.Constraint(
         model.N, rule=node_reactive_power_balance_rule
     )
+    ##
     model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
     model.voltage_drop_lower = pyo.Constraint(
         model.C, rule=voltage_drop_lower_lindistflow_rule
@@ -178,6 +179,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.switch_active_power_upper_bound = pyo.Constraint(
         model.C, rule=switch_active_power_upper_bound_rule
     )
+    #
     model.switch_reactive_power_lower_bound = pyo.Constraint(
         model.C, rule=switch_reactive_power_lower_bound_rule
     )

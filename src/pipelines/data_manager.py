@@ -1,6 +1,4 @@
-from data_schema.node_data import NodeData
-from data_schema.edge_data import EdgeData
-from data_schema.load_data import LoadData
+from data_schema import NodeData, EdgeData, LoadData
 from data_schema import NodeEdgeModel
 import patito as pt
 import polars as pl
@@ -200,7 +198,7 @@ class PipelineDataManager:
                         None: float(
                             self.__load_data[scen_id].filter(
                                 c("node_id") == self.__slack_node
-                            )["v_sq_pu"][0]
+                            )["v_node_sqr_pu"][0]
                         )
                     },
                     # scenario loads

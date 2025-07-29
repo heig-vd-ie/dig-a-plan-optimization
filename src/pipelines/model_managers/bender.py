@@ -108,13 +108,14 @@ class PipelineModelManagerBender(PipelineModelManager):
         )
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
+        grid_data_parameters_dict = grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]]  # type: ignore
         self.master_model_instance = self.master_model.create_instance(grid_data_parameters_dict)  # type: ignore
         self.optimal_slave_model_instance = self.optimal_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
         self.infeasible_slave_model_instance = self.infeasible_slave_model.create_instance(grid_data_parameters_dict)  # type: ignore
 
         self.δ_variable = pl.DataFrame(
             self.master_model_instance.δ.items(),  # type: ignore
-            schema=["S", "delta_variable"],
+            schema=["S", "δ_variable"],
         )
         self.__scale_slave_models(
             factor_p=self.config.factor_p,
@@ -125,7 +126,7 @@ class PipelineModelManagerBender(PipelineModelManager):
 
     def solve_model(self, max_iters: int) -> None:
         convergence_result = np.inf
-        master_delta = self.find_initial_state_of_switches()
+        master_δ = self.find_initial_state_of_switches()
 
         pbar = tqdm.tqdm(
             range(max_iters),
@@ -134,8 +135,8 @@ class PipelineModelManagerBender(PipelineModelManager):
         )
         logging.getLogger("pyomo.core").setLevel(logging.ERROR)
         for k in pbar:
-            self.optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-            self.scaled_optimal_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+            self.optimal_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
+            self.scaled_optimal_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
             try:
                 results = self.slave_solver.solve(
                     self.scaled_optimal_slave_model_instance, tee=self.config.verbose
@@ -154,8 +155,8 @@ class PipelineModelManagerBender(PipelineModelManager):
                 self.slave_obj = self.optimal_slave_model_instance.objective()  # type: ignore
                 self.infeasible_slave = False
             else:
-                self.infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
-                self.scaled_infeasible_slave_model_instance.master_delta.store_values(master_delta)  # type: ignore
+                self.infeasible_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
+                self.scaled_infeasible_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
                 _ = self.slave_solver.solve(
                     self.scaled_infeasible_slave_model_instance,
                     tee=self.config.verbose,
@@ -192,7 +193,7 @@ class PipelineModelManagerBender(PipelineModelManager):
             self.convergence_list.append(self.slave_obj - self.master_obj)  # type: ignore
             if convergence_result < self.config.convergence_threshold:
                 break
-            master_delta = self.master_model_instance.δ.extract_values()  # type: ignore
+            master_δ = self.master_model_instance.δ.extract_values()  # type: ignore
 
     def add_benders_cut(self) -> None:
         constraint_name = ["master_switch_status_propagation"]
@@ -204,8 +205,8 @@ class PipelineModelManagerBender(PipelineModelManager):
                     "marginal_cost": list(dict(self.infeasible_slave_model_instance.dual).values()),  # type: ignore
                 }
             )
-            delta_value = extract_optimization_results(
-                self.infeasible_slave_model_instance, "master_delta"
+            δ_value = extract_optimization_results(
+                self.infeasible_slave_model_instance, "master_δ"
             )
 
         else:
@@ -216,8 +217,8 @@ class PipelineModelManagerBender(PipelineModelManager):
                 }
             )
 
-            delta_value = extract_optimization_results(
-                self.optimal_slave_model_instance, "master_delta"
+            δ_value = extract_optimization_results(
+                self.optimal_slave_model_instance, "master_δ"
             )
 
         marginal_cost_df = (
@@ -235,19 +236,17 @@ class PipelineModelManagerBender(PipelineModelManager):
             .with_columns(c("S").cast(pl.Int64))
         )
 
-        marginal_cost_df = marginal_cost_df.join(delta_value, on="S").join(
+        marginal_cost_df = marginal_cost_df.join(δ_value, on="S").join(
             self.δ_variable, on="S"
         )
 
         self.marginal_cost = marginal_cost_df
 
-        marginal_cost_df = marginal_cost_df.filter(c("master_delta") == 1)
+        marginal_cost_df = marginal_cost_df.filter(c("master_δ") == 1)
 
         new_cut = self.slave_obj
         for data in marginal_cost_df.to_dicts():
-            new_cut += data["marginal_cost"] * (
-                data["delta_variable"] - data["master_delta"]
-            )
+            new_cut += data["marginal_cost"] * (data["δ_variable"] - data["master_δ"])
 
         if self.infeasible_slave == True:
             self.master_model_instance.infeasibility_cut.add(0 >= new_cut)  # type: ignore
@@ -283,7 +282,7 @@ class PipelineModelManagerBender(PipelineModelManager):
             digraph = generate_bfs_tree_with_edge_data(
                 graph=nx_graph, source=slack_node_id
             )
-            initial_master_delta = pl_to_dict_with_tuple(
+            initial_master_δ = pl_to_dict_with_tuple(
                 get_all_edge_data(digraph).select(
                     pl.concat_list("edge_id", "v_of_edge", "u_of_edge").alias("LC"),
                     pl.lit(1).alias("value"),
@@ -302,5 +301,5 @@ class PipelineModelManagerBender(PipelineModelManager):
                 )
 
             self.master_obj = self.master_model_instance.objective()  # type: ignore
-            initial_master_delta = self.master_model_instance.δ.extract_values()  # type: ignore
-        return initial_master_delta
+            initial_master_δ = self.master_model_instance.δ.extract_values()  # type: ignore
+        return initial_master_δ

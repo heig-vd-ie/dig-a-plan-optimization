@@ -109,7 +109,7 @@ def slack_voltage_rule(m, n):
 def node_active_power_balance_rule(m, n):
     p_flow_tot = sum(m.p_flow[l, i, j] for (l, i, j) in m.C if (i == n))
     if n == m.slack_node:
-        return p_flow_tot == -m.p_slack_node[n]
+        return p_flow_tot == -m.p_slack_node
     else:
         return p_flow_tot == -m.p_node[n]
 
@@ -120,7 +120,7 @@ def node_reactive_power_balance_rule(m, n):
         m.q_flow[l, i, j] - m.b[l] / 2 * m.v_sq[i] for (l, i, j) in m.C if (i == n)
     )
     if n == m.slack_node:
-        return q_flow_tot == -m.q_slack_node[n]
+        return q_flow_tot == -m.q_slack_node
     else:
         return q_flow_tot == -m.q_node[n]
 
@@ -188,7 +188,7 @@ def current_rotated_cone_rule(m, l, i, j):
     else:
 
         lhs = (m.p_flow[l, i, j]) ** 2 + (m.q_flow[l, i, j]) ** 2
-        rhs = m.i_sq[l, i, j] * m.v_sq[l, i] / (m.n_transfo[l, i, j] ** 2)
+        rhs = m.i_sq[l, i, j] * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
         return lhs <= rhs
 
 
@@ -300,9 +300,9 @@ def infeasible_current_limit_rule(m, l, i, j):
 
 
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
-def infeasible_voltage_upper_limits_rule(m, l, n):
-    return m.v_sq[l, n] <= m.v_max[n] ** 2 + m.slack_v_pos[l, n]
+def infeasible_voltage_upper_limits_rule(m, n):
+    return m.v_sq[n] <= m.v_max[n] ** 2 + m.slack_v_pos[n]
 
 
-def infeasible_voltage_lower_limits_rule(m, l, n):
-    return m.v_sq[l, n] >= m.v_min[n] ** 2 - m.slack_v_neg[l, n]
+def infeasible_voltage_lower_limits_rule(m, n):
+    return m.v_sq[n] >= m.v_min[n] ** 2 - m.slack_v_neg[n]

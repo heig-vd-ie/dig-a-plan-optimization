@@ -31,7 +31,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict)  # type: ignore
         self.δ_variable = pl.DataFrame(
             self.combined_model_instance.δ.items(),  # type: ignore
-            schema=["S", "delta_variable"],
+            schema=["S", "δ_variable"],
         )
 
     def solve_model(self, **kwargs) -> None:
@@ -47,5 +47,5 @@ class PipelineModelManagerCombined(PipelineModelManager):
         log.info(f"Combined solve successful: objective = {current_obj:.4f}")
         self.δ_variable = pl.DataFrame(
             self.combined_model_instance.δ.items(),  # type: ignore
-            schema=["S", "delta_variable"],
+            schema=["S", "δ_variable"],
         )

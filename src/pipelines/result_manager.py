@@ -39,17 +39,17 @@ class PipelineResultManager:
         # Pull out only the switch edges...
         ss = self.data_manager.edge_data.filter(c("type") == "switch")
         # Build a Polars mapping from edge_id -> {0,1}
-        delta_map = self.model_instance.δ.extract_values()  # type: ignore
-        # 1) Create a 'delta' column exactly as before
+        δ_map = self.model_instance.δ.extract_values()  # type: ignore
+        # 1) Create a 'δ' column exactly as before
         ss = ss.with_columns(
             c("edge_id")
-            .replace_strict(delta_map, default=None)  # None for missing entries
-            .alias("delta")  # still 0,1 or None
+            .replace_strict(δ_map, default=None)  # None for missing entries
+            .alias("δ")  # still 0,1 or None
         )
-        # 2) Create 'open' by bitwise‐not on the Boolean view of delta
-        ss = ss.with_columns((~(c("delta") > 0.5).pipe(cast_boolean)).alias("open"))
+        # 2) Create 'open' by bitwise‐not on the Boolean view of δ
+        ss = ss.with_columns((~(c("δ") > 0.5).pipe(cast_boolean)).alias("open"))
         # Finally select the columns you care about
-        return ss.select(["eq_fk", "edge_id", "delta", "normal_open", "open"])
+        return ss.select(["eq_fk", "edge_id", "δ", "normal_open", "open"])
 
     def extract_node_voltage(self) -> pl.DataFrame:
         self.init_model_instance()

@@ -1,4 +1,3 @@
-import pyomo.environ as pyo
 from data_schema import NodeEdgeModel
 from pipelines.data_manager import PipelineDataManager
 from pipelines.result_manager import PipelineResultManager

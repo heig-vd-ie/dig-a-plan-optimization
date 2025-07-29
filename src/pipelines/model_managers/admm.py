@@ -6,7 +6,7 @@ from general_function import generate_log
 from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import ADMMConfig, PipelineType
 from optimization_model import generate_combined_model
-from model_managers import PipelineModelManager
+from pipelines.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 
@@ -45,7 +45,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         tau_decr: float = 2.0,
     ) -> None:
         """
-        Run consensus‑ADMM on delta[SCEN, S]. Assumes the model objective is ADMM_objective_rule
+        Run consensus‑ADMM on δ[SCEN, S]. Assumes the model objective is ADMM_objective_rule
         and the model defines: ρ (Param), del_param[SCEN,S], u_param[SCEN,S].
         """
         models = self.admm_model_instances
@@ -75,26 +75,26 @@ class PipelineModelManagerADMM(PipelineModelManager):
                         f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
                     )
 
-                # Gather local delta
-                scen, sw, delta_mat = self._extract_delta_matrix()
+                # Gather local δ
+                scen, sw, δ_mat = self._extract_δ_matrix()
 
                 # z‑update (per switch)
                 z_old = z.copy()
                 for j, s in enumerate(sw):
                     z[s] = (
-                        delta_mat[:, j].sum() + sum(z[(sc, s)] for sc in scen)
+                        δ_mat[:, j].sum() + sum(z[(sc, s)] for sc in scen)
                     ) / scenario_number
 
                 # u‑update
                 for i, sc in enumerate(scen):
                     for j, s in enumerate(sw):
-                        z[(sc, s)] = z[(sc, s)] + delta_mat[i, j] - z[s]
+                        z[(sc, s)] = z[(sc, s)] + δ_mat[i, j] - z[s]
 
                 # Residuals
                 r_sq = 0.0
                 for i, sc in enumerate(scen):
                     for j, s in enumerate(sw):
-                        r_sq += (delta_mat[i, j] - z[s]) ** 2
+                        r_sq += (δ_mat[i, j] - z[s]) ** 2
                 r_norm = np.sqrt(r_sq)
 
                 s_sq = sum((z[s] - z_old[s]) ** 2 for s in sw)
@@ -120,14 +120,14 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self.admm_z = z
             self.admm_λ = λ
 
-            # Refresh delta table after final iterate
-            scen, sw, delta_mat = self._extract_delta_matrix()
+            # Refresh δ table after final iterate
+            scen, sw, δ_mat = self._extract_δ_matrix()
             self.δ_variable = pl.DataFrame(
                 {
                     "SCEN": [sc for sc in scen for _ in sw],
                     "S": [s for _ in scen for s in sw],
-                    "delta_variable": [
-                        delta_mat[i, j]
+                    "δ_variable": [
+                        δ_mat[i, j]
                         for i, _ in enumerate(scen)
                         for j, _ in enumerate(sw)
                     ],
@@ -142,8 +142,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
     # ADMM helpers and main loop
     # ---------------------------
 
-    def _extract_delta_matrix(self) -> tuple[list, list, np.ndarray]:
-        """Return (scen_list, switch_list, delta[sc, s] as 2D np.array)."""
+    def _extract_δ_matrix(self) -> tuple[list, list, np.ndarray]:
+        """Return (scen_list, switch_list, δ[sc, s] as 2D np.array)."""
         m = self.admm_model_instances
         scen = list(m.SCEN)  # type: ignore
         sw = list(m.S)  # type: ignore
