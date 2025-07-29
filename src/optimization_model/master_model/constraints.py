@@ -40,7 +40,7 @@ To anchor the voltage profile, the squared voltage magnitude at the slack node i
 
 This constraint determines how the binary variables control branch status:
 
-- If the branch :math:`l` is switchable (i.e., :math:`l \in S`), then its activation depends on the switch status :math:`\delta_l`.
+- If the branch :math:`l` is switchable (i.e., :math:`l \in S`), then its activation depends on the switch status :math:`\δ_l`.
 - If the branch is not switchable, then exactly one candidate connection must be selected.
 
 .. math::
@@ -50,7 +50,7 @@ This constraint determines how the binary variables control branch status:
     \begin{align}
         d_{l~i~j} + d_{l~j~i} =
         \begin{cases}
-            \delta_l & \text{if } l \in S \\
+            \δ_l & \text{if } l \in S \\
             1 & \text{otherwise}
         \end{cases}
     \end{align}

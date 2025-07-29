@@ -14,7 +14,7 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (p.u.)
     model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (p.u.)
     # master_d is defined over LF: 1 if candidate is active, else 0.
-    model.master_delta = pyo.Param(model.S, default=0, mutable=True)
+    model.master_δ = pyo.Param(model.S, default=0, mutable=True)
     model.master_d = pyo.Param(model.C, default=0, mutable=True)
 
     model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)

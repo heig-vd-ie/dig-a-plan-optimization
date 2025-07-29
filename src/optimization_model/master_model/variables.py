@@ -9,13 +9,13 @@ def master_model_variables(
 ) -> pyo.AbstractModel:
 
     if relaxed:
-        model.delta = pyo.Var(
+        model.δ = pyo.Var(
             model.S, domain=pyo.Reals, bounds=(0, 1)
-        )  # Default value for delta, mutable for testing.
+        )  # Default value for δ, mutable for testing.
     else:
-        model.delta = pyo.Var(
+        model.δ = pyo.Var(
             model.S, domain=pyo.Binary
-        )  # Default value for delta, mutable for testing.
+        )  # Default value for δ, mutable for testing.
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
 
     model.p_flow = pyo.Var(model.C, domain=pyo.Reals)
