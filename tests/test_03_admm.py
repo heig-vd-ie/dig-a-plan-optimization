@@ -48,14 +48,14 @@ grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% Configure ADMM pipeline
 config = ADMMConfig(
-    verbose=True,                      # see solver logs + ADMM residuals
+    verbose=True,                      
     pipeline_type=PipelineType.ADMM,
     # solver & model scaling
-    solver_name="gurobi",              # or "ipopt", "cbc", ...
-    solver_non_convex=2,               # needed for IPOPT if nonconvex
+    solver_name="gurobi",              
+    solver_non_convex=2,               
     big_m=1e3,
     small_m=1e-4,
-    ρ=2.0,                             # initial rho (also fed to DataManager)
+    ρ=2.0,                             # initial rho 
     weight_infeasibility=1.0,
     weight_penalty=1e-6,
     weight_admm_penalty=1.0,
@@ -79,7 +79,7 @@ scen_ids = list(grid_data.load_data.keys())
 print("Switch IDs:", switch_ids)
 print("Scenario IDs:", scen_ids)
 
-# %% Run ADMM (use your manager directly to pass ADMM-specific args)
+# %% Run ADMM 
 dap.model_manager.solve_model(
     ρ=2.0,
     max_iters=50,
@@ -115,7 +115,7 @@ z_df = pl.DataFrame(
 consensus_states = (
     switches.join(z_df, on="edge_id", how="inner")
     .with_columns(
-        (pl.col("z") > 0.5).alias("closed"),         # your threshold; adjust if needed
+        (pl.col("z") > 0.5).alias("closed"),         
         (~(pl.col("z") > 0.5)).alias("open")
     )
     .select("eq_fk", "edge_id", "z", "normal_open", "closed", "open")
