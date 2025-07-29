@@ -3,11 +3,13 @@ import os
 import pandapower as pp
 from polars import col as c
 import polars as pl
-from local_data_exporter import (
+from data_exporter.changes_schema_to_dig_a_plan import (
     change_schema_to_dig_a_plan_schema,
+)
+from data_exporter.duckdb_to_change_schema import (
     duckdb_to_changes_schema,
 )
-from local_data_exporter import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 
 from pipelines import DigAPlan
 from pipelines.configs import CombinedConfig, PipelineType
