@@ -28,7 +28,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
         self.combined_obj_list: list[float] = []
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
-        self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict)  # type: ignore
+        self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
         self.δ_variable = pl.DataFrame(
             self.combined_model_instance.δ.items(),  # type: ignore
             schema=["S", "δ_variable"],

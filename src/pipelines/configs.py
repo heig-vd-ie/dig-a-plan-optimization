@@ -27,6 +27,8 @@ class PipelineConfig:
     factor_i: float = 1.0
     factor_v: float = 1.0
     weight_infeasibility: float = 1.0
+    weight_penalty: float = 1e-6
+    weight_admm_penalty: float = 1.0
     solver_name: str = "gurobi"
     solver_integrality_focus: int = 1
     solver_method: int = 2

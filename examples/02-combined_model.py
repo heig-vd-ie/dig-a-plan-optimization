@@ -2,7 +2,7 @@
 import os
 import pandapower as pp
 
-from local_data_exporter import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
@@ -46,6 +46,8 @@ config = CombinedConfig(
     small_m=1,
     pipeline_type=PipelineType.COMBINED,
     weight_infeasibility=1e-3,
+    weight_admm_penalty=0.0,
+    weight_penalty=1e-6,
 )
 dig_a_plan = DigAPlan(config=config)
 

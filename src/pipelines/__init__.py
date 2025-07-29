@@ -28,10 +28,12 @@ class DigAPlan:
         self.config = config or PipelineConfig()
         # Pull ρ from the config (only used in the COMBINED/ADMM pipeline)
         self.data_manager = PipelineDataManager(
-            self.config.big_m,
-            self.config.small_m,
-            self.config.ρ,
-            self.config.weight_infeasibility,
+            big_m=self.config.big_m,
+            small_m=self.config.small_m,
+            ρ=self.config.ρ,
+            weight_infeasibility=self.config.weight_infeasibility,
+            weight_penalty=self.config.weight_penalty,
+            weight_admm_penalty=self.config.weight_admm_penalty,
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig

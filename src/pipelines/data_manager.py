@@ -1,3 +1,4 @@
+from ast import Dict
 from data_schema import NodeData, EdgeData, LoadData
 from data_schema import NodeEdgeModel
 import patito as pt
@@ -17,8 +18,8 @@ class PipelineDataManager:
         weight_infeasibility: float = 1.0,
         weight_penalty: float = 1e-6,
         weight_admm_penalty: float = 1.0,
-        z: float = 0.0,
-        λ: float = 0.0,
+        z: dict[str, float] | None = None,
+        λ: dict[str, float] | None = None,
     ):
 
         self.big_m: float = big_m
@@ -27,8 +28,8 @@ class PipelineDataManager:
         self.weight_infeasibility: float = weight_infeasibility
         self.weight_admm_penalty: float = weight_admm_penalty
         self.weight_penalty: float = weight_penalty
-        self.z: float = z
-        self.λ: float = λ
+        self.z: dict[str, float] | None = z
+        self.λ: dict[str, float] | None = λ
 
         # patito tables for static schemas
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(
@@ -215,8 +216,16 @@ class PipelineDataManager:
                     "weight_admm_penalty": {None: self.weight_admm_penalty},
                     "weight_penalty": {None: self.weight_penalty},
                     "ρ": {None: self.ρ},
-                    "z": {None: self.z},
-                    "λ": {None: self.λ},
+                    "z": (
+                        self.z
+                        if self.z is not None
+                        else {switch_id: 0.0 for switch_id in switch_ids}
+                    ),
+                    "λ": (
+                        self.λ
+                        if self.λ is not None
+                        else {switch_id: 0.0 for switch_id in switch_ids}
+                    ),
                 }
             }
             for scen_id in scen_ids
