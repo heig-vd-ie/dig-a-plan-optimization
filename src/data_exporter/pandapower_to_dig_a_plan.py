@@ -203,7 +203,7 @@ def pandapower_to_dig_a_plan_schema(
         .with_row_index(name="edge_id")
         .with_columns(
             pl.lit(0.0).alias("g_pu"),
-            pl.lit(0.0).alias("b_pu"),
+            c("b_pu").fill_null(0.0).alias("b_pu"),
         )
     )
 
