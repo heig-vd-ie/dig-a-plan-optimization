@@ -14,7 +14,7 @@ def generate_random_load_scenarios(
     seed: int = 42,
     p_bounds: Tuple[float, float] = (-0.1, 0.1),
     q_bounds: Tuple[float, float] = (-0.1, 0.1),
-    v_bounds: Tuple[float, float] = (0.03, 0.03),
+    v_bounds: Tuple[float, float] = (-0.03, 0.03),
 ) -> Dict[str, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
