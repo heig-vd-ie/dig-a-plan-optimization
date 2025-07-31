@@ -133,6 +133,9 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
 
     model.flow_balance = pyo.Constraint(model.N, rule=imaginary_flow_balance_rule)
+    model.flow_balance_slack = pyo.Constraint(
+        model.slack_node, rule=imaginary_flow_balance_slack_rule
+    )
     model.edge_propagation = pyo.Constraint(
         model.L, rule=imaginary_flow_edge_propagation_rule
     )
@@ -154,13 +157,19 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.L, rule=edge_reactive_power_balance_lindistflow_rule
     )
     model.node_active_power_balance = pyo.Constraint(
-        model.N, rule=node_active_power_balance_rule
+        model.Nes, rule=node_active_power_balance_rule
+    )
+    model.node_active_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
-        model.N, rule=node_reactive_power_balance_rule
+        model.Nes, rule=node_reactive_power_balance_rule
+    )
+    model.node_reactive_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_reactive_power_balance_slack_rule
     )
     ##
-    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
     model.voltage_drop_lower = pyo.Constraint(
         model.C, rule=voltage_drop_lower_lindistflow_rule
     )

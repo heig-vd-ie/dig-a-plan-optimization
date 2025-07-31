@@ -5,7 +5,10 @@ import pyomo.environ as pyo
 
 def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # 1) Radiality: each non‑slack node has one incoming flow (per scenario)
-    model.flow_balance = pyo.Constraint(model.N, rule=imaginary_flow_balance_rule)
+    model.flow_balance = pyo.Constraint(model.Nes, rule=imaginary_flow_balance_rule)
+    model.flow_balance_slack = pyo.Constraint(
+        model.slack_node, rule=imaginary_flow_balance_slack_rule
+    )
     model.edge_propagation = pyo.Constraint(
         model.L, rule=imaginary_flow_edge_propagation_rule
     )
@@ -19,12 +22,18 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         rule=imaginary_flow_nb_closed_switches_rule
     )
     # 2) DistFlow & power balance (per scenario)
-    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
-        model.N, rule=node_active_power_balance_rule
+        model.Nes, rule=node_active_power_balance_rule
+    )
+    model.node_active_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
-        model.N, rule=node_reactive_power_balance_rule
+        model.Nes, rule=node_reactive_power_balance_rule
+    )
+    model.node_reactive_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_reactive_power_balance_slack_rule
     )
     model.edge_active_power_balance = pyo.Constraint(
         model.L, rule=edge_active_power_balance_rule

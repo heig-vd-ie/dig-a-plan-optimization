@@ -10,7 +10,6 @@ def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.p_node = pyo.Param(model.N)  # Real node at bus i.
     model.q_node = pyo.Param(model.N)  # Reactive load at bus i.
 
-    model.slack_node = pyo.Param()  # Slack bus index.
     model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)
     model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (p.u.)
     model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (p.u.)

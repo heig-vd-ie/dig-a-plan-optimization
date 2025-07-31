@@ -200,12 +200,18 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.S, rule=master_switch_status_propagation_rule
     )
     # Distflow equations
-    model.slack_voltage = pyo.Constraint(model.N, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
-        model.N, rule=node_active_power_balance_rule
+        model.Nes, rule=node_active_power_balance_rule
+    )
+    model.node_active_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
-        model.N, rule=node_reactive_power_balance_rule
+        model.Nes, rule=node_reactive_power_balance_rule
+    )
+    model.node_reactive_power_balance_slack = pyo.Constraint(
+        model.slack_node, rule=node_reactive_power_balance_slack_rule
     )
     model.voltage_drop_lower = pyo.Constraint(model.C, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.C, rule=voltage_drop_upper_rule)

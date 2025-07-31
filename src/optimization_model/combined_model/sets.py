@@ -1,8 +1,8 @@
-from mimetypes import init
 import pyomo.environ as pyo
 
 
 def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.slack_node = pyo.Set()
     model.N = pyo.Set()  # Nodes indices
     model.L = pyo.Set()  # Edges indices
     model.S = pyo.Set(within=model.L)  # Switch indices
@@ -12,5 +12,7 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.Cl = pyo.Set(
         initialize=lambda m: [(l, i, j) for l, i, j in m.C if l not in m.S]
     )
+
+    model.Nes = pyo.Set(initialize=lambda m: [n for n in m.N if n not in m.slack_node])
 
     return model

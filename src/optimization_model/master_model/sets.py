@@ -2,6 +2,7 @@ import pyomo.environ as pyo
 
 
 def master_model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.slack_node = pyo.Set()
     model.N = pyo.Set()  # Nodes indices.
     model.L = pyo.Set()  # Edges indices.
     model.S = pyo.Set(within=model.L)  # Switch indices

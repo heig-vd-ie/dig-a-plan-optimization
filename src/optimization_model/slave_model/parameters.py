@@ -19,7 +19,6 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.master_d = pyo.Param(model.C, default=0, mutable=True)
 
     model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)
-    model.slack_node = pyo.Param()  # Slack bus index.
 
     # Big-M and penalty costs: give safe defaults and allow mutation
     model.big_m = pyo.Param()

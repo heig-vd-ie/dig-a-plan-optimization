@@ -43,13 +43,14 @@ def objective_rule_combined(m):
 
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
+def imaginary_flow_balance_slack_rule(m, n):
+    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.small_m * (
+        len(m.N) - 1
+    )
+
+
 def imaginary_flow_balance_rule(m, n):
-    if n == m.slack_node:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.small_m * (
-            len(m.N) - 1
-        )
-    else:
-        return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.small_m
+    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.small_m
 
 
 # Orientation constraint.
@@ -76,10 +77,7 @@ def imaginary_flow_nb_closed_switches_rule(m):
 
 
 def radiality_rule(m, n):
-    if n != m.slack_node:
-        return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 1
-    else:
-        return pyo.Constraint.Skip
+    return sum(m.d[l, i, j] for l, i, j in m.C if i == n) == 1
 
 
 def edge_direction_rule(m, l):
@@ -97,32 +95,36 @@ def master_switch_status_propagation_rule(m, s):
 
 
 def slack_voltage_rule(m, n):
-    if n == m.slack_node:
-        return m.v_sq[n] == m.slack_node_v_sq
-    return pyo.Constraint.Skip
+    return m.v_sq[n] == m.slack_node_v_sq
 
 
 # (2) Node Power Balance (Real) for candidate (l,i,j).
 # For candidate (l, i, j), j is the downstream bus.
 
 
+def node_active_power_balance_slack_rule(m, n):
+    p_flow_tot = sum(m.p_flow[l, i, j] for (l, i, j) in m.C if (i == n))
+    return p_flow_tot == -m.p_slack_node
+
+
 def node_active_power_balance_rule(m, n):
     p_flow_tot = sum(m.p_flow[l, i, j] for (l, i, j) in m.C if (i == n))
-    if n == m.slack_node:
-        return p_flow_tot == -m.p_slack_node
-    else:
-        return p_flow_tot == -m.p_node[n]
+    return p_flow_tot == -m.p_node[n]
 
 
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
+def node_reactive_power_balance_slack_rule(m, n):
+    q_flow_tot = sum(
+        m.q_flow[l, i, j] - m.b[l] / 2 * m.v_sq[i] for (l, i, j) in m.C if (i == n)
+    )
+    return q_flow_tot == -m.q_slack_node
+
+
 def node_reactive_power_balance_rule(m, n):
     q_flow_tot = sum(
         m.q_flow[l, i, j] - m.b[l] / 2 * m.v_sq[i] for (l, i, j) in m.C if (i == n)
     )
-    if n == m.slack_node:
-        return q_flow_tot == -m.q_slack_node
-    else:
-        return q_flow_tot == -m.q_node[n]
+    return q_flow_tot == -m.q_node[n]
 
 
 def edge_active_power_balance_rule(m, l):

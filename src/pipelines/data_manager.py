@@ -197,7 +197,7 @@ class PipelineDataManager:
                     "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),
                     "v_max": pl_to_dict(self.node_data["node_id", "v_max_pu"]),
                     # slack‑bus
-                    "slack_node": {None: self.__slack_node},
+                    "slack_node": {None: [self.__slack_node]},
                     "slack_node_v_sq": {
                         None: float(
                             self.__load_data[scen_id].filter(
