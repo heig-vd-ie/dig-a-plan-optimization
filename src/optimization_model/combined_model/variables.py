@@ -4,7 +4,7 @@ import pyomo.environ as pyo
 def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Switch binary variables for topology
     model.δ = pyo.Var(
-        model.S, domain=pyo.NonNegativeReals, bounds=(0, 1)
+        model.S, domain=pyo.Binary
     )  # switch status per scenario (continuous relaxation)
     model.δ_penalty = pyo.Var(model.S, domain=pyo.NonNegativeReals)
 

@@ -7,6 +7,7 @@ from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import ADMMConfig, PipelineType
 from optimization_model import generate_combined_model
 from pipelines.model_managers import PipelineModelManager
+from tqdm import tqdm
 
 log = generate_log(name=__name__)
 
@@ -55,7 +56,6 @@ class PipelineModelManagerADMM(PipelineModelManager):
         # Initialize consensus and duals
         z = {s: 0.5 for s in switch_list}  # consensus per switch
         λ = {(sc, s): 0.0 for sc in scen_list for s in switch_list}  # scaled duals
-        
 
         # ADMM iterations
         for k in range(1, max_iters + 1):
@@ -63,9 +63,11 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self._set_z_from_z(z)
             self._set_λ_from_λ(λ)
             # ---- x-update: solve each scenario with current z, λ ----
-            δ_by_sc: dict[str, np.ndarray] = {}   # {scenario_id: np.array over switch_list}
-            
-            for sc in scen_list:
+            δ_by_sc: dict[str, np.ndarray] = (
+                {}
+            )  # {scenario_id: np.array over switch_list}
+
+            for sc in tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
                 m = models[sc]  # type: ignore
                 # Solve multi‑scenario instance
                 results = self.solver.solve(m, tee=self.config.verbose)
@@ -82,11 +84,12 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 sw, δ_vec = self._extract_δ_vector(m)
                 δ_by_sc[sc] = δ_vec
 
-            
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for j, s in enumerate(switch_list):
-                z[s] = (sum(δ_by_sc[sc][j] + λ[(sc, s)] for sc in scen_list)) / scenario_number
+                z[s] = (
+                    sum(δ_by_sc[sc][j] + λ[(sc, s)] for sc in scen_list)
+                ) / scenario_number
 
             # ---- λ-update (scaled duals) ----
             for sc in scen_list:
@@ -135,7 +138,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # store total objective (sum over scenarios), if available
         try:
-            final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in models.values())) # type: ignore
+            final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in models.values()))  # type: ignore
             self.combined_obj_list.append(final_obj)  # type: ignore[attr-defined]
             log.info(f"ADMM final objective (sum over scenarios) = {final_obj:.4f}")
         except Exception:
@@ -159,20 +162,20 @@ class PipelineModelManagerADMM(PipelineModelManager):
     def _set_z_from_z(self, z_per_switch: dict) -> None:
         """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
         for scen_id, m in self.admm_model_instances.items():
-            z_param = getattr(m, "z")  
+            z_param = getattr(m, "z")
             for s in getattr(m, "S"):
                 z_param[s].set_value(z_per_switch[s])
 
     def _set_λ_from_λ(self, λ_map: dict) -> None:
         """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
         for scen_id, m in self.admm_model_instances.items():
-            lam_param = getattr(m, "λ")  
+            lam_param = getattr(m, "λ")
             for s in getattr(m, "S"):
                 lam_param[s].set_value(λ_map[(scen_id, s)])
-                
+
     def _extract_δ_vector(self, m) -> tuple[list, np.ndarray]:
         """Return (switch_list, δ[s] as 1D np.array) for a single scenario model."""
-        δ = getattr(m, "δ")  
+        δ = getattr(m, "δ")
         sw = list(getattr(m, "S"))
         vec = np.array([pyo.value(δ[s]) for s in sw], dtype=float)
         return sw, vec

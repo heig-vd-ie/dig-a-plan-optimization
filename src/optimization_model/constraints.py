@@ -34,7 +34,7 @@ def objective_rule_combined(m):
     return (
         objective_rule_loss(m)
         + objective_rule_infeasibility(m) * m.weight_infeasibility
-        + objective_rule_penalty(m) * m.weight_penalty
+        # + objective_rule_penalty(m) * m.weight_penalty
         + objective_rule_admm_penalty(m) * m.weight_admm_penalty
     )
 
