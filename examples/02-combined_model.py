@@ -41,7 +41,7 @@ base_grid_data = pandapower_to_dig_a_plan_schema(net)
 # %% initialize DigAPlan
 
 config = CombinedConfig(
-    verbose=False,
+    verbose=True,
     big_m=1e3,
     small_m=1,
     pipeline_type=PipelineType.COMBINED,
