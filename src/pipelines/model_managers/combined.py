@@ -29,23 +29,16 @@ class PipelineModelManagerCombined(PipelineModelManager):
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
-        self.δ_variable = pl.DataFrame(
-            self.combined_model_instance.δ.items(),  # type: ignore
-            schema=["S", "δ_variable"],
-        )
 
     def solve_model(self, **kwargs) -> None:
         """Solve the combined radial+DistFlow model."""
         results = self.solver.solve(
             self.combined_model_instance, tee=self.config.verbose
         )
+
         if results.solver.termination_condition != pyo.TerminationCondition.optimal:
             log.error(f"Solve failed: {results.solver.termination_condition}")
             return
         current_obj = pyo.value(self.combined_model_instance.objective)
         self.combined_obj_list.append(current_obj)  # type: ignore
         log.info(f"Combined solve successful: objective = {current_obj:.4f}")
-        self.δ_variable = pl.DataFrame(
-            self.combined_model_instance.δ.items(),  # type: ignore
-            schema=["S", "δ_variable"],
-        )
