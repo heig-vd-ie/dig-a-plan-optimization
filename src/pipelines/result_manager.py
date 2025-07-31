@@ -33,6 +33,10 @@ class PipelineResultManager:
             self.model_instance = self.model_manager.combined_model_instance
         elif isinstance(self.model_manager, PipelineModelManagerBender):
             self.model_instance = self.model_manager.optimal_slave_model_instance
+        elif isinstance(self.model_manager, PipelineModelManagerADMM):
+            self.model_instance = self.model_manager.admm_model_instances[
+                list(self.model_manager.admm_model_instances.keys())[0]
+            ]
 
     def extract_switch_status(self) -> pl.DataFrame:
         self.init_model_instance()

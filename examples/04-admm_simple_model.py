@@ -3,10 +3,11 @@ from logging import config
 import polars as pl
 import os
 import pandapower as pp
-
+from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from pipelines import DigAPlan
 from pipelines.configs import ADMMConfig, PipelineType
+from pipelines.model_managers.admm import PipelineModelManagerADMM
 from pipelines.model_managers.admm import PipelineModelManagerADMM
 
 
@@ -121,3 +122,7 @@ consensus_states = (
 
 print("\n=== ADMM consensus switch states (z) ===")
 print(consensus_states)
+
+# %% Extract and compare results
+# %% compare DigAPlan results with pandapower results
+node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
