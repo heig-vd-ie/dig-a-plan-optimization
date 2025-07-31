@@ -132,7 +132,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     model.objective = pyo.Objective(rule=master_obj, sense=pyo.minimize)
 
-    model.flow_balance = pyo.Constraint(model.N, rule=imaginary_flow_balance_rule)
+    model.flow_balance = pyo.Constraint(model.Nes, rule=imaginary_flow_balance_rule)
     model.flow_balance_slack = pyo.Constraint(
         model.slack_node, rule=imaginary_flow_balance_slack_rule
     )
@@ -198,7 +198,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.switch_reactive_power_upper_bound = pyo.Constraint(
         model.Cs, rule=switch_reactive_power_upper_bound_rule
     )
-    # # cuts are generated on-the-fly, so no rules are necessary.
+    # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = ConstraintList()
     model.optimality_cut = ConstraintList()
 
