@@ -213,28 +213,37 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.node_reactive_power_balance_slack = pyo.Constraint(
         model.slack_node, rule=node_reactive_power_balance_slack_rule
     )
-    model.voltage_drop_lower = pyo.Constraint(model.C, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.C, rule=voltage_drop_upper_rule)
+    model.voltage_drop_lower = pyo.Constraint(model.Cs, rule=voltage_drop_lower_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.Cs, rule=voltage_drop_upper_rule)
+    model.voltage_drop_line = pyo.Constraint(model.Cl, rule=voltage_drop_line_rule)
 
-    model.current_rotated_cone = pyo.Constraint(model.C, rule=current_rotated_cone_rule)
+    model.current_rotated_cone = pyo.Constraint(
+        model.Cl, rule=current_rotated_cone_rule
+    )
     model.edge_active_power_balance = pyo.Constraint(
-        model.L, rule=edge_active_power_balance_rule
+        model.S, rule=edge_active_power_balance_switch_rule
     )
     model.edge_reactive_power_balance = pyo.Constraint(
-        model.L, rule=edge_reactive_power_balance_rule
+        model.S, rule=edge_reactive_power_balance_switch_rule
+    )
+    model.edge_active_power_balance_line = pyo.Constraint(
+        model.L, rule=edge_active_power_balance_line_rule
+    )
+    model.edge_reactive_power_balance_line = pyo.Constraint(
+        model.L, rule=edge_reactive_power_balance_line_rule
     )
     # Switch status constraints
     model.switch_active_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_lower_bound_rule
+        model.Cs, rule=switch_active_power_lower_bound_rule
     )
     model.switch_active_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_upper_bound_rule
+        model.Cs, rule=switch_active_power_upper_bound_rule
     )
     model.switch_reactive_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_lower_bound_rule
+        model.Cs, rule=switch_reactive_power_lower_bound_rule
     )
     model.switch_reactive_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_upper_bound_rule
+        model.Cs, rule=switch_reactive_power_upper_bound_rule
     )
     model.current_balance = pyo.Constraint(model.C, rule=current_balance_rule)
 
@@ -245,7 +254,7 @@ def optimal_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractMod
     model = slave_model_constraints(model)
     model.objective = pyo.Objective(rule=objective_rule_loss, sense=pyo.minimize)
     # Physical limits
-    model.current_limit = pyo.Constraint(model.C, rule=optimal_current_limit_rule)
+    model.current_limit = pyo.Constraint(model.Cl, rule=optimal_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
         model.N, rule=optimal_voltage_upper_limits_rule
     )
@@ -261,7 +270,7 @@ def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.Abstract
         rule=objective_rule_infeasibility, sense=pyo.minimize
     )
     # Physical limits
-    model.current_limit = pyo.Constraint(model.C, rule=infeasible_current_limit_rule)
+    model.current_limit = pyo.Constraint(model.Cl, rule=infeasible_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
         model.N, rule=infeasible_voltage_upper_limits_rule
     )

@@ -13,10 +13,10 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.L, rule=imaginary_flow_edge_propagation_rule
     )
     model.upper_switch_propagation = pyo.Constraint(
-        model.C, rule=imaginary_flow_upper_switch_propagation_rule
+        model.Cs, rule=imaginary_flow_upper_switch_propagation_rule
     )
     model.lower_switch_propagation = pyo.Constraint(
-        model.C, rule=imaginary_flow_lower_switch_propagation_rule
+        model.Cs, rule=imaginary_flow_lower_switch_propagation_rule
     )
     model.nb_closed_switches = pyo.Constraint(
         rule=imaginary_flow_nb_closed_switches_rule
@@ -36,32 +36,41 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.slack_node, rule=node_reactive_power_balance_slack_rule
     )
     model.edge_active_power_balance = pyo.Constraint(
-        model.L, rule=edge_active_power_balance_rule
+        model.S, rule=edge_active_power_balance_switch_rule
     )
     model.edge_reactive_power_balance = pyo.Constraint(
-        model.L, rule=edge_reactive_power_balance_rule
+        model.S, rule=edge_reactive_power_balance_switch_rule
+    )
+    model.edge_active_power_balance_line = pyo.Constraint(
+        model.L, rule=edge_active_power_balance_line_rule
+    )
+    model.edge_reactive_power_balance_line = pyo.Constraint(
+        model.L, rule=edge_reactive_power_balance_line_rule
     )
     # 3) Voltage‐drop & cone (per scenario)
-    model.voltage_drop_lower = pyo.Constraint(model.C, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.C, rule=voltage_drop_upper_rule)
-    model.current_rotated_cone = pyo.Constraint(model.C, rule=current_rotated_cone_rule)
+    model.voltage_drop_lower = pyo.Constraint(model.Cs, rule=voltage_drop_lower_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.Cs, rule=voltage_drop_upper_rule)
+    model.voltage_drop_line = pyo.Constraint(model.Cl, rule=voltage_drop_line_rule)
+    model.current_rotated_cone = pyo.Constraint(
+        model.Cl, rule=current_rotated_cone_rule
+    )
     # 4) Switch power bounds (per scenario)
     model.switch_active_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_lower_bound_rule
+        model.Cs, rule=switch_active_power_lower_bound_rule
     )
     model.switch_active_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_upper_bound_rule
+        model.Cs, rule=switch_active_power_upper_bound_rule
     )
     model.switch_reactive_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_lower_bound_rule
+        model.Cs, rule=switch_reactive_power_lower_bound_rule
     )
     model.switch_reactive_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_upper_bound_rule
+        model.Cs, rule=switch_reactive_power_upper_bound_rule
     )
     # 5) Current symmetry (per scenario)
     model.current_balance = pyo.Constraint(model.C, rule=current_balance_rule)
     # 6) Infeasible relaxations (per scenario)
-    model.current_limit = pyo.Constraint(model.C, rule=infeasible_current_limit_rule)
+    model.current_limit = pyo.Constraint(model.Cl, rule=infeasible_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
         model.N, rule=infeasible_voltage_upper_limits_rule
     )

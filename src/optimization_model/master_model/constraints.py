@@ -141,10 +141,10 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
 
     model.upper_switch_propagation = pyo.Constraint(
-        model.C, rule=imaginary_flow_upper_switch_propagation_rule
+        model.Cs, rule=imaginary_flow_upper_switch_propagation_rule
     )
     model.lower_switch_propagation = pyo.Constraint(
-        model.C, rule=imaginary_flow_lower_switch_propagation_rule
+        model.Cs, rule=imaginary_flow_lower_switch_propagation_rule
     )
     model.nb_closed_switches = pyo.Constraint(
         rule=imaginary_flow_nb_closed_switches_rule
@@ -171,10 +171,13 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     ##
     model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
     model.voltage_drop_lower = pyo.Constraint(
-        model.C, rule=voltage_drop_lower_lindistflow_rule
+        model.Cs, rule=voltage_drop_lower_lindistflow_rule
     )
     model.voltage_drop_upper = pyo.Constraint(
-        model.C, rule=voltage_drop_upper_lindistflow_rule
+        model.Cs, rule=voltage_drop_upper_lindistflow_rule
+    )
+    model.voltage_drop_line = pyo.Constraint(
+        model.Cl, rule=voltage_drop_line_lindistflow_rule
     )
     model.voltage_upper_limits = pyo.Constraint(
         model.N, rule=optimal_voltage_upper_limits_distflow_rule
@@ -183,17 +186,17 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.N, rule=optimal_voltage_lower_limits_distflow_rule
     )
     model.switch_active_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_lower_bound_rule
+        model.Cs, rule=switch_active_power_lower_bound_rule
     )
     model.switch_active_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_active_power_upper_bound_rule
+        model.Cs, rule=switch_active_power_upper_bound_rule
     )
     #
     model.switch_reactive_power_lower_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_lower_bound_rule
+        model.Cs, rule=switch_reactive_power_lower_bound_rule
     )
     model.switch_reactive_power_upper_bound = pyo.Constraint(
-        model.C, rule=switch_reactive_power_upper_bound_rule
+        model.Cs, rule=switch_reactive_power_upper_bound_rule
     )
     # # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = ConstraintList()

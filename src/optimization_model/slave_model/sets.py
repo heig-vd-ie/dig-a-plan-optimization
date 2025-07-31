@@ -12,4 +12,8 @@ def slave_model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.Cl = pyo.Set(
         initialize=lambda m: [(l, i, j) for l, i, j in m.C if l not in m.S]
     )
+
+    model.Nes = pyo.Set(
+        initialize=lambda m: [n for n in m.N if n not in m.slack_node]
+    )  # Non-slack nodes
     return model

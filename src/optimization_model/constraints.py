@@ -9,7 +9,7 @@ def master_obj(m):
 
 def objective_rule_loss(m):
     # Minimize network losses
-    return sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.C if l not in m.S)
+    return sum(m.r[l] * m.i_sq[l, i, j] for (l, i, j) in m.Cl)
 
 
 def objective_rule_infeasibility(m):
@@ -59,17 +59,11 @@ def imaginary_flow_edge_propagation_rule(m, l):
 
 
 def imaginary_flow_upper_switch_propagation_rule(m, l, i, j):
-    if l in m.S:
-        return m.flow[l, i, j] <= m.small_m * len(m.N) * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.flow[l, i, j] <= m.small_m * len(m.N) * m.δ[l]
 
 
 def imaginary_flow_lower_switch_propagation_rule(m, l, i, j):
-    if l in m.S:
-        return m.flow[l, i, j] >= -m.small_m * len(m.N) * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.flow[l, i, j] >= -m.small_m * len(m.N) * m.δ[l]
 
 
 def imaginary_flow_nb_closed_switches_rule(m):
@@ -81,10 +75,7 @@ def radiality_rule(m, n):
 
 
 def edge_direction_rule(m, l):
-    if l in m.S:
-        return sum(m.d[l_, i, j] for l_, i, j in m.C if l_ == l) == m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return sum(m.d[l_, i, j] for l_, i, j in m.C if l_ == l) == m.δ[l]
 
 
 def master_switch_status_propagation_rule(m, s):
@@ -127,32 +118,34 @@ def node_reactive_power_balance_rule(m, n):
     return q_flow_tot == -m.q_node[n]
 
 
-def edge_active_power_balance_rule(m, l):
-    if l in m.S:
-        return sum(m.p_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
-    else:
-        return (
-            sum(
-                m.p_flow[l_, i, j] - m.r[l_] / 2 * m.i_sq[l_, i, j]
-                for (l_, i, j) in m.C
-                if l_ == l
-            )
-            == 0
-        )
+def edge_active_power_balance_switch_rule(m, l):
+    return sum(m.p_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
 
 
-def edge_reactive_power_balance_rule(m, l):
-    if l in m.S:
-        return sum(m.q_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
-    else:
-        return (
-            sum(
-                m.q_flow[l_, i, j] - m.x[l_] / 2 * m.i_sq[l_, i, j]
-                for (l_, i, j) in m.C
-                if l_ == l
-            )
-            == 0
+def edge_active_power_balance_line_rule(m, l):
+    return (
+        sum(
+            m.p_flow[l_, i, j] - m.r[l_] / 2 * m.i_sq[l_, i, j]
+            for (l_, i, j) in m.C
+            if l_ == l
         )
+        == 0
+    )
+
+
+def edge_reactive_power_balance_switch_rule(m, l):
+    return sum(m.q_flow[l_, i, j] for (l_, i, j) in m.C if l_ == l) == 0
+
+
+def edge_reactive_power_balance_line_rule(m, l):
+    return (
+        sum(
+            m.q_flow[l_, i, j] - m.x[l_] / 2 * m.i_sq[l_, i, j]
+            for (l_, i, j) in m.C
+            if l_ == l
+        )
+        == 0
+    )
 
 
 def edge_active_power_balance_lindistflow_rule(m, l):
@@ -170,28 +163,20 @@ def current_balance_rule(m, l, i, j):
 
 
 def current_rotated_cone_rule_transformed(m, l, i, j):
-    if l in m.S:
-        return pyo.Constraint.Skip
-    else:
+    lhs = (
+        (2 * m.p_flow[l, i, j]) ** 2
+        + (2 * m.q_flow[l, i, j]) ** 2
+        + (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j]) ** 2
+    )
+    rhs = (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j]) ** 2
 
-        lhs = (
-            (2 * m.p_flow[l, i, j]) ** 2
-            + (2 * m.q_flow[l, i, j]) ** 2
-            + (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j]) ** 2
-        )
-        rhs = (m.v_sq[i] / (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j]) ** 2
-
-        return lhs <= rhs
+    return lhs <= rhs
 
 
 def current_rotated_cone_rule(m, l, i, j):
-    if l in m.S:
-        return pyo.Constraint.Skip
-    else:
-
-        lhs = (m.p_flow[l, i, j]) ** 2 + (m.q_flow[l, i, j]) ** 2
-        rhs = m.i_sq[l, i, j] * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
-        return lhs <= rhs
+    lhs = (m.p_flow[l, i, j]) ** 2 + (m.q_flow[l, i, j]) ** 2
+    rhs = m.i_sq[l, i, j] * m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
+    return lhs <= rhs
 
 
 # (4) Voltage Drop along Branch for candidate (l,i,j).
@@ -200,81 +185,62 @@ def current_rotated_cone_rule(m, l, i, j):
 
 
 def voltage_drop_upper_rule(m, l, i, j):
-    if l in m.S:
-        return m.v_sq[i] - m.v_sq[j] <= m.big_m * (1 - m.δ[l])
-    else:
-        return pyo.Constraint.Skip
+    return m.v_sq[i] - m.v_sq[j] <= m.big_m * (1 - m.δ[l])
 
 
 def voltage_drop_lower_rule(m, l, i, j):
-    if l in m.S:
-        return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.δ[l])
-    else:
-        dv = (
-            -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
-            + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
-        )
-        voltage_diff = (
-            m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
-            - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
-            + dv
-        )
-        return voltage_diff == 0
+    return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.δ[l])
+
+
+def voltage_drop_line_rule(m, l, i, j):
+    dv = (
+        -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
+        + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j]
+    )
+    voltage_diff = (
+        m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
+        - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
+        + dv
+    )
+    return voltage_diff == 0
 
 
 def voltage_drop_upper_lindistflow_rule(m, l, i, j):
-    if l in m.S:
-        return m.v_sq[i] - m.v_sq[j] <= m.big_m * (1 - m.δ[l])
-    else:
-        return pyo.Constraint.Skip
+    return m.v_sq[i] - m.v_sq[j] <= m.big_m * (1 - m.δ[l])
 
 
 def voltage_drop_lower_lindistflow_rule(m, l, i, j):
-    if l in m.S:
-        return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.δ[l])
-    else:
-        dv = -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
-        voltage_diff = (
-            m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
-            - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
-            + dv
-        )
-        return voltage_diff == 0
+    return m.v_sq[i] - m.v_sq[j] >= -m.big_m * (1 - m.δ[l])
+
+
+def voltage_drop_line_lindistflow_rule(m, l, i, j):
+    dv = -2 * (m.r[l] * m.p_flow[l, i, j] + m.x[l] * m.q_flow[l, i, j])
+    voltage_diff = (
+        m.v_sq[i] / (m.n_transfo[l, i, j] ** 2)
+        - m.v_sq[j] / (m.n_transfo[l, j, i] ** 2)
+        + dv
+    )
+    return voltage_diff == 0
 
 
 def switch_active_power_lower_bound_rule(m, l, i, j):
-    if l in m.S:
-        return m.p_flow[l, i, j] >= -m.big_m * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.p_flow[l, i, j] >= -m.big_m * m.δ[l]
 
 
 def switch_active_power_upper_bound_rule(m, l, i, j):
-    if l in m.S:
-        return m.p_flow[l, i, j] <= m.big_m * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.p_flow[l, i, j] <= m.big_m * m.δ[l]
 
 
 def switch_reactive_power_lower_bound_rule(m, l, i, j):
-    if l in m.S:
-        return m.q_flow[l, i, j] >= -m.big_m * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.q_flow[l, i, j] >= -m.big_m * m.δ[l]
 
 
 def switch_reactive_power_upper_bound_rule(m, l, i, j):
-    if l in m.S:
-        return m.q_flow[l, i, j] <= m.big_m * m.δ[l]
-    else:
-        return pyo.Constraint.Skip
+    return m.q_flow[l, i, j] <= m.big_m * m.δ[l]
 
 
 def optimal_current_limit_rule(m, l, i, j):
-    if l in m.S:
-        return pyo.Constraint.Skip
-    else:
-        return m.i_sq[l, i, j] <= m.i_max[l] ** 2
+    return m.i_sq[l, i, j] <= m.i_max[l] ** 2
 
 
 def optimal_voltage_upper_limits_rule(m, n):
@@ -295,10 +261,7 @@ def optimal_voltage_lower_limits_distflow_rule(m, n):
 
 # (6) Flow Bounds for candidate (l,i,j):
 def infeasible_current_limit_rule(m, l, i, j):
-    if l in m.S:
-        return pyo.Constraint.Skip
-    else:
-        return m.i_sq[l, i, j] <= m.i_max[l] ** 2 + m.slack_i_sq[l, i, j]
+    return m.i_sq[l, i, j] <= m.i_max[l] ** 2 + m.slack_i_sq[l, i, j]
 
 
 # (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
