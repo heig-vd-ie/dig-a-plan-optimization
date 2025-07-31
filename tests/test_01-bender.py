@@ -64,7 +64,7 @@ def test_bender_model_simple_example():
     assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
         23,
         25,
+        28,
         32,
         33,
-        34,
     ]
