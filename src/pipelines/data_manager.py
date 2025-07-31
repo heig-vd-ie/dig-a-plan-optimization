@@ -175,6 +175,9 @@ class PipelineDataManager:
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                     "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
+                    "number_of_lines": {
+                        None: len([e for e in edge_ids if e not in switch_ids])
+                    },
                     "n_transfo": pl_to_dict_with_tuple(
                         pl.concat(
                             [

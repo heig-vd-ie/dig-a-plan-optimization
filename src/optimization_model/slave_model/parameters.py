@@ -3,6 +3,7 @@ from traitlets import default
 
 
 def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.number_of_lines = pyo.Param()  # Total number of lines
     model.r = pyo.Param(model.L)  # Resistance in pu for branch l.
     model.x = pyo.Param(model.L)  # Reactance in pu for branch l.
     model.b = pyo.Param(model.L)  # Shunt susceptance in pu for branch l.

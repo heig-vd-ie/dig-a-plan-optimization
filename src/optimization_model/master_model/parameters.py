@@ -3,6 +3,7 @@ from traitlets import default
 
 
 def master_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.number_of_lines = pyo.Param()  # Total number of lines
     model.r = pyo.Param(model.L)  # Resistance for branch l.
     model.x = pyo.Param(model.L)  # Reactance for branch l.
     model.b = pyo.Param(model.L)  # Susceptance for branch l.

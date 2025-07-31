@@ -3,6 +3,7 @@ import pyomo.environ as pyo
 
 def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Topology & radiality
+    model.number_of_lines = pyo.Param()
     model.slack_node = pyo.Param()  # Slack bus index
     model.small_m = pyo.Param()  # Small constant for radiality constraints
     model.ρ = pyo.Param(mutable=True, default=1.0)  # ADMM penalty parameter
