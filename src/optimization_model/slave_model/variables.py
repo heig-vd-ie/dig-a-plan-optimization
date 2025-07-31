@@ -9,7 +9,7 @@ def slave_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.i_sq = pyo.Var(model.C, domain=pyo.NonNegativeReals)
     model.v_sq = pyo.Var(model.N, domain=pyo.NonNegativeReals)
 
-    model.delta = pyo.Var(
+    model.δ = pyo.Var(
         model.S, domain=pyo.Reals, bounds=(0, 1)
     )  # Candidate active (1) or not (0).
 

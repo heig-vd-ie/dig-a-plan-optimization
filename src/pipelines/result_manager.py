@@ -3,6 +3,7 @@ from polars import col as c
 from pipelines.data_manager import PipelineDataManager
 from pipelines.model_managers.combined import PipelineModelManagerCombined
 from pipelines.model_managers.bender import PipelineModelManagerBender
+from pipelines.model_managers.admm import PipelineModelManagerADMM
 from polars_function import cast_boolean
 from pyomo_utility import extract_optimization_results
 
@@ -15,7 +16,11 @@ class PipelineResultManager:
     def __init__(
         self,
         data_manager: PipelineDataManager,
-        model_manager: PipelineModelManagerCombined | PipelineModelManagerBender,
+        model_manager: (
+            PipelineModelManagerCombined
+            | PipelineModelManagerBender
+            | PipelineModelManagerADMM
+        ),
     ):
         """
         Initialize the result manager with a data manager and a model manager.
@@ -28,23 +33,27 @@ class PipelineResultManager:
             self.model_instance = self.model_manager.combined_model_instance
         elif isinstance(self.model_manager, PipelineModelManagerBender):
             self.model_instance = self.model_manager.optimal_slave_model_instance
+        elif isinstance(self.model_manager, PipelineModelManagerADMM):
+            self.model_instance = self.model_manager.admm_model_instances[
+                list(self.model_manager.admm_model_instances.keys())[0]
+            ]
 
     def extract_switch_status(self) -> pl.DataFrame:
         self.init_model_instance()
         # Pull out only the switch edges...
         ss = self.data_manager.edge_data.filter(c("type") == "switch")
         # Build a Polars mapping from edge_id -> {0,1}
-        delta_map = self.model_instance.delta.extract_values()  # type: ignore
-        # 1) Create a 'delta' column exactly as before
+        δ_map = self.model_instance.δ.extract_values()  # type: ignore
+        # 1) Create a 'δ' column exactly as before
         ss = ss.with_columns(
             c("edge_id")
-            .replace_strict(delta_map, default=None)  # None for missing entries
-            .alias("delta")  # still 0,1 or None
+            .replace_strict(δ_map, default=None)  # None for missing entries
+            .alias("δ")  # still 0,1 or None
         )
-        # 2) Create 'open' by bitwise‐not on the Boolean view of delta
-        ss = ss.with_columns((~(c("delta") > 0.5).pipe(cast_boolean)).alias("open"))
+        # 2) Create 'open' by bitwise‐not on the Boolean view of δ
+        ss = ss.with_columns((~(c("δ") > 0.5).pipe(cast_boolean)).alias("open"))
         # Finally select the columns you care about
-        return ss.select(["eq_fk", "edge_id", "delta", "normal_open", "open"])
+        return ss.select(["eq_fk", "edge_id", "δ", "normal_open", "open"])
 
     def extract_node_voltage(self) -> pl.DataFrame:
         self.init_model_instance()

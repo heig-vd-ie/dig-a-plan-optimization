@@ -3,6 +3,7 @@ from traitlets import default
 
 
 def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
+    model.number_of_lines = pyo.Param()  # Total number of lines
     model.r = pyo.Param(model.L)  # Resistance in pu for branch l.
     model.x = pyo.Param(model.L)  # Reactance in pu for branch l.
     model.b = pyo.Param(model.L)  # Shunt susceptance in pu for branch l.
@@ -14,11 +15,10 @@ def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (p.u.)
     model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (p.u.)
     # master_d is defined over LF: 1 if candidate is active, else 0.
-    model.master_delta = pyo.Param(model.S, default=0, mutable=True)
+    model.master_δ = pyo.Param(model.S, default=0, mutable=True)
     model.master_d = pyo.Param(model.C, default=0, mutable=True)
 
     model.slack_node_v_sq = pyo.Param(default=1.0)  # Slack bus voltage squared (p.u.)
-    model.slack_node = pyo.Param()  # Slack bus index.
 
     # Big-M and penalty costs: give safe defaults and allow mutation
     model.big_m = pyo.Param()

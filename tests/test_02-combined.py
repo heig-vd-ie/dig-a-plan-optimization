@@ -1,7 +1,7 @@
 import pandapower as pp
 import polars as pl
 
-from local_data_exporter import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
 from pipelines.configs import CombinedConfig, PipelineType

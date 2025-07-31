@@ -3,11 +3,13 @@ import os
 import pandapower as pp
 from polars import col as c
 import polars as pl
-from local_data_exporter import (
+from data_exporter.changes_schema_to_dig_a_plan import (
     change_schema_to_dig_a_plan_schema,
+)
+from data_exporter.duckdb_to_change_schema import (
     duckdb_to_changes_schema,
 )
-from local_data_exporter import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 
 from pipelines import DigAPlan
 from pipelines.configs import CombinedConfig, PipelineType
@@ -26,18 +28,14 @@ else:
     base_grid_data = change_schema_to_dig_a_plan_schema(change_schema, 1000)
 
 # %% convert pandapower grid to DigAPlan grid data
-base_grid_data.node_data = base_grid_data.node_data.with_columns(
-    pl.lit(0.01).alias("p_node_pu"),
+base_grid_data.load_data["1"] = base_grid_data.load_data["1"].with_columns(
+    pl.lit(0.01).alias("p_node_pu") * 0.01,
     pl.lit(0.01).alias("q_node_pu"),
 )
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     pl.lit(0.001).alias("r_pu"),
     pl.lit(0.001).alias("x_pu"),
     pl.lit(0).alias("b_pu"),
-)
-base_grid_data.node_data = base_grid_data.node_data.with_columns(
-    # (c("p_node_pu")*5e-1).alias("p_node_pu"),
-    (c("p_node_pu") * 1e-1).alias("q_node_pu")
 )
 
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
@@ -55,6 +53,7 @@ config = CombinedConfig(
     big_m=1000,
     small_m=0.1,
     pipeline_type=PipelineType.COMBINED,
+    weight_admm_penalty=0.0,
 )
 dig_a_plan = DigAPlan(config=config)
 

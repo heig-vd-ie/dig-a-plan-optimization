@@ -4,12 +4,13 @@ import os
 import pandapower as pp
 import plotly.graph_objs as go
 
-from local_data_exporter import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlan
 from pipelines.configs import BenderConfig, PipelineType
 
+from pipelines.model_managers.admm import PipelineModelManagerADMM
 from pipelines.model_managers.combined import PipelineModelManagerCombined
 from pyomo_utility import extract_optimization_results
 from plotly.subplots import make_subplots
@@ -56,7 +57,9 @@ dig_a_plan = DigAPlan(config=config)
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)
 dig_a_plan.solve_model(max_iters=100)
-if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined):
+if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined) or isinstance(
+    dig_a_plan.model_manager, PipelineModelManagerADMM
+):
     raise ValueError(
         "The model manager is not a Bender model manager, but a Combined model manager."
     )
@@ -107,9 +110,7 @@ plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
 print(
-    extract_optimization_results(
-        dig_a_plan.model_manager.master_model_instance, "delta"
-    )
+    extract_optimization_results(dig_a_plan.model_manager.master_model_instance, "δ")
     .to_pandas()
     .to_string()
 )

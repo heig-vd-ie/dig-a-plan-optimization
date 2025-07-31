@@ -7,6 +7,7 @@ class PipelineType(Enum):
 
     BENDER = "bender"
     COMBINED = "combined"
+    ADMM = "admm"
 
 
 @dataclass
@@ -14,6 +15,7 @@ class PipelineConfig:
     """Configuration for the Dig A Plan optimization pipeline"""
 
     verbose: bool = False
+    ρ: float = 10.0
     big_m: float = 1e4
     small_m: float = 1
     slack_threshold: float = 1e-5
@@ -25,6 +27,19 @@ class PipelineConfig:
     factor_i: float = 1.0
     factor_v: float = 1.0
     weight_infeasibility: float = 1.0
+    weight_penalty: float = 1e-6
+    weight_admm_penalty: float = 1.0
+    solver_name: str = "gurobi"
+    solver_integrality_focus: int = 1
+    solver_method: int = 2
+    time_limit: int = 60
+    optimality_tolerance: float = 1e-5
+    feasibility_tolerance: float = 1e-5
+    barrier_convergence_tolerance: float = 1e-5
+    solver_non_convex: int | None = None
+    solver_qcp_dual: int | None = None
+    solver_bar_qcp_conv_tol: float | None = None
+    solver_bar_homogeneous: int | None = None
 
 
 @dataclass
@@ -35,13 +50,7 @@ class BenderConfig(PipelineConfig):
     master_relaxed: bool = False
     master_solver_options: dict | None = None
     slave_solver_options: dict | None = None
-    master_solver_name: str = "gurobi"
-    slave_solver_name: str = "gurobi"
     master_solver_integrality_focus: int = 1
-    slave_solver_non_convex: int | None = None
-    slave_solver_qcp_dual: int | None = None
-    slave_solver_bar_qcp_conv_tol: float | None = None
-    slave_solver_bar_homogeneous: int | None = None
 
 
 @dataclass
@@ -49,10 +58,12 @@ class CombinedConfig(PipelineConfig):
     """Configuration for Bender's decomposition pipeline"""
 
     # Solver configurations
-    combined_solver_options: dict | None = None
-    combined_solver_name: str = "gurobi"
-    combined_solver_integrality_focus: int = 1
-    combined_solver_non_convex: int | None = None
-    combined_solver_qcp_dual: int | None = None
-    combined_solver_bar_qcp_conv_tol: float | None = None
-    combined_solver_bar_homogeneous: int | None = None
+    pass
+
+
+class ADMMConfig(CombinedConfig):
+    """Configuration for ADMM pipeline"""
+
+    admm_ρ: float = 1.0
+    admm_max_iterations: int = 100
+    admm_tolerance: float = 1e-4

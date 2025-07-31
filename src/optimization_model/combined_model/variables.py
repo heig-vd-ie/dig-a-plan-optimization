@@ -3,8 +3,10 @@ import pyomo.environ as pyo
 
 def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Switch binary variables for topology
-    model.delta = pyo.Var(model.S, domain=pyo.NonNegativeReals, bounds=(0, 1))
-    model.delta_penalty = pyo.Var(model.S, domain=pyo.NonNegativeReals)
+    model.δ = pyo.Var(
+        model.S, domain=pyo.Binary
+    )  # switch status per scenario (continuous relaxation)
+    model.δ_penalty = pyo.Var(model.S, domain=pyo.NonNegativeReals)
 
     # Flow orientation for radiality
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
