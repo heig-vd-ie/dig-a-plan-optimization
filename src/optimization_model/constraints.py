@@ -72,7 +72,9 @@ def imaginary_flow_lower_switch_propagation_rule(m, l, i, j):
 
 
 def imaginary_flow_nb_closed_switches_rule(m):
-    return sum(m.δ[l] for l in m.S) == len(m.N) - len(m.nS) - 1
+    return (
+        sum(m.δ[l] for l in m.S) == len(m.N) - sum(1 for l in m.L if l not in m.S) - 1
+    )
 
 
 def radiality_rule(m, n):
