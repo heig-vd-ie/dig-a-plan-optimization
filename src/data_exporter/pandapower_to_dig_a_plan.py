@@ -17,7 +17,7 @@ from data_exporter import validate_data
 def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
-    generate_random: bool = True,
+    number_of_random_scenarios: int = 10,
     number_of_groups: int = 10,
 ) -> NodeEdgeModel:
 
@@ -214,14 +214,12 @@ def pandapower_to_dig_a_plan_schema(
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
 
-    if not generate_random:
-        raise NotImplementedError("Set generate_random to True to use this function")
-    else:
-        rand_scenarios = generate_random_load_scenarios(
-            node_data=node_data_validated,
-            v_slack_node_sqr_pu=v_slack_node_sqr_pu,
-            load_data=load_data,
-        )
+    rand_scenarios = generate_random_load_scenarios(
+        node_data=node_data_validated,
+        v_slack_node_sqr_pu=v_slack_node_sqr_pu,
+        load_data=load_data,
+        number_of_random_scenarios=number_of_random_scenarios,
+    )
 
     return NodeEdgeModel(
         node_data=node_data_validated,

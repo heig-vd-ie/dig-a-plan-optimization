@@ -60,7 +60,9 @@ class PipelineResultManager:
 
         return (
             extract_optimization_results(self.model_instance, "v_sq")
-            .select((c("v_sq")).sqrt().alias("v_pu"), c("N").alias("node_id"))
+            .select(
+                (c("v_sq")).sqrt().alias("v_pu"), c("NΩ").list.get(0).alias("node_id")
+            )
             .join(
                 self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
                 on="node_id",
@@ -73,7 +75,7 @@ class PipelineResultManager:
         return (
             extract_optimization_results(self.model_instance, "i_sq")
             .select(
-                (c("i_sq")).sqrt().alias("i_pu"), c("C").list.get(0).alias("edge_id")
+                (c("i_sq")).sqrt().alias("i_pu"), c("CΩ").list.get(0).alias("edge_id")
             )
             .group_by("edge_id")
             .agg(c("i_pu").max())
@@ -93,9 +95,9 @@ class PipelineResultManager:
             extract_optimization_results(self.model_instance, "p_flow")
             .select(
                 c("p_flow").alias("p_pu"),
-                c("C").list.get(0).alias("edge_id"),
-                c("C").list.get(1).alias("from_node_id"),
-                c("C").list.get(2).alias("to_node_id"),
+                c("CΩ").list.get(0).alias("edge_id"),
+                c("CΩ").list.get(1).alias("from_node_id"),
+                c("CΩ").list.get(2).alias("to_node_id"),
             )
             .join(
                 self.data_manager.edge_data.filter(c("type") != "switch")[
@@ -112,9 +114,9 @@ class PipelineResultManager:
             extract_optimization_results(self.model_instance, "q_flow")
             .select(
                 c("q_flow").alias("q_pu"),
-                c("C").list.get(0).alias("edge_id"),
-                c("C").list.get(1).alias("from_node_id"),
-                c("C").list.get(2).alias("to_node_id"),
+                c("CΩ").list.get(0).alias("edge_id"),
+                c("CΩ").list.get(1).alias("from_node_id"),
+                c("CΩ").list.get(2).alias("to_node_id"),
             )
             .join(
                 self.data_manager.edge_data.filter(c("type") != "switch")[

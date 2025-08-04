@@ -10,12 +10,12 @@ def generate_random_load_scenarios(
     node_data: pt.DataFrame[NodeData],
     v_slack_node_sqr_pu: float,
     load_data: pl.DataFrame,
-    n_scenarios: int = 100,
+    number_of_random_scenarios: int,
     seed: int = 42,
     p_bounds: Tuple[float, float] = (-0.1, 0.1),
     q_bounds: Tuple[float, float] = (-0.1, 0.1),
     v_bounds: Tuple[float, float] = (-0.03, 0.03),
-) -> Dict[str, pt.DataFrame[LoadData]]:
+) -> Dict[int, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
     against `data_schema.load_data.NodeData`.
@@ -29,9 +29,9 @@ def generate_random_load_scenarios(
     q_min, q_max = q_bounds
     v_min, v_max = v_bounds
 
-    scenarios: Dict[str, pt.DataFrame[LoadData]] = {}
+    scenarios: Dict[int, pt.DataFrame[LoadData]] = {}
 
-    for i in range(1, n_scenarios + 1):
+    for i in range(1, number_of_random_scenarios + 1):
         p_rand = rng.uniform(low=p_min, high=p_max, size=n_nodes)
         q_rand = rng.uniform(low=q_min, high=q_max, size=n_nodes)
         v_rand = rng.uniform(low=v_min, high=v_max, size=n_nodes)
@@ -66,6 +66,6 @@ def generate_random_load_scenarios(
         )
         df_pt.validate()
 
-        scenarios[str(i)] = df_pt
+        scenarios[i] = df_pt
 
     return scenarios

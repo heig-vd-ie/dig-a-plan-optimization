@@ -34,6 +34,7 @@ class DigAPlan:
             weight_infeasibility=self.config.weight_infeasibility,
             weight_penalty=self.config.weight_penalty,
             weight_admm_penalty=self.config.weight_admm_penalty,
+            all_scenarios=self.config.all_scenarios,
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig

@@ -18,13 +18,13 @@ class PipelineModelManagerADMM(PipelineModelManager):
         super().__init__(config, data_manager, PipelineType.ADMM)
 
         self.admm_model: pyo.AbstractModel = generate_combined_model()
-        self.admm_model_instances: Dict[str, pyo.ConcreteModel] = {}
-        self.scaled_admm_model_instance: Dict[str, pyo.ConcreteModel] = {}
+        self.admm_model_instances: Dict[int, pyo.ConcreteModel] = {}
+        self.scaled_admm_model_instance: Dict[int, pyo.ConcreteModel] = {}
 
         self.admm_obj: float = 0.0
 
         # ADMM artifacts
-        self.admm_z: Dict[str, float] = {}  # consensus per switch: {s: z_s}
+        self.admm_z: Dict[int, float] = {}  # consensus per switch: {s: z_s}
         self.admm_u: Dict[tuple, float] = {}  # scaled duals: {(sc, s): u_sc,s}
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
@@ -63,7 +63,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self._set_z_from_z(z)
             self._set_λ_from_λ(λ)
             # ---- x-update: solve each scenario with current z, λ ----
-            δ_by_sc: dict[str, np.ndarray] = (
+            δ_by_sc: dict[int, np.ndarray] = (
                 {}
             )  # {scenario_id: np.array over switch_list}
 

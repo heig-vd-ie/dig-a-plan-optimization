@@ -13,4 +13,4 @@ class NodeEdgeModel:
     edge_data: pt.DataFrame[EdgeData] = field(
         default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
     )
-    load_data: dict[str, pt.DataFrame[LoadData]] = field(default_factory=dict)
+    load_data: dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)

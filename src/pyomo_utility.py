@@ -11,15 +11,24 @@ def extract_optimization_results(
         map(lambda x: x.name, getattr(model_instance, var_name).index_set().subsets())
     )
 
+    results = getattr(model_instance, var_name).extract_values()
+
+    # if isinstance(list(results.keys())[0], tuple):
+    #     if len(list(results.keys())[0]) > 1:
+    #         results_removed = {
+    #             key1: results[(key1, key2)] for key1, key2 in list(results.keys())
+    #         }
+    #         results = results_removed
+
     if len(index_list) == 1:
         data_pl: pl.DataFrame = pl.DataFrame(
-            map(list, getattr(model_instance, var_name).extract_values().items()),
+            map(list, results.items()),
             schema=[index_list[0], var_name],
         )
     else:
         data_pl: pl.DataFrame = (
             pl.DataFrame(
-                map(list, getattr(model_instance, var_name).extract_values().items()),
+                map(list, results.items()),
                 schema=["index", var_name],
             )
             .with_columns(c("index").list.to_struct(fields=index_list))

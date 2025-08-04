@@ -9,20 +9,16 @@ def master_model_variables(
 ) -> pyo.AbstractModel:
 
     if relaxed:
-        model.δ = pyo.Var(
-            model.S, domain=pyo.Reals, bounds=(0, 1)
-        )  # Default value for δ, mutable for testing.
+        model.δ = pyo.Var(model.S, domain=pyo.Reals, bounds=(0, 1))
     else:
-        model.δ = pyo.Var(
-            model.S, domain=pyo.Binary
-        )  # Default value for δ, mutable for testing.
+        model.δ = pyo.Var(model.S, domain=pyo.Binary)
     model.flow = pyo.Var(model.C, domain=pyo.Reals)
 
-    model.p_flow = pyo.Var(model.C, domain=pyo.Reals)
-    model.q_flow = pyo.Var(model.C, domain=pyo.Reals)
-    model.v_sq = pyo.Var(model.N, domain=pyo.NonNegativeReals)
-    model.p_slack_node = pyo.Var(domain=pyo.Reals)
-    model.q_slack_node = pyo.Var(domain=pyo.Reals)
+    model.p_flow = pyo.Var(model.CΩ, domain=pyo.Reals)
+    model.q_flow = pyo.Var(model.CΩ, domain=pyo.Reals)
+    model.v_sq = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
+    model.p_slack_node = pyo.Var(model.Ω, domain=pyo.Reals)
+    model.q_slack_node = pyo.Var(model.Ω, domain=pyo.Reals)
 
     model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
 

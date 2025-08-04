@@ -40,6 +40,7 @@ class PipelineConfig:
     solver_qcp_dual: int | None = None
     solver_bar_qcp_conv_tol: float | None = None
     solver_bar_homogeneous: int | None = None
+    all_scenarios: bool = False
 
 
 @dataclass
