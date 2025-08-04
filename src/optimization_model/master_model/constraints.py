@@ -170,12 +170,8 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
     ##
     model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
-    model.voltage_drop_lower = pyo.Constraint(
-        model.Cs, rule=voltage_drop_lower_lindistflow_rule
-    )
-    model.voltage_drop_upper = pyo.Constraint(
-        model.Cs, rule=voltage_drop_upper_lindistflow_rule
-    )
+    model.voltage_drop_lower = pyo.Constraint(model.Cs, rule=voltage_drop_lower_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.Cs, rule=voltage_drop_upper_rule)
     model.voltage_drop_line = pyo.Constraint(
         model.Cl, rule=voltage_drop_line_lindistflow_rule
     )

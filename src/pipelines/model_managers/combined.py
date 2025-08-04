@@ -3,7 +3,7 @@ import polars as pl
 from general_function import generate_log
 from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import CombinedConfig, PipelineType
-from optimization_model import generate_combined_model
+from optimization_model import generate_combined_model, generate_combined_lin_model
 from pipelines.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
@@ -20,8 +20,9 @@ class PipelineModelManagerCombined(PipelineModelManager):
         super().__init__(config, data_manager, pipeline_type)
 
         self.combined_model: pyo.AbstractModel = generate_combined_model()
+        self.combined_lin_model: pyo.AbstractModel = generate_combined_lin_model()
         self.combined_model_instance: pyo.ConcreteModel
-        self.scaled_combined_model_instance: pyo.ConcreteModel
+        self.combined_lin_model_instance: pyo.ConcreteModel
 
         self.combined_obj: float = 0.0
 
@@ -29,9 +30,21 @@ class PipelineModelManagerCombined(PipelineModelManager):
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
+        self.combined_lin_model_instance = self.combined_lin_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
 
-    def solve_model(self, **kwargs) -> None:
+    def solve_model(self, group: int, **kwargs) -> None:
         """Solve the combined radial+DistFlow model."""
+        results = self.solver.solve(
+            self.combined_lin_model_instance, tee=self.config.verbose
+        )
+
+        δ_map = self.combined_lin_model_instance.δ.extract_values()  # type: ignore
+
+        for edge_id, δ in δ_map.items():
+            if self.data_manager.edge_data["group"][edge_id] == group:
+                continue
+            self.combined_model_instance.δ[edge_id].fix(δ)  # type: ignore
+
         results = self.solver.solve(
             self.combined_model_instance, tee=self.config.verbose
         )

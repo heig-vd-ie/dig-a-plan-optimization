@@ -75,9 +75,9 @@ class DigAPlan:
             self.data_manager.grid_data_parameters_dict
         )
 
-    def solve_model(self, max_iters: int = 100) -> None:
+    def solve_model(self, max_iters: int = 100, **kwargs) -> None:
         """
         Solve the optimization model.
         """
 
-        self.model_manager.solve_model(max_iters=max_iters)
+        self.model_manager.solve_model(max_iters=max_iters, **kwargs)
