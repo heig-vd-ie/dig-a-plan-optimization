@@ -87,9 +87,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for j, s in enumerate(switch_list):
-                z[s] = (
-                    sum(δ_by_sc[sc][j] + λ[(sc, s)] for sc in scen_list)
-                ) / scenario_number
+                z[s] = (sum(δ_by_sc[sc][j] for sc in scen_list)) / scenario_number
 
             # ---- λ-update (scaled duals) ----
             for sc in scen_list:
@@ -134,7 +132,11 @@ class PipelineModelManagerADMM(PipelineModelManager):
             sw, δ_vec = self._extract_δ_vector(m)
             for j, s in enumerate(sw):
                 rows.append((sc, s, float(δ_vec[j])))
-        self.δ_variable = pl.DataFrame(rows, schema=["SCEN", "S", "δ_variable"])
+        self.δ_variable = pl.DataFrame(
+            rows,
+            schema=["SCEN", "S", "δ_variable"],
+            orient="row",
+        )
 
         # store total objective (sum over scenarios), if available
         try:
@@ -161,7 +163,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
     def _set_z_from_z(self, z_per_switch: dict) -> None:
         """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
-        for scen_id, m in self.admm_model_instances.items():
+        for _, m in self.admm_model_instances.items():
             z_param = getattr(m, "z")
             for s in getattr(m, "S"):
                 z_param[s].set_value(z_per_switch[s])

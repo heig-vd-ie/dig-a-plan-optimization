@@ -3,6 +3,7 @@ from logging import config
 import polars as pl
 import os
 import pandapower as pp
+from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from pipelines import DigAPlan
@@ -126,3 +127,6 @@ print(consensus_states)
 # %% Extract and compare results
 # %% compare DigAPlan results with pandapower results
 node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
+# %% plot the grid annotated with DigAPlan results
+fig = plot_grid_from_pandapower(net, dap)
+
