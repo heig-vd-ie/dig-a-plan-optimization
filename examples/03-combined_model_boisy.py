@@ -28,7 +28,7 @@ else:
     base_grid_data = change_schema_to_dig_a_plan_schema(change_schema, 1000)
 
 # %% convert pandapower grid to DigAPlan grid data
-base_grid_data.load_data["1"] = base_grid_data.load_data["1"].with_columns(
+base_grid_data.load_data[1] = base_grid_data.load_data[1].with_columns(
     pl.lit(0.01).alias("p_node_pu") * 0.01,
     pl.lit(0.01).alias("q_node_pu"),
 )
