@@ -32,7 +32,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
         self.combined_lin_model_instance = self.combined_lin_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
 
-    def solve_model(self, group: int, **kwargs) -> None:
+    def solve_model(self, group: int | None = None, **kwargs) -> None:
         """Solve the combined radial+DistFlow model."""
         results = self.solver.solve(
             self.combined_lin_model_instance, tee=self.config.verbose
@@ -40,10 +40,11 @@ class PipelineModelManagerCombined(PipelineModelManager):
 
         δ_map = self.combined_lin_model_instance.δ.extract_values()  # type: ignore
 
-        for edge_id, δ in δ_map.items():
-            if self.data_manager.edge_data["group"][edge_id] == group:
-                continue
-            self.combined_model_instance.δ[edge_id].fix(δ)  # type: ignore
+        if group is not None:
+            for edge_id, δ in δ_map.items():
+                if self.data_manager.edge_data["group"][edge_id] == group:
+                    continue
+                self.combined_model_instance.δ[edge_id].fix(δ)  # type: ignore
 
         results = self.solver.solve(
             self.combined_model_instance, tee=self.config.verbose

@@ -4,16 +4,9 @@ import pyomo.environ as pyo
 def slave_model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     # Candidate-indexed branch variables.
-    model.p_flow = pyo.Var(model.CΩ, domain=pyo.Reals)
-    model.q_flow = pyo.Var(model.CΩ, domain=pyo.Reals)
     model.i_sq = pyo.Var(model.CΩ, domain=pyo.NonNegativeReals)
-    model.v_sq = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
 
     model.δ = pyo.Var(model.S, domain=pyo.Reals, bounds=(0, 1))
-
-    model.p_slack_node = pyo.Var(model.Ω, domain=pyo.Reals)
-    model.q_slack_node = pyo.Var(model.Ω, domain=pyo.Reals)
-
     return model
 
 
