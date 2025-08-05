@@ -15,26 +15,22 @@ os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-if USE_SIMPLIFIED_GRID := False:
+if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
-    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=10)
+    grid_data = pandapower_to_dig_a_plan_schema(
+        net,
+        number_of_groups=10,
+        number_of_random_scenarios=30,
+    )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
-    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=10)
+    grid_data = pandapower_to_dig_a_plan_schema(
+        net,
+        number_of_groups=10,
+        number_of_random_scenarios=30,
+    )
 
 # %% convert pandapower grid to DigAPlan grid data
-for scen in grid_data.load_data.keys():
-    grid_data.load_data[scen] = grid_data.load_data[scen].with_columns(
-        c("p_node_pu_cons") * 0.01,
-        c("q_node_pu_cons") * 0.01,
-        c("p_node_pu_prod") * 0.01,
-        c("q_node_pu_prod") * 0.01,
-    )
-grid_data.edge_data = grid_data.edge_data.with_columns(
-    c("r_pu") * 0.001,
-    c("x_pu") * 0.001,
-    pl.lit(0).alias("b_pu"),
-)
 
 grid_data.edge_data = grid_data.edge_data.with_columns(
     pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
@@ -49,7 +45,7 @@ config = ADMMConfig(
     verbose=False,
     pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
-    solver_non_convex=2,
+    solver_non_convex=0,
     big_m=1e3,
     ε=1e-4,
     ρ=2.0,

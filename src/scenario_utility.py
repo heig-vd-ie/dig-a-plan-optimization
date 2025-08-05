@@ -12,9 +12,9 @@ def generate_random_load_scenarios(
     load_data: pl.DataFrame,
     number_of_random_scenarios: int,
     seed: int = 42,
-    p_bounds: Tuple[float, float] = (-0.2, 0.0),
-    q_bounds: Tuple[float, float] = (-0.2, 0.0),
-    v_bounds: Tuple[float, float] = (-0.01, 0.01),
+    p_bounds: Tuple[float, float] = (-0.1, 0.1),
+    q_bounds: Tuple[float, float] = (-0.1, 0.1),
+    v_bounds: Tuple[float, float] = (-0.03, 0.03),
 ) -> Dict[int, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
@@ -34,6 +34,8 @@ def generate_random_load_scenarios(
     for i in range(1, number_of_random_scenarios + 1):
         p_rand = rng.uniform(low=p_min, high=p_max, size=n_nodes)
         q_rand = rng.uniform(low=q_min, high=q_max, size=n_nodes)
+        pv_rand = rng.uniform(low=p_min, high=p_max, size=n_nodes)
+        qv_rand = rng.uniform(low=q_min, high=q_max, size=n_nodes)
         v_rand = rng.uniform(low=v_min, high=v_max, size=n_nodes)
 
         df = pl.DataFrame(
@@ -50,12 +52,12 @@ def generate_random_load_scenarios(
                     else load_data["q_node_pu_cons"]
                 ),
                 "p_node_pu_prod": (
-                    (1 + p_rand) * load_data["p_node_pu_prod"]
+                    (1 + pv_rand) * load_data["p_node_pu_prod"]
                     if i != 1
                     else load_data["p_node_pu_prod"]
                 ),
                 "q_node_pu_prod": (
-                    (1 + q_rand) * load_data["q_node_pu_prod"]
+                    (1 + qv_rand) * load_data["q_node_pu_prod"]
                     if i != 1
                     else load_data["q_node_pu_prod"]
                 ),
