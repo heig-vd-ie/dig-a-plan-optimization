@@ -41,7 +41,7 @@ def generate_random_load_scenarios(
         df = pl.DataFrame(
             {
                 "node_id": node_ids,
-                "p_cons_pu": (
+                "p_cons_pu": abs(
                     (1 + p_rand) * load_data["p_cons_pu"]
                     if i != 1
                     else load_data["p_cons_pu"]
@@ -51,7 +51,7 @@ def generate_random_load_scenarios(
                     if i != 1
                     else load_data["q_cons_pu"]
                 ),
-                "p_prod_pu": (
+                "p_prod_pu": abs(
                     (1 + pv_rand) * load_data["p_prod_pu"]
                     if i != 1
                     else load_data["p_prod_pu"]

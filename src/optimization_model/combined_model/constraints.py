@@ -78,10 +78,6 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.node_active_power_prod = pyo.Constraint(
         model.NΩ, rule=node_active_power_prod_rule
     )
-    model.node_reactive_power = pyo.Constraint(model.NΩ, rule=node_reactive_power_rule)
-    model.node_reactive_power_prod = pyo.Constraint(
-        model.NΩ, rule=node_reactive_power_prod_rule
-    )
 
     model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     return model
