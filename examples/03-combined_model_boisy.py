@@ -24,8 +24,8 @@ if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     base_grid_data = pandapower_to_dig_a_plan_schema(net)
 else:
-    change_schema = duckdb_to_changes_schema(".cache/boisy_grid.db")
-    base_grid_data = change_schema_to_dig_a_plan_schema(change_schema, 1000)
+    net = pp.from_pickle(".cache/boisy_grid.p")
+    base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% convert pandapower grid to DigAPlan grid data
 base_grid_data.load_data[1] = base_grid_data.load_data[1].with_columns(
