@@ -34,7 +34,7 @@ def test_admm_model_simple_example():
     net["load"]["q_mvar"] *= LOAD_FACTOR
     net["line"].loc[:, "max_i_ka"] = 1.0
 
-    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=1)
+    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
 
     config = ADMMConfig(
         verbose=False,

@@ -1,4 +1,3 @@
-import numpy as np
 from optimization_model.constraints import *
 import pyomo.environ as pyo
 

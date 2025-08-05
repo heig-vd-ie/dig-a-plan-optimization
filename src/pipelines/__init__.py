@@ -32,7 +32,6 @@ class DigAPlan:
             ε=self.config.ε,
             ρ=self.config.ρ,
             γ_infeasibility=self.config.γ_infeasibility,
-            γ_penalty=self.config.γ_penalty,
             γ_admm_penalty=self.config.γ_admm_penalty,
             all_scenarios=self.config.all_scenarios,
         )

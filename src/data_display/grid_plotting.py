@@ -14,11 +14,15 @@ def plot_grid_from_pandapower(
     node_size: int = 22,
     width: int = 800,
     height: int = 700,
+    switch_status: dict | None = None,
 ) -> None:
 
-    switch_status = pl_to_dict(
-        dig_a_plan.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
-    )
+    if switch_status is None:
+        switch_status = pl_to_dict(
+            dig_a_plan.result_manager.extract_switch_status().select(
+                "eq_fk", ~c("open")
+            )
+        )
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     bus: pl.DataFrame = pl.from_pandas(net["bus"])
 

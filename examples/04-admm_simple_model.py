@@ -4,6 +4,7 @@ import polars as pl
 import os
 import pandapower as pp
 from data_display.grid_plotting import plot_grid_from_pandapower
+from general_function import pl_to_dict
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from pipelines import DigAPlan
@@ -43,21 +44,19 @@ net["load"]["q_mvar"] *= LOAD_FACTOR
 net["line"].loc[:, "max_i_ka"] = 1.0
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-grid_data = pandapower_to_dig_a_plan_schema(net)
+grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=4)
 
 
 # %% Configure ADMM pipeline
 config = ADMMConfig(
     verbose=False,
     pipeline_type=PipelineType.ADMM,
-    # solver & model scaling
     solver_name="gurobi",
     solver_non_convex=2,
     big_m=1e3,
     ε=1e-4,
-    ρ=2.0,  # initial rho
+    ρ=2.0,
     γ_infeasibility=1.0,
-    γ_penalty=1e-6,
     γ_admm_penalty=1.0,
 )
 
@@ -128,4 +127,8 @@ print(consensus_states)
 # %% compare DigAPlan results with pandapower results
 node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
 # %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(net, dap)
+fig = plot_grid_from_pandapower(
+    net,
+    dap,
+    switch_status=pl_to_dict(consensus_states.select("eq_fk", "closed")),
+)

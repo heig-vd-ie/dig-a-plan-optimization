@@ -16,7 +16,6 @@ class PipelineDataManager:
         ε: float,
         ρ: float,
         γ_infeasibility: float = 1.0,
-        γ_penalty: float = 1e-6,
         γ_admm_penalty: float = 1.0,
         z: dict[int, float] | None = None,
         λ: dict[int, float] | None = None,
@@ -28,7 +27,6 @@ class PipelineDataManager:
         self.ρ = ρ
         self.γ_infeasibility: float = γ_infeasibility
         self.γ_admm_penalty: float = γ_admm_penalty
-        self.γ_penalty: float = γ_penalty
         self.z: dict[int, float] | None = z
         self.λ: dict[int, float] | None = λ
         self.all_scenarios: bool = all_scenarios
@@ -182,10 +180,18 @@ class PipelineDataManager:
             )
         )
 
+        groups = (
+            self.edge_data.filter((c("type") == "switch") & (c("group").is_not_null()))
+            .get_column("group")
+            .unique()
+            .to_list()
+        )
+
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
                     # sets
+                    "groups": groups,
                     "Ω": {None: scen_ids if self.all_scenarios else [scen_id]},
                     "N": {None: node_ids},
                     "L": {None: edge_ids},
@@ -229,7 +235,6 @@ class PipelineDataManager:
                     "ε": {None: self.ε},
                     "γ_infeasibility": {None: self.γ_infeasibility},
                     "γ_admm_penalty": {None: self.γ_admm_penalty},
-                    "γ_penalty": {None: self.γ_penalty},
                     "ρ": {None: self.ρ},
                     "z": (
                         self.z
