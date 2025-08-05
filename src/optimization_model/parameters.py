@@ -13,8 +13,10 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Candidate-to-actual transformer turns
     model.n_transfo = pyo.Param(model.C)
     # Nodal loads
-    model.p_node = pyo.Param(model.NΩ)  # Real load (pu)
-    model.q_node = pyo.Param(model.NΩ)  # Reactive load (pu)
+    model.p_node_cons = pyo.Param(model.NΩ)  # Real load (pu)
+    model.q_node_cons = pyo.Param(model.NΩ)  # Reactive load (pu)
+    model.p_node_prod = pyo.Param(model.NΩ)  # Real production (pu)
+    model.q_node_prod = pyo.Param(model.NΩ)
     # Voltage limits
     model.v_min = pyo.Param(model.N, default=0.95)  # Minimum voltage (pu)
     model.v_max = pyo.Param(model.N, default=1.05)  # Maximum voltage (pu)

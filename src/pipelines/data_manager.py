@@ -216,17 +216,31 @@ class PipelineDataManager:
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     # scenario loads
-                    "p_node": {
-                        (n, s): self.__load_data[s]["node_id", "p_node_pu"].filter(
+                    "p_node_cons": {
+                        (n, s): self.__load_data[s]["node_id", "p_node_pu_cons"].filter(
                             c("node_id") == n
-                        )["p_node_pu"][0]
+                        )["p_node_pu_cons"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
-                    "q_node": {
-                        (n, s): self.__load_data[s]["node_id", "q_node_pu"].filter(
+                    "q_node_cons": {
+                        (n, s): self.__load_data[s]["node_id", "q_node_pu_cons"].filter(
                             c("node_id") == n
-                        )["q_node_pu"][0]
+                        )["q_node_pu_cons"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "p_node_prod": {
+                        (n, s): self.__load_data[s]["node_id", "p_node_pu_prod"].filter(
+                            c("node_id") == n
+                        )["p_node_pu_prod"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "q_node_prod": {
+                        (n, s): self.__load_data[s]["node_id", "q_node_pu_prod"].filter(
+                            c("node_id") == n
+                        )["q_node_pu_prod"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },

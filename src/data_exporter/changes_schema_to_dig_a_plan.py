@@ -53,7 +53,7 @@ def change_schema_to_dig_a_plan_schema(
             )
         )
         .group_by("cn_fk")
-        .agg((c("value").sum() / s_base).alias("p_node_pu"))
+        .agg((c("value").sum() / s_base).alias("p_node_pu_cons"))
     )
 
     grid_data["node_data"] = node_data.join(

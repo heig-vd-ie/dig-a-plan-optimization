@@ -26,8 +26,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.admm_obj: float = 0.0
 
         # ADMM artifacts
-        self.admm_z: Dict[int, float] = {}  # consensus per switch: {s: z_s}
-        self.admm_u: Dict[tuple, float] = {}  # scaled duals: {(sc, s): u_sc,s}
+        self.admm_z: Dict[int, float] = {}
+        self.admm_λ: Dict[tuple, float] = {}
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         """Instantiate the ADMM model with the provided grid data parameters."""
@@ -40,8 +40,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
             ].get("groups", [])
         )
         for scen in grid_data_parameters_dict.keys():
+            model = self.admm_model.create_instance(grid_data_parameters_dict[scen])
             for group in range(self.number_of_groups):
-                self.admm_model_instances[(scen, group)] = self.admm_model.create_instance(grid_data_parameters_dict[scen])  # type: ignore
+                self.admm_model_instances[(scen, group)] = model  # type: ignore
 
     def solve_model(
         self,
@@ -60,16 +61,15 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         random.seed(seed_number)
 
-        models = self.admm_model_instances
-        scen_list = list(models.keys())  # type: ignore
+        scen_list = list(self.admm_model_instances.keys())  # type: ignore
 
         # Sets
-        switch_list = list(models[scen_list[0]].S)  # type: ignore
+        switch_list = list(self.admm_model_instances[scen_list[0]].S)  # type: ignore
         scenario_number = len(scen_list)
 
         # Initialize consensus and duals
         z = {s: 0.5 for s in switch_list}  # consensus per switch
-        λ = {(sc, s): 0.0 for sc in scen_list for s in switch_list}  # scaled duals
+        λ = {(ω, s): 0.0 for ω in scen_list for s in switch_list}  # scaled duals
         results = self.solver.solve(
             self.admm_linear_model_instance, tee=self.config.verbose
         )
@@ -81,12 +81,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self._set_z_from_z(z)
             self._set_λ_from_λ(λ)
             # ---- x-update: solve each scenario with current z, λ ----
-            δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = (
-                {}
-            )  # {(scenario_id, group_id): np.array over switch_list}
+            δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = {}
 
-            for sc in tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
-                m = models[sc]  # type: ignore
+            for ω in tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
+                m = self.admm_model_instances[ω]  # type: ignore
                 # Solve multi‑scenario instance
                 random_number = random.randint(0, self.number_of_groups)
 
@@ -96,43 +94,44 @@ class PipelineModelManagerADMM(PipelineModelManager):
                     else:
                         m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
 
-                δ_by_sc[sc] = δ_map
-
-                results = self.solver.solve(m, tee=self.config.verbose)
-                if (
-                    results.solver.termination_condition
-                    != pyo.TerminationCondition.optimal
-                ):
-                    raise ValueError(
-                        f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
-                    )
-
-                δ_map = m.δ.extract_values()  # type: ignore
-
-                δ_by_sc[sc] = δ_map
+                δ_by_sc[ω] = δ_map
+                try:
+                    results = self.solver.solve(m, tee=self.config.verbose)
+                    if (
+                        results.solver.termination_condition
+                        != pyo.TerminationCondition.optimal
+                    ):
+                        raise ValueError(
+                            f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
+                        )
+                    δ_map = m.δ.extract_values()  # type: ignore
+                    δ_by_sc[ω] = δ_map
+                except Exception as e:
+                    log.error(f"[ADMM {k}] Error solving scenario {ω}: {e}")
+                    continue
 
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for s in switch_list:
-                z[s] = (
-                    sum(δ_by_sc[sc][s] + λ[(sc, s)] for sc in scen_list)
-                ) / scenario_number
+                z[s] = (sum(δ_by_sc[ω][s] for ω in scen_list)) / scenario_number
 
             # ---- λ-update (scaled duals) ----
-            for sc in scen_list:
+            for ω in scen_list:
                 for s in switch_list:
-                    λ[(sc, s)] = λ[(sc, s)] + κ * (δ_by_sc[sc][s] - z[s])
+                    λ[(ω, s)] = λ[(ω, s)] + κ * (δ_by_sc[ω][s] - z[s])
 
             # ---- residuals (after all scenarios solved) ----
             r_sq = max(
-                [(δ_by_sc[sc][s] - z[s]) ** 2 for sc in scen_list for s in switch_list]
+                [(δ_by_sc[ω][s] - z[s]) ** 2 for ω in scen_list for s in switch_list]
             )
             r_norm = float(np.sqrt(r_sq))
 
             s_sq = sum((z[s] - z_old[s]) ** 2 for s in switch_list)
-            s_norm = float(ρ * np.sqrt(s_sq))
+            s_norm = float(self.config.ρ * np.sqrt(s_sq))
 
-            log.info(f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={ρ:.3g}")
+            log.info(
+                f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={self.config.ρ:.3g}"
+            )
 
             # ---- convergence ----
             if (r_norm <= ε_primal) and (s_norm <= ε_dual):
@@ -141,11 +140,11 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
             # ---- residual balancing (scaled ADMM) ----
             if r_norm > μ * s_norm:
-                ρ *= τ_incr
+                self.config.ρ *= τ_incr
             elif s_norm > μ * r_norm:
-                ρ /= τ_decr
-            for m in models.values():
-                getattr(m, "ρ").set_value(ρ)
+                self.config.ρ /= τ_decr
+            for m in self.admm_model_instances.values():
+                getattr(m, "ρ").set_value(self.config.ρ)
 
         # Store results
         self.admm_z = z
@@ -153,11 +152,11 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Refresh δ table after final iterate
         rows = []
-        for sc in scen_list:
-            m = models[sc]
+        for ω in scen_list:
+            m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
             for s in switch_list:
-                rows.append((sc, s, float(δ_map[s])))
+                rows.append((ω, s, float(δ_map[s])))
         self.δ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "S", "δ_variable"],
@@ -185,7 +184,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
     def _set_λ_from_λ(self, λ_map: dict) -> None:
         """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
-        for scen_id, m in self.admm_model_instances.items():
-            lam_param = getattr(m, "λ")
+        for ω, m in self.admm_model_instances.items():
+            λ_param = getattr(m, "λ")
             for s in getattr(m, "S"):
-                lam_param[s].set_value(λ_map[(scen_id, s)])
+                λ_param[s].set_value(λ_map[(ω, s)])

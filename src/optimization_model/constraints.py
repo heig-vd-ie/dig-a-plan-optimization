@@ -18,7 +18,9 @@ def objective_rule_infeasibility(m):
 
 
 def objective_rule_admm_penalty(m):
-    return (m.ρ / 2.0) * sum((m.δ[s] - m.z[s] + m.λ[s]) ** 2 for s in m.S)
+    return (m.ρ / 2.0) * sum((m.δ[s] - m.z[s]) ** 2 for s in m.S) + sum(
+        m.λ[s] * m.δ[s] for s in m.S
+    )
 
 
 def objective_rule_combined(m):
@@ -89,7 +91,10 @@ def node_active_power_balance_slack_rule(m, n, ω):
 
 
 def node_active_power_balance_rule(m, n, ω):
-    return sum(m.p_flow[l, i, j, ω] for (l, i, j) in m.C if (i == n)) == -m.p_node[n, ω]
+    return (
+        sum(m.p_flow[l, i, j, ω] for (l, i, j) in m.C if (i == n))
+        == m.p_node_prod[n, ω] - m.p_node_cons[n, ω]
+    )
 
 
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
@@ -111,7 +116,7 @@ def node_reactive_power_balance_rule(m, n, ω):
             for (l, i, j) in m.C
             if (i == n)
         )
-        == -m.q_node[n, ω]
+        == m.q_node_prod[n, ω] - m.q_node_cons[n, ω]
     )
 
 

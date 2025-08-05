@@ -25,8 +25,10 @@ else:
 # %% convert pandapower grid to DigAPlan grid data
 for scen in grid_data.load_data.keys():
     grid_data.load_data[scen] = grid_data.load_data[scen].with_columns(
-        c("p_node_pu") * 0.01,
-        c("q_node_pu") * 0.01,
+        c("p_node_pu_cons") * 0.01,
+        c("q_node_pu_cons") * 0.01,
+        c("p_node_pu_prod") * 0.01,
+        c("q_node_pu_prod") * 0.01,
     )
 grid_data.edge_data = grid_data.edge_data.with_columns(
     c("r_pu") * 0.001,
@@ -53,6 +55,7 @@ config = ADMMConfig(
     ρ=2.0,
     γ_infeasibility=1.0,
     γ_admm_penalty=1.0,
+    time_limit=10,
 )
 
 dap = DigAPlan(config=config)

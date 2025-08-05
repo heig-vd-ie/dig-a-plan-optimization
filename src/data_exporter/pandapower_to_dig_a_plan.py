@@ -40,12 +40,10 @@ def pandapower_to_dig_a_plan_schema(
 
     load = load.join(sgen, on="bus", how="full", coalesce=True).select(
         c("bus").alias("node_id"),
-        pl.sum_horizontal([c("p_load").fill_null(0.0), c("p_pv").fill_null(0.0)]).alias(
-            "p_node_pu"
-        ),
-        pl.sum_horizontal([c("q_load").fill_null(0.0), c("q_pv").fill_null(0.0)]).alias(
-            "q_node_pu"
-        ),
+        c("p_load").fill_null(0.0).alias("p_node_pu_cons"),
+        c("q_load").fill_null(0.0).alias("q_node_pu_cons"),
+        -c("p_pv").fill_null(0.0).alias("p_node_pu_prod"),
+        -c("q_pv").fill_null(0.0).alias("q_node_pu_prod"),
     )
 
     node_data = (
@@ -61,8 +59,10 @@ def pandapower_to_dig_a_plan_schema(
             pl.lit(0.0).alias("p_node_min_pu"),
             pl.lit(0.0).alias("q_node_max_pu"),
             pl.lit(0.0).alias("q_node_min_pu"),
-            c("p_node_pu").fill_null(0.0),
-            c("q_node_pu").fill_null(0.0),
+            c("p_node_pu_cons").fill_null(0.0),
+            c("q_node_pu_cons").fill_null(0.0),
+            c("p_node_pu_prod").fill_null(0.0),
+            c("q_node_pu_prod").fill_null(0.0),
         )
         .with_columns(
             pl.lit(s_base).alias("s_base"),
@@ -72,12 +72,14 @@ def pandapower_to_dig_a_plan_schema(
 
     load_data = node_data.select(
         c("node_id"),
-        c("p_node_pu"),
-        c("q_node_pu"),
+        c("p_node_pu_cons"),
+        c("q_node_pu_cons"),
+        c("p_node_pu_prod"),
+        c("q_node_pu_prod"),
     )
 
     node_data = node_data.drop(
-        ["p_node_pu", "q_node_pu"]
+        ["p_node_pu_cons", "q_node_pu_cons", "p_node_pu_prod", "q_node_pu_prod"]
     )  # drop load data from node_data, as it is in load_data
 
     # ext_grid -> slack identification
