@@ -36,7 +36,8 @@ def test_combined_model_simple_example():
 
     config = CombinedConfig(
         verbose=False,
-        big_m=1e2,
+        big_m=1e3,
+        γ_infeasibility=1.0,
         factor_p=1e-3,
         factor_q=1e-3,
         factor_v=1,
@@ -72,8 +73,8 @@ def test_combined_model_simple_example():
     )
     assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
         21,
-        22,
         24,
         26,
         33,
+        34,
     ]
