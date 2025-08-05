@@ -78,6 +78,7 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
+    random_mutation=5,
 )
 
 # %% Inspect consensus and per-scenario deltas

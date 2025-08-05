@@ -55,6 +55,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         seed_number: int = 42,
         κ: float = 0.1,
         group_selection: Dict[int, List[int]] | None = None,
+        random_mutation: int = 1,
     ) -> None:
         """Solve the ADMM model with the given parameters."""
 
@@ -86,19 +87,17 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = {}
 
-            for (
-                ω
-            ) in scen_list:  # tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
+            for ω in scen_list:
                 m = self.admm_model_instances[ω]  # type: ignore
                 # Solve multi‑scenario instance
 
                 random_switches = random.sample(
-                    switch_list, k=int(len(switch_list) / self.number_of_groups)
-                )
-                group = (
-                    self.data_manager.edge_data.filter(pl.col("group") == ω[1])
-                    .get_column("edge_id")
-                    .to_list()
+                    switch_list,
+                    k=min(
+                        max(2, int(len(switch_list) / self.number_of_groups))
+                        * random_mutation,
+                        len(switch_list) - 1,
+                    ),
                 )
 
                 if self.number_of_groups > 1:
