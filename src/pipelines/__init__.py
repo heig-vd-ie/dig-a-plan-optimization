@@ -29,7 +29,7 @@ class DigAPlan:
         # Pull ρ from the config (only used in the COMBINED/ADMM pipeline)
         self.data_manager = PipelineDataManager(
             big_m=self.config.big_m,
-            small_m=self.config.small_m,
+            ε=self.config.ε,
             ρ=self.config.ρ,
             γ_infeasibility=self.config.γ_infeasibility,
             γ_penalty=self.config.γ_penalty,

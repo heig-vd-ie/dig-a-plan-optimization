@@ -43,7 +43,7 @@ base_grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=1)
 config = CombinedConfig(
     verbose=True,
     big_m=1e3,
-    small_m=1,
+    ε=1,
     pipeline_type=PipelineType.COMBINED,
     γ_infeasibility=1e-3,
     γ_admm_penalty=0.0,

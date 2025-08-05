@@ -17,7 +17,7 @@ class PipelineConfig:
     verbose: bool = False
     ρ: float = 10.0
     big_m: float = 1e4
-    small_m: float = 1
+    ε: float = 1
     slack_threshold: float = 1e-5
     convergence_threshold: float = 1e-4
     pipeline_type: PipelineType = PipelineType.BENDER

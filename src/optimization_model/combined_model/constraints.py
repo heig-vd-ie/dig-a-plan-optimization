@@ -75,9 +75,6 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         model.NΩ, rule=infeasible_voltage_lower_limits_rule
     )
 
-    breakpoints = np.linspace(0, 1, 20).tolist()
-    values = [x * (1 - x) for x in breakpoints]
-
     model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     return model
 

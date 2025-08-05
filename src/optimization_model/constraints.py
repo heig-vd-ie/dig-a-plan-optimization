@@ -2,7 +2,7 @@
 
 
 def master_obj(m):
-    return m.theta
+    return m.θ
 
 
 def objective_rule_loss(m):
@@ -37,13 +37,11 @@ def objective_rule_combined(m):
 
 # Radiality constraint: each non-slack bus must have one incoming candidate.
 def imaginary_flow_balance_slack_rule(m, n):
-    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.small_m * (
-        len(m.N) - 1
-    )
+    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) >= m.ε * (len(m.N) - 1)
 
 
 def imaginary_flow_balance_rule(m, n):
-    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.small_m
+    return sum(m.flow[l, i, j] for l, i, j in m.C if i == n) == -m.ε
 
 
 # Orientation constraint.
@@ -52,11 +50,11 @@ def imaginary_flow_edge_propagation_rule(m, l):
 
 
 def imaginary_flow_upper_switch_propagation_rule(m, l, i, j):
-    return m.flow[l, i, j] <= m.small_m * len(m.N) * m.δ[l]
+    return m.flow[l, i, j] <= m.ε * len(m.N) * m.δ[l]
 
 
 def imaginary_flow_lower_switch_propagation_rule(m, l, i, j):
-    return m.flow[l, i, j] >= -m.small_m * len(m.N) * m.δ[l]
+    return m.flow[l, i, j] >= -m.ε * len(m.N) * m.δ[l]
 
 
 def imaginary_flow_nb_closed_switches_rule(m):

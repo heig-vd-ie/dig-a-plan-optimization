@@ -15,6 +15,6 @@ def master_model_variables(
         else pyo.Var(model.S, domain=pyo.Binary)
     )
 
-    model.theta = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
+    model.θ = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
 
     return model

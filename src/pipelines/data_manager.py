@@ -13,7 +13,7 @@ class PipelineDataManager:
     def __init__(
         self,
         big_m: float,
-        small_m: float,
+        ε: float,
         ρ: float,
         γ_infeasibility: float = 1.0,
         γ_penalty: float = 1e-6,
@@ -24,7 +24,7 @@ class PipelineDataManager:
     ):
 
         self.big_m: float = big_m
-        self.small_m: float = small_m
+        self.ε: float = ε
         self.ρ = ρ
         self.γ_infeasibility: float = γ_infeasibility
         self.γ_admm_penalty: float = γ_admm_penalty
@@ -226,7 +226,7 @@ class PipelineDataManager:
                     },
                     # ADMM & big‑M parameters
                     "big_m": {None: self.big_m},
-                    "small_m": {None: self.small_m},
+                    "ε": {None: self.ε},
                     "γ_infeasibility": {None: self.γ_infeasibility},
                     "γ_admm_penalty": {None: self.γ_admm_penalty},
                     "γ_penalty": {None: self.γ_penalty},

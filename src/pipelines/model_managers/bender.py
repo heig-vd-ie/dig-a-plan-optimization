@@ -251,7 +251,7 @@ class PipelineModelManagerBender(PipelineModelManager):
         if self.infeasible_slave == True:
             self.master_model_instance.infeasibility_cut.add(0 >= new_cut)  # type: ignore
         else:
-            self.master_model_instance.optimality_cut.add(self.master_model_instance.theta >= new_cut)  # type: ignore
+            self.master_model_instance.optimality_cut.add(self.master_model_instance.θ >= new_cut)  # type: ignore
 
     def check_slave_feasibility(self):
         self.slack_i_sq = extract_optimization_results(

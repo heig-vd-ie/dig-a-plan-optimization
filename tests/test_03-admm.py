@@ -43,7 +43,7 @@ def test_admm_model_simple_example():
         solver_name="gurobi",
         solver_non_convex=2,
         big_m=1e3,
-        small_m=1e-4,
+        ε=1e-4,
         ρ=2.0,  # initial rho
         γ_infeasibility=1.0,
         γ_penalty=1e-6,
@@ -113,7 +113,7 @@ def test_admm_model_simple_example():
     config = CombinedConfig(
         verbose=True,
         big_m=1e3,
-        small_m=1,
+        ε=1,
         pipeline_type=PipelineType.COMBINED,
         γ_infeasibility=1e-3,
         γ_admm_penalty=0.0,
