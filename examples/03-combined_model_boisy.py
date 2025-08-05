@@ -53,7 +53,7 @@ config = CombinedConfig(
     big_m=1000,
     small_m=0.1,
     pipeline_type=PipelineType.COMBINED,
-    weight_admm_penalty=0.0,
+    γ_admm_penalty=0.0,
 )
 dig_a_plan = DigAPlan(config=config)
 

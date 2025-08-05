@@ -15,9 +15,9 @@ class PipelineDataManager:
         big_m: float,
         small_m: float,
         ρ: float,
-        weight_infeasibility: float = 1.0,
-        weight_penalty: float = 1e-6,
-        weight_admm_penalty: float = 1.0,
+        γ_infeasibility: float = 1.0,
+        γ_penalty: float = 1e-6,
+        γ_admm_penalty: float = 1.0,
         z: dict[int, float] | None = None,
         λ: dict[int, float] | None = None,
         all_scenarios: bool = False,
@@ -26,9 +26,9 @@ class PipelineDataManager:
         self.big_m: float = big_m
         self.small_m: float = small_m
         self.ρ = ρ
-        self.weight_infeasibility: float = weight_infeasibility
-        self.weight_admm_penalty: float = weight_admm_penalty
-        self.weight_penalty: float = weight_penalty
+        self.γ_infeasibility: float = γ_infeasibility
+        self.γ_admm_penalty: float = γ_admm_penalty
+        self.γ_penalty: float = γ_penalty
         self.z: dict[int, float] | None = z
         self.λ: dict[int, float] | None = λ
         self.all_scenarios: bool = all_scenarios
@@ -227,9 +227,9 @@ class PipelineDataManager:
                     # ADMM & big‑M parameters
                     "big_m": {None: self.big_m},
                     "small_m": {None: self.small_m},
-                    "weight_infeasibility": {None: self.weight_infeasibility},
-                    "weight_admm_penalty": {None: self.weight_admm_penalty},
-                    "weight_penalty": {None: self.weight_penalty},
+                    "γ_infeasibility": {None: self.γ_infeasibility},
+                    "γ_admm_penalty": {None: self.γ_admm_penalty},
+                    "γ_penalty": {None: self.γ_penalty},
                     "ρ": {None: self.ρ},
                     "z": (
                         self.z

@@ -56,9 +56,9 @@ config = ADMMConfig(
     big_m=1e3,
     small_m=1e-4,
     ρ=2.0,  # initial rho
-    weight_infeasibility=1.0,
-    weight_penalty=1e-6,
-    weight_admm_penalty=1.0,
+    γ_infeasibility=1.0,
+    γ_penalty=1e-6,
+    γ_admm_penalty=1.0,
 )
 
 dap = DigAPlan(config=config)
@@ -129,4 +129,3 @@ print(consensus_states)
 node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
 # %% plot the grid annotated with DigAPlan results
 fig = plot_grid_from_pandapower(net, dap)
-

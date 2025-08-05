@@ -27,8 +27,8 @@ def objective_rule_combined(m):
     # Minimize network losses and infeasibility penalties
     return (
         objective_rule_loss(m)
-        + objective_rule_infeasibility(m) * m.weight_infeasibility
-        + objective_rule_admm_penalty(m) * m.weight_admm_penalty
+        + objective_rule_infeasibility(m) * m.γ_infeasibility
+        + objective_rule_admm_penalty(m) * m.γ_admm_penalty
     )
 
 

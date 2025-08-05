@@ -45,9 +45,9 @@ def test_admm_model_simple_example():
         big_m=1e3,
         small_m=1e-4,
         ρ=2.0,  # initial rho
-        weight_infeasibility=1.0,
-        weight_penalty=1e-6,
-        weight_admm_penalty=1.0,
+        γ_infeasibility=1.0,
+        γ_penalty=1e-6,
+        γ_admm_penalty=1.0,
     )
 
     dap = DigAPlan(config=config)
@@ -115,9 +115,9 @@ def test_admm_model_simple_example():
         big_m=1e3,
         small_m=1,
         pipeline_type=PipelineType.COMBINED,
-        weight_infeasibility=1e-3,
-        weight_admm_penalty=0.0,
-        weight_penalty=1e-6,
+        γ_infeasibility=1e-3,
+        γ_admm_penalty=0.0,
+        γ_penalty=1e-6,
         all_scenarios=True,
     )
     dig_a_plan = DigAPlan(config=config)
