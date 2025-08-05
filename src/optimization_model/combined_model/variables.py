@@ -8,9 +8,4 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.δ = pyo.Var(model.S, domain=pyo.Binary)
     model.i_sq = pyo.Var(model.CΩ, domain=pyo.NonNegativeReals)
 
-    # Relaxation variables
-    model.slack_i_sq = pyo.Var(model.CΩ, domain=pyo.NonNegativeReals)
-    model.slack_v_pos = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
-    model.slack_v_neg = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
-
     return model

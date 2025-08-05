@@ -45,7 +45,7 @@ config = CombinedConfig(
     big_m=1e3,
     ε=1,
     pipeline_type=PipelineType.COMBINED,
-    γ_infeasibility=1e-3,
+    γ_infeasibility=1.0,
     γ_admm_penalty=0.0,
 )
 dig_a_plan = DigAPlan(config=config)
@@ -61,6 +61,9 @@ switches = dig_a_plan.result_manager.extract_switch_status()
 voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
+# Power flow
+powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
+reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
 
 
 # %% plot the grid annotated with DigAPlan results

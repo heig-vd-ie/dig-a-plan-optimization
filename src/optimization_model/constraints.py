@@ -11,10 +11,10 @@ def objective_rule_loss(m):
 
 
 def objective_rule_infeasibility(m):
-    v_penalty = sum(m.slack_v_pos[n, ω] + m.slack_v_neg[n, ω] for n in m.N for ω in m.Ω)
-    i_penalty = sum(m.slack_i_sq[l, i, j, ω] for (l, i, j) in m.C for ω in m.Ω)
+    p_curt = sum(m.p_curt_cons[n, ω] + m.p_curt_prod[n, ω] for n in m.N for ω in m.Ω)
+    q_curt = sum(m.q_curt_cons[n, ω] + m.q_curt_prod[n, ω] for n in m.N for ω in m.Ω)
 
-    return v_penalty + i_penalty
+    return p_curt + q_curt
 
 
 def objective_rule_admm_penalty(m):
@@ -93,8 +93,19 @@ def node_active_power_balance_slack_rule(m, n, ω):
 def node_active_power_balance_rule(m, n, ω):
     return (
         sum(m.p_flow[l, i, j, ω] for (l, i, j) in m.C if (i == n))
-        == m.p_node_prod[n, ω] - m.p_node_cons[n, ω]
+        == m.p_node_prod[n, ω]
+        - m.p_node_cons[n, ω]
+        + m.p_curt_cons[n, ω]
+        - m.p_curt_prod[n, ω]
     )
+
+
+def node_active_power_rule(m, n, ω):
+    return m.p_curt_cons[n, ω] <= m.p_node_cons[n, ω]
+
+
+def node_active_power_prod_rule(m, n, ω):
+    return m.p_curt_prod[n, ω] <= m.p_node_prod[n, ω]
 
 
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
@@ -116,8 +127,19 @@ def node_reactive_power_balance_rule(m, n, ω):
             for (l, i, j) in m.C
             if (i == n)
         )
-        == m.q_node_prod[n, ω] - m.q_node_cons[n, ω]
+        == m.q_node_prod[n, ω]
+        - m.q_node_cons[n, ω]
+        + m.q_curt_cons[n, ω]
+        - m.q_curt_prod[n, ω]
     )
+
+
+def node_reactive_power_rule(m, n, ω):
+    return m.q_curt_cons[n, ω] <= m.q_node_cons[n, ω]
+
+
+def node_reactive_power_prod_rule(m, n, ω):
+    return m.q_curt_prod[n, ω] <= m.q_node_prod[n, ω]
 
 
 def edge_active_power_balance_switch_rule(m, l, ω):
@@ -259,17 +281,3 @@ def optimal_voltage_upper_limits_distflow_rule(m, n, ω):
 
 def optimal_voltage_lower_limits_distflow_rule(m, n, ω):
     return m.v_sq[n, ω] >= m.slack_node_v_sq[ω] - 0.05
-
-
-# (6) Flow Bounds for candidate (l,i,j):
-def infeasible_current_limit_rule(m, l, i, j, ω):
-    return m.i_sq[l, i, j, ω] <= m.i_max[l] ** 2 + m.slack_i_sq[l, i, j, ω]
-
-
-# (7) Voltage Limits: enforce v_sq[i] in [vmin^2, vmax^2].
-def infeasible_voltage_upper_limits_rule(m, n, ω):
-    return m.v_sq[n, ω] <= m.v_max[n] ** 2 + m.slack_v_pos[n, ω]
-
-
-def infeasible_voltage_lower_limits_rule(m, n, ω):
-    return m.v_sq[n, ω] >= m.v_min[n] ** 2 - m.slack_v_neg[n, ω]

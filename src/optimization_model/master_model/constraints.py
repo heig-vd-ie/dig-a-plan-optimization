@@ -194,6 +194,18 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.switch_reactive_power_upper_bound = pyo.Constraint(
         model.CsΩ, rule=switch_reactive_power_upper_bound_rule
     )
+    model.power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_cons[n, ω] == 0.0)
+    )
+    model.power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_prod[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_cons[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_prod[n, ω] == 0.0)
+    )
     # cuts are generated on-the-fly, so no rules are necessary.
     model.infeasibility_cut = ConstraintList()
     model.optimality_cut = ConstraintList()

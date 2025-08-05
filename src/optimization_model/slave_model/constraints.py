@@ -261,20 +261,21 @@ def optimal_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractMod
     model.voltage_lower_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_lower_limits_rule
     )
+    model.power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_cons[n, ω] == 0.0)
+    )
+    model.power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_prod[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_cons[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_prod[n, ω] == 0.0)
+    )
     return model
 
 
 def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model = slave_model_constraints(model)
-    model.objective = pyo.Objective(
-        rule=objective_rule_infeasibility, sense=pyo.minimize
-    )
-    # Physical limits
-    model.current_limit = pyo.Constraint(model.ClΩ, rule=infeasible_current_limit_rule)
-    model.voltage_upper_limits = pyo.Constraint(
-        model.NΩ, rule=infeasible_voltage_upper_limits_rule
-    )
-    model.voltage_lower_limits = pyo.Constraint(
-        model.NΩ, rule=infeasible_voltage_lower_limits_rule
-    )
     return model

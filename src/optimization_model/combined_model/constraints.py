@@ -65,13 +65,22 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     )
     # 5) Current symmetry (per scenario)
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
-    # 6) Infeasible relaxations (per scenario)
-    model.current_limit = pyo.Constraint(model.ClΩ, rule=infeasible_current_limit_rule)
+    # 6) Voltage limits (per scenario)
+    model.current_limit = pyo.Constraint(model.ClΩ, rule=optimal_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
-        model.NΩ, rule=infeasible_voltage_upper_limits_rule
+        model.NΩ, rule=optimal_voltage_upper_limits_rule
     )
     model.voltage_lower_limits = pyo.Constraint(
-        model.NΩ, rule=infeasible_voltage_lower_limits_rule
+        model.NΩ, rule=optimal_voltage_lower_limits_rule
+    )
+    # 7) Power limits (per scenario)
+    model.node_active_power = pyo.Constraint(model.NΩ, rule=node_active_power_rule)
+    model.node_active_power_prod = pyo.Constraint(
+        model.NΩ, rule=node_active_power_prod_rule
+    )
+    model.node_reactive_power = pyo.Constraint(model.NΩ, rule=node_reactive_power_rule)
+    model.node_reactive_power_prod = pyo.Constraint(
+        model.NΩ, rule=node_reactive_power_prod_rule
     )
 
     model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
