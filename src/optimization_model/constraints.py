@@ -18,9 +18,7 @@ def objective_rule_infeasibility(m):
 
 
 def objective_rule_admm_penalty(m):
-    return sum(m.λ[s] * m.δ[s] for s in m.S) + (m.ρ / 2.0) * sum(
-        (m.δ[s] - m.z[s]) ** 2 for s in m.S
-    )
+    return (m.ρ / 2.0) * sum((m.δ[s] - m.z[s] + m.λ[s]) ** 2 for s in m.S)
 
 
 def objective_rule_combined(m):

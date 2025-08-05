@@ -45,16 +45,18 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
     def solve_model(
         self,
-        ρ: float = 1.0,
         max_iters: int = 50,
-        eps_primal: float = 1e-3,
-        eps_dual: float = 1e-3,
-        adapt_ρ: bool = True,
-        mu: float = 10.0,
-        tau_incr: float = 2.0,
-        tau_decr: float = 2.0,
+        ε_primal: float = 1e-3,
+        ε_dual: float = 1e-3,
+        μ: float = 10.0,
+        τ_incr: float = 2.0,
+        τ_decr: float = 2.0,
         seed_number: int = 42,
+        κ: float = 0.1,
     ) -> None:
+        """Solve the ADMM model with the given parameters."""
+
+        ρ = self.config.ρ
 
         random.seed(seed_number)
 
@@ -119,32 +121,31 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- λ-update (scaled duals) ----
             for sc in scen_list:
                 for s in switch_list:
-                    λ[(sc, s)] = λ[(sc, s)] + δ_by_sc[sc][s] - z[s]
+                    λ[(sc, s)] = λ[(sc, s)] + κ * (δ_by_sc[sc][s] - z[s])
 
             # ---- residuals (after all scenarios solved) ----
-            r_sq = sum(
-                (δ_by_sc[sc][s] - z[s]) ** 2 for sc in scen_list for s in switch_list
+            r_sq = max(
+                [(δ_by_sc[sc][s] - z[s]) ** 2 for sc in scen_list for s in switch_list]
             )
             r_norm = float(np.sqrt(r_sq))
 
             s_sq = sum((z[s] - z_old[s]) ** 2 for s in switch_list)
-            s_norm = float(ρ * np.sqrt(scenario_number * s_sq))
+            s_norm = float(ρ * np.sqrt(s_sq))
 
             log.info(f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={ρ:.3g}")
 
             # ---- convergence ----
-            if (r_norm <= eps_primal) and (s_norm <= eps_dual):
+            if (r_norm <= ε_primal) and (s_norm <= ε_dual):
                 log.info(f"ADMM converged in {k} iterations.")
                 break
 
             # ---- residual balancing (scaled ADMM) ----
-            if adapt_ρ:
-                if r_norm > mu * s_norm:
-                    ρ *= tau_incr
-                elif s_norm > mu * r_norm:
-                    ρ /= tau_decr
-                for m in models.values():
-                    getattr(m, "ρ").set_value(ρ)
+            if r_norm > μ * s_norm:
+                ρ *= τ_incr
+            elif s_norm > μ * r_norm:
+                ρ /= τ_decr
+            for m in models.values():
+                getattr(m, "ρ").set_value(ρ)
 
         # Store results
         self.admm_z = z

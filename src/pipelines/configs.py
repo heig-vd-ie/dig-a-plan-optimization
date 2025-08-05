@@ -64,6 +64,5 @@ class CombinedConfig(PipelineConfig):
 class ADMMConfig(CombinedConfig):
     """Configuration for ADMM pipeline"""
 
-    admm_ρ: float = 1.0
-    admm_max_iterations: int = 100
+    admm_max_iterations: int = 10
     admm_tolerance: float = 1e-4

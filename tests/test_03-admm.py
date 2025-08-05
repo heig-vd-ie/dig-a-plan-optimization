@@ -65,14 +65,10 @@ def test_admm_model_simple_example():
     print("Scenario IDs:", scen_ids)
 
     dap.model_manager.solve_model(
-        ρ=2.0,
-        max_iters=50,
-        eps_primal=1e-4,
-        eps_dual=1e-4,
-        adapt_ρ=True,
-        mu=10.0,
-        tau_incr=2.0,
-        tau_decr=2.0,
+        max_iters=10,
+        μ=10.0,
+        τ_incr=2.0,
+        τ_decr=2.0,
     )
 
     print("\n--- ADMM consensus z per switch ---")
