@@ -217,30 +217,30 @@ class PipelineDataManager:
                     },
                     # scenario loads
                     "p_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "p_node_pu_cons"].filter(
+                        (n, s): self.__load_data[s]["node_id", "p_cons_pu"].filter(
                             c("node_id") == n
-                        )["p_node_pu_cons"][0]
+                        )["p_cons_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "q_node_pu_cons"].filter(
+                        (n, s): self.__load_data[s]["node_id", "q_cons_pu"].filter(
                             c("node_id") == n
-                        )["q_node_pu_cons"][0]
+                        )["q_cons_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "p_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "p_node_pu_prod"].filter(
+                        (n, s): self.__load_data[s]["node_id", "p_prod_pu"].filter(
                             c("node_id") == n
-                        )["p_node_pu_prod"][0]
+                        )["p_prod_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "q_node_pu_prod"].filter(
+                        (n, s): self.__load_data[s]["node_id", "q_prod_pu"].filter(
                             c("node_id") == n
-                        )["q_node_pu_prod"][0]
+                        )["q_prod_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },

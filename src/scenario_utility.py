@@ -41,25 +41,25 @@ def generate_random_load_scenarios(
         df = pl.DataFrame(
             {
                 "node_id": node_ids,
-                "p_node_pu_cons": (
-                    (1 + p_rand) * load_data["p_node_pu_cons"]
+                "p_cons_pu": (
+                    (1 + p_rand) * load_data["p_cons_pu"]
                     if i != 1
-                    else load_data["p_node_pu_cons"]
+                    else load_data["p_cons_pu"]
                 ),
-                "q_node_pu_cons": (
-                    (1 + q_rand) * load_data["q_node_pu_cons"]
+                "q_cons_pu": (
+                    (1 + q_rand) * load_data["q_cons_pu"]
                     if i != 1
-                    else load_data["q_node_pu_cons"]
+                    else load_data["q_cons_pu"]
                 ),
-                "p_node_pu_prod": (
-                    (1 + pv_rand) * load_data["p_node_pu_prod"]
+                "p_prod_pu": (
+                    (1 + pv_rand) * load_data["p_prod_pu"]
                     if i != 1
-                    else load_data["p_node_pu_prod"]
+                    else load_data["p_prod_pu"]
                 ),
-                "q_node_pu_prod": (
-                    (1 + qv_rand) * load_data["q_node_pu_prod"]
+                "q_prod_pu": (
+                    (1 + qv_rand) * load_data["q_prod_pu"]
                     if i != 1
-                    else load_data["q_node_pu_prod"]
+                    else load_data["q_prod_pu"]
                 ),
                 "v_node_sqr_pu": (
                     (1 + v_rand) * v_slack_node_sqr_pu
