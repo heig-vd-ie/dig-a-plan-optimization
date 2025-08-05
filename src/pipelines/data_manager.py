@@ -13,23 +13,23 @@ class PipelineDataManager:
     def __init__(
         self,
         big_m: float,
-        small_m: float,
+        ε: float,
         ρ: float,
-        weight_infeasibility: float = 1.0,
-        weight_penalty: float = 1e-6,
-        weight_admm_penalty: float = 1.0,
-        z: dict[str, float] | None = None,
-        λ: dict[str, float] | None = None,
+        γ_infeasibility: float = 1.0,
+        γ_admm_penalty: float = 1.0,
+        z: dict[int, float] | None = None,
+        λ: dict[int, float] | None = None,
+        all_scenarios: bool = False,
     ):
 
         self.big_m: float = big_m
-        self.small_m: float = small_m
+        self.ε: float = ε
         self.ρ = ρ
-        self.weight_infeasibility: float = weight_infeasibility
-        self.weight_admm_penalty: float = weight_admm_penalty
-        self.weight_penalty: float = weight_penalty
-        self.z: dict[str, float] | None = z
-        self.λ: dict[str, float] | None = λ
+        self.γ_infeasibility: float = γ_infeasibility
+        self.γ_admm_penalty: float = γ_admm_penalty
+        self.z: dict[int, float] | None = z
+        self.λ: dict[int, float] | None = λ
+        self.all_scenarios: bool = all_scenarios
 
         # patito tables for static schemas
         self.__node_data: pt.DataFrame[NodeData] = NodeData.DataFrame(
@@ -41,7 +41,7 @@ class PipelineDataManager:
         self.__slack_node: int
 
         # will hold the scenario‑indexed loads
-        self.__load_data: dict[str, pt.DataFrame[LoadData]] = {}
+        self.__load_data: dict[int, pt.DataFrame[LoadData]] = {}
         # final data dict for Pyomo
         self.grid_data_parameters_dict: dict | None = None
 
@@ -106,12 +106,12 @@ class PipelineDataManager:
         new_table_pt.validate()
         self.__edge_data = new_table_pt
 
-    def __set_load_data(self, load_data: dict[str, pt.DataFrame[LoadData]]):
+    def __set_load_data(self, load_data: dict[int, pt.DataFrame[LoadData]]):
         """
         Validate each scenario DataFrame against data_schema.load_data.NodeData
         and store the validated Polars frames in self.__load_data.
         """
-        validated: dict[str, pt.DataFrame[LoadData]] = {}
+        validated: dict[int, pt.DataFrame[LoadData]] = {}
         for scen_id, data_F in load_data.items():
             df_pt = (
                 pt.DataFrame(data_F.as_polars())
@@ -163,10 +163,36 @@ class PipelineDataManager:
         )["C"].to_list()
         c_tuples = c_fwd + c_rev
 
+        number_of_lines = len([e for e in edge_ids if e not in switch_ids])
+
+        n_transfo = pl_to_dict_with_tuple(
+            pl.concat(
+                [
+                    self.edge_data.select(
+                        pl.concat_list("edge_id", "u_of_edge", "v_of_edge"),
+                        "n_transfo",
+                    ),
+                    self.edge_data.select(
+                        pl.concat_list("edge_id", "v_of_edge", "u_of_edge"),
+                        "n_transfo",
+                    ),
+                ]
+            )
+        )
+
+        groups = (
+            self.edge_data.filter((c("type") == "switch") & (c("group").is_not_null()))
+            .get_column("group")
+            .unique()
+            .to_list()
+        )
+
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
                     # sets
+                    "groups": groups,
+                    "Ω": {None: scen_ids if self.all_scenarios else [scen_id]},
                     "N": {None: node_ids},
                     "L": {None: edge_ids},
                     "S": {None: switch_ids},
@@ -175,23 +201,8 @@ class PipelineDataManager:
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                     "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
-                    "number_of_lines": {
-                        None: len([e for e in edge_ids if e not in switch_ids])
-                    },
-                    "n_transfo": pl_to_dict_with_tuple(
-                        pl.concat(
-                            [
-                                self.edge_data.select(
-                                    pl.concat_list("edge_id", "u_of_edge", "v_of_edge"),
-                                    "n_transfo",
-                                ),
-                                self.edge_data.select(
-                                    pl.concat_list("edge_id", "v_of_edge", "u_of_edge"),
-                                    "n_transfo",
-                                ),
-                            ]
-                        )
-                    ),
+                    "number_of_lines": {None: number_of_lines},
+                    "n_transfo": n_transfo,
                     "i_max": pl_to_dict(self.edge_data["edge_id", "i_max_pu"]),
                     # static node params
                     "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),
@@ -199,25 +210,45 @@ class PipelineDataManager:
                     # slack‑bus
                     "slack_node": {None: [self.__slack_node]},
                     "slack_node_v_sq": {
-                        None: float(
-                            self.__load_data[scen_id].filter(
-                                c("node_id") == self.__slack_node
-                            )["v_node_sqr_pu"][0]
-                        )
+                        s: self.__load_data[s].filter(
+                            c("node_id") == self.__slack_node
+                        )["v_node_sqr_pu"][0]
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     # scenario loads
-                    "p_node": pl_to_dict(
-                        self.__load_data[scen_id]["node_id", "p_node_pu"]
-                    ),
-                    "q_node": pl_to_dict(
-                        self.__load_data[scen_id]["node_id", "q_node_pu"]
-                    ),
+                    "p_node_cons": {
+                        (n, s): self.__load_data[s]["node_id", "p_cons_pu"].filter(
+                            c("node_id") == n
+                        )["p_cons_pu"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "q_node_cons": {
+                        (n, s): self.__load_data[s]["node_id", "q_cons_pu"].filter(
+                            c("node_id") == n
+                        )["q_cons_pu"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "p_node_prod": {
+                        (n, s): self.__load_data[s]["node_id", "p_prod_pu"].filter(
+                            c("node_id") == n
+                        )["p_prod_pu"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "q_node_prod": {
+                        (n, s): self.__load_data[s]["node_id", "q_prod_pu"].filter(
+                            c("node_id") == n
+                        )["q_prod_pu"][0]
+                        for n in node_ids
+                        for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
                     # ADMM & big‑M parameters
                     "big_m": {None: self.big_m},
-                    "small_m": {None: self.small_m},
-                    "weight_infeasibility": {None: self.weight_infeasibility},
-                    "weight_admm_penalty": {None: self.weight_admm_penalty},
-                    "weight_penalty": {None: self.weight_penalty},
+                    "ε": {None: self.ε},
+                    "γ_infeasibility": {None: self.γ_infeasibility},
+                    "γ_admm_penalty": {None: self.γ_admm_penalty},
                     "ρ": {None: self.ρ},
                     "z": (
                         self.z

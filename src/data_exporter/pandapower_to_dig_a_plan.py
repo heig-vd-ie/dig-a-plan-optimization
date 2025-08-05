@@ -17,7 +17,8 @@ from data_exporter import validate_data
 def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
-    generate_random: bool = True,
+    number_of_random_scenarios: int = 10,
+    number_of_groups: int = 10,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -39,12 +40,10 @@ def pandapower_to_dig_a_plan_schema(
 
     load = load.join(sgen, on="bus", how="full", coalesce=True).select(
         c("bus").alias("node_id"),
-        pl.sum_horizontal([c("p_load").fill_null(0.0), c("p_pv").fill_null(0.0)]).alias(
-            "p_node_pu"
-        ),
-        pl.sum_horizontal([c("q_load").fill_null(0.0), c("q_pv").fill_null(0.0)]).alias(
-            "q_node_pu"
-        ),
+        c("p_load").fill_null(0.0).alias("p_cons_pu"),
+        c("q_load").fill_null(0.0).alias("q_cons_pu"),
+        -c("p_pv").fill_null(0.0).alias("p_prod_pu"),
+        -c("q_pv").fill_null(0.0).alias("q_prod_pu"),
     )
 
     node_data = (
@@ -60,8 +59,10 @@ def pandapower_to_dig_a_plan_schema(
             pl.lit(0.0).alias("p_node_min_pu"),
             pl.lit(0.0).alias("q_node_max_pu"),
             pl.lit(0.0).alias("q_node_min_pu"),
-            c("p_node_pu").fill_null(0.0),
-            c("q_node_pu").fill_null(0.0),
+            c("p_cons_pu").fill_null(0.0),
+            c("q_cons_pu").fill_null(0.0),
+            c("p_prod_pu").fill_null(0.0),
+            c("q_prod_pu").fill_null(0.0),
         )
         .with_columns(
             pl.lit(s_base).alias("s_base"),
@@ -71,12 +72,14 @@ def pandapower_to_dig_a_plan_schema(
 
     load_data = node_data.select(
         c("node_id"),
-        c("p_node_pu"),
-        c("q_node_pu"),
+        c("p_cons_pu"),
+        c("q_cons_pu"),
+        c("p_prod_pu"),
+        c("q_prod_pu"),
     )
 
     node_data = node_data.drop(
-        ["p_node_pu", "q_node_pu"]
+        ["p_cons_pu", "q_cons_pu", "p_prod_pu", "q_prod_pu"]
     )  # drop load data from node_data, as it is in load_data
 
     # ext_grid -> slack identification
@@ -198,6 +201,9 @@ def pandapower_to_dig_a_plan_schema(
         pl.lit("switch").alias("type"),
     )
 
+    groups = [i % number_of_groups for i in range(switch.height)]
+    switch = switch.with_columns(pl.Series("group", groups, dtype=pl.Int32))
+
     edge_data = (
         pl.concat([line, trafo, switch], how="diagonal_relaxed")
         .with_row_index(name="edge_id")
@@ -210,14 +216,12 @@ def pandapower_to_dig_a_plan_schema(
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
 
-    if not generate_random:
-        raise NotImplementedError("Set generate_random to True to use this function")
-    else:
-        rand_scenarios = generate_random_load_scenarios(
-            node_data=node_data_validated,
-            v_slack_node_sqr_pu=v_slack_node_sqr_pu,
-            load_data=load_data,
-        )
+    rand_scenarios = generate_random_load_scenarios(
+        node_data=node_data_validated,
+        v_slack_node_sqr_pu=v_slack_node_sqr_pu,
+        load_data=load_data,
+        number_of_random_scenarios=number_of_random_scenarios,
+    )
 
     return NodeEdgeModel(
         node_data=node_data_validated,

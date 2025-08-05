@@ -1,11 +1,9 @@
 # %%
 from logging import config
 import polars as pl
+from polars import col as c
 import os
 import pandapower as pp
-from data_display.grid_plotting import plot_grid_from_pandapower
-from general_function import pl_to_dict
-from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from pipelines import DigAPlan
 from pipelines.configs import ADMMConfig, PipelineType
@@ -16,56 +14,44 @@ from pipelines.model_managers.admm import PipelineModelManagerADMM
 os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
 
-# %% set parameters
-LOAD_FACTOR = 1
-TEST_CONFIG = [
-    {"line_list": [], "switch_list": []},
-    {"line_list": [6, 9], "switch_list": [25, 28]},
-    {"line_list": [2, 6, 9], "switch_list": [21, 25, 28]},
-    {"line_list": [16], "switch_list": [35]},
-    {"line_list": [1], "switch_list": [20]},
-    {"line_list": [10], "switch_list": [29]},
-    {"line_list": [7, 11], "switch_list": [26, 30]},
-]
-NB_TEST = 0
-
-net = pp.from_pickle("data/simple_grid.p")
-
-net["load"]["p_mw"] = net["load"]["p_mw"] * LOAD_FACTOR
-net["load"]["q_mvar"] = net["load"]["q_mvar"] * LOAD_FACTOR
-
-net["line"].loc[:, "max_i_ka"] = 1
-net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
-
-# Optional tweaks
-LOAD_FACTOR = 1.0
-net["load"]["p_mw"] *= LOAD_FACTOR
-net["load"]["q_mvar"] *= LOAD_FACTOR
-net["line"].loc[:, "max_i_ka"] = 1.0
-
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
+if USE_SIMPLIFIED_GRID := True:
+    net = pp.from_pickle(".cache/boisy_grid_simplified.p")
+    grid_data = pandapower_to_dig_a_plan_schema(
+        net,
+        number_of_groups=20,
+        number_of_random_scenarios=10,
+    )
+else:
+    net = pp.from_pickle(".cache/boisy_grid.p")
+    grid_data = pandapower_to_dig_a_plan_schema(
+        net,
+        number_of_groups=10,
+        number_of_random_scenarios=30,
+    )
 
-groups = {
-    0: [19, 20, 21, 29, 32, 35],
-    1: [35, 30, 33, 25, 26, 27],
-    2: [27, 32, 22, 23, 34],
-    3: [31, 24, 28, 21, 22, 23],
-    4: [34, 26, 25, 24, 31],
-}
+# %% convert pandapower grid to DigAPlan grid data
 
+grid_data.edge_data = grid_data.edge_data.with_columns(
+    pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
+    for col in ["b_pu", "r_pu", "x_pu"]
+).with_columns(
+    pl.lit(1.0).alias("n_transfo"),
+    c("normal_open").fill_null(False),
+)
 
 # %% Configure ADMM pipeline
 config = ADMMConfig(
     verbose=False,
     pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
-    solver_non_convex=2,
+    solver_non_convex=0,
     big_m=1e3,
-    ε=1,
+    ε=1e-4,
     ρ=2.0,
     γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
+    time_limit=1,
 )
 
 dap = DigAPlan(config=config)
@@ -92,7 +78,7 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
-    group_selection=groups,
+    random_mutation=5,
 )
 
 # %% Inspect consensus and per-scenario deltas
@@ -127,13 +113,3 @@ consensus_states = (
 
 print("\n=== ADMM consensus switch states (z) ===")
 print(consensus_states)
-
-# %% Extract and compare results
-# %% compare DigAPlan results with pandapower results
-node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
-# %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(
-    net,
-    dap,
-    switch_status=pl_to_dict(consensus_states.select("eq_fk", "closed")),
-)

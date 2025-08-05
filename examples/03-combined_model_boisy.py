@@ -3,12 +3,6 @@ import os
 import pandapower as pp
 from polars import col as c
 import polars as pl
-from data_exporter.changes_schema_to_dig_a_plan import (
-    change_schema_to_dig_a_plan_schema,
-)
-from data_exporter.duckdb_to_change_schema import (
-    duckdb_to_changes_schema,
-)
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 
 from pipelines import DigAPlan
@@ -24,14 +18,10 @@ if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     base_grid_data = pandapower_to_dig_a_plan_schema(net)
 else:
-    change_schema = duckdb_to_changes_schema(".cache/boisy_grid.db")
-    base_grid_data = change_schema_to_dig_a_plan_schema(change_schema, 1000)
+    net = pp.from_pickle(".cache/boisy_grid.p")
+    base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% convert pandapower grid to DigAPlan grid data
-base_grid_data.load_data["1"] = base_grid_data.load_data["1"].with_columns(
-    pl.lit(0.01).alias("p_node_pu") * 0.01,
-    pl.lit(0.01).alias("q_node_pu"),
-)
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     pl.lit(0.001).alias("r_pu"),
     pl.lit(0.001).alias("x_pu"),
@@ -51,15 +41,15 @@ base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
 config = CombinedConfig(
     verbose=True,
     big_m=1000,
-    small_m=0.1,
+    ε=0.1,
     pipeline_type=PipelineType.COMBINED,
-    weight_admm_penalty=0.0,
+    γ_admm_penalty=0.0,
 )
 dig_a_plan = DigAPlan(config=config)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)
-dig_a_plan.solve_model()  # one‐shot solve
+dig_a_plan.solve_model(group=1)  # one‐shot solve
 
 # %% extract and compare results
 # Switch status

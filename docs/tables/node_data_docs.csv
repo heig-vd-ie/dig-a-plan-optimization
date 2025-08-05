@@ -4,8 +4,10 @@ node_id,Integer,,Yes,Node index
 v_base,Integer,,Yes,Base voltage in V
 i_base,Float,,Yes,Base current in A
 s_base,Float,1.00E+06,Yes,Base power in VA
-p_node_pu,Float,0,Yes,Measured active power in pu
-q_node_pu,Float,0,Yes,Measured reactive power in pu
+p_cons_pu,Float,0,Yes,Measured active power in pu
+q_cons_pu,Float,0,Yes,Measured reactive power in pu
+p_prod_pu,Float,0,Yes,Measured active power in pu
+q_prod_pu,Float,0,Yes,Measured reactive power in pu
 p_node_max_pu,Float,0,Yes,Maximum admissible active power in pu (only for OPF)
 p_node_min_pu,Float,0,Yes,Maximum admissible reactive power in pu (only for OPF)
 q_node_max_pu,Float,0,Yes,Minimum admissible active power in pu (only for OPF)

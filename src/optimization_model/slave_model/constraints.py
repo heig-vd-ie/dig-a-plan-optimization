@@ -200,52 +200,52 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.S, rule=master_switch_status_propagation_rule
     )
     # Distflow equations
-    model.slack_voltage = pyo.Constraint(model.slack_node, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.snΩ, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
-        model.Nes, rule=node_active_power_balance_rule
+        model.NesΩ, rule=node_active_power_balance_rule
     )
     model.node_active_power_balance_slack = pyo.Constraint(
-        model.slack_node, rule=node_active_power_balance_slack_rule
+        model.snΩ, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
-        model.Nes, rule=node_reactive_power_balance_rule
+        model.NesΩ, rule=node_reactive_power_balance_rule
     )
     model.node_reactive_power_balance_slack = pyo.Constraint(
-        model.slack_node, rule=node_reactive_power_balance_slack_rule
+        model.snΩ, rule=node_reactive_power_balance_slack_rule
     )
-    model.voltage_drop_lower = pyo.Constraint(model.Cs, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.Cs, rule=voltage_drop_upper_rule)
-    model.voltage_drop_line = pyo.Constraint(model.Cl, rule=voltage_drop_line_rule)
+    model.voltage_drop_lower = pyo.Constraint(model.CsΩ, rule=voltage_drop_lower_rule)
+    model.voltage_drop_upper = pyo.Constraint(model.CsΩ, rule=voltage_drop_upper_rule)
+    model.voltage_drop_line = pyo.Constraint(model.ClΩ, rule=voltage_drop_line_rule)
 
     model.current_rotated_cone = pyo.Constraint(
-        model.Cl, rule=current_rotated_cone_rule
+        model.ClΩ, rule=current_rotated_cone_rule
     )
     model.edge_active_power_balance = pyo.Constraint(
-        model.S, rule=edge_active_power_balance_switch_rule
+        model.SΩ, rule=edge_active_power_balance_switch_rule
     )
     model.edge_reactive_power_balance = pyo.Constraint(
-        model.S, rule=edge_reactive_power_balance_switch_rule
+        model.SΩ, rule=edge_reactive_power_balance_switch_rule
     )
     model.edge_active_power_balance_line = pyo.Constraint(
-        model.L, rule=edge_active_power_balance_line_rule
+        model.LΩ, rule=edge_active_power_balance_line_rule
     )
     model.edge_reactive_power_balance_line = pyo.Constraint(
-        model.L, rule=edge_reactive_power_balance_line_rule
+        model.LΩ, rule=edge_reactive_power_balance_line_rule
     )
     # Switch status constraints
     model.switch_active_power_lower_bound = pyo.Constraint(
-        model.Cs, rule=switch_active_power_lower_bound_rule
+        model.CsΩ, rule=switch_active_power_lower_bound_rule
     )
     model.switch_active_power_upper_bound = pyo.Constraint(
-        model.Cs, rule=switch_active_power_upper_bound_rule
+        model.CsΩ, rule=switch_active_power_upper_bound_rule
     )
     model.switch_reactive_power_lower_bound = pyo.Constraint(
-        model.Cs, rule=switch_reactive_power_lower_bound_rule
+        model.CsΩ, rule=switch_reactive_power_lower_bound_rule
     )
     model.switch_reactive_power_upper_bound = pyo.Constraint(
-        model.Cs, rule=switch_reactive_power_upper_bound_rule
+        model.CsΩ, rule=switch_reactive_power_upper_bound_rule
     )
-    model.current_balance = pyo.Constraint(model.C, rule=current_balance_rule)
+    model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
 
     return model
 
@@ -254,27 +254,28 @@ def optimal_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractMod
     model = slave_model_constraints(model)
     model.objective = pyo.Objective(rule=objective_rule_loss, sense=pyo.minimize)
     # Physical limits
-    model.current_limit = pyo.Constraint(model.Cl, rule=optimal_current_limit_rule)
+    model.current_limit = pyo.Constraint(model.ClΩ, rule=optimal_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
-        model.N, rule=optimal_voltage_upper_limits_rule
+        model.NΩ, rule=optimal_voltage_upper_limits_rule
     )
     model.voltage_lower_limits = pyo.Constraint(
-        model.N, rule=optimal_voltage_lower_limits_rule
+        model.NΩ, rule=optimal_voltage_lower_limits_rule
+    )
+    model.power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_cons[n, ω] == 0.0)
+    )
+    model.power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.p_curt_prod[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_cons = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_cons[n, ω] == 0.0)
+    )
+    model.reactive_power_curt_prod = pyo.Constraint(
+        model.NΩ, rule=(lambda m, n, ω: m.q_curt_prod[n, ω] == 0.0)
     )
     return model
 
 
 def infeasible_slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model = slave_model_constraints(model)
-    model.objective = pyo.Objective(
-        rule=objective_rule_infeasibility, sense=pyo.minimize
-    )
-    # Physical limits
-    model.current_limit = pyo.Constraint(model.Cl, rule=infeasible_current_limit_rule)
-    model.voltage_upper_limits = pyo.Constraint(
-        model.N, rule=infeasible_voltage_upper_limits_rule
-    )
-    model.voltage_lower_limits = pyo.Constraint(
-        model.N, rule=infeasible_voltage_lower_limits_rule
-    )
     return model

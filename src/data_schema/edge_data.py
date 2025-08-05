@@ -24,3 +24,4 @@ class EdgeData(pt.Model):
     type: TYPES = pt.Field(
         dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
     )
+    group: Optional[int] = pt.Field(dtype=pl.Int32, default=None)

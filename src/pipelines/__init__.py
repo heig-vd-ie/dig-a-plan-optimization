@@ -29,11 +29,11 @@ class DigAPlan:
         # Pull ρ from the config (only used in the COMBINED/ADMM pipeline)
         self.data_manager = PipelineDataManager(
             big_m=self.config.big_m,
-            small_m=self.config.small_m,
+            ε=self.config.ε,
             ρ=self.config.ρ,
-            weight_infeasibility=self.config.weight_infeasibility,
-            weight_penalty=self.config.weight_penalty,
-            weight_admm_penalty=self.config.weight_admm_penalty,
+            γ_infeasibility=self.config.γ_infeasibility,
+            γ_admm_penalty=self.config.γ_admm_penalty,
+            all_scenarios=self.config.all_scenarios,
         )
         if (config.pipeline_type == PipelineType.BENDER) and isinstance(
             config, BenderConfig
@@ -75,9 +75,9 @@ class DigAPlan:
             self.data_manager.grid_data_parameters_dict
         )
 
-    def solve_model(self, max_iters: int = 100) -> None:
+    def solve_model(self, max_iters: int = 100, **kwargs) -> None:
         """
         Solve the optimization model.
         """
 
-        self.model_manager.solve_model(max_iters=max_iters)
+        self.model_manager.solve_model(max_iters=max_iters, **kwargs)

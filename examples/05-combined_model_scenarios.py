@@ -36,7 +36,7 @@ net["line"].loc[:, "max_i_ka"] = 1
 net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 
 # %% transform the pandapower grid to DigAPlan schema
-base_grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=1)
+base_grid_data = pandapower_to_dig_a_plan_schema(net, number_of_random_scenarios=10)
 
 # %% initialize DigAPlan
 
@@ -45,8 +45,9 @@ config = CombinedConfig(
     big_m=1e3,
     ε=1,
     pipeline_type=PipelineType.COMBINED,
-    γ_infeasibility=1.0,
+    γ_infeasibility=100.0,
     γ_admm_penalty=0.0,
+    all_scenarios=True,
 )
 dig_a_plan = DigAPlan(config=config)
 
@@ -61,9 +62,6 @@ switches = dig_a_plan.result_manager.extract_switch_status()
 voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
-# Power flow
-powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
-reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
 
 
 # %% plot the grid annotated with DigAPlan results

@@ -122,5 +122,3 @@ switches = dig_a_plan.result_manager.extract_switch_status()
 voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
-
-# %%

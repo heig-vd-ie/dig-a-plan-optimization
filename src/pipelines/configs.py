@@ -17,7 +17,7 @@ class PipelineConfig:
     verbose: bool = False
     ρ: float = 10.0
     big_m: float = 1e4
-    small_m: float = 1
+    ε: float = 1
     slack_threshold: float = 1e-5
     convergence_threshold: float = 1e-4
     pipeline_type: PipelineType = PipelineType.BENDER
@@ -26,9 +26,8 @@ class PipelineConfig:
     factor_q: float = 1.0
     factor_i: float = 1.0
     factor_v: float = 1.0
-    weight_infeasibility: float = 1.0
-    weight_penalty: float = 1e-6
-    weight_admm_penalty: float = 1.0
+    γ_infeasibility: float = 1.0
+    γ_admm_penalty: float = 1.0
     solver_name: str = "gurobi"
     solver_integrality_focus: int = 1
     solver_method: int = 2
@@ -40,6 +39,7 @@ class PipelineConfig:
     solver_qcp_dual: int | None = None
     solver_bar_qcp_conv_tol: float | None = None
     solver_bar_homogeneous: int | None = None
+    all_scenarios: bool = False
 
 
 @dataclass
@@ -64,6 +64,5 @@ class CombinedConfig(PipelineConfig):
 class ADMMConfig(CombinedConfig):
     """Configuration for ADMM pipeline"""
 
-    admm_ρ: float = 1.0
-    admm_max_iterations: int = 100
+    admm_max_iterations: int = 10
     admm_tolerance: float = 1e-4
