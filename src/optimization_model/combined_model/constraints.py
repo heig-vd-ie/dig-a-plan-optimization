@@ -22,18 +22,18 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         rule=imaginary_flow_nb_closed_switches_rule
     )
     # 2) DistFlow & power balance (per scenario)
-    model.slack_voltage = pyo.Constraint(model.slack_nodeΩ, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.snΩ, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
         model.NesΩ, rule=node_active_power_balance_rule
     )
     model.node_active_power_balance_slack = pyo.Constraint(
-        model.slack_nodeΩ, rule=node_active_power_balance_slack_rule
+        model.snΩ, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
         model.NesΩ, rule=node_reactive_power_balance_rule
     )
     model.node_reactive_power_balance_slack = pyo.Constraint(
-        model.slack_nodeΩ, rule=node_reactive_power_balance_slack_rule
+        model.snΩ, rule=node_reactive_power_balance_slack_rule
     )
     model.edge_active_power_balance = pyo.Constraint(
         model.SΩ, rule=edge_active_power_balance_switch_rule

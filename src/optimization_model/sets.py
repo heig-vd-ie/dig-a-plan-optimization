@@ -25,7 +25,7 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.LΩ = pyo.Set(initialize=lambda m: [(l, ω) for l in m.L for ω in m.Ω])
     model.NΩ = pyo.Set(initialize=lambda m: [(n, ω) for n in m.N for ω in m.Ω])
     model.NesΩ = pyo.Set(initialize=lambda m: [(n, ω) for n in m.Nes for ω in m.Ω])
-    model.slack_nodeΩ = pyo.Set(
+    model.snΩ = pyo.Set(
         initialize=lambda m: [(n, ω) for n in m.slack_node for ω in m.Ω]
     )
     model.CsΩ = pyo.Set(

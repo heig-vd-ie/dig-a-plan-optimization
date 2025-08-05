@@ -160,16 +160,16 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.NesΩ, rule=node_active_power_balance_rule
     )
     model.node_active_power_balance_slack = pyo.Constraint(
-        model.slack_nodeΩ, rule=node_active_power_balance_slack_rule
+        model.snΩ, rule=node_active_power_balance_slack_rule
     )
     model.node_reactive_power_balance = pyo.Constraint(
         model.NesΩ, rule=node_reactive_power_balance_rule
     )
     model.node_reactive_power_balance_slack = pyo.Constraint(
-        model.slack_nodeΩ, rule=node_reactive_power_balance_slack_rule
+        model.snΩ, rule=node_reactive_power_balance_slack_rule
     )
     ##
-    model.slack_voltage = pyo.Constraint(model.slack_nodeΩ, rule=slack_voltage_rule)
+    model.slack_voltage = pyo.Constraint(model.snΩ, rule=slack_voltage_rule)
     model.voltage_drop_lower = pyo.Constraint(model.CsΩ, rule=voltage_drop_lower_rule)
     model.voltage_drop_upper = pyo.Constraint(model.CsΩ, rule=voltage_drop_upper_rule)
     model.voltage_drop_line = pyo.Constraint(
