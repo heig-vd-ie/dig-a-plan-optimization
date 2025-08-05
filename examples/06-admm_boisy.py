@@ -15,12 +15,12 @@ os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-if USE_SIMPLIFIED_GRID := True:
+if USE_SIMPLIFIED_GRID := False:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=10)
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
-    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
+    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=10)
 
 # %% convert pandapower grid to DigAPlan grid data
 for scen in grid_data.load_data.keys():
