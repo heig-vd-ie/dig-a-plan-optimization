@@ -34,6 +34,14 @@ def test_admm_model_simple_example():
     net["load"]["q_mvar"] *= LOAD_FACTOR
     net["line"].loc[:, "max_i_ka"] = 1.0
 
+    groups = {
+        0: [19, 20, 21, 29, 32, 35],
+        1: [35, 30, 33, 25, 26, 27],
+        2: [27, 32, 22, 23, 34],
+        3: [31, 24, 28, 21, 22, 23],
+        4: [34, 26, 25, 24, 31],
+    }
+
     grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
 
     config = ADMMConfig(
@@ -69,6 +77,7 @@ def test_admm_model_simple_example():
         μ=10.0,
         τ_incr=2.0,
         τ_decr=2.0,
+        group_selection=groups,
     )
 
     print("\n--- ADMM consensus z per switch ---")

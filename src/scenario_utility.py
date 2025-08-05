@@ -12,8 +12,8 @@ def generate_random_load_scenarios(
     load_data: pl.DataFrame,
     number_of_random_scenarios: int,
     seed: int = 42,
-    p_bounds: Tuple[float, float] = (-0.1, 0.1),
-    q_bounds: Tuple[float, float] = (-0.1, 0.1),
+    p_bounds: Tuple[float, float] = (-0.2, 0.2),
+    q_bounds: Tuple[float, float] = (-0.2, 0.2),
     v_bounds: Tuple[float, float] = (-0.03, 0.03),
 ) -> Dict[int, pt.DataFrame[LoadData]]:
     """

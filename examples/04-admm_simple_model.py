@@ -44,7 +44,15 @@ net["load"]["q_mvar"] *= LOAD_FACTOR
 net["line"].loc[:, "max_i_ka"] = 1.0
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=4)
+grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
+
+groups = {
+    0: [19, 20, 21, 29, 32, 35],
+    1: [35, 30, 33, 25, 26, 27],
+    2: [27, 32, 22, 23, 34],
+    3: [31, 24, 28, 21, 22, 23],
+    4: [34, 26, 25, 24, 31],
+}
 
 
 # %% Configure ADMM pipeline
@@ -54,9 +62,9 @@ config = ADMMConfig(
     solver_name="gurobi",
     solver_non_convex=2,
     big_m=1e3,
-    ε=1e-4,
+    ε=1,
     ρ=2.0,
-    γ_infeasibility=1.0,
+    γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
 )
 
@@ -84,6 +92,7 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
+    group_selection=groups,
 )
 
 # %% Inspect consensus and per-scenario deltas

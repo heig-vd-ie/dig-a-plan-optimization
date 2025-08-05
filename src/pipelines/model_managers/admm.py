@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 import random
 import pyomo.environ as pyo
 import numpy as np
@@ -54,10 +54,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
         τ_decr: float = 2.0,
         seed_number: int = 42,
         κ: float = 0.1,
+        group_selection: Dict[int, List[int]] | None = None,
     ) -> None:
         """Solve the ADMM model with the given parameters."""
-
-        ρ = self.config.ρ
 
         random.seed(seed_number)
 
@@ -75,6 +74,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
         )
         δ_map = self.admm_linear_model_instance.δ.extract_values()  # type: ignore
 
+        # Print initial δ_map state
+        δ_values = ["█" if δ > 0.5 else "░" for δ in δ_map.values()]
+        print(f"{''.join(δ_values)}")
+
         # ADMM iterations
         for k in range(1, max_iters + 1):
             # Broadcast z and λ into the model
@@ -83,16 +86,32 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = {}
 
-            for ω in tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
+            for (
+                ω
+            ) in scen_list:  # tqdm(scen_list, desc=f"ADMM iteration {k}/{max_iters}"):
                 m = self.admm_model_instances[ω]  # type: ignore
                 # Solve multi‑scenario instance
-                random_number = random.randint(0, self.number_of_groups)
 
-                for edge_id, δ in δ_map.items():
-                    if random_number == 0:
-                        m.δ[edge_id].unfix()  # type: ignore
-                    else:
-                        m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
+                random_switches = random.sample(
+                    switch_list, k=int(len(switch_list) / self.number_of_groups)
+                )
+                group = (
+                    self.data_manager.edge_data.filter(pl.col("group") == ω[1])
+                    .get_column("edge_id")
+                    .to_list()
+                )
+
+                if self.number_of_groups > 1:
+                    for edge_id, δ in δ_map.items():
+                        if (
+                            (edge_id in random_switches) and (group_selection is None)
+                        ) | (
+                            (group_selection is not None)
+                            and (edge_id in group_selection[ω[1]])
+                        ):
+                            m.δ[edge_id].unfix()  # type: ignore
+                        else:
+                            m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
 
                 δ_by_sc[ω] = δ_map
                 try:
@@ -101,19 +120,51 @@ class PipelineModelManagerADMM(PipelineModelManager):
                         results.solver.termination_condition
                         != pyo.TerminationCondition.optimal
                     ):
-                        raise ValueError(
+                        log.error(
                             f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
                         )
                     δ_map = m.δ.extract_values()  # type: ignore
+                    if None in δ_map.values():
+                        raise ValueError(
+                            f"[ADMM {k}] δ_map contains None values: {δ_map}"
+                        )
                     δ_by_sc[ω] = δ_map
+
+                    # Print δ_map state for current scenario with selection info
+                    combined_values = []
+                    for i, (switch_id, δ) in enumerate(
+                        zip(switch_list, δ_map.values())
+                    ):
+                        is_selected = switch_id in random_switches
+                        is_closed = δ > 0.5
+
+                        if is_selected and is_closed:
+                            # Selected & Closed
+                            combined_values.append("█")
+                        elif is_selected and not is_closed:
+                            # Selected & Open
+                            combined_values.append("▓")
+                        elif not is_selected and is_closed:
+                            # Unselected & Closed
+                            combined_values.append("▒")
+                        else:
+                            # Unselected & Open
+                            combined_values.append("░")
+                    print(f"{''.join(combined_values)}")
+
                 except Exception as e:
-                    log.error(f"[ADMM {k}] Error solving scenario {ω}: {e}")
-                    continue
+                    log.error(
+                        f"[ADMM {k}] Error extracting δ values for scenario {ω}: {e}"
+                    )
 
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for s in switch_list:
                 z[s] = (sum(δ_by_sc[ω][s] for ω in scen_list)) / scenario_number
+
+            # Print consensus z values
+            z_values = ["█" if z[s] > 0.5 else "░" for s in switch_list]
+            print(f"Iter {k}, Consensus z: {''.join(z_values)}")
 
             # ---- λ-update (scaled duals) ----
             for ω in scen_list:

@@ -19,8 +19,8 @@ if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
-        number_of_groups=10,
-        number_of_random_scenarios=30,
+        number_of_groups=20,
+        number_of_random_scenarios=10,
     )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
@@ -49,9 +49,9 @@ config = ADMMConfig(
     big_m=1e3,
     ε=1e-4,
     ρ=2.0,
-    γ_infeasibility=1.0,
+    γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
-    time_limit=10,
+    time_limit=1,
 )
 
 dap = DigAPlan(config=config)
