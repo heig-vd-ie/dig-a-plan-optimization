@@ -1,51 +1,10 @@
 # %%
-from logging import config
-import polars as pl
-import os
-import pandapower as pp
-from data_display.grid_plotting import plot_grid_from_pandapower
-from general_function import pl_to_dict
-from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from pipelines import DigAPlan
-from pipelines.configs import ADMMConfig, PipelineType
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-
-
-os.chdir(os.getcwd().replace("/src", ""))
-os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
+from examples import *
 
 # %% set parameters
-LOAD_FACTOR = 1
-TEST_CONFIG = [
-    {"line_list": [], "switch_list": []},
-    {"line_list": [6, 9], "switch_list": [25, 28]},
-    {"line_list": [2, 6, 9], "switch_list": [21, 25, 28]},
-    {"line_list": [16], "switch_list": [35]},
-    {"line_list": [1], "switch_list": [20]},
-    {"line_list": [10], "switch_list": [29]},
-    {"line_list": [7, 11], "switch_list": [26, 30]},
-]
-NB_TEST = 0
 
 net = pp.from_pickle("data/simple_grid.p")
-
-net["load"]["p_mw"] = net["load"]["p_mw"] * LOAD_FACTOR
-net["load"]["q_mvar"] = net["load"]["q_mvar"] * LOAD_FACTOR
-
-net["line"].loc[:, "max_i_ka"] = 1
-net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
-
-# Optional tweaks
-LOAD_FACTOR = 1.0
-net["load"]["p_mw"] *= LOAD_FACTOR
-net["load"]["q_mvar"] *= LOAD_FACTOR
-net["line"].loc[:, "max_i_ka"] = 1.0
-
-# %% Convert pandapower -> DigAPlan schema with a few scenarios
 grid_data = pandapower_to_dig_a_plan_schema(net)
-
 groups = {
     0: [19, 20, 21, 29, 32, 35],
     1: [35, 30, 33, 25, 26, 27],

@@ -1,13 +1,9 @@
-from pandapower.networks import create_cigre_network_mv
-
-import pandapower as pp
-import polars as pl
-from polars import col as c
-from shapely import from_geojson
-from general_function import pl_to_dict, build_non_existing_dirs
+# %%
+from examples import *
 
 
-if __name__ == "__main__":
+# %%
+def create_simple_grid():
     net = create_cigre_network_mv(with_der="all")  # type: ignore
 
     bus: pl.DataFrame = pl.from_pandas(net["bus"])
@@ -120,5 +116,27 @@ if __name__ == "__main__":
 
     net["trafo"]["shift_degree"] = 0
 
+    LOAD_FACTOR = 1
+    TEST_CONFIG = [
+        {"line_list": [], "switch_list": []},
+        {"line_list": [6, 9], "switch_list": [25, 28]},
+        {"line_list": [2, 6, 9], "switch_list": [21, 25, 28]},
+        {"line_list": [16], "switch_list": [35]},
+        {"line_list": [1], "switch_list": [20]},
+        {"line_list": [10], "switch_list": [29]},
+        {"line_list": [7, 11], "switch_list": [26, 30]},
+    ]
+    NB_TEST = 0
+
+    net["load"]["p_mw"] = net["load"]["p_mw"] * LOAD_FACTOR
+    net["load"]["q_mvar"] = net["load"]["q_mvar"] * LOAD_FACTOR
+
+    net["line"].loc[:, "max_i_ka"] = 1
+    net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
+
     build_non_existing_dirs("data")
     pp.to_pickle(net, "data/simple_grid.p")
+
+
+# %%
+create_simple_grid()

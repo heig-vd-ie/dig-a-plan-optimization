@@ -1,17 +1,5 @@
 # %% import libraries
-import os
-import pandapower as pp
-from polars import col as c
-import polars as pl
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-
-from pipelines import DigAPlan
-from pipelines.configs import CombinedConfig, PipelineType
-
-
-# ensure working directory is project root
-os.chdir(os.getcwd().replace("/src", ""))
-os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
+from examples import *
 
 # %% set parameters
 if USE_SIMPLIFIED_GRID := True:

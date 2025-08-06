@@ -1,18 +1,5 @@
 # %%
-from logging import config
-import polars as pl
-from polars import col as c
-import os
-import pandapower as pp
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from pipelines import DigAPlan
-from pipelines.configs import ADMMConfig, PipelineType
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-
-
-os.chdir(os.getcwd().replace("/src", ""))
-os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
+from examples import *
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
 if USE_SIMPLIFIED_GRID := True:

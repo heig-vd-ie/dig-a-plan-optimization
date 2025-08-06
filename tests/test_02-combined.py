@@ -12,25 +12,8 @@ from pyomo_utility import extract_optimization_results
 
 
 def test_combined_model_simple_example():
-    LOAD_FACTOR = 1
-    TEST_CONFIG = [
-        {"line_list": [], "switch_list": []},
-        {"line_list": [6, 9], "switch_list": [25, 28]},
-        {"line_list": [2, 6, 9], "switch_list": [21, 25, 28]},
-        {"line_list": [16], "switch_list": [35]},
-        {"line_list": [1], "switch_list": [20]},
-        {"line_list": [10], "switch_list": [29]},
-        {"line_list": [7, 11], "switch_list": [26, 30]},
-    ]
-    NB_TEST = 0
 
     net = pp.from_pickle("data/simple_grid.p")
-
-    net["load"]["p_mw"] = net["load"]["p_mw"] * LOAD_FACTOR
-    net["load"]["q_mvar"] = net["load"]["q_mvar"] * LOAD_FACTOR
-
-    net["line"].loc[:, "max_i_ka"] = 1
-    net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 
     base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
