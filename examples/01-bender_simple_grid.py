@@ -8,7 +8,7 @@ from examples import *
 # %% set parameters
 
 net = pp.from_pickle("data/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema(net, taps=[99, 100, 101])
+base_grid_data = pandapower_to_dig_a_plan_schema(net, taps=[100])
 
 # %% initialize DigAPlan
 config = BenderConfig(

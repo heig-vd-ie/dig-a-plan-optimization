@@ -12,7 +12,7 @@ from pyomo_utility import extract_optimization_results
 def test_bender_model_simple_example():
 
     net = pp.from_pickle("data/simple_grid.p")
-    base_grid_data = pandapower_to_dig_a_plan_schema(net)
+    base_grid_data = pandapower_to_dig_a_plan_schema(net, taps=[99, 100, 101])
 
     config = BenderConfig(
         verbose=False,
@@ -27,20 +27,20 @@ def test_bender_model_simple_example():
     dig_a_plan = DigAPlanBender(config=config)
 
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(max_iters=10)
+    dig_a_plan.solve_model(max_iters=100)
     node_data, edge_data = compare_dig_a_plan_with_pandapower(
         dig_a_plan=dig_a_plan, net=net
     )
     assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
-    assert edge_data.get_column("i_diff").abs().max() < 0.1  # type: ignore
+    assert edge_data.get_column("i_diff").abs().max() < 5e-3  # type: ignore
 
     δ = extract_optimization_results(
         dig_a_plan.model_manager.master_model_instance, "δ"
     )
     assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
-        21,
         23,
-        24,
-        26,
+        28,
+        32,
         33,
+        34,
     ]

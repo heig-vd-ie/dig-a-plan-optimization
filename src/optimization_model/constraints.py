@@ -252,13 +252,19 @@ def voltage_drop_transfo_rule(m, l, i, j, ω):
         -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
         + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j, ω]
     )
-    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω] - m.vt_sq[j, ω]
+    if i > j:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω]
+    else:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv - m.vt_sq[j, ω]
     return voltage_diff == 0
 
 
 def voltage_drop_transfo_lindistflow_rule(m, tr, i, j, ω):
     dv = -2 * (m.r[tr] * m.p_flow[tr, i, j, ω] + m.x[tr] * m.q_flow[tr, i, j, ω])
-    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω] - m.vt_sq[j, ω]
+    if i > j:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω]
+    else:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[j, ω]
     return voltage_diff == 0
 
 
