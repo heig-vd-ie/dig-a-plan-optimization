@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import random
 import pyomo.environ as pyo
 import numpy as np
@@ -9,7 +9,6 @@ from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import ADMMConfig, PipelineType
 from optimization_model import generate_combined_model, generate_combined_lin_model
 from pipelines.model_managers import PipelineModelManager
-from tqdm import tqdm
 
 log = generate_log(name=__name__)
 
@@ -23,8 +22,6 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.admm_linear_model: pyo.AbstractModel = generate_combined_lin_model()
         self.admm_linear_model_instance: pyo.ConcreteModel
         self.admm_model_instances: Dict[int, pyo.ConcreteModel] = {}
-
-        self.admm_obj: float = 0.0
 
         # ADMM artifacts
         self.admm_z: Dict[int, float] = {}
@@ -64,11 +61,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Initialize consensus and duals
         z = {s: 0.5 for s in switch_list}  # consensus per switch
-        λ = {
-            (ω, s): 0.0
-            for ω in itertools.product(Ω, range(self.number_of_groups))
-            for s in switch_list
-        }  # scaled duals
+        λ = {(ω, s): 0.0 for ω in Ω for s in switch_list}  # scaled duals
         results = self.solver.solve(
             self.admm_linear_model_instance, tee=self.config.verbose
         )
@@ -84,17 +77,16 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self._set_z_from_z(z)
             self._set_λ_from_λ(λ)
             # ---- x-update: solve each scenario with current z, λ ----
-            δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = {}
+            δ_by_sc: Dict[int, Dict[str, float]] = {}
 
-            for ω in itertools.product(Ω, range(self.number_of_groups)):
-                m = self.admm_model_instances[ω[0]]  # type: ignore
-                # Solve multi‑scenario instance
+            for ω, _ in itertools.product(Ω, range(self.number_of_groups)):
+                m = self.admm_model_instances[ω]  # type: ignore
 
                 if isinstance(groups, int):
                     random_switches = random.sample(
                         switch_list,
                         k=min(
-                            max(2, int(len(switch_list) / groups)) * mutation_factor,
+                            max(2, int(len(switch_list) / groups * mutation_factor)),
                             len(switch_list) - 1,
                         ),
                     )
@@ -102,7 +94,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                     random_switches = []
                 for edge_id, δ in δ_map.items():
                     if ((edge_id in random_switches) and isinstance(groups, int)) | (
-                        (not isinstance(groups, int)) and (edge_id in groups[ω[1]])
+                        (not isinstance(groups, int)) and (edge_id in groups[ω])
                     ):
                         m.δ[edge_id].unfix()  # type: ignore
                     else:
@@ -127,8 +119,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
                     # Print δ_map state for current scenario with selection info
                     combined_values = []
-                    for i, (switch_id, δ) in enumerate(
-                        itertools.product(switch_list, δ_map.values())
+                    for _, (switch_id, δ) in enumerate(
+                        zip(switch_list, δ_map.values())
                     ):
                         is_selected = switch_id in random_switches
                         is_closed = δ > 0.5
@@ -145,7 +137,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                         else:
                             # Unselected & Open
                             combined_values.append("░")
-                    print(f"{''.join(combined_values)}\n\n")
+                    print(f"{''.join(combined_values)}")
 
                 except Exception as e:
                     log.error(
@@ -155,30 +147,19 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for s in switch_list:
-                z[s] = (
-                    sum(
-                        δ_by_sc[ω][s]
-                        for ω in itertools.product(Ω, range(self.number_of_groups))
-                    )
-                ) / scenario_number
+                z[s] = (sum(δ_by_sc[ω][s] for ω in Ω)) / scenario_number
 
             # Print consensus z values
             z_values = ["█" if z[s] > 0.5 else "░" for s in switch_list]
             print(f"Iter {k}, Consensus z: {''.join(z_values)}")
 
             # ---- λ-update (scaled duals) ----
-            for ω in itertools.product(Ω, range(self.number_of_groups)):
+            for ω in Ω:
                 for s in switch_list:
                     λ[(ω, s)] = λ[(ω, s)] + κ * (δ_by_sc[ω][s] - z[s])
 
             # ---- residuals (after all scenarios solved) ----
-            r_sq = max(
-                [
-                    (δ_by_sc[ω][s] - z[s]) ** 2
-                    for ω in itertools.product(Ω, range(self.number_of_groups))
-                    for s in switch_list
-                ]
-            )
+            r_sq = max([(δ_by_sc[ω][s] - z[s]) ** 2 for ω in Ω for s in switch_list])
             r_norm = float(np.sqrt(r_sq))
 
             s_sq = sum((z[s] - z_old[s]) ** 2 for s in switch_list)
@@ -240,7 +221,6 @@ class PipelineModelManagerADMM(PipelineModelManager):
     def _set_λ_from_λ(self, λ_map: dict) -> None:
         """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
         for ω, m in self.admm_model_instances.items():
-            for g in range(self.number_of_groups):
-                λ_param = getattr(m, "λ")
-                for s in getattr(m, "S"):
-                    λ_param[s].set_value(λ_map[((ω, g), s)])
+            λ_param = getattr(m, "λ")
+            for s in getattr(m, "S"):
+                λ_param[s].set_value(λ_map[(ω, s)])

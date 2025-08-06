@@ -68,8 +68,8 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
-    mutation_factor=5,
-    groups=20,
+    mutation_factor=2,
+    groups=10,
 )
 
 # %% Inspect consensus and per-scenario deltas
