@@ -49,7 +49,6 @@ class PipelineModelManagerADMM(PipelineModelManager):
         mutation_factor: int = 1,
     ) -> None:
         """Solve the ADMM model with the given parameters."""
-
         random.seed(seed_number)
 
         Ω = list(self.admm_model_instances.keys())  # type: ignore
@@ -62,15 +61,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
         # Initialize consensus and duals
         z = {s: 0.5 for s in switch_list}  # consensus per switch
         λ = {(ω, s): 0.0 for ω in Ω for s in switch_list}  # scaled duals
-        results = self.solver.solve(
-            self.admm_linear_model_instance, tee=self.config.verbose
-        )
-        δ_map = self.admm_linear_model_instance.δ.extract_values()  # type: ignore
 
-        # Print initial δ_map state
-        δ_values = ["█" if δ > 0.5 else "░" for δ in δ_map.values()]
-        print(f"{''.join(δ_values)}")
-
+        δ_map = self.__solve_model(self.admm_linear_model_instance)
+        self.__print_switch_states(δ_map)
         # ADMM iterations
         for k in range(1, max_iters + 1):
             # Broadcast z and λ into the model
@@ -79,7 +72,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[int, Dict[str, float]] = {}
 
-            for ω, _ in itertools.product(Ω, range(self.number_of_groups)):
+            for ω, g in itertools.product(Ω, range(self.number_of_groups)):
                 m = self.admm_model_instances[ω]  # type: ignore
 
                 if isinstance(groups, int):
@@ -94,7 +87,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                     random_switches = []
                 for edge_id, δ in δ_map.items():
                     if ((edge_id in random_switches) and isinstance(groups, int)) | (
-                        (not isinstance(groups, int)) and (edge_id in groups[ω])
+                        (not isinstance(groups, int)) and (edge_id in groups[g])
                     ):
                         m.δ[edge_id].unfix()  # type: ignore
                     else:
@@ -102,42 +95,15 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
                 δ_by_sc[ω] = δ_map
                 try:
-                    results = self.solver.solve(m, tee=self.config.verbose)
-                    if (
-                        results.solver.termination_condition
-                        != pyo.TerminationCondition.optimal
-                    ):
-                        log.error(
-                            f"[ADMM {k}] solve failed: {results.solver.termination_condition}"
-                        )
-                    δ_map = m.δ.extract_values()  # type: ignore
-                    if None in δ_map.values():
-                        raise ValueError(
-                            f"[ADMM {k}] δ_map contains None values: {δ_map}"
-                        )
+                    δ_map = self.__solve_model(m)
                     δ_by_sc[ω] = δ_map
 
-                    # Print δ_map state for current scenario with selection info
-                    combined_values = []
-                    for _, (switch_id, δ) in enumerate(
-                        zip(switch_list, δ_map.values())
-                    ):
-                        is_selected = switch_id in random_switches
-                        is_closed = δ > 0.5
-
-                        if is_selected and is_closed:
-                            # Selected & Closed
-                            combined_values.append("█")
-                        elif is_selected and not is_closed:
-                            # Selected & Open
-                            combined_values.append("▓")
-                        elif not is_selected and is_closed:
-                            # Unselected & Closed
-                            combined_values.append("▒")
-                        else:
-                            # Unselected & Open
-                            combined_values.append("░")
-                    print(f"{''.join(combined_values)}")
+                    self.__print_switch_states(
+                        δ_map,
+                        selected_switches=(
+                            random_switches if isinstance(groups, int) else groups[g]
+                        ),
+                    )
 
                 except Exception as e:
                     log.error(
@@ -150,8 +116,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 z[s] = (sum(δ_by_sc[ω][s] for ω in Ω)) / scenario_number
 
             # Print consensus z values
-            z_values = ["█" if z[s] > 0.5 else "░" for s in switch_list]
-            print(f"Iter {k}, Consensus z: {''.join(z_values)}")
+            self.__print_switch_states(z)
 
             # ---- λ-update (scaled duals) ----
             for ω in Ω:
@@ -224,3 +189,40 @@ class PipelineModelManagerADMM(PipelineModelManager):
             λ_param = getattr(m, "λ")
             for s in getattr(m, "S"):
                 λ_param[s].set_value(λ_map[(ω, s)])
+
+    def __print_switch_states(
+        self, δ_map: dict, selected_switches: list | None = None
+    ) -> None:
+        """Print the switch states based on δ_map."""
+        combined_values = []
+        for switch_id, δ in δ_map.items():
+            is_selected = (
+                switch_id in selected_switches
+                if selected_switches is not None
+                else False
+            )
+            is_closed = δ > 0.5
+
+            if is_selected and is_closed:
+                # Selected & Closed
+                combined_values.append("█")
+            elif is_selected and not is_closed:
+                # Selected & Open
+                combined_values.append("▓")
+            elif not is_selected and is_closed:
+                # Unselected & Closed
+                combined_values.append("▒")
+            else:
+                # Unselected & Open
+                combined_values.append("░")
+        print(f"{''.join(combined_values)}")
+
+    def __solve_model(self, model: pyo.ConcreteModel) -> Dict[str, float]:
+        """Solve the given model and return the δ values."""
+        results = self.solver.solve(model, tee=self.config.verbose)
+        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            log.error(f"Model solve failed: {results.solver.termination_condition}")
+        δ_map = model.δ.extract_values()  # type: ignore
+        if None in δ_map.values():
+            raise ValueError(f"δ_map contains None values: {δ_map}")
+        return δ_map
