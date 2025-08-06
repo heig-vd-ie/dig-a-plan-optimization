@@ -60,34 +60,6 @@ dap.add_grid_data(grid_data)
 dap.model_manager.solve_model()
 
 # %% Inspect consensus and per-scenario deltas
-print("\n--- ADMM consensus z per switch ---")
-print(dap.model_manager.z)  # {switch_id: z}
-
-print("\n--- ADMM last-iterate delta (per scenario, per switch) ---")
-print(dap.model_manager.δ_variable)  # Polars DF: ["SCEN","S","δ_variable"]
-
-
-# %% Consensus switch states (one value per switch)
-# z in [0,1]; threshold to get open/closed
-switches = dap.data_manager.edge_data.filter(pl.col("type") == "switch").select(
-    "eq_fk", "edge_id", "normal_open"
-)
-
-z_df = pl.DataFrame(
-    {
-        "edge_id": list(dap.model_manager.z.keys()),
-        "z": list(dap.model_manager.z.values()),
-    }
-)
-
-consensus_states = (
-    switches.join(z_df, on="edge_id", how="inner")
-    .with_columns(
-        (pl.col("z") > 0.5).alias("closed"), (~(pl.col("z") > 0.5)).alias("open")
-    )
-    .select("eq_fk", "edge_id", "z", "normal_open", "closed", "open")
-    .sort("edge_id")
-)
 
 print("\n=== ADMM consensus switch states (z) ===")
-print(consensus_states)
+print(dap.model_manager.z_variable)

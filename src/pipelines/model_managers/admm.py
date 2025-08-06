@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import random
 import pyomo.environ as pyo
 import numpy as np
@@ -36,9 +36,11 @@ class PipelineModelManagerADMM(PipelineModelManager):
         for scen in grid_data_parameters_dict.keys():
             self.admm_model_instances[scen] = self.admm_model.create_instance(grid_data_parameters_dict[scen])  # type: ignore
 
-    def solve_model(self) -> None:
+    def solve_model(self, **kwargs) -> None:
         """Solve the ADMM model with the given parameters."""
         random.seed(self.config.seed_number)
+        self.s_norm: float | None = None
+        self.r_norm: float | None = None
 
         self.mutation_factor = self.config.mutation_factor
         self.groups = self.config.groups
@@ -65,39 +67,52 @@ class PipelineModelManagerADMM(PipelineModelManager):
         δ_map = self.__solve_model(self.admm_linear_model_instance)
         # ADMM iterations
         for k in range(1, self.config.max_iters + 1):
+            z_old = self.z.copy()
             # Broadcast z and λ into the model
             self._set_z_from_z()
             self._set_λ_from_λ()
             # ---- x-update: solve each scenario with current z, λ ----
-            δ_by_sc: Dict[int, Dict[str, float]] = {}
+            δ_by_sc: Dict[int, Dict[str, float]] = {ω: δ_map for ω in self.Ω}
 
             for ω, g in itertools.product(self.Ω, range(self.number_of_groups)):
                 m = self.admm_model_instances[ω]  # type: ignore
                 selected_switches = self.__fix_switches(m, δ_map, g)
-                δ_map = self.__solve_model(m, δ_map, selected_switches)
+                δ_map = self.__solve_model(m, δ_map, selected_switches, k=k)
                 δ_by_sc[ω] = δ_map
 
-            # ---- z-update (per switch) ----
-            z_old = self.z.copy()
-            for s in self.switch_list:
-                self.z[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
+                # ---- z-update (per switch) ----
+                for s in self.switch_list:
+                    self.z[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
 
-            # Print consensus z values
-            self.__print_switch_states(self.z)
+                # ---- residuals (after all scenarios solved) ----
+                self.r_norm, self.s_norm = self.__calculate_residuals(
+                    δ_by_sc, self.z, z_old
+                )
 
             # ---- λ-update (scaled duals) ----
             for ω, s in itertools.product(self.Ω, self.switch_list):
                 self.λ[(ω, s)] = self.λ[(ω, s)] + self.κ * (δ_by_sc[ω][s] - self.z[s])
 
-            # ---- residuals (after all scenarios solved) ----
-            r_norm, s_norm = self.__calculate_residuals(δ_by_sc, self.z, z_old, k)
             # ---- convergence ----
-            if (r_norm <= self.config.ε_primal) and (s_norm <= self.config.ε_dual):
+            if self.s_norm is None or self.r_norm is None:
+                raise ValueError("Residuals s_norm and r_norm must be initialized.")
+            if (self.r_norm <= self.config.ε_primal) and (
+                self.s_norm <= self.config.ε_dual
+            ):
                 log.info(f"ADMM converged in {k} iterations.")
                 break
 
+            # ---- residual balancing (scaled ADMM) ----
+            if self.r_norm > self.μ * self.s_norm:
+                self.config.ρ *= self.τ_incr
+            elif self.s_norm > self.μ * self.r_norm:
+                self.config.ρ /= self.τ_decr
+            for m in self.admm_model_instances.values():
+                getattr(m, "ρ").set_value(self.config.ρ)
+
         # Refresh δ table after final iterate
         self.__get_δ_map()
+        self.__set_z_map()
 
         # store total objective (sum over scenarios), if available
         final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in self.admm_model_instances.values()))  # type: ignore
@@ -135,8 +150,35 @@ class PipelineModelManagerADMM(PipelineModelManager):
             orient="row",
         )
 
+    def __set_z_map(self) -> None:
+        """Set the z values in the model from the z_map."""
+
+        switches = self.data_manager.edge_data.filter(
+            pl.col("type") == "switch"
+        ).select("eq_fk", "edge_id", "normal_open")
+
+        z_df = pl.DataFrame(
+            {
+                "edge_id": list(self.z.keys()),
+                "z": list(self.z.values()),
+            }
+        )
+
+        self.z_variable = (
+            switches.join(z_df, on="edge_id", how="inner")
+            .with_columns(
+                (pl.col("z") > 0.5).alias("closed"),
+                (~(pl.col("z") > 0.5)).alias("open"),
+            )
+            .select("eq_fk", "edge_id", "z", "normal_open", "closed", "open")
+            .sort("edge_id")
+        )
+
     def __print_switch_states(
-        self, δ_map: dict, selected_switches: list | None = None
+        self,
+        δ_map: dict,
+        k: int | None = None,
+        selected_switches: list | None = None,
     ) -> None:
         """Print the switch states based on δ_map."""
         combined_values = []
@@ -160,7 +202,15 @@ class PipelineModelManagerADMM(PipelineModelManager):
             else:
                 # Unselected & Open
                 combined_values.append("░")
-        print(f"{''.join(combined_values)}")
+        log.info(
+            f"{''.join(combined_values)}"
+            + (f" [ADMM {k}]" if k is not None else "")
+            + (
+                f" r_norm={self.r_norm:.3f}, s_norm={self.s_norm:.3f}, ρ={self.config.ρ:.3f}"
+                if self.s_norm is not None and self.r_norm is not None
+                else ""
+            )
+        )
 
     def __fix_switches(self, m: pyo.ConcreteModel, δ_map: dict, g: int) -> List:
         """Fix switches based on δ_map and group g."""
@@ -192,6 +242,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         model: pyo.ConcreteModel,
         δ_map: Dict[str, float] = {},
         selected_switches: List | None = None,
+        k: int | None = None,
     ) -> Dict[str, float]:
         """Solve the given model and return the δ values."""
         try:
@@ -201,7 +252,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             δ_map = model.δ.extract_values()  # type: ignore
             if None in δ_map.values():
                 raise ValueError(f"δ_map contains None values: {δ_map}")
-            self.__print_switch_states(δ_map, selected_switches)
+            self.__print_switch_states(δ_map, k=k, selected_switches=selected_switches)
         except Exception as e:
             log.error(f"Error solving model: {e}")
         return δ_map
@@ -211,8 +262,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         δ_by_sc: Dict[int, Dict[str, float]],
         z: Dict[int, float],
         z_old: Dict[int, float],
-        k: int,
-    ) -> tuple[float, float]:
+    ) -> Tuple[float, float]:
         """Calculate the primal and dual residuals."""
         r_norm = float(
             np.sqrt(
@@ -231,13 +281,4 @@ class PipelineModelManagerADMM(PipelineModelManager):
             * np.sqrt(sum((z[s] - z_old[s]) ** 2 for s in self.switch_list))
         )
 
-        log.info(f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={self.config.ρ:.3g}")
-
-        # ---- residual balancing (scaled ADMM) ----
-        if r_norm > self.μ * s_norm:
-            self.config.ρ *= self.τ_incr
-        elif s_norm > self.μ * r_norm:
-            self.config.ρ /= self.τ_decr
-        for m in self.admm_model_instances.values():
-            getattr(m, "ρ").set_value(self.config.ρ)
         return r_norm, s_norm

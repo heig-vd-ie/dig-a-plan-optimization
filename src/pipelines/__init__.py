@@ -39,6 +39,7 @@ class DigAPlan:
             | PipelineModelManagerCombined
             | PipelineModelManagerADMM
         )
+        self.result_manager: PipelineResultManager
 
     def add_grid_data(self, grid_data: NodeEdgeModel):
         """
