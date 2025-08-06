@@ -178,7 +178,7 @@ class PipelineDataManager:
                     "S": {None: switch_ids},
                     "C": {None: c_tuples},
                     "Tr": {None: transformer_ids},
-                    "Taps": {None: list(arange(0.95, 1.05, 0.01))},
+                    "Taps": {None: list(arange(0.95, 1.05, 0.02))},
                     # static line params
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),

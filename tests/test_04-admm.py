@@ -41,20 +41,9 @@ def test_admm_model_simple_example():
 
     dap.add_grid_data(grid_data)
 
-    switch_ids = dap.data_manager.edge_data.filter(pl.col("type") == "switch")[
-        "edge_id"
-    ].to_list()
-    scen_ids = list(grid_data.load_data.keys())
-    print("Switch IDs:", switch_ids)
-    print("Scenario IDs:", scen_ids)
 
     dap.model_manager.solve_model()
 
-    print("\n--- ADMM consensus z per switch ---")
-    print(dap.model_manager.z)  # {switch_id: z}
-
-    print("\n--- ADMM last-iterate delta (per scenario, per switch) ---")
-    print(dap.model_manager.δ_variable)  # Polars DF: ["SCEN","S","δ_variable"]
 
     switches1 = dap.data_manager.edge_data.filter(pl.col("type") == "switch").select(
         "eq_fk", "edge_id", "normal_open"
@@ -76,8 +65,6 @@ def test_admm_model_simple_example():
         .sort("edge_id")
     )
 
-    print("\n=== ADMM consensus switch states (z) ===")
-    print(consensus_states)
 
     node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
     assert node_data.get_column("v_diff").abs().max() < 1e-3  # type: ignore

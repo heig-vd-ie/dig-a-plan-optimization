@@ -58,40 +58,77 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Sets
         self.switch_list = list(self.admm_model_instances[self.Ω[0]].S)  # type: ignore
+        self.transformer_list = list(self.admm_model_instances[self.Ω[0]].Tr)  # type: ignore
+        self.tap_list = list(self.admm_model_instances[self.Ω[0]].Taps)  # type: ignore
         scenario_number = len(self.Ω)
 
         # Initialize consensus and duals
-        self.z = {s: 0.5 for s in self.switch_list}  # consensus per switch
-        self.λ = {(ω, s): 0.0 for ω in self.Ω for s in self.switch_list}  # scaled duals
+        self.zδ = {s: 0.5 for s in self.switch_list}  # consensus per switch
+        self.λδ = {
+            (ω, s): 0.0 for ω in self.Ω for s in self.switch_list
+        }  # scaled duals
 
-        δ_map = self.__solve_model(self.admm_linear_model_instance)
+        self.zζ = {
+            (tr, tap): 1.0 for tr in self.transformer_list for tap in self.tap_list
+        }
+        self.λζ = {
+            (ω, tr, tap): 0.0
+            for ω in self.Ω
+            for tr in self.transformer_list
+            for tap in self.tap_list
+        }
+
+        δ_map, ζ_map = self.__solve_model(self.admm_linear_model_instance)
         # ADMM iterations
         for k in range(1, self.config.max_iters + 1):
-            z_old = self.z.copy()
+            zδ_old = self.zδ.copy()
+            zζ_old = self.zζ.copy()
             # Broadcast z and λ into the model
-            self._set_z_from_z()
-            self._set_λ_from_λ()
+            self._set_zδ_from_zδ()
+            self._set_λδ_from_λδ()
+            self._set_zζ_from_zζ()
+            self._set_λζ_from_λζ()
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[int, Dict[str, float]] = {ω: δ_map for ω in self.Ω}
+            ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]] = {
+                ω: ζ_map for ω in self.Ω
+            }
 
             for ω, g in itertools.product(self.Ω, range(self.number_of_groups)):
                 m = self.admm_model_instances[ω]  # type: ignore
                 selected_switches = self.__fix_switches(m, δ_map, g)
-                δ_map = self.__solve_model(m, δ_map, selected_switches, k=k)
+                δ_map, ζ_map = self.__solve_model(m, δ_map, selected_switches, k=k)
                 δ_by_sc[ω] = δ_map
+                ζ_by_sc[ω] = ζ_map
 
                 # ---- z-update (per switch) ----
                 for s in self.switch_list:
-                    self.z[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
+                    self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
+                # ---- zζ-update (per transformer tap) ----
+                for tr, tap in self.zζ.keys():
+                    self.zζ[(tr, tap)] = (
+                        sum(ζ_by_sc[ω][(tr, tap)] for ω in self.Ω) / scenario_number
+                    )
 
                 # ---- residuals (after all scenarios solved) ----
                 self.r_norm, self.s_norm = self.__calculate_residuals(
-                    δ_by_sc, self.z, z_old
+                    δ_by_sc=δ_by_sc,
+                    zδ=self.zδ,
+                    zδ_old=zδ_old,
+                    ζ_by_sc=ζ_by_sc,
+                    zζ=self.zζ,
+                    zζ_old=zζ_old,
                 )
 
             # ---- λ-update (scaled duals) ----
             for ω, s in itertools.product(self.Ω, self.switch_list):
-                self.λ[(ω, s)] = self.λ[(ω, s)] + self.κ * (δ_by_sc[ω][s] - self.z[s])
+                self.λδ[(ω, s)] = self.λδ[(ω, s)] + self.κ * (
+                    δ_by_sc[ω][s] - self.zδ[s]
+                )
+            for ω, (tr, tap) in itertools.product(self.Ω, self.zζ.keys()):
+                self.λζ[(ω, tr, tap)] = self.λζ[(ω, tr, tap)] + self.κ * (
+                    ζ_by_sc[ω][(tr, tap)] - self.zζ[(tr, tap)]
+                )
 
             # ---- convergence ----
             if self.s_norm is None or self.r_norm is None:
@@ -112,7 +149,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Refresh δ table after final iterate
         self.__get_δ_map()
-        self.__set_z_map()
+        self.__get_ζ_map()
+        self.__set_zδ_map()
+        self.__set_zζ_map()
 
         # store total objective (sum over scenarios), if available
         final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in self.admm_model_instances.values()))  # type: ignore
@@ -122,19 +161,33 @@ class PipelineModelManagerADMM(PipelineModelManager):
     # ADMM helpers and main loop
     # ---------------------------
 
-    def _set_z_from_z(self) -> None:
-        """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
+    def _set_zδ_from_zδ(self) -> None:
+        """Broadcast consensus zδ[s] to δ_param[sc, s] for all scenarios sc."""
         for _, m in self.admm_model_instances.items():
-            z_param = getattr(m, "z")
+            zδ_param = getattr(m, "zδ")
             for s in getattr(m, "S"):
-                z_param[s].set_value(self.z[s])
+                zδ_param[s].set_value(self.zδ[s])
 
-    def _set_λ_from_λ(self) -> None:
+    def _set_zζ_from_zζ(self) -> None:
+        """Broadcast consensus zζ[tr, tap] to ζ_param[sc, (tr, tap)] for all scenarios sc."""
+        for _, m in self.admm_model_instances.items():
+            zζ_param = getattr(m, "zζ")
+            for tr, tap in getattr(m, "TrTaps"):
+                zζ_param[(tr, tap)].set_value(self.zζ[(tr, tap)])
+
+    def _set_λδ_from_λδ(self) -> None:
         """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
         for ω, m in self.admm_model_instances.items():
-            λ_param = getattr(m, "λ")
+            λδ_param = getattr(m, "λδ")
             for s in getattr(m, "S"):
-                λ_param[s].set_value(self.λ[(ω, s)])
+                λδ_param[s].set_value(self.λδ[(ω, s)])
+
+    def _set_λζ_from_λζ(self) -> None:
+        """Set per-scenario scaled duals λζ_sc[(tr, tap)] from λζ_map[(scen_id, (tr, tap))]."""
+        for ω, m in self.admm_model_instances.items():
+            λζ_param = getattr(m, "λζ")
+            for tr, tap in getattr(m, "TrTaps"):
+                λζ_param[(tr, tap)].set_value(self.λζ[(ω, tr, tap)])
 
     def __get_δ_map(self) -> None:
         """Extract the δ values from the model."""
@@ -150,28 +203,53 @@ class PipelineModelManagerADMM(PipelineModelManager):
             orient="row",
         )
 
-    def __set_z_map(self) -> None:
+    def __get_ζ_map(self) -> None:
+        """Extract the ζδ values from the model."""
+        rows = []
+        for ω in self.Ω:
+            m = self.admm_model_instances[ω]
+            ζ_map = m.ζ.extract_values()  # type: ignore
+            for tr, tap in self.zζ.keys():
+                rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+        self.ζ_variable = pl.DataFrame(
+            rows,
+            schema=["SCEN", "TR", "TAP", "ζ_variable"],
+            orient="row",
+        )
+
+    def __set_zδ_map(self) -> None:
         """Set the z values in the model from the z_map."""
 
         switches = self.data_manager.edge_data.filter(
             pl.col("type") == "switch"
         ).select("eq_fk", "edge_id", "normal_open")
 
-        z_df = pl.DataFrame(
+        zδ_df = pl.DataFrame(
             {
-                "edge_id": list(self.z.keys()),
-                "z": list(self.z.values()),
+                "edge_id": list(self.zδ.keys()),
+                "zδ": list(self.zδ.values()),
             }
         )
 
-        self.z_variable = (
-            switches.join(z_df, on="edge_id", how="inner")
+        self.zδ_variable = (
+            switches.join(zδ_df, on="edge_id", how="inner")
             .with_columns(
-                (pl.col("z") > 0.5).alias("closed"),
-                (~(pl.col("z") > 0.5)).alias("open"),
+                (pl.col("zδ") > 0.5).alias("closed"),
+                (~(pl.col("zδ") > 0.5)).alias("open"),
             )
-            .select("eq_fk", "edge_id", "z", "normal_open", "closed", "open")
+            .select("eq_fk", "edge_id", "zδ", "normal_open", "closed", "open")
             .sort("edge_id")
+        )
+
+    def __set_zζ_map(self) -> None:
+        """Set the zζ values in the model from the zζ_map."""
+        rows = []
+        for (tr, tap), zζ_value in self.zζ.items():
+            rows.append((tr, tap, zζ_value))
+        self.zζ_variable = pl.DataFrame(
+            rows,
+            schema=["TR", "TAP", "zζ"],
+            orient="row",
         )
 
     def __print_switch_states(
@@ -243,32 +321,36 @@ class PipelineModelManagerADMM(PipelineModelManager):
         δ_map: Dict[str, float] = {},
         selected_switches: List | None = None,
         k: int | None = None,
-    ) -> Dict[str, float]:
+    ) -> Tuple[Dict[str, float], Dict[Tuple[str, str], float]]:
         """Solve the given model and return the δ values."""
         try:
             results = self.solver.solve(model, tee=self.config.verbose)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.error(f"Model solve failed: {results.solver.termination_condition}")
             δ_map = model.δ.extract_values()  # type: ignore
+            ζ_map = model.ζ.extract_values()  # type: ignore
             if None in δ_map.values():
                 raise ValueError(f"δ_map contains None values: {δ_map}")
             self.__print_switch_states(δ_map, k=k, selected_switches=selected_switches)
         except Exception as e:
             log.error(f"Error solving model: {e}")
-        return δ_map
+        return δ_map, ζ_map
 
     def __calculate_residuals(
         self,
         δ_by_sc: Dict[int, Dict[str, float]],
-        z: Dict[int, float],
-        z_old: Dict[int, float],
+        zδ: Dict[int, float],
+        zδ_old: Dict[int, float],
+        ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]],
+        zζ: Dict[Tuple[str, str], float],
+        zζ_old: Dict[Tuple[str, str], float],
     ) -> Tuple[float, float]:
         """Calculate the primal and dual residuals."""
-        r_norm = float(
+        r_norm1 = float(
             np.sqrt(
                 max(
                     [
-                        (δ_by_sc[ω][s] - z[s]) ** 2
+                        (δ_by_sc[ω][s] - zδ[s]) ** 2
                         for ω in self.Ω
                         for s in self.switch_list
                     ]
@@ -276,9 +358,33 @@ class PipelineModelManagerADMM(PipelineModelManager):
             )
         )
 
-        s_norm = float(
+        s_norm1 = float(
             self.config.ρ
-            * np.sqrt(sum((z[s] - z_old[s]) ** 2 for s in self.switch_list))
+            * np.sqrt(sum((zδ[s] - zδ_old[s]) ** 2 for s in self.switch_list))
         )
+        r_norm2 = float(
+            np.sqrt(
+                max(
+                    [
+                        (ζ_by_sc[ω][(tr, tap)] - zζ[(tr, tap)]) ** 2
+                        for ω in self.Ω
+                        for (tr, tap) in self.zζ.keys()
+                    ]
+                )
+            )
+        )
+
+        s_norm2 = float(
+            self.config.ρ
+            * np.sqrt(
+                sum(
+                    (zζ[(tr, tap)] - zζ_old[(tr, tap)]) ** 2
+                    for (tr, tap) in self.zζ.keys()
+                )
+            )
+        )
+
+        r_norm = max(r_norm1, r_norm2)
+        s_norm = s_norm1 + s_norm2
 
         return r_norm, s_norm

@@ -14,6 +14,7 @@ def master_model_variables(
         if relaxed
         else pyo.Var(model.S, domain=pyo.Binary)
     )
+    model.ζ = pyo.Var(model.TrTaps, domain=pyo.Reals, bounds=(0, 1))
 
     model.θ = pyo.Var(domain=pyo.Reals, bounds=(-1, None))  # Bender cuts.
 

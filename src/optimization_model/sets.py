@@ -37,9 +37,24 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.ClΩ = pyo.Set(
         initialize=lambda m: [(l, i, j, ω) for l, i, j in m.Cl for ω in m.Ω]
     )
-    model.TrTapsΩ = pyo.Set(
+    model.CtΩ = pyo.Set(
+        initialize=lambda m: [(l, i, j, ω) for l, i, j in m.C if l in m.Tr for ω in m.Ω]
+    )
+    model.TrTaps = pyo.Set(
+        initialize=lambda m: [(tr, tap) for tr in m.Tr for tap in m.Taps]
+    )
+    model.CttapΩ = pyo.Set(
         initialize=lambda m: [
-            (tr, tap, ω) for tr in m.Tr for tap in m.Taps for ω in m.Ω
+            (l, i, tap, ω)
+            for l, i, j in m.C
+            if l in m.Tr and i > j
+            for ω in m.Ω
+            for tap in m.Taps
+        ]
+    )
+    model.NtrΩ = pyo.Set(
+        initialize=lambda m: [
+            (i, ω) for l, i, j in m.C if l in m.Tr and i > j for ω in m.Ω
         ]
     )
     return model

@@ -19,7 +19,7 @@ def plot_grid_from_pandapower(
 
     if from_z and isinstance(dig_a_plan, DigAPlanADMM):
         switch_status = pl_to_dict(
-            dig_a_plan.model_manager.z_variable.select("eq_fk", "closed")
+            dig_a_plan.model_manager.zδ_variable.select("eq_fk", "closed")
         )
     else:
         switch_status = pl_to_dict(

@@ -2,15 +2,38 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
-from pipelines import DigAPlan
+from pipelines import DigAPlan, DigAPlanADMM
 
 
-def compare_dig_a_plan_with_pandapower(dig_a_plan: DigAPlan, net: pp.pandapowerNet):
+def compare_dig_a_plan_with_pandapower(
+    dig_a_plan: DigAPlan, net: pp.pandapowerNet, from_z: bool = False
+):
     # ─────────── Apply Switch Status & Run AC PF ───────────
-    switch_status = pl_to_dict(
-        dig_a_plan.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
-    )
+    if from_z and isinstance(dig_a_plan, DigAPlanADMM):
+        # Use consensus switch states from ADMM z variable
+        switch_status = pl_to_dict(
+            dig_a_plan.model_manager.zδ_variable.select("eq_fk", ~c("open"))
+        )
+        tap_position = (
+            dig_a_plan.model_manager.zζ_variable.select(c("TR"), c("TAP") * c("zζ"))
+            .group_by("TR")
+            .sum()
+        ).select(c("TR").alias("eq_fk"), c("TAP").alias("tap_pos"))
+
+        for tr, row in net.trafo.iterrows():
+            if row.hv_bus < row.lv_bus:
+                net.trafo.at[tr, "vn_hv_kv"] *= tap_position["tap_pos"][tr]
+            else:
+                net.trafo.at[tr, "vn_lv_kv"] *= tap_position["tap_pos"][tr]
+
+    else:
+        switch_status = pl_to_dict(
+            dig_a_plan.result_manager.extract_switch_status().select(
+                "eq_fk", ~c("open")
+            )
+        )
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
+
     pp.runpp(net)
 
     # ─────────── Compare Voltages ───────────

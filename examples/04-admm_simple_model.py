@@ -43,8 +43,11 @@ dap.add_grid_data(grid_data)
 # %% Run ADMM
 dap.model_manager.solve_model()
 # %% Consensus switch states (one value per switch)
-print(dap.model_manager.z_variable)
+print(dap.model_manager.zδ_variable)
+print(dap.model_manager.zζ_variable)
 # %% compare DigAPlan results with pandapower results
-node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
+node_data, edge_data = compare_dig_a_plan_with_pandapower(
+    dig_a_plan=dap, net=net, from_z=True
+)
 # %% plot the grid annotated with DigAPlan results
 fig = plot_grid_from_pandapower(net, dap, from_z=True)

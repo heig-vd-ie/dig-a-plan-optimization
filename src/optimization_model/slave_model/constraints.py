@@ -213,9 +213,12 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.node_reactive_power_balance_slack = pyo.Constraint(
         model.snΩ, rule=node_reactive_power_balance_slack_rule
     )
-    model.voltage_drop_lower = pyo.Constraint(model.CsΩ, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.CsΩ, rule=voltage_drop_upper_rule)
+    model.voltage_limit_lower = pyo.Constraint(model.CsΩ, rule=voltage_limit_lower_rule)
+    model.voltage_limit_upper = pyo.Constraint(model.CsΩ, rule=voltage_limit_upper_rule)
     model.voltage_drop_line = pyo.Constraint(model.ClΩ, rule=voltage_drop_line_rule)
+    model.voltage_drop_transfo = pyo.Constraint(
+        model.CtΩ, rule=voltage_drop_transfo_rule
+    )
 
     model.current_rotated_cone = pyo.Constraint(
         model.ClΩ, rule=current_rotated_cone_rule

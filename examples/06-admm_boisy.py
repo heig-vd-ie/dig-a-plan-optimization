@@ -61,4 +61,5 @@ dap.model_manager.solve_model()
 # %% Inspect consensus and per-scenario deltas
 
 print("\n=== ADMM consensus switch states (z) ===")
-print(dap.model_manager.z_variable)
+print(dap.model_manager.zδ_variable)
+print(dap.model_manager.zζ_variable)
