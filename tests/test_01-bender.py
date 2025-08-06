@@ -38,9 +38,9 @@ def test_bender_model_simple_example():
         dig_a_plan.model_manager.master_model_instance, "δ"
     )
     assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
+        21,
         23,
-        25,
-        28,
-        32,
+        24,
+        26,
         33,
     ]

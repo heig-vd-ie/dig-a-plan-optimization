@@ -2,11 +2,13 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from general_function import pl_to_dict
-from pipelines import DigAPlan, DigAPlanADMM
+from pipelines import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
 
 
 def compare_dig_a_plan_with_pandapower(
-    dig_a_plan: DigAPlan, net: pp.pandapowerNet, from_z: bool = False
+    dig_a_plan: DigAPlanADMM | DigAPlanBender | DigAPlanCombined,
+    net: pp.pandapowerNet,
+    from_z: bool = False,
 ):
     # ─────────── Apply Switch Status & Run AC PF ───────────
     if from_z and isinstance(dig_a_plan, DigAPlanADMM):
@@ -14,17 +16,7 @@ def compare_dig_a_plan_with_pandapower(
         switch_status = pl_to_dict(
             dig_a_plan.model_manager.zδ_variable.select("eq_fk", ~c("open"))
         )
-        tap_position = (
-            dig_a_plan.model_manager.zζ_variable.select(c("TR"), c("TAP") * c("zζ"))
-            .group_by("TR")
-            .sum()
-        ).select(c("TR").alias("eq_fk"), c("TAP").alias("tap_pos"))
-
-        for tr, row in net.trafo.iterrows():
-            if row.hv_bus < row.lv_bus:
-                net.trafo.at[tr, "vn_hv_kv"] *= tap_position["tap_pos"][tr]
-            else:
-                net.trafo.at[tr, "vn_lv_kv"] *= tap_position["tap_pos"][tr]
+        tap_position = dig_a_plan.model_manager.zζ_variable
 
     else:
         switch_status = pl_to_dict(
@@ -32,7 +24,19 @@ def compare_dig_a_plan_with_pandapower(
                 "eq_fk", ~c("open")
             )
         )
+        tap_position = dig_a_plan.result_manager.extract_transformer_tap_position()
     net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
+
+    for tr, row in net.trafo.iterrows():
+        tap_side = "hv"
+
+        tap_value = tap_position.filter(c("eq_fk") == row["name"])["tap_value"][0]
+        tap_pos = tap_value - 100
+        net.trafo.at[tr, "tap_pos"] = tap_pos
+        net.trafo.at[tr, "tap_side"] = tap_side
+        net.trafo.at[tr, "tap_step_percent"] = 1
+        net.trafo.at[tr, "tap_neutral"] = tap_pos
+        net.trafo.at[tr, "tap_changer_type"] = "Ratio"
 
     pp.runpp(net)
 

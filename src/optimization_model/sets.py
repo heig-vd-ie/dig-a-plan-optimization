@@ -13,9 +13,8 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.C = pyo.Set(dimen=3, within=model.E * model.N * model.N)  # type: ignore
 
     model.Cs = pyo.Set(initialize=lambda m: [(l, i, j) for l, i, j in m.C if l in m.S])
-    model.Cl = pyo.Set(
-        initialize=lambda m: [(l, i, j) for l, i, j in m.C if l not in m.S]
-    )
+    model.Cl = pyo.Set(initialize=lambda m: [(l, i, j) for l, i, j in m.C if l in m.L])
+    model.Ct = pyo.Set(initialize=lambda m: [(l, i, j) for l, i, j in m.C if l in m.Tr])
 
     model.Nes = pyo.Set(
         initialize=lambda m: [n for n in m.N if n not in m.slack_node]
@@ -38,7 +37,7 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
         initialize=lambda m: [(l, i, j, ω) for l, i, j in m.Cl for ω in m.Ω]
     )
     model.CtΩ = pyo.Set(
-        initialize=lambda m: [(l, i, j, ω) for l, i, j in m.C if l in m.Tr for ω in m.Ω]
+        initialize=lambda m: [(l, i, j, ω) for l, i, j in m.Ct for ω in m.Ω]
     )
     model.TrTaps = pyo.Set(
         initialize=lambda m: [(tr, tap) for tr in m.Tr for tap in m.Taps]
@@ -47,14 +46,12 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
         initialize=lambda m: [
             (l, i, tap, ω)
             for l, i, j in m.C
-            if l in m.Tr and i > j
+            if l in m.Tr
             for ω in m.Ω
             for tap in m.Taps
         ]
     )
     model.NtrΩ = pyo.Set(
-        initialize=lambda m: [
-            (i, ω) for l, i, j in m.C if l in m.Tr and i > j for ω in m.Ω
-        ]
+        initialize=lambda m: [(i, ω) for l, i, _ in m.C if l in m.Tr for ω in m.Ω]
     )
     return model

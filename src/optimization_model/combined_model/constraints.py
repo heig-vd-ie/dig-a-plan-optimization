@@ -67,6 +67,7 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
     # 6) Voltage limits (per scenario)
     model.current_limit = pyo.Constraint(model.ClΩ, rule=optimal_current_limit_rule)
+    model.current_limit_tr = pyo.Constraint(model.CtΩ, rule=optimal_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_upper_limits_rule
     )
@@ -98,6 +99,9 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.tap_limit = pyo.Constraint(model.Tr, rule=tap_limit_rule)
     model.current_rotated_cone = pyo.Constraint(
         model.ClΩ, rule=current_rotated_cone_rule
+    )
+    model.current_rotated_cone_transformer = pyo.Constraint(
+        model.CtΩ, rule=current_rotated_cone_transformer_rule
     )
     return model
 

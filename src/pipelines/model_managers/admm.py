@@ -4,6 +4,7 @@ import random
 import pyomo.environ as pyo
 import numpy as np
 import polars as pl
+from polars import col as c
 from general_function import generate_log
 from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import ADMMConfig, PipelineType
@@ -246,10 +247,42 @@ class PipelineModelManagerADMM(PipelineModelManager):
         rows = []
         for (tr, tap), zζ_value in self.zζ.items():
             rows.append((tr, tap, zζ_value))
-        self.zζ_variable = pl.DataFrame(
+        zζ_d = pl.DataFrame(
             rows,
-            schema=["TR", "TAP", "zζ"],
+            schema=["edge_id", "TAP", "zζ"],
             orient="row",
+        )
+
+        zζ_d = (
+            self.data_manager.edge_data.filter(pl.col("type") == "transformer")
+            .select("eq_fk", "edge_id", "u_of_edge", "v_of_edge")
+            .join(zζ_d, on="edge_id", how="inner")
+            .with_columns(
+                (pl.col("zζ") > 0.5).alias("closed"),
+                (~(pl.col("zζ") > 0.5)).alias("open"),
+            )
+            .select(
+                "eq_fk",
+                "edge_id",
+                "u_of_edge",
+                "v_of_edge",
+                "TAP",
+                "zζ",
+                "closed",
+                "open",
+            )
+            .sort("edge_id")
+        )
+
+        self.zζ_variable = (
+            zζ_d.select(c("eq_fk"), c("u_of_edge"), c("v_of_edge"), c("TAP") * c("zζ"))
+            .group_by("eq_fk")
+            .sum()
+        ).select(
+            c("eq_fk").alias("eq_fk"),
+            c("u_of_edge").alias("u_of_edge"),
+            c("v_of_edge").alias("v_of_edge"),
+            c("TAP").alias("tap_value"),
         )
 
     def __print_switch_states(

@@ -1,3 +1,4 @@
+from typing import List
 import polars as pl
 import patito as pt
 from polars import col as c
@@ -18,6 +19,7 @@ def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
     number_of_random_scenarios: int = 10,
+    taps: List[int] | None = None,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -222,4 +224,5 @@ def pandapower_to_dig_a_plan_schema(
         node_data=node_data_validated,
         edge_data=edge_data_validated,
         load_data=rand_scenarios,
+        taps=taps if taps is not None else list(range(95, 105, 2)),
     )

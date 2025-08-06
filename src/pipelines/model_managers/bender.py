@@ -117,6 +117,10 @@ class PipelineModelManagerBender(PipelineModelManager):
             self.master_model_instance.δ.items(),  # type: ignore
             schema=["S", "δ_variable"],
         )
+        self.ζ_variable = pl.DataFrame(
+            self.master_model_instance.ζ.items(),  # type: ignore
+            schema=["TrTaps", "ζ_variable"],
+        )
         self.__scale_slave_models(
             factor_p=self.config.factor_p,
             factor_q=self.config.factor_q,
@@ -127,6 +131,7 @@ class PipelineModelManagerBender(PipelineModelManager):
     def solve_model(self, max_iters: int) -> None:
         convergence_result = np.inf
         master_δ = self.find_initial_state_of_switches()
+        master_ζ = self.find_initial_state_of_taps()
 
         pbar = tqdm.tqdm(
             range(max_iters),
@@ -137,6 +142,8 @@ class PipelineModelManagerBender(PipelineModelManager):
         for k in pbar:
             self.optimal_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
             self.scaled_optimal_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
+            self.optimal_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
+            self.scaled_optimal_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
             try:
                 results = self.slave_solver.solve(
                     self.scaled_optimal_slave_model_instance, tee=self.config.verbose
@@ -157,6 +164,8 @@ class PipelineModelManagerBender(PipelineModelManager):
             else:
                 self.infeasible_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
                 self.scaled_infeasible_slave_model_instance.master_δ.store_values(master_δ)  # type: ignore
+                self.infeasible_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
+                self.scaled_infeasible_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
                 _ = self.slave_solver.solve(
                     self.scaled_infeasible_slave_model_instance,
                     tee=self.config.verbose,
@@ -194,12 +203,13 @@ class PipelineModelManagerBender(PipelineModelManager):
             if convergence_result < self.config.convergence_threshold:
                 break
             master_δ = self.master_model_instance.δ.extract_values()  # type: ignore
+            master_ζ = self.master_model_instance.ζ.extract_values()  # type: ignore
 
     def add_benders_cut(self) -> None:
         constraint_name = ["master_switch_status_propagation"]
         if self.infeasible_slave == True:
 
-            marginal_cost_df = pl.DataFrame(
+            marginal_cost_df_original = pl.DataFrame(
                 {
                     "name": list(dict(self.infeasible_slave_model_instance.dual).keys()),  # type: ignore
                     "marginal_cost": list(dict(self.infeasible_slave_model_instance.dual).values()),  # type: ignore
@@ -208,9 +218,12 @@ class PipelineModelManagerBender(PipelineModelManager):
             δ_value = extract_optimization_results(
                 self.infeasible_slave_model_instance, "master_δ"
             )
+            ζ_value = extract_optimization_results(
+                self.infeasible_slave_model_instance, "master_ζ"
+            )
 
         else:
-            marginal_cost_df = pl.DataFrame(
+            marginal_cost_df_original = pl.DataFrame(
                 {
                     "name": list(dict(self.optimal_slave_model_instance.dual).keys()),  # type: ignore
                     "marginal_cost": list(dict(self.optimal_slave_model_instance.dual).values()),  # type: ignore
@@ -220,9 +233,12 @@ class PipelineModelManagerBender(PipelineModelManager):
             δ_value = extract_optimization_results(
                 self.optimal_slave_model_instance, "master_δ"
             )
-
+            ζ_value = extract_optimization_results(
+                self.optimal_slave_model_instance, "master_ζ"
+            )
+        # Cut of switches
         marginal_cost_df = (
-            marginal_cost_df.with_columns(
+            marginal_cost_df_original.with_columns(
                 c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
             )
             .with_columns(
@@ -251,20 +267,66 @@ class PipelineModelManagerBender(PipelineModelManager):
         if self.infeasible_slave == True:
             self.master_model_instance.infeasibility_cut.add(0 >= new_cut)  # type: ignore
         else:
-            self.master_model_instance.optimality_cut.add(self.master_model_instance.θ >= new_cut)  # type: ignore
+            self.master_model_instance.optimality_cut.add(self.master_model_instance.θ1 >= new_cut)  # type: ignore
+        # Cut of transformers
+        constraint_name = ["master_transformer_status_propagation"]
+        marginal_cost_df = (
+            marginal_cost_df_original.with_columns(
+                c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
+            )
+            .with_columns(
+                c("name")
+                .pipe(modify_string_col, format_str={"]": ""})
+                .str.split("[")
+                .list.to_struct(fields=["name", "TrTap"])
+            )
+            .unnest("name")
+        )
+        marginal_cost_df = (
+            marginal_cost_df.select(
+                c("name"),
+                c("TrTap").str.split(",").list.to_struct(fields=["Tr", "tap"]),
+                c("marginal_cost"),
+            )
+            .unnest("TrTap")
+            .filter(c("name").is_in(constraint_name))
+            .with_columns(c("Tr").cast(pl.Int64))
+        ).with_columns(
+            pl.concat_list(c("Tr").cast(pl.Int64), c("tap").cast(pl.Int64)).alias(
+                "TrTaps"
+            )
+        )
+
+        marginal_cost_df = marginal_cost_df.join(ζ_value, on="TrTaps").join(
+            self.ζ_variable, on="TrTaps"
+        )
+
+        self.marginal_cost = marginal_cost_df
+
+        new_cut = self.slave_obj
+        for data in marginal_cost_df.to_dicts():
+            new_cut += data["marginal_cost"] * (data["ζ_variable"] - data["master_ζ"])
+
+        if self.infeasible_slave == True:
+            self.master_model_instance.infeasibility_cut.add(0 >= new_cut)  # type: ignore
+        else:
+            self.master_model_instance.optimality_cut.add(self.master_model_instance.θ2 >= new_cut)  # type: ignore
 
     def check_slave_feasibility(self):
-        self.slack_i_sq = extract_optimization_results(
-            self.infeasible_slave_model_instance, "slack_i_sq"
-        ).filter(c("slack_i_sq") > self.config.slack_threshold)
+        self.p_curt_cons = extract_optimization_results(
+            self.infeasible_slave_model_instance, "p_curt_cons"
+        ).filter(c("p_curt_cons") > self.config.slack_threshold)
 
-        self.slack_v_pos = extract_optimization_results(
-            self.infeasible_slave_model_instance, "slack_v_pos"
-        ).filter(c("slack_v_pos") > self.config.slack_threshold)
+        self.q_curt_cons = extract_optimization_results(
+            self.infeasible_slave_model_instance, "q_curt_cons"
+        ).filter(c("q_curt_cons") > self.config.slack_threshold)
 
-        self.slack_v_neg = extract_optimization_results(
-            self.infeasible_slave_model_instance, "slack_v_neg"
-        ).filter(c("slack_v_neg") > self.config.slack_threshold)
+        self.p_curt_prod = extract_optimization_results(
+            self.infeasible_slave_model_instance, "p_curt_prod"
+        ).filter(c("p_curt_prod") > self.config.slack_threshold)
+        self.q_curt_prod = extract_optimization_results(
+            self.infeasible_slave_model_instance, "q_curt_prod"
+        ).filter(c("q_curt_prod") > self.config.slack_threshold)
 
     def find_initial_state_of_switches(self):
         """
@@ -303,3 +365,14 @@ class PipelineModelManagerBender(PipelineModelManager):
             self.master_obj = self.master_model_instance.objective()  # type: ignore
             initial_master_δ = self.master_model_instance.δ.extract_values()  # type: ignore
         return initial_master_δ
+
+    def find_initial_state_of_taps(self):
+        results = self.master_solver.solve(self.master_model_instance, tee=False)
+        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+            log.warning(
+                f"\nMaster model did not converge: {results.solver.termination_condition}"
+            )
+
+        self.master_obj = self.master_model_instance.objective()  # type: ignore
+        initial_master_ζ = self.master_model_instance.ζ.extract_values()  # type: ignore
+        return initial_master_ζ

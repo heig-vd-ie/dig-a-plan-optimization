@@ -13,13 +13,6 @@ def extract_optimization_results(
 
     results = getattr(model_instance, var_name).extract_values()
 
-    # if isinstance(list(results.keys())[0], tuple):
-    #     if len(list(results.keys())[0]) > 1:
-    #         results_removed = {
-    #             key1: results[(key1, key2)] for key1, key2 in list(results.keys())
-    #         }
-    #         results = results_removed
-
     if len(index_list) == 1:
         data_pl: pl.DataFrame = pl.DataFrame(
             map(list, results.items()),
