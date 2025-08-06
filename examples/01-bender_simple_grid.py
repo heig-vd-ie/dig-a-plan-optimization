@@ -21,17 +21,11 @@ config = BenderConfig(
     master_relaxed=False,
     pipeline_type=PipelineType.BENDER,
 )
-dig_a_plan = DigAPlan(config=config)
+dig_a_plan = DigAPlanBender(config=config)
 
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)
 dig_a_plan.solve_model(max_iters=100)
-if isinstance(dig_a_plan.model_manager, PipelineModelManagerCombined) or isinstance(
-    dig_a_plan.model_manager, PipelineModelManagerADMM
-):
-    raise ValueError(
-        "The model manager is not a Bender model manager, but a Combined model manager."
-    )
 
 
 # %% plot the results

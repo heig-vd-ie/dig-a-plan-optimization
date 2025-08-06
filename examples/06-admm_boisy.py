@@ -44,15 +44,11 @@ config = ADMMConfig(
     time_limit=1,
 )
 
-dap = DigAPlan(config=config)
+dap = DigAPlanADMM(config=config)
 
 # %% Build per-scenario models (instantiated inside add_grid_data)
 dap.add_grid_data(grid_data)
 
-# Sanity on manager type
-assert isinstance(
-    dap.model_manager, PipelineModelManagerADMM
-), "PipelineType must be ADMM."
 
 # %% Inspect sets (switch ids & scenarios)
 switch_ids = dap.data_manager.edge_data.filter(pl.col("type") == "switch")[

@@ -6,7 +6,6 @@ from pipelines.configs import (
     PipelineConfig,
     BenderConfig,
     ADMMConfig,
-    PipelineType,
 )
 from pipelines.model_managers.bender import PipelineModelManagerBender
 from pipelines.model_managers.combined import PipelineModelManagerCombined
@@ -35,35 +34,10 @@ class DigAPlan:
             γ_admm_penalty=self.config.γ_admm_penalty,
             all_scenarios=self.config.all_scenarios,
         )
-        if (config.pipeline_type == PipelineType.BENDER) and isinstance(
-            config, BenderConfig
-        ):
-            self.model_manager = PipelineModelManagerBender(
-                config=config,
-                data_manager=self.data_manager,
-            )
-        elif (config.pipeline_type == PipelineType.COMBINED) and isinstance(
-            config, CombinedConfig
-        ):
-            self.model_manager = PipelineModelManagerCombined(
-                config=config,
-                data_manager=self.data_manager,
-            )
-        elif (config.pipeline_type == PipelineType.ADMM) and isinstance(
-            config, ADMMConfig
-        ):
-            self.model_manager = PipelineModelManagerADMM(
-                config=config,
-                data_manager=self.data_manager,
-            )
-        else:
-            raise ValueError(
-                f"Pipeline type {config.pipeline_type} is not supported. "
-                "Please use PipelineType.BENDER or PipelineType.COMBINED."
-            )
-        self.result_manager = PipelineResultManager(
-            data_manager=self.data_manager,
-            model_manager=self.model_manager,
+        self.model_manager: (
+            PipelineModelManagerBender
+            | PipelineModelManagerCombined
+            | PipelineModelManagerADMM
         )
 
     def add_grid_data(self, grid_data: NodeEdgeModel):
@@ -81,3 +55,51 @@ class DigAPlan:
         """
 
         self.model_manager.solve_model(max_iters=max_iters, **kwargs)
+
+
+class DigAPlanBender(DigAPlan):
+    """
+    Entrypoint for the Bender pipeline.
+    """
+
+    def __init__(self, config: BenderConfig) -> None:
+        super().__init__(config)
+        self.model_manager: PipelineModelManagerBender = PipelineModelManagerBender(
+            config, self.data_manager
+        )
+        self.result_manager = PipelineResultManager(
+            data_manager=self.data_manager,
+            model_manager=self.model_manager,
+        )
+
+
+class DigAPlanCombined(DigAPlan):
+    """
+    Entrypoint for the Combined pipeline.
+    """
+
+    def __init__(self, config: CombinedConfig) -> None:
+        super().__init__(config)
+        self.model_manager: PipelineModelManagerCombined = PipelineModelManagerCombined(
+            config, self.data_manager
+        )
+        self.result_manager = PipelineResultManager(
+            data_manager=self.data_manager,
+            model_manager=self.model_manager,
+        )
+
+
+class DigAPlanADMM(DigAPlan):
+    """
+    Entrypoint for the ADMM pipeline.
+    """
+
+    def __init__(self, config: ADMMConfig) -> None:
+        super().__init__(config)
+        self.model_manager: PipelineModelManagerADMM = PipelineModelManagerADMM(
+            config, self.data_manager
+        )
+        self.result_manager = PipelineResultManager(
+            data_manager=self.data_manager,
+            model_manager=self.model_manager,
+        )

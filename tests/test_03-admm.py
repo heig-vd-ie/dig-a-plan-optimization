@@ -2,10 +2,8 @@ import polars as pl
 import pandapower as pp
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from pipelines import DigAPlan
+from pipelines import DigAPlanADMM, DigAPlanCombined
 from pipelines.configs import ADMMConfig, CombinedConfig, PipelineType
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-from pipelines.model_managers.admm import PipelineModelManagerADMM
 
 
 def test_admm_model_simple_example():
@@ -26,14 +24,9 @@ def test_admm_model_simple_example():
         γ_admm_penalty=1.0,
     )
 
-    dap = DigAPlan(config=config)
+    dap = DigAPlanADMM(config=config)
 
     dap.add_grid_data(grid_data)
-
-    # Sanity on manager type
-    assert isinstance(
-        dap.model_manager, PipelineModelManagerADMM
-    ), "PipelineType must be ADMM."
 
     switch_ids = dap.data_manager.edge_data.filter(pl.col("type") == "switch")[
         "edge_id"
@@ -91,7 +84,7 @@ def test_admm_model_simple_example():
         γ_admm_penalty=0.0,
         all_scenarios=True,
     )
-    dig_a_plan = DigAPlan(config=config)
+    dig_a_plan = DigAPlanCombined(config=config)
 
     dig_a_plan.add_grid_data(grid_data)
     dig_a_plan.solve_model()  # one‐shot solve

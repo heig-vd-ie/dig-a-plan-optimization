@@ -20,7 +20,7 @@ config = CombinedConfig(
     γ_admm_penalty=0.0,
     all_scenarios=True,
 )
-dig_a_plan = DigAPlan(config=config)
+dig_a_plan = DigAPlanCombined(config=config)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)
@@ -39,10 +39,7 @@ currents = dig_a_plan.result_manager.extract_edge_current()
 fig = plot_grid_from_pandapower(net, dig_a_plan)
 
 # %% compare DigAPlan results with pandapower results
-if isinstance(dig_a_plan.model_manager, PipelineModelManagerBender):
-    raise ValueError(
-        "The model manager is not a Combined model manager, but a Bender model manager."
-    )
+
 node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
 )

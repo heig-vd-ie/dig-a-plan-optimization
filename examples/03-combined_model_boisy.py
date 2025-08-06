@@ -37,7 +37,7 @@ config = CombinedConfig(
     pipeline_type=PipelineType.COMBINED,
     γ_admm_penalty=0.0,
 )
-dig_a_plan = DigAPlan(config=config)
+dig_a_plan = DigAPlanCombined(config=config)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)

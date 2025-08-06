@@ -3,11 +3,9 @@ import polars as pl
 
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines import DigAPlan
+from pipelines import DigAPlanCombined
 from pipelines.configs import CombinedConfig, PipelineType
 
-from pipelines.model_managers.admm import PipelineModelManagerADMM
-from pipelines.model_managers.bender import PipelineModelManagerBender
 from pyomo_utility import extract_optimization_results
 
 
@@ -27,7 +25,7 @@ def test_combined_model_simple_example():
         factor_i=1e-3,
         pipeline_type=PipelineType.COMBINED,
     )
-    dig_a_plan = DigAPlan(config=config)
+    dig_a_plan = DigAPlanCombined(config=config)
 
     dig_a_plan.add_grid_data(base_grid_data)
     dig_a_plan.solve_model()  # one‐shot solve
@@ -45,12 +43,6 @@ def test_combined_model_simple_example():
 
     assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
     assert edge_data.get_column("i_diff").abs().max() < 0.1  # type: ignore
-    if isinstance(dig_a_plan.model_manager, PipelineModelManagerBender) or isinstance(
-        dig_a_plan.model_manager, PipelineModelManagerADMM
-    ):
-        raise ValueError(
-            "The model manager is not a Bender model manager, but a Combined model manager."
-        )
     δ = extract_optimization_results(
         dig_a_plan.model_manager.combined_model_instance, "δ"
     )
