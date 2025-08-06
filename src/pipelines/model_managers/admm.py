@@ -24,8 +24,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.admm_model_instances: Dict[int, pyo.ConcreteModel] = {}
 
         # ADMM artifacts
-        self.admm_z: Dict[int, float] = {}
-        self.admm_λ: Dict[tuple, float] = {}
+        self.z: Dict[int, float] = {}
+        self.λ: Dict[tuple, float] = {}
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         """Instantiate the ADMM model with the provided grid data parameters."""
@@ -51,144 +51,96 @@ class PipelineModelManagerADMM(PipelineModelManager):
         """Solve the ADMM model with the given parameters."""
         random.seed(seed_number)
 
-        Ω = list(self.admm_model_instances.keys())  # type: ignore
+        self.mutation_factor = mutation_factor
+        self.groups = groups
+        self.κ = κ
+        self.μ = μ
+        self.τ_incr = τ_incr
+        self.τ_decr = τ_decr
+
+        self.Ω = list(self.admm_model_instances.keys())  # type: ignore
         self.number_of_groups = len(groups) if isinstance(groups, dict) else groups
 
         # Sets
-        switch_list = list(self.admm_model_instances[Ω[0]].S)  # type: ignore
-        scenario_number = len(Ω)
+        self.switch_list = list(self.admm_model_instances[self.Ω[0]].S)  # type: ignore
+        scenario_number = len(self.Ω)
 
         # Initialize consensus and duals
-        z = {s: 0.5 for s in switch_list}  # consensus per switch
-        λ = {(ω, s): 0.0 for ω in Ω for s in switch_list}  # scaled duals
+        self.z = {s: 0.5 for s in self.switch_list}  # consensus per switch
+        self.λ = {(ω, s): 0.0 for ω in self.Ω for s in self.switch_list}  # scaled duals
 
         δ_map = self.__solve_model(self.admm_linear_model_instance)
-        self.__print_switch_states(δ_map)
         # ADMM iterations
         for k in range(1, max_iters + 1):
             # Broadcast z and λ into the model
-            self._set_z_from_z(z)
-            self._set_λ_from_λ(λ)
+            self._set_z_from_z()
+            self._set_λ_from_λ()
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[int, Dict[str, float]] = {}
 
-            for ω, g in itertools.product(Ω, range(self.number_of_groups)):
+            for ω, g in itertools.product(self.Ω, range(self.number_of_groups)):
                 m = self.admm_model_instances[ω]  # type: ignore
-
-                if isinstance(groups, int):
-                    random_switches = random.sample(
-                        switch_list,
-                        k=min(
-                            max(2, int(len(switch_list) / groups * mutation_factor)),
-                            len(switch_list) - 1,
-                        ),
-                    )
-                else:
-                    random_switches = []
-                for edge_id, δ in δ_map.items():
-                    if ((edge_id in random_switches) and isinstance(groups, int)) | (
-                        (not isinstance(groups, int)) and (edge_id in groups[g])
-                    ):
-                        m.δ[edge_id].unfix()  # type: ignore
-                    else:
-                        m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
-
+                selected_switches = self.__fix_switches(m, δ_map, g)
+                δ_map = self.__solve_model(m, δ_map, selected_switches)
                 δ_by_sc[ω] = δ_map
-                try:
-                    δ_map = self.__solve_model(m)
-                    δ_by_sc[ω] = δ_map
-
-                    self.__print_switch_states(
-                        δ_map,
-                        selected_switches=(
-                            random_switches if isinstance(groups, int) else groups[g]
-                        ),
-                    )
-
-                except Exception as e:
-                    log.error(
-                        f"[ADMM {k}] Error extracting δ values for scenario {ω}: {e}"
-                    )
 
             # ---- z-update (per switch) ----
-            z_old = z.copy()
-            for s in switch_list:
-                z[s] = (sum(δ_by_sc[ω][s] for ω in Ω)) / scenario_number
+            z_old = self.z.copy()
+            for s in self.switch_list:
+                self.z[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
 
             # Print consensus z values
-            self.__print_switch_states(z)
+            self.__print_switch_states(self.z)
 
             # ---- λ-update (scaled duals) ----
-            for ω in Ω:
-                for s in switch_list:
-                    λ[(ω, s)] = λ[(ω, s)] + κ * (δ_by_sc[ω][s] - z[s])
+            for ω, s in itertools.product(self.Ω, self.switch_list):
+                self.λ[(ω, s)] = self.λ[(ω, s)] + κ * (δ_by_sc[ω][s] - self.z[s])
 
             # ---- residuals (after all scenarios solved) ----
-            r_sq = max([(δ_by_sc[ω][s] - z[s]) ** 2 for ω in Ω for s in switch_list])
-            r_norm = float(np.sqrt(r_sq))
-
-            s_sq = sum((z[s] - z_old[s]) ** 2 for s in switch_list)
-            s_norm = float(self.config.ρ * np.sqrt(s_sq))
-
-            log.info(
-                f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={self.config.ρ:.3g}"
-            )
-
+            r_norm, s_norm = self.__calculate_residuals(δ_by_sc, self.z, z_old, k)
             # ---- convergence ----
             if (r_norm <= ε_primal) and (s_norm <= ε_dual):
                 log.info(f"ADMM converged in {k} iterations.")
                 break
 
-            # ---- residual balancing (scaled ADMM) ----
-            if r_norm > μ * s_norm:
-                self.config.ρ *= τ_incr
-            elif s_norm > μ * r_norm:
-                self.config.ρ /= τ_decr
-            for m in self.admm_model_instances.values():
-                getattr(m, "ρ").set_value(self.config.ρ)
-
-        # Store results
-        self.admm_z = z
-        self.admm_λ = λ
-
         # Refresh δ table after final iterate
+        self.__get_δ_map()
+
+        # store total objective (sum over scenarios), if available
+        final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in self.admm_model_instances.values()))  # type: ignore
+        log.info(f"ADMM final objective (sum over scenarios) = {final_obj:.4f}")
+
+    # ---------------------------
+    # ADMM helpers and main loop
+    # ---------------------------
+
+    def _set_z_from_z(self) -> None:
+        """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
+        for _, m in self.admm_model_instances.items():
+            z_param = getattr(m, "z")
+            for s in getattr(m, "S"):
+                z_param[s].set_value(self.z[s])
+
+    def _set_λ_from_λ(self) -> None:
+        """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
+        for ω, m in self.admm_model_instances.items():
+            λ_param = getattr(m, "λ")
+            for s in getattr(m, "S"):
+                λ_param[s].set_value(self.λ[(ω, s)])
+
+    def __get_δ_map(self) -> None:
+        """Extract the δ values from the model."""
         rows = []
-        for ω in Ω:
+        for ω in self.Ω:
             m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
-            for s in switch_list:
+            for s in self.switch_list:
                 rows.append((ω, s, float(δ_map[s])))
         self.δ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "S", "δ_variable"],
             orient="row",
         )
-
-        # store total objective (sum over scenarios), if available
-        try:
-            final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in models.values()))  # type: ignore
-            self.combined_obj_list.append(final_obj)  # type: ignore[attr-defined]
-            log.info(f"ADMM final objective (sum over scenarios) = {final_obj:.4f}")
-        except Exception:
-            pass
-
-    # ---------------------------
-    # ADMM helpers and main loop
-    # ---------------------------
-
-    def _set_z_from_z(self, z_per_switch: dict) -> None:
-        """Broadcast consensus z[s] to del_param[sc, s] for all scenarios sc."""
-        for _, m in self.admm_model_instances.items():
-            z_param = getattr(m, "z")
-            for s in getattr(m, "S"):
-                z_param[s].set_value(z_per_switch[s])
-
-    def _set_λ_from_λ(self, λ_map: dict) -> None:
-        """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
-        for ω, m in self.admm_model_instances.items():
-            λ_param = getattr(m, "λ")
-            for s in getattr(m, "S"):
-                λ_param[s].set_value(λ_map[(ω, s)])
 
     def __print_switch_states(
         self, δ_map: dict, selected_switches: list | None = None
@@ -217,12 +169,82 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 combined_values.append("░")
         print(f"{''.join(combined_values)}")
 
-    def __solve_model(self, model: pyo.ConcreteModel) -> Dict[str, float]:
+    def __fix_switches(self, m: pyo.ConcreteModel, δ_map: dict, g: int) -> List:
+        """Fix switches based on δ_map and group g."""
+        if isinstance(self.groups, int):
+            random_switches = random.sample(
+                self.switch_list,
+                k=min(
+                    max(
+                        2,
+                        int(len(self.switch_list) / self.groups * self.mutation_factor),
+                    ),
+                    len(self.switch_list) - 1,
+                ),
+            )
+        else:
+            random_switches = []
+        for edge_id, δ in δ_map.items():
+            if ((edge_id in random_switches) and isinstance(self.groups, int)) | (
+                (not isinstance(self.groups, int)) and (edge_id in self.groups[g])
+            ):
+                m.δ[edge_id].unfix()  # type: ignore
+            else:
+                m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
+
+        return random_switches if isinstance(self.groups, int) else self.groups[g]
+
+    def __solve_model(
+        self,
+        model: pyo.ConcreteModel,
+        δ_map: Dict[str, float] = {},
+        selected_switches: List | None = None,
+    ) -> Dict[str, float]:
         """Solve the given model and return the δ values."""
-        results = self.solver.solve(model, tee=self.config.verbose)
-        if results.solver.termination_condition != pyo.TerminationCondition.optimal:
-            log.error(f"Model solve failed: {results.solver.termination_condition}")
-        δ_map = model.δ.extract_values()  # type: ignore
-        if None in δ_map.values():
-            raise ValueError(f"δ_map contains None values: {δ_map}")
+        try:
+            results = self.solver.solve(model, tee=self.config.verbose)
+            if results.solver.termination_condition != pyo.TerminationCondition.optimal:
+                log.error(f"Model solve failed: {results.solver.termination_condition}")
+            δ_map = model.δ.extract_values()  # type: ignore
+            if None in δ_map.values():
+                raise ValueError(f"δ_map contains None values: {δ_map}")
+            self.__print_switch_states(δ_map, selected_switches)
+        except Exception as e:
+            log.error(f"Error solving model: {e}")
         return δ_map
+
+    def __calculate_residuals(
+        self,
+        δ_by_sc: Dict[int, Dict[str, float]],
+        z: Dict[int, float],
+        z_old: Dict[int, float],
+        k: int,
+    ) -> tuple[float, float]:
+        """Calculate the primal and dual residuals."""
+        r_norm = float(
+            np.sqrt(
+                max(
+                    [
+                        (δ_by_sc[ω][s] - z[s]) ** 2
+                        for ω in self.Ω
+                        for s in self.switch_list
+                    ]
+                )
+            )
+        )
+
+        s_norm = float(
+            self.config.ρ
+            * np.sqrt(sum((z[s] - z_old[s]) ** 2 for s in self.switch_list))
+        )
+
+        log.info(f"[ADMM {k}] r={r_norm:.3e}, s={s_norm:.3e}, ρ={self.config.ρ:.3g}")
+
+        # ---- residual balancing (scaled ADMM) ----
+        if r_norm > self.μ * s_norm:
+            self.config.ρ *= self.τ_incr
+        elif s_norm > self.μ * r_norm:
+            self.config.ρ /= self.τ_decr
+        for m in self.admm_model_instances.values():
+            getattr(m, "ρ").set_value(self.config.ρ)
+        return r_norm, s_norm

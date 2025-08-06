@@ -60,7 +60,7 @@ dap.model_manager.solve_model(
 
 # %% Inspect consensus and per-scenario deltas
 print("\n--- ADMM consensus z per switch ---")
-print(dap.model_manager.admm_z)  # {switch_id: z}
+print(dap.model_manager.z)  # {switch_id: z}
 
 print("\n--- ADMM last-iterate delta (per scenario, per switch) ---")
 print(dap.model_manager.δ_variable)  # Polars DF: ["SCEN","S","δ_variable"]
@@ -74,8 +74,8 @@ switches = dap.data_manager.edge_data.filter(pl.col("type") == "switch").select(
 
 z_df = pl.DataFrame(
     {
-        "edge_id": list(dap.model_manager.admm_z.keys()),
-        "z": list(dap.model_manager.admm_z.values()),
+        "edge_id": list(dap.model_manager.z.keys()),
+        "z": list(dap.model_manager.z.values()),
     }
 )
 
