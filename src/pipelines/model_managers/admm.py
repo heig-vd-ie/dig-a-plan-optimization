@@ -145,7 +145,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                         else:
                             # Unselected & Open
                             combined_values.append("░")
-                    print(f"{''.join(combined_values)}\n")
+                    print(f"{''.join(combined_values)}\n\n")
 
                 except Exception as e:
                     log.error(

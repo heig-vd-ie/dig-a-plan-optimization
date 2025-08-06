@@ -1,4 +1,9 @@
 # %%
+import os
+
+os.chdir(os.getcwd().replace("/src", ""))
+
+# %%
 from examples import *
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios

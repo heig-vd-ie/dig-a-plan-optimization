@@ -1,5 +1,8 @@
-from logging import config
 import os
+
+os.chdir(os.getcwd() + "/src")
+
+from logging import config
 import pandapower as pp
 import plotly.graph_objs as go
 import polars as pl
@@ -22,7 +25,6 @@ from pandapower.networks import create_cigre_network_mv
 
 from shapely import from_geojson
 from general_function import pl_to_dict, build_non_existing_dirs
-
 
 os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
