@@ -36,7 +36,7 @@ net["line"].loc[:, "max_i_ka"] = 1
 net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 
 # %% transform the pandapower grid to DigAPlan schema
-base_grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=1)
+base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% initialize DigAPlan
 

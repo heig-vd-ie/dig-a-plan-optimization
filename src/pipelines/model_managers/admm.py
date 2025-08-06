@@ -1,3 +1,4 @@
+import itertools
 from typing import Dict, List, Tuple
 import random
 import pyomo.environ as pyo
@@ -21,7 +22,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.admm_model: pyo.AbstractModel = generate_combined_model()
         self.admm_linear_model: pyo.AbstractModel = generate_combined_lin_model()
         self.admm_linear_model_instance: pyo.ConcreteModel
-        self.admm_model_instances: Dict[Tuple[int, int], pyo.ConcreteModel] = {}
+        self.admm_model_instances: Dict[int, pyo.ConcreteModel] = {}
 
         self.admm_obj: float = 0.0
 
@@ -34,15 +35,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
         if grid_data_parameters_dict is None:
             raise ValueError("Grid data parameters dictionary cannot be None.")
         self.admm_linear_model_instance = self.admm_linear_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
-        self.number_of_groups = len(
-            grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]][
-                None
-            ].get("groups", [])
-        )
         for scen in grid_data_parameters_dict.keys():
-            model = self.admm_model.create_instance(grid_data_parameters_dict[scen])
-            for group in range(self.number_of_groups):
-                self.admm_model_instances[(scen, group)] = model  # type: ignore
+            self.admm_model_instances[scen] = self.admm_model.create_instance(grid_data_parameters_dict[scen])  # type: ignore
 
     def solve_model(
         self,
@@ -54,22 +48,27 @@ class PipelineModelManagerADMM(PipelineModelManager):
         τ_decr: float = 2.0,
         seed_number: int = 42,
         κ: float = 0.1,
-        group_selection: Dict[int, List[int]] | None = None,
-        random_mutation: int = 1,
+        groups: Dict[int, List[int]] | int = 1,
+        mutation_factor: int = 1,
     ) -> None:
         """Solve the ADMM model with the given parameters."""
 
         random.seed(seed_number)
 
-        scen_list = list(self.admm_model_instances.keys())  # type: ignore
+        Ω = list(self.admm_model_instances.keys())  # type: ignore
+        self.number_of_groups = len(groups) if isinstance(groups, dict) else groups
 
         # Sets
-        switch_list = list(self.admm_model_instances[scen_list[0]].S)  # type: ignore
-        scenario_number = len(scen_list)
+        switch_list = list(self.admm_model_instances[Ω[0]].S)  # type: ignore
+        scenario_number = len(Ω)
 
         # Initialize consensus and duals
         z = {s: 0.5 for s in switch_list}  # consensus per switch
-        λ = {(ω, s): 0.0 for ω in scen_list for s in switch_list}  # scaled duals
+        λ = {
+            (ω, s): 0.0
+            for ω in itertools.product(Ω, range(self.number_of_groups))
+            for s in switch_list
+        }  # scaled duals
         results = self.solver.solve(
             self.admm_linear_model_instance, tee=self.config.verbose
         )
@@ -87,30 +86,27 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- x-update: solve each scenario with current z, λ ----
             δ_by_sc: Dict[Tuple[int, int], Dict[str, float]] = {}
 
-            for ω in scen_list:
-                m = self.admm_model_instances[ω]  # type: ignore
+            for ω in itertools.product(Ω, range(self.number_of_groups)):
+                m = self.admm_model_instances[ω[0]]  # type: ignore
                 # Solve multi‑scenario instance
 
-                random_switches = random.sample(
-                    switch_list,
-                    k=min(
-                        max(2, int(len(switch_list) / self.number_of_groups))
-                        * random_mutation,
-                        len(switch_list) - 1,
-                    ),
-                )
-
-                if self.number_of_groups > 1:
-                    for edge_id, δ in δ_map.items():
-                        if (
-                            (edge_id in random_switches) and (group_selection is None)
-                        ) | (
-                            (group_selection is not None)
-                            and (edge_id in group_selection[ω[1]])
-                        ):
-                            m.δ[edge_id].unfix()  # type: ignore
-                        else:
-                            m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
+                if isinstance(groups, int):
+                    random_switches = random.sample(
+                        switch_list,
+                        k=min(
+                            max(2, int(len(switch_list) / groups)) * mutation_factor,
+                            len(switch_list) - 1,
+                        ),
+                    )
+                else:
+                    random_switches = []
+                for edge_id, δ in δ_map.items():
+                    if ((edge_id in random_switches) and isinstance(groups, int)) | (
+                        (not isinstance(groups, int)) and (edge_id in groups[ω[1]])
+                    ):
+                        m.δ[edge_id].unfix()  # type: ignore
+                    else:
+                        m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
 
                 δ_by_sc[ω] = δ_map
                 try:
@@ -132,7 +128,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                     # Print δ_map state for current scenario with selection info
                     combined_values = []
                     for i, (switch_id, δ) in enumerate(
-                        zip(switch_list, δ_map.values())
+                        itertools.product(switch_list, δ_map.values())
                     ):
                         is_selected = switch_id in random_switches
                         is_closed = δ > 0.5
@@ -149,7 +145,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
                         else:
                             # Unselected & Open
                             combined_values.append("░")
-                    print(f"{''.join(combined_values)}")
+                    print(f"{''.join(combined_values)}\n")
 
                 except Exception as e:
                     log.error(
@@ -159,20 +155,29 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- z-update (per switch) ----
             z_old = z.copy()
             for s in switch_list:
-                z[s] = (sum(δ_by_sc[ω][s] for ω in scen_list)) / scenario_number
+                z[s] = (
+                    sum(
+                        δ_by_sc[ω][s]
+                        for ω in itertools.product(Ω, range(self.number_of_groups))
+                    )
+                ) / scenario_number
 
             # Print consensus z values
             z_values = ["█" if z[s] > 0.5 else "░" for s in switch_list]
             print(f"Iter {k}, Consensus z: {''.join(z_values)}")
 
             # ---- λ-update (scaled duals) ----
-            for ω in scen_list:
+            for ω in itertools.product(Ω, range(self.number_of_groups)):
                 for s in switch_list:
                     λ[(ω, s)] = λ[(ω, s)] + κ * (δ_by_sc[ω][s] - z[s])
 
             # ---- residuals (after all scenarios solved) ----
             r_sq = max(
-                [(δ_by_sc[ω][s] - z[s]) ** 2 for ω in scen_list for s in switch_list]
+                [
+                    (δ_by_sc[ω][s] - z[s]) ** 2
+                    for ω in itertools.product(Ω, range(self.number_of_groups))
+                    for s in switch_list
+                ]
             )
             r_norm = float(np.sqrt(r_sq))
 
@@ -202,7 +207,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Refresh δ table after final iterate
         rows = []
-        for ω in scen_list:
+        for ω in Ω:
             m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
             for s in switch_list:
@@ -235,6 +240,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
     def _set_λ_from_λ(self, λ_map: dict) -> None:
         """Set per-scenario scaled duals λ_sc[s] from λ_map[(scen_id, s)]."""
         for ω, m in self.admm_model_instances.items():
-            λ_param = getattr(m, "λ")
-            for s in getattr(m, "S"):
-                λ_param[s].set_value(λ_map[(ω, s)])
+            for g in range(self.number_of_groups):
+                λ_param = getattr(m, "λ")
+                for s in getattr(m, "S"):
+                    λ_param[s].set_value(λ_map[((ω, g), s)])

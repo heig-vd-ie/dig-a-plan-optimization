@@ -18,7 +18,6 @@ def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
     number_of_random_scenarios: int = 10,
-    number_of_groups: int = 10,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -200,9 +199,6 @@ def pandapower_to_dig_a_plan_schema(
         (~c("closed").cast(pl.Boolean)).alias("normal_open"),
         pl.lit("switch").alias("type"),
     )
-
-    groups = [i % number_of_groups for i in range(switch.height)]
-    switch = switch.with_columns(pl.Series("group", groups, dtype=pl.Int32))
 
     edge_data = (
         pl.concat([line, trafo, switch], how="diagonal_relaxed")

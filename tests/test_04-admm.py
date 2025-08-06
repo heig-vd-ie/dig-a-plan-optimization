@@ -42,7 +42,7 @@ def test_admm_model_simple_example():
         4: [34, 26, 25, 24, 31],
     }
 
-    grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
+    grid_data = pandapower_to_dig_a_plan_schema(net)
 
     config = ADMMConfig(
         verbose=False,
@@ -77,7 +77,7 @@ def test_admm_model_simple_example():
         μ=10.0,
         τ_incr=2.0,
         τ_decr=2.0,
-        group_selection=groups,
+        groups=groups,
     )
 
     print("\n--- ADMM consensus z per switch ---")

@@ -137,11 +137,6 @@ class PipelineDataManager:
     def __instantiate_grid_data(self):
         """
         Build a Pyomo data dict that includes:
-          - SCEN set
-          - static sets N, L, S, nS, C
-          - static parameters (r,x,b,n_transfo,i_max,v_min,v_max,...)
-          - scenario parameters p_node[s,n], q_node[s,n]
-          - ADMM params del_param[s,l], u_param[s,l]
         """
         # --- sets & keys ---
         scen_ids = list(self.__load_data.keys())  # type: ignore
@@ -180,18 +175,10 @@ class PipelineDataManager:
             )
         )
 
-        groups = (
-            self.edge_data.filter((c("type") == "switch") & (c("group").is_not_null()))
-            .get_column("group")
-            .unique()
-            .to_list()
-        )
-
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
                     # sets
-                    "groups": groups,
                     "Ω": {None: scen_ids if self.all_scenarios else [scen_id]},
                     "N": {None: node_ids},
                     "L": {None: edge_ids},

@@ -19,14 +19,12 @@ if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
-        number_of_groups=20,
         number_of_random_scenarios=10,
     )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
-        number_of_groups=10,
         number_of_random_scenarios=30,
     )
 
@@ -78,7 +76,8 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
-    random_mutation=5,
+    mutation_factor=5,
+    groups=20,
 )
 
 # %% Inspect consensus and per-scenario deltas

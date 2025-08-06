@@ -49,7 +49,7 @@ dig_a_plan = DigAPlan(config=config)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)
-dig_a_plan.solve_model(group=1)  # one‐shot solve
+dig_a_plan.solve_model(groups=5)  # one‐shot solve
 
 # %% extract and compare results
 # Switch status

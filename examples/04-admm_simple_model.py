@@ -44,7 +44,7 @@ net["load"]["q_mvar"] *= LOAD_FACTOR
 net["line"].loc[:, "max_i_ka"] = 1.0
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-grid_data = pandapower_to_dig_a_plan_schema(net, number_of_groups=5)
+grid_data = pandapower_to_dig_a_plan_schema(net)
 
 groups = {
     0: [19, 20, 21, 29, 32, 35],
@@ -92,7 +92,7 @@ dap.model_manager.solve_model(
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
-    group_selection=groups,
+    groups=groups,
 )
 
 # %% Inspect consensus and per-scenario deltas

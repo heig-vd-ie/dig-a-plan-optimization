@@ -1,3 +1,4 @@
+import random
 import pyomo.environ as pyo
 import polars as pl
 from general_function import generate_log
@@ -32,7 +33,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
         self.combined_model_instance = self.combined_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
         self.combined_lin_model_instance = self.combined_lin_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
 
-    def solve_model(self, group: int | None = None, **kwargs) -> None:
+    def solve_model(self, groups: int | None = None, **kwargs) -> None:
         """Solve the combined radial+DistFlow model."""
         results = self.solver.solve(
             self.combined_lin_model_instance, tee=self.config.verbose
@@ -40,9 +41,18 @@ class PipelineModelManagerCombined(PipelineModelManager):
 
         δ_map = self.combined_lin_model_instance.δ.extract_values()  # type: ignore
 
-        if group is not None:
+        if groups is not None:
+            switch_list = list(self.combined_model_instance.S)  # type: ignore
+
+            random_switches = random.sample(
+                switch_list,
+                k=min(
+                    max(2, int(len(switch_list) / groups)),
+                    len(switch_list) - 1,
+                ),
+            )
             for edge_id, δ in δ_map.items():
-                if self.data_manager.edge_data["group"][edge_id] == group:
+                if edge_id in random_switches:
                     continue
                 self.combined_model_instance.δ[edge_id].fix(δ)  # type: ignore
 
