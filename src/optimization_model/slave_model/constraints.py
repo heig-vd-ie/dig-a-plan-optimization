@@ -227,10 +227,10 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.SΩ, rule=edge_reactive_power_balance_switch_rule
     )
     model.edge_active_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_active_power_balance_line_rule
+        model.EΩ, rule=edge_active_power_balance_line_rule
     )
     model.edge_reactive_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_reactive_power_balance_line_rule
+        model.EΩ, rule=edge_reactive_power_balance_line_rule
     )
     # Switch status constraints
     model.switch_active_power_lower_bound = pyo.Constraint(

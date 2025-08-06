@@ -1,4 +1,6 @@
 from ast import Dict
+
+from numpy import arange
 from data_schema import NodeData, EdgeData, LoadData
 from data_schema import NodeEdgeModel
 import patito as pt
@@ -143,6 +145,11 @@ class PipelineDataManager:
         node_ids = self.node_data["node_id"].to_list()
         edge_ids = self.edge_data["edge_id"].to_list()
         switch_ids = self.edge_data.filter(c("type") == "switch")["edge_id"].to_list()
+        transformer_ids = self.edge_data.filter(c("type") == "transformer")[
+            "edge_id"
+        ].to_list()
+        line_ids = self.edge_data.filter(c("type") == "line")["edge_id"].to_list()
+
         # non_switch = [e for e in edge_ids if e not in switch_ids]
 
         # build directed arcs list C
@@ -181,9 +188,12 @@ class PipelineDataManager:
                     # sets
                     "Ω": {None: scen_ids if self.all_scenarios else [scen_id]},
                     "N": {None: node_ids},
-                    "L": {None: edge_ids},
+                    "E": {None: edge_ids},
+                    "L": {None: line_ids},
                     "S": {None: switch_ids},
                     "C": {None: c_tuples},
+                    "Tr": {None: transformer_ids},
+                    "Taps": {None: list(arange(0.95, 1.05, 0.01))},
                     # static line params
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),

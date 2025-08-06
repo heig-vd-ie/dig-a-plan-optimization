@@ -15,4 +15,6 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.p_curt_prod = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
     model.q_curt_prod = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
 
+    model.ζ_tap = pyo.Var(model.TrTapsΩ, domain=pyo.Reals, bounds=(0, 1))
+
     return model

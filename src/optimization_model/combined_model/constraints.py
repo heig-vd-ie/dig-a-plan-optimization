@@ -9,7 +9,7 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         model.slack_node, rule=imaginary_flow_balance_slack_rule
     )
     model.edge_propagation = pyo.Constraint(
-        model.L, rule=imaginary_flow_edge_propagation_rule
+        model.E, rule=imaginary_flow_edge_propagation_rule
     )
     model.upper_switch_propagation = pyo.Constraint(
         model.Cs, rule=imaginary_flow_upper_switch_propagation_rule
@@ -41,10 +41,10 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         model.SΩ, rule=edge_reactive_power_balance_switch_rule
     )
     model.edge_active_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_active_power_balance_line_rule
+        model.EΩ, rule=edge_active_power_balance_line_rule
     )
     model.edge_reactive_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_reactive_power_balance_line_rule
+        model.EΩ, rule=edge_reactive_power_balance_line_rule
     )
     # 3) Voltage‐drop & cone (per scenario)
     model.voltage_drop_lower = pyo.Constraint(model.CsΩ, rule=voltage_drop_lower_rule)

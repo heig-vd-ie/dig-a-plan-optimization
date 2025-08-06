@@ -137,7 +137,7 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
         model.slack_node, rule=imaginary_flow_balance_slack_rule
     )
     model.edge_propagation = pyo.Constraint(
-        model.L, rule=imaginary_flow_edge_propagation_rule
+        model.E, rule=imaginary_flow_edge_propagation_rule
     )
 
     model.upper_switch_propagation = pyo.Constraint(
@@ -151,10 +151,10 @@ def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
 
     model.edge_active_power_balance = pyo.Constraint(
-        model.LΩ, rule=edge_active_power_balance_lindistflow_rule
+        model.EΩ, rule=edge_active_power_balance_lindistflow_rule
     )
     model.edge_reactive_power_balance = pyo.Constraint(
-        model.LΩ, rule=edge_reactive_power_balance_lindistflow_rule
+        model.EΩ, rule=edge_reactive_power_balance_lindistflow_rule
     )
     model.node_active_power_balance = pyo.Constraint(
         model.NesΩ, rule=node_active_power_balance_rule
