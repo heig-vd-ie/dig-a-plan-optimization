@@ -6,12 +6,10 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.number_of_lines = pyo.Param()
     model.ε = pyo.Param()  # Small constant for radiality constraints
     # Line parameters
-    model.r = pyo.Param(model.L)  # Resistance (pu)
-    model.x = pyo.Param(model.L)  # Reactance (pu)
-    model.b = pyo.Param(model.L)  # Shunt susceptance (pu)
-    model.i_max = pyo.Param(model.L)  # Current limit (pu)
-    # Candidate-to-actual transformer turns
-    model.n_transfo = pyo.Param(model.C)
+    model.r = pyo.Param(model.E)  # Resistance (pu)
+    model.x = pyo.Param(model.E)  # Reactance (pu)
+    model.b = pyo.Param(model.E)  # Shunt susceptance (pu)
+    model.i_max = pyo.Param(model.E)  # Current limit (pu)
     # Nodal loads
     model.p_node_cons = pyo.Param(model.NΩ)  # Real load (pu)
     model.q_node_cons = pyo.Param(model.NΩ)  # Reactive load (pu)

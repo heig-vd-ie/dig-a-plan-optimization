@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import List, Dict
 import patito as pt
 from data_schema.edge_data import EdgeData
 from data_schema.node_data import NodeData
@@ -13,4 +14,5 @@ class NodeEdgeModel:
     edge_data: pt.DataFrame[EdgeData] = field(
         default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
     )
-    load_data: dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)
+    load_data: Dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)
+    taps: List[int] = field(default_factory=list)

@@ -9,7 +9,7 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         model.slack_node, rule=imaginary_flow_balance_slack_rule
     )
     model.edge_propagation = pyo.Constraint(
-        model.L, rule=imaginary_flow_edge_propagation_rule
+        model.E, rule=imaginary_flow_edge_propagation_rule
     )
     model.upper_switch_propagation = pyo.Constraint(
         model.Cs, rule=imaginary_flow_upper_switch_propagation_rule
@@ -41,14 +41,14 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
         model.SΩ, rule=edge_reactive_power_balance_switch_rule
     )
     model.edge_active_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_active_power_balance_line_rule
+        model.EΩ, rule=edge_active_power_balance_line_rule
     )
     model.edge_reactive_power_balance_line = pyo.Constraint(
-        model.LΩ, rule=edge_reactive_power_balance_line_rule
+        model.EΩ, rule=edge_reactive_power_balance_line_rule
     )
     # 3) Voltage‐drop & cone (per scenario)
-    model.voltage_drop_lower = pyo.Constraint(model.CsΩ, rule=voltage_drop_lower_rule)
-    model.voltage_drop_upper = pyo.Constraint(model.CsΩ, rule=voltage_drop_upper_rule)
+    model.voltage_limit_lower = pyo.Constraint(model.CsΩ, rule=voltage_limit_lower_rule)
+    model.voltage_limit_upper = pyo.Constraint(model.CsΩ, rule=voltage_limit_upper_rule)
 
     # 4) Switch power bounds (per scenario)
     model.switch_active_power_lower_bound = pyo.Constraint(
@@ -67,6 +67,7 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
     # 6) Voltage limits (per scenario)
     model.current_limit = pyo.Constraint(model.ClΩ, rule=optimal_current_limit_rule)
+    model.current_limit_tr = pyo.Constraint(model.CtΩ, rule=optimal_current_limit_rule)
     model.voltage_upper_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_upper_limits_rule
     )
@@ -86,8 +87,21 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
 def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     """Adds the constraints to the combined model."""
     model.voltage_drop_line = pyo.Constraint(model.ClΩ, rule=voltage_drop_line_rule)
+    model.voltage_drop_transfo = pyo.Constraint(
+        model.CtΩ, rule=voltage_drop_transfo_rule
+    )
+    model.voltage_tap_upper_limit = pyo.Constraint(
+        model.CttapΩ, rule=voltage_tap_upper_limit_rule
+    )
+    model.voltage_tap_lower_limit = pyo.Constraint(
+        model.CttapΩ, rule=voltage_tap_lower_limit_rule
+    )
+    model.tap_limit = pyo.Constraint(model.Tr, rule=tap_limit_rule)
     model.current_rotated_cone = pyo.Constraint(
         model.ClΩ, rule=current_rotated_cone_rule
+    )
+    model.current_rotated_cone_transformer = pyo.Constraint(
+        model.CtΩ, rule=current_rotated_cone_transformer_rule
     )
     return model
 
@@ -95,5 +109,8 @@ def combined_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
 def combined_model_lin_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.voltage_drop_line = pyo.Constraint(
         model.ClΩ, rule=voltage_drop_line_lindistflow_rule
+    )
+    model.voltage_drop_transfo = pyo.Constraint(
+        model.CtΩ, rule=voltage_drop_transfo_lindistflow_rule
     )
     return model

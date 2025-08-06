@@ -1,4 +1,6 @@
 from ast import Dict
+
+from numpy import arange
 from data_schema import NodeData, EdgeData, LoadData
 from data_schema import NodeEdgeModel
 import patito as pt
@@ -44,6 +46,7 @@ class PipelineDataManager:
         self.__load_data: dict[int, pt.DataFrame[LoadData]] = {}
         # final data dict for Pyomo
         self.grid_data_parameters_dict: dict | None = None
+        self.taps: list[int]
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -62,6 +65,7 @@ class PipelineDataManager:
         # 1) static node + edge
         self.__set_node_data(node_data=grid_data.node_data)
         self.__set_edge_data(edge_data=grid_data.edge_data)
+        self.taps = grid_data.taps
         self.__validate_slack_node()
 
         # 2) scenario loads
@@ -137,18 +141,16 @@ class PipelineDataManager:
     def __instantiate_grid_data(self):
         """
         Build a Pyomo data dict that includes:
-          - SCEN set
-          - static sets N, L, S, nS, C
-          - static parameters (r,x,b,n_transfo,i_max,v_min,v_max,...)
-          - scenario parameters p_node[s,n], q_node[s,n]
-          - ADMM params del_param[s,l], u_param[s,l]
         """
         # --- sets & keys ---
         scen_ids = list(self.__load_data.keys())  # type: ignore
         node_ids = self.node_data["node_id"].to_list()
         edge_ids = self.edge_data["edge_id"].to_list()
         switch_ids = self.edge_data.filter(c("type") == "switch")["edge_id"].to_list()
-        # non_switch = [e for e in edge_ids if e not in switch_ids]
+        transformer_ids = self.edge_data.filter(c("type") == "transformer")[
+            "edge_id"
+        ].to_list()
+        line_ids = self.edge_data.filter(c("type") == "branch")["edge_id"].to_list()
 
         # build directed arcs list C
         c_fwd = self.edge_data.select(
@@ -165,44 +167,23 @@ class PipelineDataManager:
 
         number_of_lines = len([e for e in edge_ids if e not in switch_ids])
 
-        n_transfo = pl_to_dict_with_tuple(
-            pl.concat(
-                [
-                    self.edge_data.select(
-                        pl.concat_list("edge_id", "u_of_edge", "v_of_edge"),
-                        "n_transfo",
-                    ),
-                    self.edge_data.select(
-                        pl.concat_list("edge_id", "v_of_edge", "u_of_edge"),
-                        "n_transfo",
-                    ),
-                ]
-            )
-        )
-
-        groups = (
-            self.edge_data.filter((c("type") == "switch") & (c("group").is_not_null()))
-            .get_column("group")
-            .unique()
-            .to_list()
-        )
-
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
                     # sets
-                    "groups": groups,
                     "Ω": {None: scen_ids if self.all_scenarios else [scen_id]},
                     "N": {None: node_ids},
-                    "L": {None: edge_ids},
+                    "E": {None: edge_ids},
+                    "L": {None: line_ids},
                     "S": {None: switch_ids},
                     "C": {None: c_tuples},
+                    "Tr": {None: transformer_ids},
+                    "Taps": {None: self.taps},
                     # static line params
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                     "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
                     "number_of_lines": {None: number_of_lines},
-                    "n_transfo": n_transfo,
                     "i_max": pl_to_dict(self.edge_data["edge_id", "i_max_pu"]),
                     # static node params
                     "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),

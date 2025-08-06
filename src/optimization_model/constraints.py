@@ -2,12 +2,14 @@
 
 
 def master_obj(m):
-    return m.θ
+    return m.θ1 + m.θ2
 
 
 def objective_rule_loss(m):
     # Minimize network losses
-    return sum(m.r[l] * m.i_sq[l, i, j, ω] for (l, i, j) in m.Cl for ω in m.Ω)
+    return sum(m.r[l] * m.i_sq[l, i, j, ω] for (l, i, j, ω) in m.ClΩ) + sum(
+        m.r[l] * m.i_sq[l, i, j, ω] for (l, i, j, ω) in m.CtΩ
+    )
 
 
 def objective_rule_infeasibility(m):
@@ -18,8 +20,11 @@ def objective_rule_infeasibility(m):
 
 
 def objective_rule_admm_penalty(m):
-    return (m.ρ / 2.0) * sum((m.δ[s] - m.z[s]) ** 2 for s in m.S) + sum(
-        m.λ[s] * m.δ[s] for s in m.S
+    return (
+        (m.ρ / 2.0) * sum((m.δ[s] - m.zδ[s]) ** 2 for s in m.S)
+        + sum(m.λδ[s] * m.δ[s] for s in m.S)
+        + (m.ρ / 2.0) * sum((m.ζ[tr, tap] - m.zζ[tr, tap]) ** 2 for tr, tap in m.TrTaps)
+        + sum(m.λζ[tr, tap] * m.ζ[tr, tap] for tr, tap in m.TrTaps)
     )
 
 
@@ -71,6 +76,10 @@ def edge_direction_rule(m, l):
 
 def master_switch_status_propagation_rule(m, s):
     return m.δ[s] == m.master_δ[s]
+
+
+def master_transformer_status_propagation_rule(m, tr, tap):
+    return m.ζ[tr, tap] == m.master_ζ[tr, tap]
 
 
 # (1) Slack Bus: fix bus 0's voltage squared to 1.0.
@@ -182,29 +191,44 @@ def current_rotated_cone_rule_transformed(m, l, i, j, ω):
     lhs = (
         (2 * m.p_flow[l, i, j, ω]) ** 2
         + (2 * m.q_flow[l, i, j, ω]) ** 2
-        + (m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j, ω]) ** 2
+        + (m.v_sq[i, ω] - m.i_sq[l, i, j, ω]) ** 2
     )
-    rhs = (m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j, ω]) ** 2
+    rhs = (m.v_sq[i, ω] + m.i_sq[l, i, j, ω]) ** 2
+
+    return lhs <= rhs
+
+
+def current_rotated_cone_rule_transformer_transformed(m, l, i, j, ω):
+    lhs = (
+        (2 * m.p_flow[l, i, j, ω]) ** 2
+        + (2 * m.q_flow[l, i, j, ω]) ** 2
+        + (m.v_sq[i, ω] - m.i_sq[l, i, j, ω]) ** 2
+    )
+    rhs = (m.v_sq[i, ω] + m.i_sq[l, i, j, ω]) ** 2
 
     return lhs <= rhs
 
 
 def current_rotated_cone_rule(m, l, i, j, ω):
     lhs = (m.p_flow[l, i, j, ω]) ** 2 + (m.q_flow[l, i, j, ω]) ** 2
-    rhs = m.i_sq[l, i, j, ω] * m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
+    rhs = m.i_sq[l, i, j, ω] * m.v_sq[i, ω]
+    return lhs <= rhs
+
+
+def current_rotated_cone_transformer_rule(m, l, i, j, ω):
+    lhs = (m.p_flow[l, i, j, ω]) ** 2 + (m.q_flow[l, i, j, ω]) ** 2
+    rhs = m.i_sq[l, i, j, ω] * m.v_sq[i, ω]
     return lhs <= rhs
 
 
 # (4) Voltage Drop along Branch for candidate (l,i,j).
-# Let expr = v_sq[i] - 2*(r[l]*p_z_up(l,i,j) + x[l]*q_z_up(l,i,j)) + (r[l]^2+x[l]^2)*f_c(l,i,j).
-# We then enforce two separate inequalities
 
 
-def voltage_drop_upper_rule(m, l, i, j, ω):
+def voltage_limit_lower_rule(m, l, i, j, ω):
     return m.v_sq[i, ω] - m.v_sq[j, ω] <= m.big_m * (1 - m.δ[l])
 
 
-def voltage_drop_lower_rule(m, l, i, j, ω):
+def voltage_limit_upper_rule(m, l, i, j, ω):
     return m.v_sq[i, ω] - m.v_sq[j, ω] >= -m.big_m * (1 - m.δ[l])
 
 
@@ -213,30 +237,51 @@ def voltage_drop_line_rule(m, l, i, j, ω):
         -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
         + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j, ω]
     )
-    voltage_diff = (
-        m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j, ω] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
+    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv
     return voltage_diff == 0
-
-
-def voltage_drop_upper_lindistflow_rule(m, l, i, j, ω):
-    return m.v_sq[i, ω] - m.v_sq[j, ω] <= m.big_m * (1 - m.δ[l])
-
-
-def voltage_drop_lower_lindistflow_rule(m, l, i, j, ω):
-    return m.v_sq[i, ω] - m.v_sq[j, ω] >= -m.big_m * (1 - m.δ[l])
 
 
 def voltage_drop_line_lindistflow_rule(m, l, i, j, ω):
     dv = -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
-    voltage_diff = (
-        m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j, ω] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
+    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv
     return voltage_diff == 0
+
+
+def voltage_drop_transfo_rule(m, l, i, j, ω):
+    dv = (
+        -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
+        + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j, ω]
+    )
+    if i > j:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω]
+    else:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv - m.vt_sq[j, ω]
+    return voltage_diff == 0
+
+
+def voltage_drop_transfo_lindistflow_rule(m, tr, i, j, ω):
+    dv = -2 * (m.r[tr] * m.p_flow[tr, i, j, ω] + m.x[tr] * m.q_flow[tr, i, j, ω])
+    if i > j:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[i, ω]
+    else:
+        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv + m.vt_sq[j, ω]
+    return voltage_diff == 0
+
+
+def voltage_tap_upper_limit_rule(m, tr, i, tap, ω):
+    return m.vt_sq[i, ω] <= m.v_sq[i, ω] * (tap - 100) / 100 + m.big_m * (
+        1 - m.ζ[tr, tap]
+    )
+
+
+def voltage_tap_lower_limit_rule(m, tr, i, tap, ω):
+    return m.vt_sq[i, ω] >= m.v_sq[i, ω] * (tap - 100) / 100 - m.big_m * (
+        1 - m.ζ[tr, tap]
+    )
+
+
+def tap_limit_rule(m, tr):
+    return sum(m.ζ[tr, tap] for tap in m.Taps) == 1
 
 
 def switch_active_power_lower_bound_rule(m, l, i, j, ω):

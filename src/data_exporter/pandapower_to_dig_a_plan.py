@@ -1,3 +1,4 @@
+from typing import List
 import polars as pl
 import patito as pt
 from polars import col as c
@@ -18,7 +19,7 @@ def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
     number_of_random_scenarios: int = 10,
-    number_of_groups: int = 10,
+    taps: List[int] | None = None,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -183,7 +184,6 @@ def pandapower_to_dig_a_plan_schema(
             (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias(
                 "i_max_pu"
             ),
-            ((c("vn_hv_pu") / c("vn_lv_pu"))).alias("n_transfo"),
             c("i_base"),
             (c("sn_mva") * 1e6 / s_base).alias("p_max_pu"),
         )
@@ -200,9 +200,6 @@ def pandapower_to_dig_a_plan_schema(
         (~c("closed").cast(pl.Boolean)).alias("normal_open"),
         pl.lit("switch").alias("type"),
     )
-
-    groups = [i % number_of_groups for i in range(switch.height)]
-    switch = switch.with_columns(pl.Series("group", groups, dtype=pl.Int32))
 
     edge_data = (
         pl.concat([line, trafo, switch], how="diagonal_relaxed")
@@ -227,4 +224,5 @@ def pandapower_to_dig_a_plan_schema(
         node_data=node_data_validated,
         edge_data=edge_data_validated,
         load_data=rand_scenarios,
+        taps=taps if taps is not None else list(range(95, 105, 2)),
     )

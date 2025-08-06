@@ -156,7 +156,7 @@ Steps performed:
 
    - Dual values (`self.slave_model_instance.dual`) are extracted and converted into a Polars DataFrame, mapping constraint names to marginal costs (shadow prices).
    - Constraint names are parsed and cleaned (e.g., removing array-like syntax) to isolate:
-     - The base constraint name (e.g., `voltage_drop_lower`)
+     - The base constraint name (e.g., `voltage_limit`)
      - Its associated indices `(l, i, j)`.
 
 

@@ -6,7 +6,6 @@ r_pu,Float,0,Yes,Longitudinal resistance in pu
 x_pu,Float,0,Yes,Longitudinal reactance in pu
 g_pu,Float,0,Yes,Transverse conductance in pu
 b_pu,Float,0,Yes,Transverse suseptance in pu
-n_transfo,Float,1,Yes,Transformer turn ratio in pu
 i_max_pu,Float,,No,Maximum admisible current
 type,branch | transformer | switch,,Yes,Type of equipment
 std_p_up,Float,1.00E-03,Yes,Standard deviation of the measured upstream active power error

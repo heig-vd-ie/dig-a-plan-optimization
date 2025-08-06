@@ -55,6 +55,36 @@ class PipelineResultManager:
         # Finally select the columns you care about
         return ss.select(["eq_fk", "edge_id", "δ", "normal_open", "open"])
 
+    def extract_transformer_tap_position(self) -> pl.DataFrame:
+        self.init_model_instance()
+        tt = self.data_manager.edge_data.filter(c("type") == "transformer")
+        # Extract tap positions from the model instance
+        ζ_map = self.model_instance.ζ.extract_values()  # type: ignore
+
+        rows = []
+        for (tr, tap), zζ_value in ζ_map.items():
+            rows.append((tr, tap, zζ_value))
+        ζ_d = pl.DataFrame(
+            rows,
+            schema=["edge_id", "TAP", "ζ"],
+            orient="row",
+        )
+        ζ = (
+            ζ_d.with_columns(
+                c("edge_id"),
+                (c("TAP") * c("ζ")).alias("tap_value"),
+            )
+            .group_by("edge_id")
+            .agg(c("tap_value").sum().alias("tap_value"))
+        )
+
+        # Create a Polars DataFrame with transformer tap positions
+        tt = tt.join(
+            ζ,
+            on="edge_id",
+        )
+        return tt
+
     def extract_node_voltage(self) -> pl.DataFrame:
         self.init_model_instance()
 

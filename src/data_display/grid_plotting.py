@@ -5,7 +5,7 @@ from general_function import pl_to_dict
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from pipelines import DigAPlan
+from pipelines import DigAPlan, DigAPlanADMM
 
 
 def plot_grid_from_pandapower(
@@ -14,10 +14,14 @@ def plot_grid_from_pandapower(
     node_size: int = 22,
     width: int = 800,
     height: int = 700,
-    switch_status: dict | None = None,
+    from_z: bool = False,
 ) -> None:
 
-    if switch_status is None:
+    if from_z and isinstance(dig_a_plan, DigAPlanADMM):
+        switch_status = pl_to_dict(
+            dig_a_plan.model_manager.zδ_variable.select("eq_fk", "closed")
+        )
+    else:
         switch_status = pl_to_dict(
             dig_a_plan.result_manager.extract_switch_status().select(
                 "eq_fk", ~c("open")
