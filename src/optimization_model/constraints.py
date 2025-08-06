@@ -182,16 +182,16 @@ def current_rotated_cone_rule_transformed(m, l, i, j, ω):
     lhs = (
         (2 * m.p_flow[l, i, j, ω]) ** 2
         + (2 * m.q_flow[l, i, j, ω]) ** 2
-        + (m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2) - m.i_sq[l, i, j, ω]) ** 2
+        + (m.v_sq[i, ω] - m.i_sq[l, i, j, ω]) ** 2
     )
-    rhs = (m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2) + m.i_sq[l, i, j, ω]) ** 2
+    rhs = (m.v_sq[i, ω] + m.i_sq[l, i, j, ω]) ** 2
 
     return lhs <= rhs
 
 
 def current_rotated_cone_rule(m, l, i, j, ω):
     lhs = (m.p_flow[l, i, j, ω]) ** 2 + (m.q_flow[l, i, j, ω]) ** 2
-    rhs = m.i_sq[l, i, j, ω] * m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
+    rhs = m.i_sq[l, i, j, ω] * m.v_sq[i, ω]
     return lhs <= rhs
 
 
@@ -213,11 +213,7 @@ def voltage_drop_line_rule(m, l, i, j, ω):
         -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
         + (m.r[l] ** 2 + m.x[l] ** 2) * m.i_sq[l, i, j, ω]
     )
-    voltage_diff = (
-        m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j, ω] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
+    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv
     return voltage_diff == 0
 
 
@@ -231,11 +227,7 @@ def voltage_drop_lower_lindistflow_rule(m, l, i, j, ω):
 
 def voltage_drop_line_lindistflow_rule(m, l, i, j, ω):
     dv = -2 * (m.r[l] * m.p_flow[l, i, j, ω] + m.x[l] * m.q_flow[l, i, j, ω])
-    voltage_diff = (
-        m.v_sq[i, ω] / (m.n_transfo[l, i, j] ** 2)
-        - m.v_sq[j, ω] / (m.n_transfo[l, j, i] ** 2)
-        + dv
-    )
+    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv
     return voltage_diff == 0
 
 

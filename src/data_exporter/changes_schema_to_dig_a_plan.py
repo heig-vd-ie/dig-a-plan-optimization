@@ -134,9 +134,6 @@ def change_schema_to_dig_a_plan_schema(
             how="left",
         )
         .with_columns(
-            ((c("vn_hv") * c("v_base_lv")) / (c("vn_lv") * c("v_base_hv"))).alias(
-                "n_transfo"
-            ),
             (c("v_base_lv") ** 2 / s_base).alias("z_base"),
         )
         .with_columns(

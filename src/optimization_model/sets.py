@@ -7,6 +7,7 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.N = pyo.Set()  # Nodes indices.
     model.E = pyo.Set()  # Edges indices.
     model.S = pyo.Set(within=model.E)  # Switch indices
+    model.L = pyo.Set(within=model.E)  # Line indices
     model.Tr = pyo.Set(within=model.E)  # Transformer indices
     model.Taps = pyo.Set()  # Transformer tap positions
     model.C = pyo.Set(dimen=3, within=model.E * model.N * model.N)  # type: ignore

@@ -167,21 +167,6 @@ class PipelineDataManager:
 
         number_of_lines = len([e for e in edge_ids if e not in switch_ids])
 
-        n_transfo = pl_to_dict_with_tuple(
-            pl.concat(
-                [
-                    self.edge_data.select(
-                        pl.concat_list("edge_id", "u_of_edge", "v_of_edge"),
-                        "n_transfo",
-                    ),
-                    self.edge_data.select(
-                        pl.concat_list("edge_id", "v_of_edge", "u_of_edge"),
-                        "n_transfo",
-                    ),
-                ]
-            )
-        )
-
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
@@ -199,7 +184,6 @@ class PipelineDataManager:
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),
                     "b": pl_to_dict(self.edge_data["edge_id", "b_pu"]),
                     "number_of_lines": {None: number_of_lines},
-                    "n_transfo": n_transfo,
                     "i_max": pl_to_dict(self.edge_data["edge_id", "i_max_pu"]),
                     # static node params
                     "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),

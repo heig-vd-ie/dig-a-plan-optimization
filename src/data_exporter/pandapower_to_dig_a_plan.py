@@ -182,7 +182,6 @@ def pandapower_to_dig_a_plan_schema(
             (c("sn_mva") * 1e6 / (np.sqrt(3) * c("v_base2") * c("i_base"))).alias(
                 "i_max_pu"
             ),
-            ((c("vn_hv_pu") / c("vn_lv_pu"))).alias("n_transfo"),
             c("i_base"),
             (c("sn_mva") * 1e6 / s_base).alias("p_max_pu"),
         )

@@ -10,8 +10,6 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.x = pyo.Param(model.E)  # Reactance (pu)
     model.b = pyo.Param(model.E)  # Shunt susceptance (pu)
     model.i_max = pyo.Param(model.E)  # Current limit (pu)
-    # Candidate-to-actual transformer turns
-    model.n_transfo = pyo.Param(model.C)
     # Nodal loads
     model.p_node_cons = pyo.Param(model.NΩ)  # Real load (pu)
     model.q_node_cons = pyo.Param(model.NΩ)  # Reactive load (pu)
