@@ -13,12 +13,8 @@ else:
     net = pp.from_pickle(".cache/boisy_grid.p")
     base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
+
 # %% convert pandapower grid to DigAPlan grid data
-base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
-    pl.lit(0.001).alias("r_pu"),
-    pl.lit(0.001).alias("x_pu"),
-    pl.lit(0).alias("b_pu"),
-)
 
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
@@ -27,7 +23,6 @@ base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     pl.lit(1.0).alias("n_transfo"),
     c("normal_open").fill_null(False),
 )
-
 # %% initialize DigAPlan
 
 config = CombinedConfig(

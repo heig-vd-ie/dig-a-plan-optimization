@@ -61,8 +61,19 @@ class CombinedConfig(PipelineConfig):
     pass
 
 
-class ADMMConfig(CombinedConfig):
+@dataclass
+class ADMMConfig(PipelineConfig):
     """Configuration for ADMM pipeline"""
 
     admm_max_iterations: int = 10
     admm_tolerance: float = 1e-4
+    max_iters: int = 10
+    μ: float = 10.0
+    τ_incr: float = 2.0
+    τ_decr: float = 2.0
+    mutation_factor: int = 5
+    groups: int | dict[int, list[int]] = 10
+    ε_primal: float = 1e-3
+    ε_dual: float = 1e-3
+    seed_number: int = 42
+    κ: float = 0.1

@@ -29,6 +29,11 @@ config = ADMMConfig(
     ρ=2.0,
     γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
+    groups=groups,
+    max_iters=10,
+    μ=10.0,
+    τ_incr=2.0,
+    τ_decr=2.0,
 )
 
 dap = DigAPlanADMM(config=config)
@@ -46,13 +51,7 @@ print("Switch IDs:", switch_ids)
 print("Scenario IDs:", scen_ids)
 
 # %% Run ADMM
-dap.model_manager.solve_model(
-    max_iters=10,
-    μ=10.0,
-    τ_incr=2.0,
-    τ_decr=2.0,
-    groups=groups,
-)
+dap.model_manager.solve_model()
 
 # %% Inspect consensus and per-scenario deltas
 print("\n--- ADMM consensus z per switch ---")

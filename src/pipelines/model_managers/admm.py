@@ -17,6 +17,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
     def __init__(self, config: ADMMConfig, data_manager: PipelineDataManager) -> None:
         """Initialize the combined model manager with configuration and data manager."""
         super().__init__(config, data_manager, PipelineType.ADMM)
+        self.config = config
 
         self.admm_model: pyo.AbstractModel = generate_combined_model()
         self.admm_linear_model: pyo.AbstractModel = generate_combined_lin_model()
@@ -35,31 +36,23 @@ class PipelineModelManagerADMM(PipelineModelManager):
         for scen in grid_data_parameters_dict.keys():
             self.admm_model_instances[scen] = self.admm_model.create_instance(grid_data_parameters_dict[scen])  # type: ignore
 
-    def solve_model(
-        self,
-        max_iters: int = 50,
-        ε_primal: float = 1e-3,
-        ε_dual: float = 1e-3,
-        μ: float = 10.0,
-        τ_incr: float = 2.0,
-        τ_decr: float = 2.0,
-        seed_number: int = 42,
-        κ: float = 0.1,
-        groups: Dict[int, List[int]] | int = 1,
-        mutation_factor: int = 1,
-    ) -> None:
+    def solve_model(self) -> None:
         """Solve the ADMM model with the given parameters."""
-        random.seed(seed_number)
+        random.seed(self.config.seed_number)
 
-        self.mutation_factor = mutation_factor
-        self.groups = groups
-        self.κ = κ
-        self.μ = μ
-        self.τ_incr = τ_incr
-        self.τ_decr = τ_decr
+        self.mutation_factor = self.config.mutation_factor
+        self.groups = self.config.groups
+        self.κ = self.config.κ
+        self.μ = self.config.μ
+        self.τ_incr = self.config.τ_incr
+        self.τ_decr = self.config.τ_decr
 
         self.Ω = list(self.admm_model_instances.keys())  # type: ignore
-        self.number_of_groups = len(groups) if isinstance(groups, dict) else groups
+        self.number_of_groups = (
+            len(self.config.groups)
+            if isinstance(self.config.groups, dict)
+            else self.config.groups
+        )
 
         # Sets
         self.switch_list = list(self.admm_model_instances[self.Ω[0]].S)  # type: ignore
@@ -71,7 +64,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         δ_map = self.__solve_model(self.admm_linear_model_instance)
         # ADMM iterations
-        for k in range(1, max_iters + 1):
+        for k in range(1, self.config.max_iters + 1):
             # Broadcast z and λ into the model
             self._set_z_from_z()
             self._set_λ_from_λ()
@@ -94,12 +87,12 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
             # ---- λ-update (scaled duals) ----
             for ω, s in itertools.product(self.Ω, self.switch_list):
-                self.λ[(ω, s)] = self.λ[(ω, s)] + κ * (δ_by_sc[ω][s] - self.z[s])
+                self.λ[(ω, s)] = self.λ[(ω, s)] + self.κ * (δ_by_sc[ω][s] - self.z[s])
 
             # ---- residuals (after all scenarios solved) ----
             r_norm, s_norm = self.__calculate_residuals(δ_by_sc, self.z, z_old, k)
             # ---- convergence ----
-            if (r_norm <= ε_primal) and (s_norm <= ε_dual):
+            if (r_norm <= self.config.ε_primal) and (s_norm <= self.config.ε_dual):
                 log.info(f"ADMM converged in {k} iterations.")
                 break
 
