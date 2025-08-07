@@ -1,10 +1,5 @@
 push!(LOAD_PATH, joinpath(@__DIR__, ".."))
-
-include("../types.jl")
-include("../stochastic.jl")
-
-using .Types
-using .Stochastic
+using InvestmentModel
 using SDDP
 using Random
 
@@ -184,9 +179,7 @@ savefig("src/investment_model/figures/objective_histogram.pdf")
 plt1 = SDDP.SpaghettiPlot(simulations1)
 
 SDDP.add_spaghetti(plt1; title = "Total Unmet Load") do data
-    return sum(
-        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
-    )
+    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
 SDDP.add_spaghetti(plt1; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -198,9 +191,7 @@ SDDP.plot(plt1, "src/investment_model/figures/example1.html", open = true)
 
 plt2 = SDDP.SpaghettiPlot(simulations2)
 SDDP.add_spaghetti(plt2; title = "Total Unmet Load") do data
-    return sum(
-        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
-    )
+    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
 SDDP.add_spaghetti(plt2; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -212,9 +203,7 @@ SDDP.plot(plt2, "src/investment_model/figures/example2.html", open = true)
 
 plt3 = SDDP.SpaghettiPlot(simulations3)
 SDDP.add_spaghetti(plt3; title = "Total Unmet Load") do data
-    return sum(
-        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
-    )
+    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
 SDDP.add_spaghetti(plt3; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -235,9 +224,7 @@ for (k, simulation) in enumerate([simulations1, simulations2, simulations3])
         ylabel = "Unmet Load (MWh)",
         xlabel = "Stage",
     ) do data
-        return sum(
-            data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
-        )
+        return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
     end
     p2[k] = SDDP.publication_plot(
         simulation;
