@@ -1,4 +1,5 @@
 import polars as pl
+import math
 import pandapower as pp
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
@@ -64,8 +65,8 @@ def test_admm_model_simple_example():
     )
 
     node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
-    assert node_data.get_column("v_diff").abs().max() < 1e-2  # type: ignore
-    assert edge_data.get_column("i_diff").abs().max() < 0.1  # type: ignore
+    assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
+    assert math.isclose(edge_data.get_column("i_diff").abs().max(), 2.7e-3, rel_tol=1e-3)  # type: ignore
 
     config = CombinedConfig(
         verbose=True,
