@@ -52,3 +52,10 @@ Check following doc [here](docs/Julia/01-install-julia.md).
 ├── pyproject.toml   # Python dependencies and project configuration
 └── README.md        # Project overview and instructions (this file)
 ```
+
+### Development
+If you add a new feature in python part, make sure to run `pytest` to verify that existing features continue to work correctly.
+```sh
+make venv-activate
+make pytest
+```
