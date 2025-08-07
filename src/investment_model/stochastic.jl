@@ -14,6 +14,7 @@ function subproblem_builder(
     subproblem::Model,
     grid::Grid,
     stage::Int,
+    scenarios::Scenarios,
     params::PlanningParams,
 )
     # State variables
@@ -43,7 +44,7 @@ function subproblem_builder(
     @variable(subproblem, δ_pv[node in grid.nodes])
     @variable(subproblem, δ_budget)
 
-    SDDP.parameterize(subproblem, params.Ω[stage], params.P) do ω
+    SDDP.parameterize(subproblem, scenarios.Ω[stage], scenarios.P) do ω
         for node in grid.nodes
             JuMP.fix(δ_load[node], ω.δ_load[node])
             JuMP.fix(δ_pv[node], ω.δ_pv[node])
@@ -248,14 +249,14 @@ function subproblem_builder(
     return subproblem
 end
 
-function stochastic_planning(grid::Grid, params::PlanningParams)
+function stochastic_planning(grid::Grid, scenarios::Scenarios, params::PlanningParams)
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,
         lower_bound = 0.0,
         optimizer = HiGHS.Optimizer,
     ) do subproblem, stage
-        subproblem_builder(subproblem, grid, stage, params)
+        subproblem_builder(subproblem, grid, stage, scenarios, params)
     end
     return model
 end

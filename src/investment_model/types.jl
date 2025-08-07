@@ -1,6 +1,6 @@
 module Types
 
-export Grid, Scenario, PlanningParams, Node, Edge
+export Grid, Scenario, Scenarios, PlanningParams, Node, Edge
 
 struct Node
     id::Int64
@@ -29,10 +29,13 @@ struct Scenario
     δ_budget::Float64
 end
 
-struct PlanningParams
-    n_stages::Int
+struct Scenarios
     Ω::Vector{Vector{Scenario}}
     P::Vector{Float64}
+end
+
+struct PlanningParams
+    n_stages::Int
     initial_budget::Float64
     investment_costs::Dict{Edge, Float64}
     penalty_costs_load::Dict{Node, Float64}

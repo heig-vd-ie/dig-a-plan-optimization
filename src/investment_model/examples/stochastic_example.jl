@@ -87,18 +87,17 @@ grid = Grid(nodes, edges, Node(1), initial_capacity, load, pv, factor_load, fact
 Ω = generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
 investment_costs, penalty_costs_load, penalty_costs_pv = generate_costs(edges, nodes)
+scenarios = Scenarios(Ω, P)
 params = PlanningParams(
     n_stages,
-    Ω,
-    P,
     50.0,  # initial_budget
     investment_costs,
     penalty_costs_load,
     penalty_costs_pv,
     0.0,  # discount_rate
 )
-model1 = Stochastic.stochastic_planning(grid, params)
-model2 = Stochastic.stochastic_planning(grid, params)
+model1 = Stochastic.stochastic_planning(grid, scenarios, params)
+model2 = Stochastic.stochastic_planning(grid, scenarios, params)
 
 SDDP.train(model1, iteration_limit = n_iterations)
 
@@ -133,19 +132,6 @@ simulations2 = SDDP.simulate(
 objectives1 = [sum(stage[:objective_value] for stage in data) for data in simulations1]
 objectives2 = [sum(stage[:objective_value] for stage in data) for data in simulations2]
 
-# Assume simulations is a vector of Dicts, each with :δ_capacity (edge => value) for each stage
-# n_stages = params.n_stages
-# total_expansion_per_stage = [Float64[] for _ in 1:n_stages]
-
-# for data in simulations
-#     # data[:δ_capacity] is a Dict{edge, value} for each stage
-#     for stage in 1:n_stages
-#         push!(total_expansion_per_stage[stage], sum(values(data[stage][:δ_capacity])))
-#     end
-# end
-
-# total_expansion_per_stage_mat = hcat(total_expansion_per_stage...)'
-
 using HiGHS
 function wasserstein_norm(x::SDDP.Noise{Scenario}, y::SDDP.Noise{Scenario})
     s1, s2 = x.term, y.term
@@ -156,7 +142,7 @@ function wasserstein_norm(x::SDDP.Noise{Scenario}, y::SDDP.Noise{Scenario})
     return delta_load_diff + delta_pv_diff + delta_budget_diff
 end
 
-model3 = Stochastic.stochastic_planning(grid, params)
+model3 = Stochastic.stochastic_planning(grid, scenarios, params)
 
 SDDP.train(
     model3,
