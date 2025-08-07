@@ -12,12 +12,14 @@ if USE_SIMPLIFIED_GRID := True:
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
         number_of_random_scenarios=10,
+        taps=[95, 98, 99, 100, 101, 102, 105],
     )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
-        number_of_random_scenarios=30,
+        number_of_random_scenarios=10,
+        taps=[95, 98, 99, 100, 101, 102, 105],
     )
 
 # %% convert pandapower grid to DigAPlan grid data
@@ -40,7 +42,7 @@ config = ADMMConfig(
     ρ=2.0,
     γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
-    time_limit=1,
+    time_limit=1,  # TODO: set time limit to 10 seconds for actual boisy grid
     max_iters=10,
     μ=10.0,
     τ_incr=2.0,
