@@ -7,16 +7,16 @@ struct Node
 end
 
 struct Edge
+    id::Int64
     from::Int64
     to::Int64
-    id::Int64
 end
 
 struct Grid
     nodes::Vector{Node}
     edges::Vector{Edge}
     external_grid::Node
-    initial_capacity::Dict{Edge, Float64}
+    initial_cap::Dict{Edge, Float64}
     load::Dict{Node, Float64}
     pv::Dict{Node, Float64}
     factor_pv::Dict{Edge, Dict{Node, Float64}}
@@ -26,7 +26,7 @@ end
 struct Scenario
     δ_load::Dict{Node, Float64}
     δ_pv::Dict{Node, Float64}
-    δ_budget::Float64
+    δ_b::Float64
 end
 
 struct Scenarios
