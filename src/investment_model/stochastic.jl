@@ -10,8 +10,12 @@ using ..Types
 
 export stochastic_planning
 
-function subproblem_builder(subproblem::Model, stage::Int, params::Types.PlanningParams)
-    grid = params.grid
+function subproblem_builder(
+    subproblem::Model,
+    grid::Grid,
+    stage::Int,
+    params::PlanningParams,
+)
     # State variables
     @variable(
         subproblem,
@@ -66,13 +70,13 @@ function subproblem_builder(subproblem::Model, stage::Int, params::Types.Plannin
         subproblem,
         actual_load[node in grid.nodes] >= 0,
         SDDP.State,
-        initial_value = params.grid.load[node]
+        initial_value = grid.load[node]
     )
     @variable(
         subproblem,
         actual_pv[node in grid.nodes] >= 0,
         SDDP.State,
-        initial_value = params.grid.pv[node]
+        initial_value = grid.pv[node]
     )
 
     @variable(subproblem, unmet_load[node in grid.nodes])
@@ -107,7 +111,7 @@ function subproblem_builder(subproblem::Model, stage::Int, params::Types.Plannin
     )
 
     # Calculate discount factor for NPV
-    discount_factor = (1 / (1 + params.discount_rate)) ^ (stage - 1)
+    discount_factor = (1 / (1 + params.discount_rate))^(stage - 1)
 
     if stage == 1
         # Actual expansions (random variable minus unmet demand)
@@ -212,11 +216,10 @@ function subproblem_builder(subproblem::Model, stage::Int, params::Types.Plannin
                 subproblem,
                 capacity[edge].out >=
                 sum(
-                    actual_load[node].out * params.grid.factor_load[edge][node] for
+                    actual_load[node].out * grid.factor_load[edge][node] for
                     node in grid.nodes
                 ) + sum(
-                    actual_pv[node].out * params.grid.factor_pv[edge][node] for
-                    node in grid.nodes
+                    actual_pv[node].out * grid.factor_pv[edge][node] for node in grid.nodes
                 )
             )
         end
@@ -245,14 +248,14 @@ function subproblem_builder(subproblem::Model, stage::Int, params::Types.Plannin
     return subproblem
 end
 
-function stochastic_planning(params::Types.PlanningParams)
+function stochastic_planning(grid::Grid, params::PlanningParams)
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,
         lower_bound = 0.0,
         optimizer = HiGHS.Optimizer,
     ) do subproblem, stage
-        subproblem_builder(subproblem, stage, params)
+        subproblem_builder(subproblem, grid, stage, params)
     end
     return model
 end

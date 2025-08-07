@@ -30,7 +30,6 @@ struct Scenario
 end
 
 struct PlanningParams
-    grid::Grid
     n_stages::Int
     Ω::Vector{Vector{Scenario}}
     P::Vector{Float64}

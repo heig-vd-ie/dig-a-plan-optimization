@@ -25,10 +25,10 @@ function generate_scenarios(
     total_load_per_node::Float64 = 2.0,
     total_pv_per_node::Float64 = 1.0,
 )
-    scenarios = Vector{Vector{Types.Scenario}}(undef, n_scenarios)
+    scenarios = Vector{Vector{Scenario}}(undef, n_scenarios)
 
     for s in 1:n_scenarios
-        scenario_path = Vector{Types.Scenario}(undef, n_stages)
+        scenario_path = Vector{Scenario}(undef, n_stages)
 
         # Randomly split total delta_load and delta_pv across stages, per node
         delta_load_splits = Dict{Node, Vector{Float64}}()
@@ -44,13 +44,13 @@ function generate_scenarios(
             delta_pv = Dict(node => delta_pv_splits[node][t] for node in nodes)
             delta_budget = rand(0.0:1.0:1000.0)  # or keep constant per scenario if needed
 
-            scenario_path[t] = Types.Scenario(delta_load, delta_pv, delta_budget)
+            scenario_path[t] = Scenario(delta_load, delta_pv, delta_budget)
         end
 
         scenarios[s] = scenario_path
     end
 
-    return [[scenarios[j][i] for j in 1:length(scenarios)] for i in 1:length(scenarios[1])]  # Returns Vector of scenario paths, each path is a Vector of Types.Scenario
+    return [[scenarios[j][i] for j in 1:length(scenarios)] for i in 1:length(scenarios[1])]  # Returns Vector of scenario paths, each path is a Vector of Scenario
 end
 
 # Generate cost dictionaries for grid sections/edges
@@ -83,12 +83,11 @@ load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
 factor_load = generate_factor_load(edges, nodes)
 factor_pv = generate_factor_pv(edges, nodes)
-grid = Types.Grid(nodes, edges, Node(1), initial_capacity, load, pv, factor_load, factor_pv)
+grid = Grid(nodes, edges, Node(1), initial_capacity, load, pv, factor_load, factor_pv)
 Ω = generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
 investment_costs, penalty_costs_load, penalty_costs_pv = generate_costs(edges, nodes)
-params = Types.PlanningParams(
-    grid,
+params = PlanningParams(
     n_stages,
     Ω,
     P,
@@ -98,8 +97,8 @@ params = Types.PlanningParams(
     penalty_costs_pv,
     0.0,  # discount_rate
 )
-model1 = Stochastic.stochastic_planning(params)
-model2 = Stochastic.stochastic_planning(params)
+model1 = Stochastic.stochastic_planning(grid, params)
+model2 = Stochastic.stochastic_planning(grid, params)
 
 SDDP.train(model1, iteration_limit = n_iterations)
 
@@ -148,7 +147,7 @@ objectives2 = [sum(stage[:objective_value] for stage in data) for data in simula
 # total_expansion_per_stage_mat = hcat(total_expansion_per_stage...)'
 
 using HiGHS
-function wasserstein_norm(x::SDDP.Noise{Types.Scenario}, y::SDDP.Noise{Types.Scenario})
+function wasserstein_norm(x::SDDP.Noise{Scenario}, y::SDDP.Noise{Scenario})
     s1, s2 = x.term, y.term
     # Compute Euclidean distance over all numeric fields
     delta_load_diff = sum(abs(s1.δ_load[n] - s2.δ_load[n]) for n in keys(s1.δ_load))
@@ -157,11 +156,11 @@ function wasserstein_norm(x::SDDP.Noise{Types.Scenario}, y::SDDP.Noise{Types.Sce
     return delta_load_diff + delta_pv_diff + delta_budget_diff
 end
 
-model3 = Stochastic.stochastic_planning(params)
+model3 = Stochastic.stochastic_planning(grid, params)
 
 SDDP.train(
     model3,
-    risk_measure = SDDP.Wasserstein(wasserstein_norm, HiGHS.Optimizer; alpha = 1/20),
+    risk_measure = SDDP.Wasserstein(wasserstein_norm, HiGHS.Optimizer; alpha = 1 / 20),
     iteration_limit = n_iterations,
 )
 
