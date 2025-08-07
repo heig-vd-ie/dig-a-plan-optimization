@@ -118,11 +118,11 @@ function model_builder(
                 @constraint(
                     m,
                     sum(
-                        vars.flow[(edge.id, edge.from, node)] for
-                        edge in grid.edges if edge.to == node
+                        vars.flow[Edge(edge.id, edge.from, node.id)] for
+                        edge in grid.edges if edge.to == node.id
                     ) - sum(
-                        vars.flow[(edge.id, node, edge.to)] for
-                        edge in grid.edges if edge.from == node
+                        vars.flow[Edge(edge.id, node.id, edge.to)] for
+                        edge in grid.edges if edge.from == node.id
                     ) == states.actual_load[node].out - vars.external_flow
                 )
             else
@@ -131,11 +131,11 @@ function model_builder(
                 @constraint(
                     m,
                     sum(
-                        vars.flow[(edge.id, edge.from, node)] for
-                        edge in grid.edges if edge.to == node
+                        vars.flow[Edge(edge.id, edge.from, node.id)] for
+                        edge in grid.edges if edge.to == node.id
                     ) - sum(
-                        vars.flow[(edge.id, node, edge.to)] for
-                        edge in grid.edges if edge.from == node
+                        vars.flow[Edge(edge.id, node.id, edge.to)] for
+                        edge in grid.edges if edge.from == node.id
                     ) == states.actual_load[node].out
                 )
             end
