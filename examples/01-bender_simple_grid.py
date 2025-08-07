@@ -8,7 +8,7 @@ from examples import *
 # %% set parameters
 
 net = pp.from_pickle("data/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema(net, taps=[100])
+base_grid_data = pandapower_to_dig_a_plan_schema(net)
 
 # %% initialize DigAPlan
 config = BenderConfig(
@@ -85,3 +85,7 @@ switches = dig_a_plan.result_manager.extract_switch_status()
 voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
+# tap positions
+taps = dig_a_plan.result_manager.extract_transformer_tap_position()
+
+print(taps)

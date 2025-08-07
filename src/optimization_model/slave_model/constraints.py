@@ -254,6 +254,13 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.switch_reactive_power_upper_bound = pyo.Constraint(
         model.CsΩ, rule=switch_reactive_power_upper_bound_rule
     )
+    model.tap_upper_limit = pyo.Constraint(
+        model.CttapΩ, rule=voltage_tap_upper_limit_rule
+    )
+    model.tap_lower_limit = pyo.Constraint(
+        model.CttapΩ, rule=voltage_tap_lower_limit_rule
+    )
+    model.tap_limit = pyo.Constraint(model.Tr, rule=tap_limit_rule)
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
 
     return model

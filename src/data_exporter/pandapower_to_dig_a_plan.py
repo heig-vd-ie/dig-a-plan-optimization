@@ -224,5 +224,5 @@ def pandapower_to_dig_a_plan_schema(
         node_data=node_data_validated,
         edge_data=edge_data_validated,
         load_data=rand_scenarios,
-        taps=taps if taps is not None else list(range(95, 105, 2)),
+        taps=taps if taps is not None else list(range(95, 105, 1)),
     )

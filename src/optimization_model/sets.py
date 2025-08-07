@@ -46,7 +46,7 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
         initialize=lambda m: [
             (l, i, tap, ω)
             for l, i, j in m.C
-            if l in m.Tr
+            if (l in m.Tr) and (i > j)
             for ω in m.Ω
             for tap in m.Taps
         ]
@@ -54,4 +54,8 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.NtrΩ = pyo.Set(
         initialize=lambda m: [(i, ω) for l, i, _ in m.C if l in m.Tr for ω in m.Ω]
     )
+    model.NtapΩ = pyo.Set(
+        initialize=lambda m: [(i, ω) for _, i, j, ω in m.CtΩ if i > j]
+    )
+
     return model
