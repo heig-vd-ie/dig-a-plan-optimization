@@ -14,14 +14,17 @@ Randomly split a total `total` into `n` non-negative values that sum to `total`
 """
 function random_partition(total::Float64, n::Int)
     breaks = sort([0.0; rand(n - 1) .* total; total])
-    return [breaks[i+1] - breaks[i] for i in 1:n]
+    return [breaks[i + 1] - breaks[i] for i in 1:n]
 end
 
 # Generate random scenarios for each stage
-function generate_scenarios(n_scenarios::Int, n_stages::Int, nodes::Vector{Node};
-                            total_load_per_node::Float64 = 2.0,
-                            total_pv_per_node::Float64 = 1.0)
-
+function generate_scenarios(
+    n_scenarios::Int,
+    n_stages::Int,
+    nodes::Vector{Node};
+    total_load_per_node::Float64 = 2.0,
+    total_pv_per_node::Float64 = 1.0,
+)
     scenarios = Vector{Vector{Types.Scenario}}(undef, n_scenarios)
 
     for s in 1:n_scenarios
@@ -29,16 +32,16 @@ function generate_scenarios(n_scenarios::Int, n_stages::Int, nodes::Vector{Node}
 
         # Randomly split total delta_load and delta_pv across stages, per node
         delta_load_splits = Dict{Node, Vector{Float64}}()
-        delta_pv_splits   = Dict{Node, Vector{Float64}}()
+        delta_pv_splits = Dict{Node, Vector{Float64}}()
 
         for node in nodes
             delta_load_splits[node] = random_partition(total_load_per_node, n_stages)
-            delta_pv_splits[node]   = random_partition(total_pv_per_node, n_stages)
+            delta_pv_splits[node] = random_partition(total_pv_per_node, n_stages)
         end
 
         for t in 1:n_stages
             delta_load = Dict(node => delta_load_splits[node][t] for node in nodes)
-            delta_pv   = Dict(node => delta_pv_splits[node][t] for node in nodes)
+            delta_pv = Dict(node => delta_pv_splits[node][t] for node in nodes)
             delta_budget = rand(0.0:1.0:1000.0)  # or keep constant per scenario if needed
 
             scenario_path[t] = Types.Scenario(delta_load, delta_pv, delta_budget)
@@ -93,44 +96,43 @@ params = Types.PlanningParams(
     investment_costs,
     penalty_costs_load,
     penalty_costs_pv,
-    0.0  # discount_rate
+    0.0,  # discount_rate
 )
 model1 = Stochastic.stochastic_planning(params)
 model2 = Stochastic.stochastic_planning(params)
 
-SDDP.train(
-    model1,
-    iteration_limit=n_iterations,
-)
+SDDP.train(model1, iteration_limit = n_iterations)
 
 simulations1 = SDDP.simulate(
     model1,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :capacity, :δ_capacity, :objective_value],
+    [
+        :investment_cost,
+        :total_unmet_load,
+        :total_unmet_pv,
+        :capacity,
+        :δ_capacity,
+        :objective_value,
+    ],
 )
 
 # Compute and plot objective histogram for the last simulation
-SDDP.train(
-    model2,
-    risk_measure = SDDP.Entropic(0.1),
-    iteration_limit=n_iterations,
-)
+SDDP.train(model2, risk_measure = SDDP.Entropic(0.1), iteration_limit = n_iterations)
 
 simulations2 = SDDP.simulate(
     model2,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :capacity, :δ_capacity, :objective_value],
+    [
+        :investment_cost,
+        :total_unmet_load,
+        :total_unmet_pv,
+        :capacity,
+        :δ_capacity,
+        :objective_value,
+    ],
 )
-objectives1 = [
-    sum(stage[:objective_value] for stage in data)
-    for data in simulations1
-]
-objectives2 = [
-    sum(stage[:objective_value] for stage in data)
-    for data in simulations2
-]
-
-
+objectives1 = [sum(stage[:objective_value] for stage in data) for data in simulations1]
+objectives2 = [sum(stage[:objective_value] for stage in data) for data in simulations2]
 
 # Assume simulations is a vector of Dicts, each with :δ_capacity (edge => value) for each stage
 # n_stages = params.n_stages
@@ -143,7 +145,6 @@ objectives2 = [
 #     end
 # end
 
-
 # total_expansion_per_stage_mat = hcat(total_expansion_per_stage...)'
 
 using HiGHS
@@ -151,52 +152,56 @@ function wasserstein_norm(x::SDDP.Noise{Types.Scenario}, y::SDDP.Noise{Types.Sce
     s1, s2 = x.term, y.term
     # Compute Euclidean distance over all numeric fields
     delta_load_diff = sum(abs(s1.δ_load[n] - s2.δ_load[n]) for n in keys(s1.δ_load))
-    delta_pv_diff   = sum(abs(s1.δ_pv[n] - s2.δ_pv[n]) for n in keys(s1.δ_pv))
+    delta_pv_diff = sum(abs(s1.δ_pv[n] - s2.δ_pv[n]) for n in keys(s1.δ_pv))
     delta_budget_diff = abs(s1.δ_budget - s2.δ_budget)
     return delta_load_diff + delta_pv_diff + delta_budget_diff
 end
-
 
 model3 = Stochastic.stochastic_planning(params)
 
 SDDP.train(
     model3,
     risk_measure = SDDP.Wasserstein(wasserstein_norm, HiGHS.Optimizer; alpha = 1/20),
-    iteration_limit=n_iterations,
+    iteration_limit = n_iterations,
 )
 
 simulations3 = SDDP.simulate(
     model3,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :capacity, :δ_capacity, :objective_value],
+    [
+        :investment_cost,
+        :total_unmet_load,
+        :total_unmet_pv,
+        :capacity,
+        :δ_capacity,
+        :objective_value,
+    ],
 )
-objectives3 = [
-    sum(stage[:objective_value] for stage in data)
-    for data in simulations3
-]
+objectives3 = [sum(stage[:objective_value] for stage in data) for data in simulations3]
 
 using Plots
 histogram(
     [objectives1, objectives2, objectives3],
-    normalize=true,
-    nbins=100,
-    xlabel="Objective Value", 
-    ylabel="Frequency", 
-    title="Objective Distribution Across Scenarios",
-    label=["Without risk measure" "With risk measure Χ" "Wasserstein"],
-    opacity=0.2,
-    legend=:topright,
-    fillalpha=0.5,
-    linecolor=[:blue :red :green],
-    fillcolor=[:blue :red :green],
+    normalize = true,
+    nbins = 100,
+    xlabel = "Objective Value",
+    ylabel = "Frequency",
+    title = "Objective Distribution Across Scenarios",
+    label = ["Without risk measure" "With risk measure Χ" "Wasserstein"],
+    opacity = 0.2,
+    legend = :topright,
+    fillalpha = 0.5,
+    linecolor = [:blue :red :green],
+    fillcolor = [:blue :red :green],
 )
 savefig("src/investment_model/figures/objective_histogram.pdf")
-
 
 plt1 = SDDP.SpaghettiPlot(simulations1)
 
 SDDP.add_spaghetti(plt1; title = "Total Unmet Load") do data
-    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
+    return sum(
+        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
+    )
 end
 SDDP.add_spaghetti(plt1; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -208,7 +213,9 @@ SDDP.plot(plt1, "src/investment_model/figures/example1.html", open = true)
 
 plt2 = SDDP.SpaghettiPlot(simulations2)
 SDDP.add_spaghetti(plt2; title = "Total Unmet Load") do data
-    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
+    return sum(
+        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
+    )
 end
 SDDP.add_spaghetti(plt2; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -220,7 +227,9 @@ SDDP.plot(plt2, "src/investment_model/figures/example2.html", open = true)
 
 plt3 = SDDP.SpaghettiPlot(simulations3)
 SDDP.add_spaghetti(plt3; title = "Total Unmet Load") do data
-    return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
+    return sum(
+        data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
+    )
 end
 SDDP.add_spaghetti(plt3; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
@@ -230,23 +239,49 @@ SDDP.add_spaghetti(plt3; title = "Capacity") do data
 end
 SDDP.plot(plt3, "src/investment_model/figures/example3.html", open = true)
 
-
-
 import Plots
 p1 = Vector{Plots.Plot}(undef, 3)
 p2 = Vector{Plots.Plot}(undef, 3)
 p3 = Vector{Plots.Plot}(undef, 3)
 for (k, simulation) in enumerate([simulations1, simulations2, simulations3])
-    p1[k] = SDDP.publication_plot(simulation; title = "Total Unmet Load", ylabel = "Unmet Load (MWh)", xlabel = "Stage") do data
-        return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
+    p1[k] = SDDP.publication_plot(
+        simulation;
+        title = "Total Unmet Load",
+        ylabel = "Unmet Load (MWh)",
+        xlabel = "Stage",
+    ) do data
+        return sum(
+            data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1)
+        )
     end
-    p2[k] = SDDP.publication_plot(simulation; title = "Total Unmet PV", ylabel = "Unmet PV (MWh)", xlabel = "Stage") do data
+    p2[k] = SDDP.publication_plot(
+        simulation;
+        title = "Total Unmet PV",
+        ylabel = "Unmet PV (MWh)",
+        xlabel = "Stage",
+    ) do data
         return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
     end
-    p3[k] = SDDP.publication_plot(simulation; title = "Total Capacity", ylabel = "Capacity (MW)", xlabel = "Stage") do data
+    p3[k] = SDDP.publication_plot(
+        simulation;
+        title = "Total Capacity",
+        ylabel = "Capacity (MW)",
+        xlabel = "Stage",
+    ) do data
         return sum(data[:capacity][node].out for node in axes(data[:capacity], 1))
     end
 end
-plt = Plots.plot(p1[1], p2[1], p3[1], p1[2], p2[2], p3[2], p1[3], p2[3], p3[3], layout = (3, 3), size = (900, 1200))
+plt = Plots.plot(
+    p1[1],
+    p2[1],
+    p3[1],
+    p1[2],
+    p2[2],
+    p3[2],
+    p1[3],
+    p2[3],
+    p3[3],
+    layout = (3, 3),
+    size = (900, 1200),
+)
 Plots.savefig(plt, "src/investment_model/figures/stochastic_planning_results1.pdf")
-

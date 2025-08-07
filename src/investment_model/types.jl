@@ -2,7 +2,6 @@ module Types
 
 export Grid, Scenario, PlanningParams, Node, Edge
 
-
 struct Node
     id::Int64
 end
@@ -12,7 +11,6 @@ struct Edge
     to::Int64
     id::Int64
 end
-
 
 struct Grid
     nodes::Vector{Node}
@@ -42,6 +40,5 @@ struct PlanningParams
     penalty_costs_pv::Dict{Node, Float64}
     discount_rate::Float64
 end
-
 
 end # module Types 

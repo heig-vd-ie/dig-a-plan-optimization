@@ -93,3 +93,13 @@ test: ## Run tests using pytest (check venv is activated otherwise activated)
 	else \
 		poetry run pytest; \
 	fi
+
+format-julia:  ## Format Julia code in the src directory
+	@echo "Formatting Julia code with JuliaFormatter..."
+	julia -e 'using JuliaFormatter; format("src/")'
+
+format-python: ## Format Python code using black
+	@echo "Formatting Python code with black..."
+	@poetry run black .
+
+format: format-julia format-python ## Format all code (Julia and Python)
