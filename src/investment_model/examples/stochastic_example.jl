@@ -18,7 +18,7 @@ function random_partition(total::Float64, n::Int)
 end
 
 # Generate random scenarios for each stage
-function generate_scenarios(n_scenarios::Int, n_stages::Int, nodes::Vector{String};
+function generate_scenarios(n_scenarios::Int, n_stages::Int, nodes::Vector{Int64};
                             total_load_per_node::Float64 = 2.0,
                             total_pv_per_node::Float64 = 1.0)
 
@@ -28,8 +28,8 @@ function generate_scenarios(n_scenarios::Int, n_stages::Int, nodes::Vector{Strin
         scenario_path = Vector{Types.Scenario}(undef, n_stages)
 
         # Randomly split total delta_load and delta_pv across stages, per node
-        delta_load_splits = Dict{String, Vector{Float64}}()
-        delta_pv_splits   = Dict{String, Vector{Float64}}()
+        delta_load_splits = Dict{Int64, Vector{Float64}}()
+        delta_pv_splits   = Dict{Int64, Vector{Float64}}()
 
         for node in nodes
             delta_load_splits[node] = random_partition(total_load_per_node, n_stages)
@@ -59,28 +59,28 @@ function generate_costs(edges, nodes)
 end
 
 function generate_factor_load(edges, nodes)
-    return Dict((n1, n2) => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for (n1, n2) in edges)
+    return Dict((l, n1, n2) => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for (l, n1, n2) in edges)
 end
 
 function generate_factor_pv(edges, nodes)
-    return Dict((n1, n2) => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for (n1, n2) in edges)
+    return Dict((l, n1, n2) => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for (l, n1, n2) in edges)
 end
 
 # === Main example ===
 
 Random.seed!(1234)
-n_stages = 20
+n_stages = 5
 n_scenarios = 100
-n_iterations = 100
+n_iterations = 10
 n_simulations = 1000
-nodes = ["A", "B", "C", "D"]
-edges = [("A", "B"), ("B", "C"), ("C", "A"), ("B", "D"), ("C", "D")]
+nodes = [1, 2, 3, 4]
+edges = [(1, 1, 2), (2, 2, 3), (3, 3, 1), (4, 2, 4), (5, 3, 4)]
 initial_capacity = Dict(e => 1.0 for e in edges)
 load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
 factor_load = generate_factor_load(edges, nodes)
 factor_pv = generate_factor_pv(edges, nodes)
-grid = Types.Grid(nodes, edges, "A", initial_capacity, load, pv, factor_load, factor_pv)
+grid = Types.Grid(nodes, edges, 1, initial_capacity, load, pv, factor_load, factor_pv)
 Ω = generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
 investment_costs, penalty_costs_load, penalty_costs_pv = generate_costs(edges, nodes)

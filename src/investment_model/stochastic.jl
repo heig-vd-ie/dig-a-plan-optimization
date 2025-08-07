@@ -86,29 +86,29 @@ function subproblem_builder(subproblem::Model, stage::Int, params::Types.Plannin
         for node in grid.nodes
             if node == grid.external_grid
                 # External grid node: flow is equal to actual load minus actual external node flow
-                @constraint(subproblem, sum(flow[(n1, node)] for (n1, n2) in grid.edges if n2 == node) -
-                            sum(flow[(node, n2)] for (n1, n2) in grid.edges if n1 == node) ==
+                @constraint(subproblem, sum(flow[(l, n1, node)] for (l, n1, n2) in grid.edges if n2 == node) -
+                            sum(flow[(l, node, n2)] for (l, n1, n2) in grid.edges if n1 == node) ==
                             actual_load[node].out - external_flow)
             else
                 # Internal nodes: flow conservation with respect to actual load
                 # and no external generation
-                @constraint(subproblem, sum(flow[(n1, node)] for (n1, n2) in grid.edges if n2 == node) -
-                            sum(flow[(node, n2)] for (n1, n2) in grid.edges if n1 == node) == actual_load[node].out)
+                @constraint(subproblem, sum(flow[(l, n1, node)] for (l, n1, n2) in grid.edges if n2 == node) -
+                            sum(flow[(l, node, n2)] for (l, n1, n2) in grid.edges if n1 == node) == actual_load[node].out)
             end
         end
 
         # Edge capacity constraints: sum of actual expansions at connected nodes
-        for (n1, n2) in grid.edges
+        for (l, n1, n2) in grid.edges
             @constraint(subproblem,
-                capacity[(n1, n2)].out >= flow[(n1, n2)]
+                capacity[(l, n1, n2)].out >= flow[(l, n1, n2)]
             )
             @constraint(subproblem,
-                capacity[(n1, n2)].out >= -flow[(n1, n2)]
+                capacity[(l, n1, n2)].out >= -flow[(l, n1, n2)]
             )
             # Flow conservation for each edge
             @constraint(subproblem,
-                capacity[(n1, n2)].out >= sum(actual_load[node].out * params.grid.factor_load[(n1, n2)][node] for node in grid.nodes) +
-                                sum(actual_pv[node].out * params.grid.factor_pv[(n1, n2)][node] for node in grid.nodes)
+                capacity[(l, n1, n2)].out >= sum(actual_load[node].out * params.grid.factor_load[(l, n1, n2)][node] for node in grid.nodes) +
+                                sum(actual_pv[node].out * params.grid.factor_pv[(l, n1, n2)][node] for node in grid.nodes)
             )
         end
 
