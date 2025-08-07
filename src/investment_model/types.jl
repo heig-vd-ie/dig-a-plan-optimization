@@ -1,21 +1,33 @@
 module Types
 
-export Grid, Scenario, PlanningParams
+export Grid, Scenario, PlanningParams, Node, Edge
+
+
+struct Node
+    id::Int64
+end
+
+struct Edge
+    from::Int64
+    to::Int64
+    id::Int64
+end
+
 
 struct Grid
-    nodes::Vector{Int64}
-    edges::Vector{Tuple{Int64, Int64, Int64}}
-    external_grid::Int64
-    initial_capacity::Dict{Tuple{Int64, Int64, Int64}, Float64}
-    load::Dict{Int64, Float64}
-    pv::Dict{Int64, Float64}
-    factor_pv::Dict{Tuple{Int64, Int64, Int64}, Dict{Int64, Float64}}
-    factor_load::Dict{Tuple{Int64, Int64, Int64}, Dict{Int64, Float64}}
+    nodes::Vector{Node}
+    edges::Vector{Edge}
+    external_grid::Node
+    initial_capacity::Dict{Edge, Float64}
+    load::Dict{Node, Float64}
+    pv::Dict{Node, Float64}
+    factor_pv::Dict{Edge, Dict{Node, Float64}}
+    factor_load::Dict{Edge, Dict{Node, Float64}}
 end
 
 struct Scenario
-    δ_load::Dict{Int64, Float64}
-    δ_pv::Dict{Int64, Float64}
+    δ_load::Dict{Node, Float64}
+    δ_pv::Dict{Node, Float64}
     δ_budget::Float64
 end
 
@@ -25,9 +37,9 @@ struct PlanningParams
     Ω::Vector{Vector{Scenario}}
     P::Vector{Float64}
     initial_budget::Float64
-    investment_costs::Dict{Tuple{Int64, Int64, Int64}, Float64}
-    penalty_costs_load::Dict{Int64, Float64}
-    penalty_costs_pv::Dict{Int64, Float64}
+    investment_costs::Dict{Edge, Float64}
+    penalty_costs_load::Dict{Node, Float64}
+    penalty_costs_pv::Dict{Node, Float64}
     discount_rate::Float64
 end
 
