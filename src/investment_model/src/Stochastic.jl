@@ -3,7 +3,7 @@ module Stochastic
 using SDDP, JuMP, HiGHS
 export stochastic_planning
 
-using ..Types
+using ..Types, ..Variables
 
 function model_builder(
     m::Model,

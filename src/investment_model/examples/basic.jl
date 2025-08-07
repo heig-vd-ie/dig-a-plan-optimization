@@ -1,7 +1,9 @@
-push!(LOAD_PATH, joinpath(@__DIR__, ".."))
+# push!(LOAD_PATH, joinpath(@__DIR__, ".."))
 using InvestmentModel
 using SDDP
 using Random
+
+using ..Types, ..Stochastic
 
 # === Utility functions (inlined) ===
 """
@@ -16,7 +18,7 @@ end
 function generate_scenarios(
     n_scenarios::Int,
     n_stages::Int,
-    nodes::Vector{Node};
+    nodes::Vector{Types.Node};
     total_load_per_node::Float64 = 2.0,
     total_pv_per_node::Float64 = 1.0,
 )
@@ -26,8 +28,8 @@ function generate_scenarios(
         scenario_path = Vector{Scenario}(undef, n_stages)
 
         # Randomly split total delta_load and delta_pv across stages, per node
-        delta_load_splits = Dict{Node, Vector{Float64}}()
-        delta_pv_splits = Dict{Node, Vector{Float64}}()
+        delta_load_splits = Dict{Types.Node, Vector{Float64}}()
+        delta_pv_splits = Dict{Types.Node, Vector{Float64}}()
 
         for node in nodes
             delta_load_splits[node] = random_partition(total_load_per_node, n_stages)
@@ -71,19 +73,25 @@ n_stages = 5
 n_scenarios = 100
 n_iterations = 10
 n_simulations = 1000
-nodes = [Node(1), Node(2), Node(3), Node(4)]
-edges = [Edge(1, 1, 2), Edge(2, 2, 3), Edge(3, 3, 1), Edge(4, 2, 4), Edge(5, 3, 4)]
+nodes = [Types.Node(1), Types.Node(2), Types.Node(3), Types.Node(4)]
+edges = [
+    Types.Edge(1, 1, 2),
+    Types.Edge(2, 2, 3),
+    Types.Edge(3, 3, 1),
+    Types.Edge(4, 2, 4),
+    Types.Edge(5, 3, 4),
+]
 initial_capacity = Dict(e => 1.0 for e in edges)
 load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
 factor_load = generate_factor_load(edges, nodes)
 factor_pv = generate_factor_pv(edges, nodes)
-grid = Grid(nodes, edges, Node(1), initial_capacity, load, pv, factor_load, factor_pv)
+grid = Types.Grid(nodes, edges, Types.Node(1), initial_capacity, load, pv, factor_load, factor_pv)
 Ω = generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
 investment_costs, penalty_costs_load, penalty_costs_pv = generate_costs(edges, nodes)
-scenarios = Scenarios(Ω, P)
-params = PlanningParams(
+scenarios = Types.Scenarios(Ω, P)
+params = Types.PlanningParams(
     n_stages,
     50.0,  # initial_budget
     investment_costs,
