@@ -25,18 +25,22 @@ function model_builder(
     end
 
     define_constraints!(m, grid, vars, states, params)
-    discount_factor = (1 / (1 + params.discount_rate))^(stage - 1)
     if stage == 1
-        define_first_stage_constraints!(m, grid, states, vars, params, discount_factor)
+        define_first_stage_constraints!(m, grid, states)
     else
-        define_subsequent_stage_constraints!(m, grid, states, vars, params, discount_factor)
+        define_subsequent_stage_constraints!(m, grid, states, vars)
     end
+    define_objective!(m, grid, vars, states, params, stage)
     @stageobjective(m, vars.obj)
 
     return m
 end
 
-function stochastic_planning(grid::Grid, scenarios::Scenarios, params::PlanningParams)
+function stochastic_planning(
+    grid::Grid,
+    scenarios::Scenarios,
+    params::PlanningParams,
+)
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,
