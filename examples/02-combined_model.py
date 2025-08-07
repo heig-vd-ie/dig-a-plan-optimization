@@ -7,7 +7,9 @@ from examples import *
 
 # %% set parameters
 net = pp.from_pickle("data/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema(net)
+base_grid_data = pandapower_to_dig_a_plan_schema(
+    net, taps=[95, 98, 99, 100, 101, 102, 105]
+)
 
 # %% initialize DigAPlan
 
@@ -35,7 +37,8 @@ currents = dig_a_plan.result_manager.extract_edge_current()
 # Power flow
 powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
 reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
-
+taps = dig_a_plan.result_manager.extract_transformer_tap_position()
+print(taps)
 
 # %% plot the grid annotated with DigAPlan results
 fig = plot_grid_from_pandapower(net, dig_a_plan)

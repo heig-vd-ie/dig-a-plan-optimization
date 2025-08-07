@@ -1,6 +1,6 @@
 import pandapower as pp
 import polars as pl
-
+import math
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines import DigAPlanCombined
@@ -13,7 +13,9 @@ def test_combined_model_simple_example():
 
     net = pp.from_pickle("data/simple_grid.p")
 
-    base_grid_data = pandapower_to_dig_a_plan_schema(net)
+    base_grid_data = pandapower_to_dig_a_plan_schema(
+        net, taps=[95, 98, 99, 100, 101, 102, 105]
+    )
 
     config = CombinedConfig(
         verbose=False,
@@ -36,20 +38,28 @@ def test_combined_model_simple_example():
     voltages = dig_a_plan.result_manager.extract_node_voltage()
     # Line currents
     currents = dig_a_plan.result_manager.extract_edge_current()
+    taps = dig_a_plan.result_manager.extract_transformer_tap_position()
 
     node_data, edge_data = compare_dig_a_plan_with_pandapower(
         dig_a_plan=dig_a_plan, net=net
     )
 
-    assert node_data.get_column("v_diff").abs().max() < 1e-2  # type: ignore
-    assert edge_data.get_column("i_diff").abs().max() < 0.1  # type: ignore
+    assert taps.get_column("tap_value").sort().to_list() == [100, 100]
+    assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
+    assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.001668, rel_tol=1e-3, abs_tol=1e-4)  # type: ignore
+    assert math.isclose(
+        currents.get_column("i_pu").sum(), 13.6158519, rel_tol=1e-3, abs_tol=1e-3
+    )
+    assert math.isclose(
+        voltages.get_column("v_pu").std(), 0.0061036143174779955, rel_tol=1e-3, abs_tol=1e-3  # type: ignore
+    )
     δ = extract_optimization_results(
         dig_a_plan.model_manager.combined_model_instance, "δ"
     )
     assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
-        21,
-        22,
         24,
-        26,
+        25,
+        32,
         33,
+        34,
     ]

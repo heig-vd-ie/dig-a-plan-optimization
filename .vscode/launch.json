@@ -1,0 +1,78 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Current Test File",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${file}",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
+                "NUMBA_DISABLE_JIT": "1",
+                "NUMBA_CACHE_DIR": "/tmp/numba_cache",
+                "NUMBA_DISABLE_CACHE": "1"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug All Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "tests/",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
+                "NUMBA_DISABLE_JIT": "1",
+                "NUMBA_CACHE_DIR": "/tmp/numba_cache",
+                "NUMBA_DISABLE_CACHE": "1"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Debug Specific Test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/tests/",
+                "-k",
+                "${input:testName}",
+                "-v",
+                "-s"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
+                "NUMBA_DISABLE_JIT": "1",
+                "NUMBA_CACHE_DIR": "/tmp/numba_cache",
+                "NUMBA_DISABLE_CACHE": "1"
+            },
+            "cwd": "${workspaceFolder}"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "description": "Enter test name or pattern",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}
