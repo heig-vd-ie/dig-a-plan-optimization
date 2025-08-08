@@ -6,10 +6,10 @@ import numpy as np
 import polars as pl
 from polars import col as c
 from general_function import generate_log
-from pipelines.data_manager import PipelineDataManager
-from pipelines.configs import ADMMConfig, PipelineType
+from pipelines.reconfiguration.data_manager import PipelineDataManager
+from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
-from pipelines.model_managers import PipelineModelManager
+from pipelines.reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

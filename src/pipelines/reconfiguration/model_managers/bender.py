@@ -13,15 +13,15 @@ from networkx_function import (
     generate_bfs_tree_with_edge_data,
     get_all_edge_data,
 )
-from pipelines.data_manager import PipelineDataManager
-from pipelines.configs import BenderConfig, PipelineType
+from pipelines.reconfiguration.data_manager import PipelineDataManager
+from pipelines.reconfiguration.configs import BenderConfig, PipelineType
 from model_reconfiguration import (
     generate_master_model,
     generate_infeasible_slave_model,
     generate_optimal_slave_model,
 )
 from pyomo_utility import extract_optimization_results
-from pipelines.model_managers import PipelineModelManager
+from pipelines.reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

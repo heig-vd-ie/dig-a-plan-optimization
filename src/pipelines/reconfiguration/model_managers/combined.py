@@ -2,10 +2,10 @@ import random
 import pyomo.environ as pyo
 import polars as pl
 from general_function import generate_log
-from pipelines.data_manager import PipelineDataManager
-from pipelines.configs import CombinedConfig, PipelineType
+from pipelines.reconfiguration.data_manager import PipelineDataManager
+from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
-from pipelines.model_managers import PipelineModelManager
+from pipelines.reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

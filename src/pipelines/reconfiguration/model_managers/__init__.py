@@ -1,8 +1,8 @@
 import pyomo.environ as pyo
 import polars as pl
 from general_function import generate_log
-from pipelines.data_manager import PipelineDataManager
-from pipelines.configs import PipelineConfig, PipelineType
+from pipelines.reconfiguration.data_manager import PipelineDataManager
+from pipelines.reconfiguration.configs import PipelineConfig, PipelineType
 
 log = generate_log(name=__name__)
 

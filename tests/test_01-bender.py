@@ -3,8 +3,8 @@ import polars as pl
 
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines import DigAPlanBender
-from pipelines.configs import BenderConfig, PipelineType
+from pipelines.reconfiguration import DigAPlanBender
+from pipelines.reconfiguration.configs import BenderConfig, PipelineType
 
 from pyomo_utility import extract_optimization_results
 

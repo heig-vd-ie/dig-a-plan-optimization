@@ -2,8 +2,8 @@ import polars as pl
 import pandapower as pp
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from pipelines import DigAPlanADMM, DigAPlanCombined
-from pipelines.configs import ADMMConfig, CombinedConfig, PipelineType
+from pipelines.reconfiguration import DigAPlanADMM, DigAPlanCombined
+from pipelines.reconfiguration.configs import ADMMConfig, CombinedConfig, PipelineType
 
 
 def test_admm_model_simple_example():
