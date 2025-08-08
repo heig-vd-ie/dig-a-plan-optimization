@@ -211,7 +211,20 @@ function handle_request(req::HTTP.Request)
     end
 end
 
-println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Starting server on port 8080...")
-HTTP.serve(handle_request, "0.0.0.0", 8080)
+# Parse command line arguments or environment variables
+port = if length(ARGS) >= 1
+    parse(Int, ARGS[1])
+else
+    8080
+end
+
+host = if length(ARGS) >= 2
+    ARGS[2]
+else
+    "0.0.0.0"
+end
+
+println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Starting server on $host:$port...")
+HTTP.serve(handle_request, host, port)
 
 end
