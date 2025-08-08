@@ -2,14 +2,6 @@
 
 This project provides a stochastic programming framework for expansion, reinforcement, and replacement planning of distribution grids using SDDP.jl and JuMP.jl.
 
-## Project Structure
-
-- `src/types.jl`: Defines core data structures (`Scenario`, `PlanningParams`).
-- `src/utils.jl`: Utility functions for scenario/cost generation and plotting.
-- `src/stochastic.jl`: Main SDDP model-building logic.
-- `examples/stochastic_example.jl`: Example script demonstrating usage.
-- `examples/entrypoint.jl`: Entrypoint script that sets up the environment and runs the example.
-
 ## Usage
 
 1. Install dependencies:

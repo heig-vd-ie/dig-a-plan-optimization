@@ -1,4 +1,4 @@
-using InvestmentModel
+using ExpansionModel
 using SDDP
 
 using ..Types, ..Stochastic, ..ScenariosGeneration
