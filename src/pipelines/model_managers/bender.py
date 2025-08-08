@@ -15,7 +15,7 @@ from networkx_function import (
 )
 from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import BenderConfig, PipelineType
-from optimization_model import (
+from model_reconfiguration import (
     generate_master_model,
     generate_infeasible_slave_model,
     generate_optimal_slave_model,

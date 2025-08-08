@@ -126,7 +126,7 @@ These are populated during the iterative Benders loop.
 import pyomo.environ as pyo
 import pyomo.gdp as pyg
 from pyomo.environ import ConstraintList
-from optimization_model.constraints import *
+from model_reconfiguration.constraints import *
 
 
 def master_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:

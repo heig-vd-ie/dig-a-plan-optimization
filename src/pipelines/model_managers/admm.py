@@ -8,7 +8,7 @@ from polars import col as c
 from general_function import generate_log
 from pipelines.data_manager import PipelineDataManager
 from pipelines.configs import ADMMConfig, PipelineType
-from optimization_model import generate_combined_model, generate_combined_lin_model
+from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipelines.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)

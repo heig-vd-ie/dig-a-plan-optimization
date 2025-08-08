@@ -192,7 +192,7 @@ Ensures voltage magnitudes remain within safety limits with slacks:
 """
 
 import pyomo.environ as pyo
-from optimization_model.constraints import *
+from model_reconfiguration.constraints import *
 
 
 def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:

@@ -2,23 +2,23 @@ from doctest import master
 from pyomo import environ as pyo
 from pyomo.environ import Suffix
 
-from optimization_model.sets import model_sets
-from optimization_model.parameters import model_parameters as common_parameters
-from optimization_model.variables import model_variables as common_variables
-from optimization_model.master_model.variables import master_model_variables
-from optimization_model.master_model.constraints import master_model_constraints
-from optimization_model.slave_model.parameters import slave_model_parameters
-from optimization_model.slave_model.variables import (
+from model_reconfiguration.sets import model_sets
+from model_reconfiguration.parameters import model_parameters as common_parameters
+from model_reconfiguration.variables import model_variables as common_variables
+from model_reconfiguration.master_model.variables import master_model_variables
+from model_reconfiguration.master_model.constraints import master_model_constraints
+from model_reconfiguration.slave_model.parameters import slave_model_parameters
+from model_reconfiguration.slave_model.variables import (
     slave_model_variables,
     infeasible_slave_model_variables,
 )
-from optimization_model.slave_model.constraints import (
+from model_reconfiguration.slave_model.constraints import (
     optimal_slave_model_constraints,
     infeasible_slave_model_constraints,
 )
-from optimization_model.combined_model.parameters import model_parameters
-from optimization_model.combined_model.variables import model_variables
-from optimization_model.combined_model.constraints import (
+from model_reconfiguration.combined_model.parameters import model_parameters
+from model_reconfiguration.combined_model.variables import model_variables
+from model_reconfiguration.combined_model.constraints import (
     combined_model_common_constraints,
     combined_model_lin_constraints,
     combined_model_constraints,

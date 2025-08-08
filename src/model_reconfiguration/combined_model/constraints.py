@@ -1,4 +1,4 @@
-from optimization_model.constraints import *
+from model_reconfiguration.constraints import *
 import pyomo.environ as pyo
 
 
