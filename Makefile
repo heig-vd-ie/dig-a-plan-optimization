@@ -92,21 +92,21 @@ uninstall-venv: ## Uninstall the virtual environment
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
 
-run-pytest: ## Run tests using pytest (check venv is activated otherwise activated)
+run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
-	@if [ -n "$(t)" ]; then \
-		poetry run pytest -v "$(t)"; \
+	@if [ -n "$(file)" ]; then \
+		poetry run pytest -v "$(file)"; \
 	else \
 		poetry run pytest; \
 	fi
 
-run-jltest:  ## Run tests of Julia
+run-tests-jl:  ## Run tests of Julia
 	@echo "Running Julia tests..."
 	julia --project=src/model_expansion/. src/model_expansion/test/runtests.jl
 
 run-tests: ## Run all tests
-	@$(MAKE) run-pytest
-	@$(MAKE) run-jltest
+	@$(MAKE) run-tests-py
+	@$(MAKE) run-tests-jl
 
 format-julia:  ## Format Julia code in the src directory
 	@echo "Formatting Julia code with JuliaFormatter..."

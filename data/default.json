@@ -28,6 +28,7 @@
         "iteration_limit": 10,
         "n_simulations": 100,
         "risk_measure_type": "expectation",
-        "risk_measure_param": 0.1
+        "risk_measure_param": 0.1,
+        "seed": 1234
     }
 }

@@ -43,7 +43,10 @@ function stochastic_planning(
     iteration_limit::Int64,
     n_simulations::Int64,
     risk_measure::SDDP.AbstractRiskMeasure,
+    seed::Int = 1234,
 )
+    Random.seed!(seed)
+
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,
@@ -54,6 +57,8 @@ function stochastic_planning(
     end
 
     SDDP.train(model, risk_measure = risk_measure, iteration_limit = iteration_limit)
+
+    Random.seed!(seed)
 
     simulations = SDDP.simulate(
         model,

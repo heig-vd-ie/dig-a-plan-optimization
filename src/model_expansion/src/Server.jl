@@ -165,6 +165,7 @@ function handle_stochastic_planning(req::HTTP.Request)
         iteration_limit,
         n_simulations,
         risk_measure,
+        additional_params["seed"],
     )
 
     println("[$(log_datetime())] SDDP optimization completed")
