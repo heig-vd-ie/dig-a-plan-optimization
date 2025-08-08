@@ -29,7 +29,7 @@ custom_request = Dict(custom_request)  # Convert to mutable Dict
 custom_request[:additional_params] = Dict(
     "iteration_limit" => 50,
     "n_simulations" => 100,
-    "risk_measure_type" => "wasserstein",
+    "risk_measure_type" => "Wasserstein",
     "risk_measure_param" => 0.1,
 )
 
@@ -54,9 +54,44 @@ function test_api_request(request_data, test_name)
     end
 end
 
+function test_plot()
+    @testset "Plot Tests" begin
+        custom_request = JSON3.read(read(joinpath(@__DIR__, "../data/default.json"), String))
+        custom_request = Dict(custom_request)  # Convert to mutable Dict
+        custom_request[:cases] = [
+            Dict(
+                "iteration_limit" => 50,
+                "n_simulations" => 100,
+                "risk_measure_type" => "Expectation",
+                "risk_measure_param" => 0.1,
+            ),
+            Dict(
+                "iteration_limit" => 50,
+                "n_simulations" => 100,
+                "risk_measure_type" => "Entropic",
+                "risk_measure_param" => 0.1,
+            ),
+            Dict(
+                "iteration_limit" => 50,
+                "n_simulations" => 100,
+                "risk_measure_type" => "Wasserstein",
+                "risk_measure_param" => 0.1,
+            ),
+        ]
+        custom_request[:plot_saved] = ".cache/objective_histogram.pdf"
+        response = HTTP.post(
+            "$SERVER_BASE_URL/compare-plot",
+            ["Content-Type" => "application/json"],
+            JSON3.write(custom_request),
+        )
+        @test response.status == 200
+    end
+end
+
 @testset "API Tests" begin
     # Run tests (make sure server is running first)
     test_api_request(minimal_request, "Minimal Request")
     test_api_request(simple_request, "Simple Request")
     test_api_request(custom_request, "Custom Request")
+    test_plot()
 end

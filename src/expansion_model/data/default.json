@@ -26,8 +26,8 @@
     },
     "additional_params": {
         "iteration_limit": 10,
-        "n_simulations": 500,
+        "n_simulations": 100,
         "risk_measure_type": "expectation",
-        "risk_measure_param": 0.2
+        "risk_measure_param": 0.1
     }
 }
