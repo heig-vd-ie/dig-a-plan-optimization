@@ -7,7 +7,7 @@ from pipelines.reconfiguration.model_managers.combined import (
 from pipelines.reconfiguration.model_managers.bender import PipelineModelManagerBender
 from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
 from polars_function import cast_boolean
-from pyomo_utility import extract_optimization_results
+from pipelines.helpers.pyomo_utility import extract_optimization_results
 
 
 class PipelineResultManager:

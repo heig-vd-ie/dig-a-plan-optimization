@@ -29,7 +29,7 @@ from pipelines.reconfiguration.model_managers.bender import PipelineModelManager
 from pipelines.reconfiguration.model_managers.combined import (
     PipelineModelManagerCombined,
 )
-from pipelines.reconfiguration.pyomo_utility import extract_optimization_results
+from pipelines.helpers.pyomo_utility import extract_optimization_results
 from plotly.subplots import make_subplots
 from general_function import pl_to_dict
 

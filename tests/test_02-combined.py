@@ -6,7 +6,7 @@ from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines.reconfiguration import DigAPlanCombined
 from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
 
-from pipelines.reconfiguration.pyomo_utility import extract_optimization_results
+from pipelines.helpers.pyomo_utility import extract_optimization_results
 
 
 def test_combined_model_simple_example():

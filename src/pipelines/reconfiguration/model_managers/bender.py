@@ -20,7 +20,7 @@ from model_reconfiguration import (
     generate_infeasible_slave_model,
     generate_optimal_slave_model,
 )
-from pyomo_utility import extract_optimization_results
+from pipelines.helpers.pyomo_utility import extract_optimization_results
 from pipelines.reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)

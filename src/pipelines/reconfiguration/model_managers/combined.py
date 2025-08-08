@@ -1,6 +1,5 @@
 import random
 import pyomo.environ as pyo
-import polars as pl
 from general_function import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
 from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
