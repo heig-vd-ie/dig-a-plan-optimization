@@ -24,6 +24,7 @@ custom_request[:additional_params] = Dict(
     "n_simulations" => 100,
     "risk_measure_type" => "Wasserstein",
     "risk_measure_param" => 0.1,
+    "seed" => 1234,
 )
 
 function test_api_request(request_data, test_name)
