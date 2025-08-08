@@ -24,7 +24,14 @@ minimal_request = Dict()
 simple_request = Dict("iteration_limit" => 50, "n_simulations" => 100)
 
 # Custom grid configuration
-custom_request = JSON3.read(read(joinpath(@__DIR__, "../data/custom.json"), String))
+custom_request = JSON3.read(read(joinpath(@__DIR__, "../data/default.json"), String))
+custom_request = Dict(custom_request)  # Convert to mutable Dict
+custom_request[:additional_params] = Dict(
+    "iteration_limit" => 50,
+    "n_simulations" => 100,
+    "risk_measure_type" => "wasserstein",
+    "risk_measure_param" => 0.1,
+)
 
 function test_api_request(request_data, test_name)
     @testset "$test_name" begin

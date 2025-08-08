@@ -2,8 +2,28 @@ using ExpansionModel
 using SDDP
 using Plots
 import Plots
+using JSON
 
 using ..Types, ..Stochastic, ..ScenariosGeneration, ..Wasserstein
+
+# Function to convert Node objects to their IDs in nested structures
+function serialize_nodes(obj)
+    if isa(obj, Types.Node)
+        return obj.id
+    elseif isa(obj, Dict)
+        # Handle dictionaries with Node keys specially
+        new_dict = Dict()
+        for (k, v) in obj
+            new_key = isa(k, Types.Node) ? string(k.id) : serialize_nodes(k)
+            new_dict[new_key] = serialize_nodes(v)
+        end
+        return new_dict
+    elseif isa(obj, Array)
+        return [serialize_nodes(item) for item in obj]
+    else
+        return obj
+    end
+end
 
 # === Main example ===
 n_stages = 5
@@ -25,6 +45,21 @@ pv = Dict(n => 0.1 for n in nodes)
 grid = Types.Grid(nodes, edges, cuts, Types.Node(1), initial_cap, load, pv)
 Ω = ScenariosGeneration.generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
+
+# Export scenarios to JSON
+scenarios_data_raw = Dict("Ω" => Ω, "P" => P)
+
+# Convert to JSON string, then fix Node representations
+json_string = JSON.json(scenarios_data_raw, 2)
+# Replace "Node(X)" with just "X"
+json_string = replace(json_string, r"\"Node\((\d+)\)\"" => s"\"\1\"")
+
+isdir(".cache") || mkpath(".cache")
+open(".cache/scenarios.json", "w") do file
+    write(file, json_string)
+end
+println("Scenarios exported to .cache/scenarios.json")
+
 investment_costs, penalty_costs_load, penalty_costs_pv =
     ScenariosGeneration.generate_costs(edges, nodes)
 scenarios = Types.Scenarios(Ω, P)
@@ -46,6 +81,27 @@ bender_cuts = Dict(
         pv0[cut],
     ) for cut in cuts
 )
+
+# Export bender cuts to JSON
+bender_cuts_data = Dict(
+    "cuts" => Dict(
+        cut.id => Dict(
+            "θ" => bender_cuts[cut].θ,
+            "λ_cap" => Dict(edge.id => bender_cuts[cut].λ_cap[edge] for edge in edges),
+            "λ_load" => Dict(node.id => bender_cuts[cut].λ_load[node] for node in nodes),
+            "λ_pv" => Dict(node.id => bender_cuts[cut].λ_pv[node] for node in nodes),
+            "cap0" => Dict(edge.id => bender_cuts[cut].cap0[edge] for edge in edges),
+            "load0" => Dict(node.id => bender_cuts[cut].load0[node] for node in nodes),
+            "pv0" => Dict(node.id => bender_cuts[cut].pv0[node] for node in nodes),
+        ) for cut in cuts
+    ),
+)
+
+open(".cache/bender_cuts.json", "w") do file
+    JSON.print(file, bender_cuts_data, 2)
+end
+println("Bender cuts exported to .cache/bender_cuts.json")
+
 params = Types.PlanningParams(
     n_stages,
     50.0,  # initial_budget

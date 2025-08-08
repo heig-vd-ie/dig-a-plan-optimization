@@ -46,5 +46,9 @@
   "[julia]": {
       "editor.defaultFormatter": "julialang.language-julia",
       "editor.formatOnSave": true
-  }
+  },
+  "[json]": {
+    "editor.defaultFormatter": "GamemodeOne.json-compact-prettier",
+    "editor.formatOnSave": true
+  },
 }
