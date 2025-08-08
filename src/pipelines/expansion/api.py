@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 import requests
 from pathlib import Path
 
@@ -16,9 +15,7 @@ class ExpansionModel:
     def __init__(self, data_path: Path | None = None):
         SERVER_HOST = "localhost"
 
-        if len(sys.argv) >= 2:
-            SERVER_PORT = int(sys.argv[1])
-        elif "SERVER_PORT" in os.environ:
+        if "SERVER_PORT" in os.environ:
             SERVER_PORT = int(os.environ["SERVER_PORT"])
         else:
             SERVER_PORT = 8080
@@ -42,12 +39,12 @@ class ExpansionModel:
             "base_url": self.base_url,
         }
 
-    def run_sddp(self) -> requests.Response | None:
+    def run_sddp(self) -> requests.Response:
         try:
             with open(self.data_path, "r") as f:
                 request_data = json.load(f)
 
-            response = requests.post(
+            response = requests.patch(
                 f"{self.base_url}/stochastic_planning",
                 headers={"Content-Type": "application/json"},
                 json=request_data,
@@ -59,19 +56,10 @@ class ExpansionModel:
                 logger.info(f"🎉 Response status: {response.status_code}")
             return response
         except FileNotFoundError:
-            logger.error(f"✗ Could not find data file at {self.data_path}")
-            return None
+            raise FileNotFoundError(f"✗ Could not find data file at {self.data_path}")
         except json.JSONDecodeError as e:
-            logger.error(f"✗ Error parsing JSON: {e}")
-            return None
+            raise ValueError(f"✗ Error parsing JSON: {e}")
         except requests.RequestException as e:
-            logger.error(f"✗ Request error: {e}")
-            return None
+            raise ConnectionError(f"✗ Request error: {e}")
         except Exception as e:
-            logger.error(f"✗ Unexpected error: {e}")
-            return None
-
-
-if __name__ == "__main__":
-    expansion_model = ExpansionModel()
-    expansion_model.run_sddp()
+            raise RuntimeError(f"✗ Unexpected error: {e}")

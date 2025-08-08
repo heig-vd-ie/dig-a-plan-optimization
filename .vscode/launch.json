@@ -18,7 +18,8 @@
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
                 "NUMBA_DISABLE_JIT": "1",
                 "NUMBA_CACHE_DIR": "/tmp/numba_cache",
-                "NUMBA_DISABLE_CACHE": "1"
+                "NUMBA_DISABLE_CACHE": "1",
+                "SERVER_PORT": "8080"
             },
             "cwd": "${workspaceFolder}"
         },
@@ -39,7 +40,8 @@
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
                 "NUMBA_DISABLE_JIT": "1",
                 "NUMBA_CACHE_DIR": "/tmp/numba_cache",
-                "NUMBA_DISABLE_CACHE": "1"
+                "NUMBA_DISABLE_CACHE": "1",
+                "SERVER_PORT": "8080"
             },
             "cwd": "${workspaceFolder}"
         },
@@ -62,7 +64,8 @@
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
                 "NUMBA_DISABLE_JIT": "1",
                 "NUMBA_CACHE_DIR": "/tmp/numba_cache",
-                "NUMBA_DISABLE_CACHE": "1"
+                "NUMBA_DISABLE_CACHE": "1",
+                "SERVER_PORT": "8080"
             },
             "cwd": "${workspaceFolder}"
         }

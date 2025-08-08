@@ -28,7 +28,7 @@ custom_request[:additional_params] = Dict(
 
 function test_api_request(request_data, test_name)
     @testset "$test_name" begin
-        response = HTTP.post(
+        response = HTTP.patch(
             "$SERVER_BASE_URL/stochastic_planning",
             ["Content-Type" => "application/json"],
             JSON3.write(request_data),
@@ -73,7 +73,7 @@ function test_plot()
             ),
         ]
         custom_request[:plot_saved] = ".cache/objective_histogram.pdf"
-        response = HTTP.post(
+        response = HTTP.patch(
             "$SERVER_BASE_URL/compare-plot",
             ["Content-Type" => "application/json"],
             JSON3.write(custom_request),

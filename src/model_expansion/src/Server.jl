@@ -204,7 +204,7 @@ function compare_plot(req::HTTP.Request)
 
         # Create a new request with modified body
         modified_req =
-            HTTP.Request("POST", "/stochastic_planning", [], JSON3.write(modified_body))
+            HTTP.Request("PATCH", "/stochastic_planning", [], JSON3.write(modified_body))
 
         # Run stochastic planning
         response = handle_stochastic_planning(modified_req)
@@ -245,11 +245,11 @@ function handle_request(req::HTTP.Request)
     start_time = time()
 
     try
-        if req.method == "POST" && req.target == "/stochastic_planning"
+        if req.method == "PATCH" && req.target == "/stochastic_planning"
             response = handle_stochastic_planning(req)
             log_request(req, 200, (time() - start_time) * 1000)
             return response
-        elseif req.method == "POST" && req.target == "/compare-plot"
+        elseif req.method == "PATCH" && req.target == "/compare-plot"
             # Handle plot request
             response = compare_plot(req)
             log_request(req, 200, (time() - start_time) * 1000)
