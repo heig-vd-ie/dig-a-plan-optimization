@@ -2,37 +2,20 @@ using HTTP
 using JSON3
 using Test
 
-# Expected JSON structure:
-# {
-#   "grid": {
-#     "nodes": [{"id": 1}, {"id": 2}],
-#     "edges": [{"id": 1, "from": 1, "to": 2}],
-#     "cuts": [{"id": 1}],
-#     "external_grid": 1,
-#     "initial_cap": {"1": 1.0},
-#     "load": {"1": 1.0, "2": 1.0},
-#     "pv": {"1": 0.1, "2": 0.1}
-#   },
-#   "scenarios": {
-#     "n_scenarios": 10,
-#     "n_stages": 5,
-#     "total_load_per_node": 2.0,
-#     "total_pv_per_node": 1.0,
-#     "total_budget": 1000.0,
-#     "seed": 1234
-#   },
-#   "params": {
-#     "initial_budget": 50.0,
-#     "discount_rate": 0.0,
-#     "investment_cost_range": [90.0, 100.0],
-#     "penalty_cost_load": 6000.0,
-#     "penalty_cost_pv": 6000.0
-#   },
-#   "iteration_limit": 100,
-#   "n_simulations": 1000,
-#   "risk_measure": "expectation",
-#   "risk_measure_param": 0.1
-# }
+# Server configuration from environment variables or command line arguments
+SERVER_HOST = "localhost"
+
+SERVER_PORT = if length(ARGS) >= 2
+    parse(Int, ARGS[2])
+elseif haskey(ENV, "SERVER_PORT")
+    parse(Int, ENV["SERVER_PORT"])
+else
+    8080
+end
+
+SERVER_BASE_URL = "http://$SERVER_HOST:$SERVER_PORT"
+
+println("Testing API server at: $SERVER_BASE_URL")
 
 # Minimal request example - all parameters will use defaults
 minimal_request = Dict()
@@ -78,7 +61,7 @@ custom_request = Dict(
 function test_api_request(request_data, test_name)
     @testset "$test_name" begin
         response = HTTP.post(
-            "http://localhost:8080/stochastic_planning",
+            "$SERVER_BASE_URL/stochastic_planning",
             ["Content-Type" => "application/json"],
             JSON3.write(request_data),
         )

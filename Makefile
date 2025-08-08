@@ -2,8 +2,7 @@
 
 PYTHON_VERSION := 3.12
 VENV_DIR := .venv
-SERVER_PORT ?= 8081 # Julia server targets
-SERVER_HOST ?= 0.0.0.0
+SERVER_PORT ?= 8080 # Julia server targets
 
 # Default target: help
 .DEFAULT_GOAL := help
@@ -122,6 +121,7 @@ format: format-julia format-python ## Format all code (Julia and Python)
 server-julia:  ## Start Julia server
 	@echo "Starting Julia server..."
 	julia --project=src/expansion_model/. src/expansion_model/api/server.jl
+
 start-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Julia API server on $(SERVER_HOST):$(SERVER_PORT)..."
-	julia --project=src/expansion_model/. src/expansion_model/api/server.jl $(SERVER_PORT) $(SERVER_HOST)
+	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
+	julia --project=src/expansion_model/. src/expansion_model/api/server.jl $(SERVER_PORT)
