@@ -3,10 +3,10 @@ import polars as pl
 import math
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines import DigAPlanCombined
-from pipelines.configs import CombinedConfig, PipelineType
+from pipelines.reconfiguration import DigAPlanCombined
+from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
 
-from pyomo_utility import extract_optimization_results
+from pipelines.helpers.pyomo_utility import extract_optimization_results
 
 
 def test_combined_model_simple_example():

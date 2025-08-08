@@ -2,6 +2,7 @@
 
 PYTHON_VERSION := 3.12
 VENV_DIR := .venv
+SERVER_PORT ?= 8080 # Julia server targets
 
 # Default target: help
 .DEFAULT_GOAL := help
@@ -82,14 +83,41 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) venv-activate-and-poetry-use-update
 	@echo "All dependencies installed successfully!"
 
+install-julia:  ## Install Julia
+	@echo "Installing Julia..."
+	@bash scripts/install-julia.sh
+
 uninstall-venv: ## Uninstall the virtual environment
 	@echo "Uninstalling virtual environment..."
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
 
-test: ## Run tests using pytest (check venv is activated otherwise activated)
-	@if [ -n "$(t)" ]; then \
-		poetry run pytest -v "$(t)"; \
+run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
+	@echo "Running Python tests..."
+	@if [ -n "$(file)" ]; then \
+		poetry run pytest -v "$(file)"; \
 	else \
 		poetry run pytest; \
 	fi
+
+run-tests-jl:  ## Run tests of Julia
+	@echo "Running Julia tests..."
+	julia --project=src/model_expansion/. src/model_expansion/test/runtests.jl
+
+run-tests: ## Run all tests
+	@$(MAKE) run-tests-py
+	@$(MAKE) run-tests-jl
+
+format-julia:  ## Format Julia code in the src directory
+	@echo "Formatting Julia code with JuliaFormatter..."
+	julia -e 'using JuliaFormatter; format("src/")'
+
+format-python: ## Format Python code using black
+	@echo "Formatting Python code with black..."
+	@poetry run black .
+
+format: format-julia format-python ## Format all code (Julia and Python)
+
+run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
+	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
+	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)

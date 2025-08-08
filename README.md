@@ -13,6 +13,19 @@ You will need a Gurobi license to run this project. Visit [https://license.gurob
 
 Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
 
+To install Julia on a new machine, run:
+```sh
+make install-julia
+```
+
+After that, you can open a server of julia for expansion model with the following command:
+```sh
+make run-server-jl
+```
+
+For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md).
+
+
 ## Updating the Virtual Environment or Packages
 
 If you need to update packages listed in `pyproject.toml`, use:
@@ -54,8 +67,15 @@ Check following doc [here](docs/Julia/01-install-julia.md).
 ```
 
 ### Development
-If you add a new feature in python part, make sure to run `pytest` to verify that existing features continue to work correctly.
+In a separate shell, run `make run-server-jl`.
+
+- If you add a new feature in python part, make sure to test `run-tests-py` to verify that existing features continue to work correctly.
+
+- For Julia part, test `make run-tests-jl`.
+
+Or do the following for testsing both:
+
 ```sh
 make venv-activate
-make pytest
+make run-tests
 ```
