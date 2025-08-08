@@ -8,11 +8,21 @@ export define_state_variables!, define_decision_variables!
 
 function define_state_variables!(m::Model, params::Types.PlanningParams, grid::Types.Grid)
     @variable(m, b_rem >= 0, SDDP.State, initial_value = params.initial_budget)  # Budget remaining
-    @variable(m, cap[edge in grid.edges] >= 0, SDDP.State, initial_value = grid.initial_cap[edge])  # Capacity state variable
+    @variable(
+        m,
+        cap[edge in grid.edges] >= 0,
+        SDDP.State,
+        initial_value = grid.initial_cap[edge]
+    )  # Capacity state variable
     @variable(m, δ_com[edge in grid.edges] >= 0, SDDP.State, initial_value = 0.0)  # committed expansion
     @variable(m, total_unmet_load[node in grid.nodes] >= 0, SDDP.State, initial_value = 0.0)  # unmet load state variable
     @variable(m, total_unmet_pv[node in grid.nodes] >= 0, SDDP.State, initial_value = 0.0)  # unmet PV state variable
-    @variable(m, actual_load[node in grid.nodes] >= 0, SDDP.State, initial_value = grid.load[node])  # actual load state variable
+    @variable(
+        m,
+        actual_load[node in grid.nodes] >= 0,
+        SDDP.State,
+        initial_value = grid.load[node]
+    )  # actual load state variable
     @variable(m, actual_pv[node in grid.nodes] >= 0, SDDP.State, initial_value = grid.pv[node])  # actual PV state variable
     return (
         b_rem = b_rem,

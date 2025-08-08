@@ -58,7 +58,13 @@ function define_first_stage_constraints!(m::Model, grid::Types.Grid, states)
     return nothing
 end
 
-function define_subsequent_stage_constraints!(m::Model, grid::Types.Grid, states, vars)
+function define_subsequent_stage_constraints!(
+    m::Model,
+    grid::Types.Grid,
+    params::Types.PlanningParams,
+    states,
+    vars,
+)
     @constraint(
         m,
         [node in grid.nodes],
@@ -116,11 +122,17 @@ function define_subsequent_stage_constraints!(m::Model, grid::Types.Grid, states
     # Flow conservation for each edge
     @constraint(
         m,
-        [edge in grid.edges],
-        states.cap[edge].out >=
+        [cut in grid.cuts],
+        params.bender_cuts[cut].θ >=
         sum(
-            states.actual_load[node].out * grid.factor_load[edge][node] for node in grid.nodes
-        ) + sum(states.actual_pv[node].out * grid.factor_pv[edge][node] for node in grid.nodes)
+            (states.actual_load[node].out - params.bender_cuts[cut].load0[node]) *
+            params.bender_cuts[cut].λ_load[node] +
+            (states.actual_pv[node].out - params.bender_cuts[cut].pv0[node]) *
+            params.bender_cuts[cut].λ_pv[node] for node in grid.nodes
+        ) + sum(
+            (states.cap[edge].out - params.bender_cuts[cut].cap0[edge]) *
+            params.bender_cuts[cut].λ_cap[edge] for edge in grid.edges
+        )
     )
 
     return nothing

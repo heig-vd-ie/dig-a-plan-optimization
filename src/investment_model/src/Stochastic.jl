@@ -1,6 +1,6 @@
 module Stochastic
 
-using SDDP, JuMP, HiGHS
+using SDDP, JuMP, HiGHS, Random
 export stochastic_planning
 
 using ..Types, ..Variables, ..Constraints
@@ -28,7 +28,7 @@ function model_builder(
     if stage == 1
         define_first_stage_constraints!(m, grid, states)
     else
-        define_subsequent_stage_constraints!(m, grid, states, vars)
+        define_subsequent_stage_constraints!(m, grid, params, states, vars)
     end
     define_objective!(m, grid, vars, states, params, stage)
     @stageobjective(m, vars.obj)
@@ -36,11 +36,7 @@ function model_builder(
     return m
 end
 
-function stochastic_planning(
-    grid::Grid,
-    scenarios::Scenarios,
-    params::PlanningParams,
-)
+function stochastic_planning(grid::Grid, scenarios::Scenarios, params::PlanningParams)
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,

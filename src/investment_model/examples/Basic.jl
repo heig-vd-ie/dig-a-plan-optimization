@@ -1,74 +1,9 @@
-# push!(LOAD_PATH, joinpath(@__DIR__, ".."))
 using InvestmentModel
 using SDDP
-using Random
 
-using ..Types, ..Stochastic
-
-# === Utility functions (inlined) ===
-"""
-Randomly split a total `total` into `n` non-negative values that sum to `total`
-"""
-function random_partition(total::Float64, n::Int)
-    breaks = sort([0.0; rand(n - 1) .* total; total])
-    return [breaks[i + 1] - breaks[i] for i in 1:n]
-end
-
-# Generate random scenarios for each stage
-function generate_scenarios(
-    n_scenarios::Int,
-    n_stages::Int,
-    nodes::Vector{Types.Node};
-    total_load_per_node::Float64 = 2.0,
-    total_pv_per_node::Float64 = 1.0,
-)
-    scenarios = Vector{Vector{Scenario}}(undef, n_scenarios)
-
-    for s in 1:n_scenarios
-        scenario_path = Vector{Scenario}(undef, n_stages)
-
-        # Randomly split total delta_load and delta_pv across stages, per node
-        delta_load_splits = Dict{Types.Node, Vector{Float64}}()
-        delta_pv_splits = Dict{Types.Node, Vector{Float64}}()
-
-        for node in nodes
-            delta_load_splits[node] = random_partition(total_load_per_node, n_stages)
-            delta_pv_splits[node] = random_partition(total_pv_per_node, n_stages)
-        end
-
-        for t in 1:n_stages
-            delta_load = Dict(node => delta_load_splits[node][t] for node in nodes)
-            delta_pv = Dict(node => delta_pv_splits[node][t] for node in nodes)
-            delta_budget = rand(0.0:1.0:1000.0)  # or keep constant per scenario if needed
-
-            scenario_path[t] = Scenario(delta_load, delta_pv, delta_budget)
-        end
-
-        scenarios[s] = scenario_path
-    end
-
-    return [[scenarios[j][i] for j in 1:length(scenarios)] for i in 1:length(scenarios[1])]  # Returns Vector of scenario paths, each path is a Vector of Scenario
-end
-
-# Generate cost dictionaries for grid sections/edges
-function generate_costs(edges, nodes)
-    investment_costs = Dict(e => rand(90.0:95:100.0) for e in edges)
-    penalty_costs_load = Dict(n => 6000.0 for n in nodes)
-    penalty_costs_pv = Dict(n => 6000.0 for n in nodes)
-    return investment_costs, penalty_costs_load, penalty_costs_pv
-end
-
-function generate_factor_load(edges, nodes)
-    return Dict(edge => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for edge in edges)
-end
-
-function generate_factor_pv(edges, nodes)
-    return Dict(edge => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for edge in edges)
-end
+using ..Types, ..Stochastic, ..ScenariosGeneration
 
 # === Main example ===
-
-Random.seed!(1234)
 n_stages = 5
 n_scenarios = 100
 n_iterations = 10
@@ -81,16 +16,34 @@ edges = [
     Types.Edge(4, 2, 4),
     Types.Edge(5, 3, 4),
 ]
+cuts = [Types.Cut(1), Types.Cut(2), Types.Cut(3), Types.Cut(4)]
 initial_cap = Dict(e => 1.0 for e in edges)
 load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
-factor_load = generate_factor_load(edges, nodes)
-factor_pv = generate_factor_pv(edges, nodes)
-grid = Types.Grid(nodes, edges, Types.Node(1), initial_cap, load, pv, factor_load, factor_pv)
-Ω = generate_scenarios(n_scenarios, n_stages, nodes)
+grid = Types.Grid(nodes, edges, cuts, Types.Node(1), initial_cap, load, pv)
+Ω = ScenariosGeneration.generate_scenarios(n_scenarios, n_stages, nodes)
 P = fill(1.0 / n_scenarios, n_scenarios)
-investment_costs, penalty_costs_load, penalty_costs_pv = generate_costs(edges, nodes)
+investment_costs, penalty_costs_load, penalty_costs_pv =
+    ScenariosGeneration.generate_costs(edges, nodes)
 scenarios = Types.Scenarios(Ω, P)
+λ_cap = ScenariosGeneration.generate_λ_cap(cuts, edges)
+λ_load = ScenariosGeneration.generate_λ_load(cuts, nodes)
+λ_pv = ScenariosGeneration.generate_λ_pv(cuts, nodes)
+cap0 = ScenariosGeneration.generate_cap0(cuts, edges)
+load0 = ScenariosGeneration.generate_load0(cuts, nodes)
+pv0 = ScenariosGeneration.generate_pv0(cuts, nodes)
+θ = ScenariosGeneration.generate_θ(cuts)
+bender_cuts = Dict(
+    cut => Types.BenderCut(
+        θ[cut],
+        λ_cap[cut],
+        λ_load[cut],
+        λ_pv[cut],
+        cap0[cut],
+        load0[cut],
+        pv0[cut],
+    ) for cut in cuts
+)
 params = Types.PlanningParams(
     n_stages,
     50.0,  # initial_budget
@@ -98,6 +51,7 @@ params = Types.PlanningParams(
     penalty_costs_load,
     penalty_costs_pv,
     0.0,  # discount_rate
+    bender_cuts,
 )
 model1 = Stochastic.stochastic_planning(grid, scenarios, params)
 model2 = Stochastic.stochastic_planning(grid, scenarios, params)

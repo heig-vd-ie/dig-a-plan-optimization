@@ -12,15 +12,28 @@ struct Edge
     to::Int64
 end
 
+struct Cut
+    id::Int64
+end
+
+struct BenderCut
+    θ::Float64
+    λ_cap::Dict{Edge, Float64}
+    λ_load::Dict{Node, Float64}
+    λ_pv::Dict{Node, Float64}
+    cap0::Dict{Edge, Float64}
+    load0::Dict{Node, Float64}
+    pv0::Dict{Node, Float64}
+end
+
 struct Grid
     nodes::Vector{Node}
     edges::Vector{Edge}
+    cuts::Vector{Cut}
     external_grid::Node
     initial_cap::Dict{Edge, Float64}
     load::Dict{Node, Float64}
     pv::Dict{Node, Float64}
-    factor_pv::Dict{Edge, Dict{Node, Float64}}
-    factor_load::Dict{Edge, Dict{Node, Float64}}
 end
 
 struct Scenario
@@ -41,6 +54,7 @@ struct PlanningParams
     penalty_costs_load::Dict{Node, Float64}
     penalty_costs_pv::Dict{Node, Float64}
     discount_rate::Float64
+    bender_cuts::Dict{Cut, BenderCut}
 end
 
 end
