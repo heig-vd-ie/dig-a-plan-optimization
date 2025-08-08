@@ -1,12 +1,12 @@
 using ExpansionModel
 using SDDP
 
-using ..Types, ..Stochastic, ..ScenariosGeneration
+using ..Types, ..Stochastic, ..ScenariosGeneration, ..Wasserstein
 
 # === Main example ===
 n_stages = 5
 n_scenarios = 100
-n_iterations = 10
+iteration_limit = 10
 n_simulations = 1000
 nodes = [Types.Node(1), Types.Node(2), Types.Node(3), Types.Node(4)]
 edges = [
@@ -53,52 +53,30 @@ params = Types.PlanningParams(
     0.0,  # discount_rate
     bender_cuts,
 )
-model1 = Stochastic.stochastic_planning(grid, scenarios, params)
-model2 = Stochastic.stochastic_planning(grid, scenarios, params)
-
-SDDP.train(model1, iteration_limit = n_iterations)
-
-simulations1 = SDDP.simulate(
-    model1,
+simulations1, objectives1 = Stochastic.stochastic_planning(
+    grid,
+    scenarios,
+    params,
+    iteration_limit,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :cap, :δ_cap, :obj],
+    SDDP.Expectation(),
 )
-
-# Compute and plot objective histogram for the last simulation
-SDDP.train(model2, risk_measure = SDDP.Entropic(0.1), iteration_limit = n_iterations)
-
-simulations2 = SDDP.simulate(
-    model2,
+simulations2, objectives2 = Stochastic.stochastic_planning(
+    grid,
+    scenarios,
+    params,
+    iteration_limit,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :cap, :δ_cap, :obj],
+    SDDP.Entropic(0.1),
 )
-objectives1 = [sum(stage[:obj] for stage in data) for data in simulations1]
-objectives2 = [sum(stage[:obj] for stage in data) for data in simulations2]
-
-using HiGHS
-function wasserstein_norm(x::SDDP.Noise{Scenario}, y::SDDP.Noise{Scenario})
-    s1, s2 = x.term, y.term
-    # Compute Euclidean distance over all numeric fields
-    delta_load_diff = sum(abs(s1.δ_load[n] - s2.δ_load[n]) for n in keys(s1.δ_load))
-    delta_pv_diff = sum(abs(s1.δ_pv[n] - s2.δ_pv[n]) for n in keys(s1.δ_pv))
-    delta_budget_diff = abs(s1.δ_b - s2.δ_b)
-    return delta_load_diff + delta_pv_diff + delta_budget_diff
-end
-
-model3 = Stochastic.stochastic_planning(grid, scenarios, params)
-
-SDDP.train(
-    model3,
-    risk_measure = SDDP.Wasserstein(wasserstein_norm, HiGHS.Optimizer; alpha = 1 / 20),
-    iteration_limit = n_iterations,
-)
-
-simulations3 = SDDP.simulate(
-    model3,
+simulations3, objectives3 = Stochastic.stochastic_planning(
+    grid,
+    scenarios,
+    params,
+    iteration_limit,
     n_simulations,
-    [:investment_cost, :total_unmet_load, :total_unmet_pv, :cap, :δ_cap, :obj],
+    Wasserstein.risk_measure(1 / 20),
 )
-objectives3 = [sum(stage[:obj] for stage in data) for data in simulations3]
 
 using Plots
 histogram(

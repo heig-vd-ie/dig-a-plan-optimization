@@ -36,7 +36,14 @@ function model_builder(
     return m
 end
 
-function stochastic_planning(grid::Grid, scenarios::Scenarios, params::PlanningParams)
+function stochastic_planning(
+    grid::Grid,
+    scenarios::Scenarios,
+    params::PlanningParams,
+    iteration_limit::Int64,
+    n_simulations::Int64,
+    risk_measure::SDDP.AbstractRiskMeasure,
+)
     model = SDDP.LinearPolicyGraph(;
         stages = params.n_stages,
         sense = :Min,
@@ -45,7 +52,17 @@ function stochastic_planning(grid::Grid, scenarios::Scenarios, params::PlanningP
     ) do m, stage
         model_builder(m, grid, stage, scenarios, params)
     end
-    return model
+
+    SDDP.train(model, risk_measure = risk_measure, iteration_limit = iteration_limit)
+
+    simulations = SDDP.simulate(
+        model,
+        n_simulations,
+        [:investment_cost, :total_unmet_load, :total_unmet_pv, :cap, :δ_cap, :obj],
+    )
+    objectives = [sum(stage[:obj] for stage in data) for data in simulations]
+
+    return simulations, objectives
 end
 
 end

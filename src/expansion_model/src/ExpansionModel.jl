@@ -7,7 +7,8 @@ include("Variables.jl")
 include("Constraints.jl")
 include("Stochastic.jl")
 include("ScenariosGeneration.jl")
+include("Wasserstein.jl")
 
-export Types, Stochastic, Variables, Constraints, ScenariosGeneration
+export Types, Stochastic, Variables, Constraints, ScenariosGeneration, Wasserstein
 
 end
