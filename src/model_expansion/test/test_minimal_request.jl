@@ -58,18 +58,21 @@ function test_plot()
                 "n_simulations" => 100,
                 "risk_measure_type" => "Expectation",
                 "risk_measure_param" => 0.1,
+                "seed" => 1234,
             ),
             Dict(
                 "iteration_limit" => 50,
                 "n_simulations" => 100,
                 "risk_measure_type" => "Entropic",
                 "risk_measure_param" => 0.1,
+                "seed" => 1234,
             ),
             Dict(
                 "iteration_limit" => 50,
                 "n_simulations" => 100,
                 "risk_measure_type" => "Wasserstein",
                 "risk_measure_param" => 0.1,
+                "seed" => 1234,
             ),
         ]
         custom_request[:plot_saved] = ".cache/objective_histogram.pdf"
