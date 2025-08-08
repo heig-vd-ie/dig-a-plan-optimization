@@ -82,6 +82,10 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) venv-activate-and-poetry-use-update
 	@echo "All dependencies installed successfully!"
 
+install-julia:
+	@echo "Installing Julia..."
+	@bash scripts/install-julia.sh
+
 uninstall-venv: ## Uninstall the virtual environment
 	@echo "Uninstalling virtual environment..."
 	rm -rf $(VENV_DIR)

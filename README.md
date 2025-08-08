@@ -13,6 +13,11 @@ You will need a Gurobi license to run this project. Visit [https://license.gurob
 
 Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
 
+To install Julia on a new machine, run:
+```sh
+make install-julia
+```
+
 ## Updating the Virtual Environment or Packages
 
 If you need to update packages listed in `pyproject.toml`, use:
