@@ -6,7 +6,7 @@ from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines.reconfiguration import DigAPlanBender
 from pipelines.reconfiguration.configs import BenderConfig, PipelineType
 
-from pyomo_utility import extract_optimization_results
+from pipelines.reconfiguration.pyomo_utility import extract_optimization_results
 
 
 def test_bender_model_simple_example():
