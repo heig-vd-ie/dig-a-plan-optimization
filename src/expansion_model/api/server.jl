@@ -14,19 +14,19 @@ function log_request(req::HTTP.Request, status_code::Int, processing_time::Float
     )
 end
 
+function log_datetime()
+    return Dates.format(now(), "yyyy-mm-dd HH:MM:SS")
+end
+
 function handle_stochastic_planning(req::HTTP.Request)
-    println(
-        "[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Processing stochastic planning request...",
-    )
+    println("[$(log_datetime())] Processing stochastic planning request...")
 
     # Parse the JSON body
     body = String(req.body)
 
     # Handle empty body case
     if isempty(body)
-        println(
-            "[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Empty request body, using all defaults",
-        )
+        println("[$(log_datetime())] Empty request body, using all defaults")
         input_data = Dict()
     else
         input_data = JSON3.read(body)
@@ -93,7 +93,7 @@ function handle_stochastic_planning(req::HTTP.Request)
     risk_measure_param =
         Float64(get(input_data, "risk_measure_param", default_config["risk_measure_param"]))
 
-    println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Running SDDP optimization...")
+    println("[$(log_datetime())] Running SDDP optimization...")
 
     # Construct data structures from parsed parameters
     # Create nodes, edges, and cuts
@@ -207,7 +207,7 @@ function handle_stochastic_planning(req::HTTP.Request)
         risk_measure,
     )
 
-    println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] SDDP optimization completed")
+    println("[$(log_datetime())] SDDP optimization completed")
 
     # Return the response as JSON
     response = JSON3.write(Dict("simulations" => simulations, "objectives" => objectives))
@@ -232,7 +232,7 @@ function handle_request(req::HTTP.Request)
         end
     catch e
         log_request(req, 500, (time() - start_time) * 1000)
-        println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] ERROR: $e")
+        println("[$(log_datetime())] ERROR: $e")
         log_request(req, 500, (time() - start_time) * 1000)
         return HTTP.Response(500, "Internal Server Error")
     end
@@ -249,9 +249,7 @@ else
     8080
 end
 
-println(
-    "[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Starting server on $SERVER_HOST:$SERVER_PORT...",
-)
+println("[$(log_datetime())] Starting server on $SERVER_HOST:$SERVER_PORT...")
 HTTP.serve(handle_request, SERVER_HOST, SERVER_PORT)
 
 end
