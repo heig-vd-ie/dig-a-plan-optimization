@@ -2,20 +2,13 @@ using HTTP
 using JSON3
 using Test
 
+# Import server utilities
+include("../src/ServerUtils.jl")
+using .ServerUtils
+
 # Server configuration from environment variables or command line arguments
-SERVER_HOST = "localhost"
-
-SERVER_PORT = if length(ARGS) >= 1
-    parse(Int, ARGS[1])
-elseif haskey(ENV, "SERVER_PORT")
-    parse(Int, ENV["SERVER_PORT"])
-else
-    8080
-end
-
-SERVER_BASE_URL = "http://$SERVER_HOST:$SERVER_PORT"
-
-println("Testing API server at: $SERVER_BASE_URL")
+server_config = get_server_config("localhost", 8080, verbose = true)
+SERVER_BASE_URL = server_config.base_url
 
 # Minimal request example - all parameters will use defaults
 minimal_request = Dict()

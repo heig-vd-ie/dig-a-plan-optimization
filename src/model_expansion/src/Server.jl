@@ -8,6 +8,9 @@ using Dates
 using ExpansionModel
 using Plots
 
+include("ServerUtils.jl")
+using .ServerUtils
+
 function log_request(req::HTTP.Request, status_code::Int, processing_time::Float64)
     timestamp = Dates.format(now(), "yyyy-mm-dd HH:MM:SS")
     println(
@@ -266,17 +269,9 @@ function handle_request(req::HTTP.Request)
 end
 
 # Parse command line arguments or environment variables
-SERVER_HOST = "0.0.0.0"
+server_config = get_server_config("0.0.0.0", 8080, verbose = false)
 
-SERVER_PORT = if length(ARGS) >= 1
-    parse(Int, ARGS[1])
-elseif haskey(ENV, "SERVER_PORT")
-    parse(Int, ENV["SERVER_PORT"])
-else
-    8080
-end
-
-println("[$(log_datetime())] Starting server on $SERVER_HOST:$SERVER_PORT...")
-HTTP.serve(handle_request, SERVER_HOST, SERVER_PORT)
+println("[$(log_datetime())] Starting server on $(server_config.host):$(server_config.port)...")
+HTTP.serve(handle_request, server_config.host, server_config.port)
 
 end
