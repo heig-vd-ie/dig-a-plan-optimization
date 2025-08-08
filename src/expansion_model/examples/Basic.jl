@@ -1,5 +1,7 @@
 using ExpansionModel
 using SDDP
+using Plots
+import Plots
 
 using ..Types, ..Stochastic, ..ScenariosGeneration, ..Wasserstein
 
@@ -78,7 +80,6 @@ simulations3, objectives3 = Stochastic.stochastic_planning(
     Wasserstein.risk_measure(1 / 20),
 )
 
-using Plots
 histogram(
     [objectives1, objectives2, objectives3],
     normalize = true,
@@ -93,6 +94,7 @@ histogram(
     linecolor = [:blue :red :green],
     fillcolor = [:blue :red :green],
 )
+isdir(".cache") || mkpath(".cache")
 savefig(".cache/objective_histogram.pdf")
 
 plt1 = SDDP.SpaghettiPlot(simulations1)
@@ -132,7 +134,6 @@ SDDP.add_spaghetti(plt3; title = "Capacity") do data
 end
 SDDP.plot(plt3, ".cache/example3.html", open = true)
 
-import Plots
 p1 = Vector{Plots.Plot}(undef, 3)
 p2 = Vector{Plots.Plot}(undef, 3)
 p3 = Vector{Plots.Plot}(undef, 3)
