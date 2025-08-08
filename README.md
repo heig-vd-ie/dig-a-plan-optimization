@@ -18,6 +18,14 @@ To install Julia on a new machine, run:
 make install-julia
 ```
 
+After that, you can open a server of julia for expansion model with the following command:
+```sh
+make run-server-jl
+```
+
+For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md).
+
+
 ## Updating the Virtual Environment or Packages
 
 If you need to update packages listed in `pyproject.toml`, use:
@@ -59,14 +67,13 @@ Check following doc [here](docs/Julia/01-install-julia.md).
 ```
 
 ### Development
-If you add a new feature in python part, make sure to run `run-pytest` to verify that existing features continue to work correctly. For Julia part, run `run-jltest`
-```sh
-make venv-activate
-make run-pytests
-make run-jltests
-```
+In a separate shell, run `make run-server-jl`.
 
-or
+- If you add a new feature in python part, make sure to test `run-tests-py` to verify that existing features continue to work correctly.
+
+- For Julia part, test `make run-tests-jl`.
+
+Or do the following for testsing both:
 
 ```sh
 make venv-activate
