@@ -1,0 +1,30 @@
+{
+    "grid":{
+        "nodes":[{"id":1}, {"id":2}],
+        "edges":[{"id":1, "from":1, "to":2}],
+        "cuts":[{"id":1}],
+        "external_grid":1,
+        "initial_cap":{"1":1.0},
+        "load":{"1":1.0, "2":1.0},
+        "pv":{"1":0.1, "2":0.1}
+    },
+    "scenarios":{
+        "n_scenarios":10,
+        "n_stages":5,
+        "total_load_per_node":2.0,
+        "total_pv_per_node":1.0,
+        "total_budget":1000.0,
+        "seed":1234
+    },
+    "params":{
+        "initial_budget":50.0,
+        "discount_rate":0.0,
+        "investment_cost_range":[90.0, 100.0],
+        "penalty_cost_load":6000.0,
+        "penalty_cost_pv":6000.0
+    },
+    "iteration_limit":100,
+    "n_simulations":1000,
+    "risk_measure":"expectation",
+    "risk_measure_param":0.1
+}

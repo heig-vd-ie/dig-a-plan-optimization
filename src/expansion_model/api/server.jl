@@ -33,38 +33,65 @@ function handle_stochastic_planning(req::HTTP.Request)
     end
 
     # Extract input parameters with default values
+    # Read defaults from file if present
+    default_config = JSON3.read(read(joinpath(@__DIR__, "../data/default.json"), String))
     # Grid structure with defaults
-    grid_data = get(input_data, "grid", Dict())
-    nodes_data = get(grid_data, "nodes", [Dict("id" => 1), Dict("id" => 2)])
-    edges_data = get(grid_data, "edges", [Dict("id" => 1, "from" => 1, "to" => 2)])
-    cuts_data = get(grid_data, "cuts", [Dict("id" => 1)])
-    external_grid_id = get(grid_data, "external_grid", 1)
-    initial_cap = get(grid_data, "initial_cap", Dict("1" => 1.0))
-    load = get(grid_data, "load", Dict("1" => 1.0, "2" => 1.0))
-    pv = get(grid_data, "pv", Dict("1" => 0.1, "2" => 0.1))
+    grid_data = get(input_data, "grid", default_config["grid"])
+    nodes_data = get(grid_data, "nodes", default_config["grid"]["nodes"])
+    edges_data = get(grid_data, "edges", default_config["grid"]["edges"])
+    cuts_data = get(grid_data, "cuts", default_config["grid"]["cuts"])
+    external_grid_id = get(grid_data, "external_grid", default_config["grid"]["external_grid"])
+    initial_cap = get(grid_data, "initial_cap", default_config["grid"]["initial_cap"])
+    load = get(grid_data, "load", default_config["grid"]["load"])
+    pv = get(grid_data, "pv", default_config["grid"]["pv"])
 
     # Scenarios with defaults
-    scenarios_data = get(input_data, "scenarios", Dict())
-    n_scenarios = get(scenarios_data, "n_scenarios", 10)
-    n_stages = get(scenarios_data, "n_stages", 5)
-    total_load_per_node = Float64(get(scenarios_data, "total_load_per_node", 2.0))
-    total_pv_per_node = Float64(get(scenarios_data, "total_pv_per_node", 1.0))
-    total_budget = Float64(get(scenarios_data, "total_budget", 1000.0))
-    seed_number = get(scenarios_data, "seed", 1234)
+    scenarios_data = get(input_data, "scenarios", default_config["scenarios"])
+    n_scenarios = get(scenarios_data, "n_scenarios", default_config["scenarios"]["n_scenarios"])
+    n_stages = get(scenarios_data, "n_stages", default_config["scenarios"]["n_stages"])
+    total_load_per_node = Float64(
+        get(
+            scenarios_data,
+            "total_load_per_node",
+            default_config["scenarios"]["total_load_per_node"],
+        ),
+    )
+    total_pv_per_node = Float64(
+        get(
+            scenarios_data,
+            "total_pv_per_node",
+            default_config["scenarios"]["total_pv_per_node"],
+        ),
+    )
+    total_budget = Float64(
+        get(scenarios_data, "total_budget", default_config["scenarios"]["total_budget"]),
+    )
+    seed_number = get(scenarios_data, "seed", default_config["scenarios"]["seed"])
 
     # Planning parameters with defaults
     params_data = get(input_data, "params", Dict())
-    initial_budget = Float64(get(params_data, "initial_budget", 50.0))
-    discount_rate = Float64(get(params_data, "discount_rate", 0.0))
-    investment_cost_range = get(params_data, "investment_cost_range", [90.0, 100.0])
-    penalty_cost_load = Float64(get(params_data, "penalty_cost_load", 6000.0))
-    penalty_cost_pv = Float64(get(params_data, "penalty_cost_pv", 6000.0))
+    initial_budget =
+        Float64(get(params_data, "initial_budget", default_config["params"]["initial_budget"]))
+    discount_rate =
+        Float64(get(params_data, "discount_rate", default_config["params"]["discount_rate"]))
+    investment_cost_range = get(
+        params_data,
+        "investment_cost_range",
+        default_config["params"]["investment_cost_range"],
+    )
+    penalty_cost_load = Float64(
+        get(params_data, "penalty_cost_load", default_config["params"]["penalty_cost_load"]),
+    )
+    penalty_cost_pv = Float64(
+        get(params_data, "penalty_cost_pv", default_config["params"]["penalty_cost_pv"]),
+    )
 
     # Algorithm parameters with defaults
-    iteration_limit = get(input_data, "iteration_limit", 100)
-    n_simulations = get(input_data, "n_simulations", 1000)
-    risk_measure_type = get(input_data, "risk_measure", "expectation")
-    risk_measure_param = Float64(get(input_data, "risk_measure_param", 0.1))
+    iteration_limit = get(input_data, "iteration_limit", default_config["iteration_limit"])
+    n_simulations = get(input_data, "n_simulations", default_config["n_simulations"])
+    risk_measure_type = get(input_data, "risk_measure", default_config["risk_measure"])
+    risk_measure_param =
+        Float64(get(input_data, "risk_measure_param", default_config["risk_measure_param"]))
 
     println("[$(Dates.format(now(), "yyyy-mm-dd HH:MM:SS"))] Running SDDP optimization...")
 

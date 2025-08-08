@@ -118,10 +118,6 @@ format-python: ## Format Python code using black
 
 format: format-julia format-python ## Format all code (Julia and Python)
 
-server-julia:  ## Start Julia server
-	@echo "Starting Julia server..."
-	julia --project=src/expansion_model/. src/expansion_model/api/server.jl
-
-start-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
+run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
 	julia --project=src/expansion_model/. src/expansion_model/api/server.jl $(SERVER_PORT)

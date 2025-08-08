@@ -5,8 +5,8 @@ using Test
 # Server configuration from environment variables or command line arguments
 SERVER_HOST = "localhost"
 
-SERVER_PORT = if length(ARGS) >= 2
-    parse(Int, ARGS[2])
+SERVER_PORT = if length(ARGS) >= 1
+    parse(Int, ARGS[1])
 elseif haskey(ENV, "SERVER_PORT")
     parse(Int, ENV["SERVER_PORT"])
 else
@@ -24,39 +24,7 @@ minimal_request = Dict()
 simple_request = Dict("iteration_limit" => 50, "n_simulations" => 100)
 
 # Custom grid configuration
-custom_request = Dict(
-    "grid" => Dict(
-        "nodes" => [Dict("id" => 1), Dict("id" => 2), Dict("id" => 3)],
-        "edges" => [
-            Dict("id" => 1, "from" => 1, "to" => 2),
-            Dict("id" => 2, "from" => 2, "to" => 3),
-        ],
-        "cuts" => [Dict("id" => 1), Dict("id" => 2)],
-        "external_grid" => 1,
-        "initial_cap" => Dict("1" => 2.0, "2" => 1.5),
-        "load" => Dict("1" => 1.5, "2" => 1.2, "3" => 1.0),
-        "pv" => Dict("1" => 0.2, "2" => 0.15, "3" => 0.1),
-    ),
-    "scenarios" => Dict(
-        "n_scenarios" => 20,
-        "n_stages" => 10,
-        "total_load_per_node" => 3.0,
-        "total_pv_per_node" => 1.5,
-        "total_budget" => 2000.0,
-        "seed" => 5678,
-    ),
-    "params" => Dict(
-        "initial_budget" => 100.0,
-        "discount_rate" => 0.05,
-        "investment_cost_range" => [80.0, 120.0],
-        "penalty_cost_load" => 8000.0,
-        "penalty_cost_pv" => 8000.0,
-    ),
-    "iteration_limit" => 200,
-    "n_simulations" => 500,
-    "risk_measure" => "entropic",
-    "risk_measure_param" => 0.2,
-)
+custom_request = JSON3.read(read(joinpath(@__DIR__, "../data/custom.json"), String))
 
 function test_api_request(request_data, test_name)
     @testset "$test_name" begin
