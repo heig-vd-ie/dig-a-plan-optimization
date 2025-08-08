@@ -59,8 +59,16 @@ Check following doc [here](docs/Julia/01-install-julia.md).
 ```
 
 ### Development
-If you add a new feature in python part, make sure to run `pytest` to verify that existing features continue to work correctly.
+If you add a new feature in python part, make sure to run `run-pytest` to verify that existing features continue to work correctly. For Julia part, run `run-jltest`
 ```sh
 make venv-activate
-make pytest
+make run-pytests
+make run-jltests
+```
+
+or
+
+```sh
+make venv-activate
+make run-tests
 ```

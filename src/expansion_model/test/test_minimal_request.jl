@@ -1,5 +1,38 @@
 using HTTP
 using JSON3
+using Test
+
+# Expected JSON structure:
+# {
+#   "grid": {
+#     "nodes": [{"id": 1}, {"id": 2}],
+#     "edges": [{"id": 1, "from": 1, "to": 2}],
+#     "cuts": [{"id": 1}],
+#     "external_grid": 1,
+#     "initial_cap": {"1": 1.0},
+#     "load": {"1": 1.0, "2": 1.0},
+#     "pv": {"1": 0.1, "2": 0.1}
+#   },
+#   "scenarios": {
+#     "n_scenarios": 10,
+#     "n_stages": 5,
+#     "total_load_per_node": 2.0,
+#     "total_pv_per_node": 1.0,
+#     "total_budget": 1000.0,
+#     "seed": 1234
+#   },
+#   "params": {
+#     "initial_budget": 50.0,
+#     "discount_rate": 0.0,
+#     "investment_cost_range": [90.0, 100.0],
+#     "penalty_cost_load": 6000.0,
+#     "penalty_cost_pv": 6000.0
+#   },
+#   "iteration_limit": 100,
+#   "n_simulations": 1000,
+#   "risk_measure": "expectation",
+#   "risk_measure_param": 0.1
+# }
 
 # Minimal request example - all parameters will use defaults
 minimal_request = Dict()
@@ -43,29 +76,29 @@ custom_request = Dict(
 )
 
 function test_api_request(request_data, test_name)
-    println("Testing $test_name...")
-    try
+    @testset "$test_name" begin
         response = HTTP.post(
             "http://localhost:8080/stochastic_planning",
             ["Content-Type" => "application/json"],
             JSON3.write(request_data),
         )
 
+        @test response.status == 200
+
         if response.status == 200
             result = JSON3.read(String(response.body))
-            println("✅ $test_name successful!")
-            println("   Objectives length: $(length(result["objectives"]))")
-            println("   Simulations length: $(length(result["simulations"]))")
-        else
-            println("❌ $test_name failed with status: $(response.status)")
+            @test haskey(result, "objectives")
+            @test haskey(result, "simulations")
+            @test length(result["objectives"]) > 0
+            @test length(result["simulations"]) > 0
+            @test length(result["objectives"]) == length(result["simulations"])
         end
-    catch e
-        println("❌ $test_name failed with error: $e")
     end
-    println()
 end
 
-# Uncomment to run tests (make sure server is running first)
-test_api_request(minimal_request, "Minimal Request")
-test_api_request(simple_request, "Simple Request")
-test_api_request(custom_request, "Custom Request")
+@testset "API Tests" begin
+    # Run tests (make sure server is running first)
+    test_api_request(minimal_request, "Minimal Request")
+    test_api_request(simple_request, "Simple Request")
+    test_api_request(custom_request, "Custom Request")
+end

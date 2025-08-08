@@ -82,7 +82,7 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) venv-activate-and-poetry-use-update
 	@echo "All dependencies installed successfully!"
 
-install-julia:
+install-julia:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
 
@@ -91,12 +91,21 @@ uninstall-venv: ## Uninstall the virtual environment
 	rm -rf $(VENV_DIR)
 	@echo "Virtual environment uninstalled."
 
-test: ## Run tests using pytest (check venv is activated otherwise activated)
+run-pytest: ## Run tests using pytest (check venv is activated otherwise activated)
+	@echo "Running Python tests..."
 	@if [ -n "$(t)" ]; then \
 		poetry run pytest -v "$(t)"; \
 	else \
 		poetry run pytest; \
 	fi
+
+run-jltest:  ## Run tests of Julia
+	@echo "Running Julia tests..."
+	julia --project=src/expansion_model/. src/expansion_model/test/runtests.jl
+
+run-tests: ## Run all tests
+	@$(MAKE) run-pytest
+	@$(MAKE) run-jltest
 
 format-julia:  ## Format Julia code in the src directory
 	@echo "Formatting Julia code with JuliaFormatter..."
@@ -107,3 +116,7 @@ format-python: ## Format Python code using black
 	@poetry run black .
 
 format: format-julia format-python ## Format all code (Julia and Python)
+
+server-julia:  ## Start Julia server
+	@echo "Starting Julia server..."
+	julia --project=src/expansion_model/. src/expansion_model/api/server.jl
