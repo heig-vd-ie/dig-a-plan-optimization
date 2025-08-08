@@ -102,7 +102,7 @@ run-pytest: ## Run tests using pytest (check venv is activated otherwise activat
 
 run-jltest:  ## Run tests of Julia
 	@echo "Running Julia tests..."
-	julia --project=src/expansion_model/. src/expansion_model/test/runtests.jl
+	julia --project=src/model_expansion/. src/model_expansion/test/runtests.jl
 
 run-tests: ## Run all tests
 	@$(MAKE) run-pytest
@@ -120,4 +120,4 @@ format: format-julia format-python ## Format all code (Julia and Python)
 
 run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
-	julia --project=src/expansion_model/. src/expansion_model/api/server.jl $(SERVER_PORT)
+	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)
