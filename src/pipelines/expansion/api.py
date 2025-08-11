@@ -37,19 +37,24 @@ class ExpansionModel:
             "base_url": self.base_url,
         }
 
-    def run_sddp_native(self, data_path: Path | None = None) -> requests.Response:
+    def run_sddp_native(
+        self,
+        request_data: dict | None = None,
+        data_path: Path | None = None,
+    ) -> requests.Response:
         """Run the SDDP algorithm (native implementation)."""
         try:
-            data_path = (
-                data_path
-                if data_path
-                else Path(__file__).parent.parent.parent.parent
-                / "data"
-                / "default.json"
-            )
-            logger.info(f"Using data path: {data_path}")
-            with open(data_path, "r") as f:
-                request_data = json.load(f)
+            if request_data is None:
+                data_path = (
+                    data_path
+                    if data_path
+                    else Path(__file__).parent.parent.parent.parent
+                    / "data"
+                    / "default.json"
+                )
+                logger.info(f"Using data path: {data_path}")
+                with open(data_path, "r") as f:
+                    request_data = json.load(f)
 
             response = requests.patch(
                 f"{self.base_url}/stochastic_planning",
@@ -78,20 +83,10 @@ class ExpansionModel:
     ) -> Path:
         """Handle the expansion request."""
         if cache_path is None:
-            cache_path = (
-                Path(__file__).parent.parent.parent
-                / ".cache"
-                / "expansion_request.json"
-            )
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path = Path(__file__).parent.parent.parent / ".cache"
+        cache_path.mkdir(parents=True, exist_ok=True)
         scenarios_path = expansion_request.optimization.scenarios
         bender_cuts_path = expansion_request.optimization.bender_cuts
-        json.dump(
-            expansion_request.optimization.model_dump(by_alias=True),
-            open(cache_path, "w"),
-            indent=4,
-            ensure_ascii=False,
-        )
         json.dump(
             expansion_request.bender_cuts.model_dump(by_alias=True),
             open(bender_cuts_path, "w"),
@@ -113,10 +108,12 @@ class ExpansionModel:
     ) -> ExpansionResponse:
         """Run the SDDP algorithm."""
         if expansion_request is not None:
-            data_path = self.handle_expansion_request(expansion_request, cache_path)
+            cache_path = self.handle_expansion_request(expansion_request, cache_path)
+            response = self.run_sddp_native(
+                request_data=expansion_request.optimization.model_dump(by_alias=True)
+            )
         else:
-            data_path = None
-        response = self.run_sddp_native(data_path)
+            response = self.run_sddp_native()
         return ExpansionResponse(**response.json())
 
 
@@ -130,5 +127,6 @@ def run_sddp(
 ) -> ExpansionResponse:
     expansion_model = ExpansionModel()
     return expansion_model.run_sddp(
-        expansion_request=expansion_request, cache_path=cache_path
+        expansion_request=expansion_request,
+        cache_path=cache_path,
     )

@@ -49,7 +49,7 @@ def test_expansion_model_with_request():
     )
     results = run_sddp(
         expansion_request=expansion_request,
-        cache_path=Path(".cache/test/expansion_request.json"),
+        cache_path=Path(".cache/test"),
     )
     assert results is not None
     assert math.isclose(np.mean(results.objectives), 4848.556437980968, abs_tol=1e-5)
