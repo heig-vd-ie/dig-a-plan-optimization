@@ -47,10 +47,11 @@ class Node(BaseModel):
 
 
 class Edge(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_by_alias=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     id: int
-    from_: int = Field(alias="from")
-    to: int
+    target: int
+    source: int
 
 
 class Cut(BaseModel):
@@ -86,7 +87,7 @@ class AdditionalParams(BaseModel):
 
 
 class OptimizationConfig(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_by_alias=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     grid: Grid
     scenarios: str
@@ -95,7 +96,7 @@ class OptimizationConfig(BaseModel):
 
 
 class ExpansionRequest(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True, validate_by_alias=True)
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     optimization: OptimizationConfig
     scenarios: Scenarios

@@ -8,8 +8,8 @@ end
 
 struct Edge
     id::Int64
-    from::Int64
-    to::Int64
+    target::Int64
+    source::Int64
 end
 
 struct Cut

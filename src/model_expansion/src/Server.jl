@@ -54,8 +54,7 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Create nodes, edges, and cuts
     nodes = [ExpansionModel.Types.Node(node_data["id"]) for node_data in grid_data["nodes"]]
     edges = [
-        ExpansionModel.Types.Edge(edge_data["id"], edge_data["from"], edge_data["to"]) for
-        edge_data in grid_data["edges"]
+        ExpansionModel.Types.Edge(edge_data["id"], edge_data["target"], edge_data["source"]) for edge_data in grid_data["edges"]
     ]
     cuts = [ExpansionModel.Types.Cut(cut_data["id"]) for cut_data in grid_data["cuts"]]
     external_grid = ExpansionModel.Types.Node(grid_data["external_grid"])
