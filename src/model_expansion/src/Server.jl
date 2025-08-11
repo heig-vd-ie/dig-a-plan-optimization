@@ -38,10 +38,11 @@ function handle_stochastic_planning(req::HTTP.Request)
 
     # Extract input parameters with default values
     # Read defaults from file if present
-    default = JSON3.read(read(joinpath(@__DIR__, "../../../data/default.json"), String))
+    default =
+        JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", "data", "default.json"), String))
     # Grid structure with defaults
     grid_data = get(body, "grid", default["grid"])
-    scenarios_data = get(body, "scenarios", default["scenarios"])
+    scenarios_folder = get(body, "scenarios", default["scenarios"])
     planning_params = get(body, "planning_params", default["planning_params"])
 
     # Algorithm parameters with defaults
@@ -73,7 +74,8 @@ function handle_stochastic_planning(req::HTTP.Request)
         pv_dict,
     )
 
-    scenarios_data = JSON3.read(read(joinpath(@__DIR__, "..", scenarios_data), String))
+    scenarios_data =
+        JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", scenarios_folder), String))
     Ω = [
         [
             ExpansionModel.Types.Scenario(
@@ -96,8 +98,9 @@ function handle_stochastic_planning(req::HTTP.Request)
         Dict(node => planning_params["penalty_costs_pv"][string(node.id)] for node in nodes)
 
     discount_rate = planning_params["discount_rate"]
-    bender_cuts_data =
-        JSON3.read(read(joinpath(@__DIR__, "..", planning_params["bender_cuts"]), String))
+    bender_cuts_data = JSON3.read(
+        read(joinpath(@__DIR__, "..", "..", "..", planning_params["bender_cuts"]), String),
+    )
 
     # Generate simple Bender cuts (you may need to adjust this based on your needs)
     bender_cuts = Dict(
@@ -152,6 +155,10 @@ function handle_stochastic_planning(req::HTTP.Request)
         SDDP.Entropic(risk_measure_param)
     elseif risk_measure_type == "Wasserstein"
         ExpansionModel.Wasserstein.risk_measure(risk_measure_param)
+    elseif risk_measure_type == "CVaR"
+        SDDP.CVaR(risk_measure_param)
+    elseif risk_measure_type == "WorstCase"
+        SDDP.WorstCase()
     else
         SDDP.Expectation()  # default
     end
