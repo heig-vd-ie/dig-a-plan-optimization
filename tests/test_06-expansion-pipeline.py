@@ -174,7 +174,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
 class TestExpansionADMM(ExpansionTestBase):
     """Test class for ADMM-based expansion functionality."""
 
-    def test_expansion_admm_setup(self):
+    def test_expansion_admm_input_setup(self):
         """Test basic ADMM configuration setup."""
         expansion_request = self.create_expansion_request()
         node_ids = [node.id for node in expansion_request.optimization.grid.nodes]
