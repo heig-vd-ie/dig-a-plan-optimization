@@ -15,14 +15,14 @@
         "pv": { "1": 0.1, "2": 0.1, "3": 0.1, "4": 0.1 }
     },
     "scenarios": "data/scenarios.json",
+    "bender_cuts": "data/bender_cuts.json",
     "planning_params": {
         "n_stages": 5,
         "initial_budget": 50,
         "investment_costs": { "1": 90, "2": 95, "3": 100, "4": 105, "5": 110 },
         "penalty_costs_load": { "1": 6000, "2": 6000, "3": 6000, "4": 6000 },
         "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 },
-        "discount_rate": 0.05,
-        "bender_cuts": "data/bender_cuts.json"
+        "discount_rate": 0.05
     },
     "additional_params": {
         "iteration_limit": 10,

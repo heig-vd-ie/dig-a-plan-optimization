@@ -43,6 +43,7 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Grid structure with defaults
     grid_data = get(body, "grid", default["grid"])
     scenarios_folder = get(body, "scenarios", default["scenarios"])
+    bender_cuts_folder = get(body, "bender_cuts", default["bender_cuts"])
     planning_params = get(body, "planning_params", default["planning_params"])
 
     # Algorithm parameters with defaults
@@ -97,9 +98,8 @@ function handle_stochastic_planning(req::HTTP.Request)
         Dict(node => planning_params["penalty_costs_pv"][string(node.id)] for node in nodes)
 
     discount_rate = planning_params["discount_rate"]
-    bender_cuts_data = JSON3.read(
-        read(joinpath(@__DIR__, "..", "..", "..", planning_params["bender_cuts"]), String),
-    )
+    bender_cuts_data =
+        JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", bender_cuts_folder), String))
 
     # Generate simple Bender cuts (you may need to adjust this based on your needs)
     bender_cuts = Dict(

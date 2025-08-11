@@ -75,7 +75,6 @@ class PlanningParams(BaseModel):
     penalty_costs_load: Dict[str, int]
     penalty_costs_pv: Dict[str, int]
     discount_rate: float
-    bender_cuts: str
 
 
 class AdditionalParams(BaseModel):
@@ -91,6 +90,7 @@ class OptimizationConfig(BaseModel):
 
     grid: Grid
     scenarios: str
+    bender_cuts: str
     planning_params: PlanningParams
     additional_params: AdditionalParams
 

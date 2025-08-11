@@ -109,11 +109,11 @@ params = Types.PlanningParams(
     penalty_costs_load,
     penalty_costs_pv,
     0.0,  # discount_rate
-    bender_cuts,
 )
 simulations1, objectives1 = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    bender_cuts,
     params,
     iteration_limit,
     n_simulations,
@@ -122,6 +122,7 @@ simulations1, objectives1 = Stochastic.stochastic_planning(
 simulations2, objectives2 = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    bender_cuts,
     params,
     iteration_limit,
     n_simulations,
@@ -130,6 +131,7 @@ simulations2, objectives2 = Stochastic.stochastic_planning(
 simulations3, objectives3 = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    bender_cuts,
     params,
     iteration_limit,
     n_simulations,

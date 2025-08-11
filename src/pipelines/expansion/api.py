@@ -85,7 +85,7 @@ class ExpansionModel:
             )
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         scenarios_path = expansion_request.optimization.scenarios
-        bender_cuts_path = expansion_request.optimization.planning_params.bender_cuts
+        bender_cuts_path = expansion_request.optimization.bender_cuts
         json.dump(
             expansion_request.optimization.model_dump(by_alias=True),
             open(cache_path, "w"),
