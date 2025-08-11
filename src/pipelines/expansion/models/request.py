@@ -63,12 +63,12 @@ class Grid(BaseModel):
     edges: List[Edge]
     cuts: List[Cut]
     external_grid: int
-    initial_cap: Dict[str, int]
+    initial_cap: Dict[str, float]
     load: Dict[str, int]
     pv: Dict[str, float]
-    investment_costs: Dict[str, int]
-    penalty_costs_load: Dict[str, int]
-    penalty_costs_pv: Dict[str, int]
+    investment_costs: Dict[str, float]
+    penalty_costs_load: Dict[str, float]
+    penalty_costs_pv: Dict[str, float]
 
 
 class PlanningParams(BaseModel):

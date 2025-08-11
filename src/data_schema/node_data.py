@@ -15,10 +15,9 @@ class NodeData(pt.Model):
     v_base: float = pt.Field(dtype=pl.Float64)
     v_min_pu: float = pt.Field(dtype=pl.Float64, default=0.9)
     v_max_pu: float = pt.Field(dtype=pl.Float64, default=1.1)
-    p_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
-    p_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
-    q_node_max_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
-    q_node_min_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
+    cons_installed: float = pt.Field(dtype=pl.Float64, default=1.0)
+    prod_installed: float = pt.Field(dtype=pl.Float64, default=1.0)
+
     type: TYPES = pt.Field(
         dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
     )
