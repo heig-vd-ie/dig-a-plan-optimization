@@ -18,6 +18,7 @@ class Simulation(BaseModel):
     obj: float
     total_unmet_load: List[StateVar]
     total_unmet_pv: List[StateVar]
+    δ_cap: List[float]
     δ_load: List[float]
     δ_pv: List[float]
     δ_b: float

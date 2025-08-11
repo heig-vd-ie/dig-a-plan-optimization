@@ -1,0 +1,110 @@
+from typing import Dict, List
+import polars as pl
+from polars import col as c
+import patito as pt
+from data_schema import NodeEdgeModel, NodeData
+from pipelines.reconfiguration import DigAPlanADMM
+from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
+
+
+class ADMM:
+    """ADMM (Alternating Direction Method of Multipliers) optimization class."""
+
+    def __init__(self, groups: Dict[int, List[int]], grid_data: NodeEdgeModel):
+        self.config = ADMMConfig(
+            verbose=False,
+            pipeline_type=PipelineType.ADMM,
+            solver_name="gurobi",
+            solver_non_convex=2,
+            big_m=1e3,
+            ε=1e-4,
+            ρ=2.0,  # initial rho
+            γ_infeasibility=1.0,
+            γ_admm_penalty=1.0,
+            max_iters=10,
+            μ=10.0,
+            τ_incr=2.0,
+            τ_decr=2.0,
+            groups=groups,
+        )
+        self.grid_data = grid_data
+
+    def update_node_grid_data(
+        self,
+        δ_load: List[float],
+        δ_pv: List[float],
+        node_ids: List[int],
+    ):
+        updates_df = pl.DataFrame(
+            {
+                "node_id": node_ids,
+                "new_cons_installed": δ_load,
+                "new_prod_installed": δ_pv,
+            }
+        )
+
+        updated_node_data = (
+            self.grid_data.node_data.as_polars()
+            .join(updates_df, on="node_id", how="left")
+            .with_columns(
+                [
+                    pl.sum_horizontal(
+                        [c("new_cons_installed").fill_null(0.0), c("cons_installed")]
+                    ).alias("cons_installed"),
+                    pl.sum_horizontal(
+                        [c("new_prod_installed").fill_null(0.0), c("prod_installed")]
+                    ).alias("prod_installed"),
+                ]
+            )
+            .drop(["new_cons_installed", "new_prod_installed"])
+        )
+
+        self.grid_data.node_data = (
+            pt.DataFrame(updated_node_data).set_model(NodeData).cast(strict=True)
+        )
+
+    def update_edge_grid_data(self, δ_cap: List[float], edge_ids: List[int]):
+        updates_df = pl.DataFrame(
+            {
+                "edge_id": edge_ids,
+                "new_capacity": δ_cap,
+            }
+        )
+
+        updated_edge_data = (
+            self.grid_data.edge_data.as_polars()
+            .join(updates_df, on="edge_id", how="left")
+            .with_columns(
+                [
+                    pl.sum_horizontal(
+                        [c("new_capacity").fill_null(0.0), c("i_max_pu")]
+                    ).alias("i_max_pu"),
+                    pl.sum_horizontal(
+                        [c("new_capacity").fill_null(0.0), c("p_max_pu")]
+                    ).alias("p_max_pu"),
+                ]
+            )
+            .drop(["new_capacity"])
+        )
+
+        self.grid_data.edge_data = (
+            pt.DataFrame(updated_edge_data).set_model(NodeData).cast(strict=True)
+        )
+
+    def update_grid_data(
+        self,
+        δ_load: List[float],
+        δ_pv: List[float],
+        node_ids: List[int],
+        δ_cap: List[float],
+        edge_ids: List[int],
+    ):
+        self.update_node_grid_data(δ_load, δ_pv, node_ids)
+        self.update_edge_grid_data(δ_cap, edge_ids)
+
+    def solve(self):
+        """Solve the optimization problem using ADMM."""
+        self.dap = DigAPlanADMM(config=self.config)
+        self.dap.add_grid_data(grid_data=self.grid_data)
+        self.dap.solve_model()
+        return None

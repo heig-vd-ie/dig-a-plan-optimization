@@ -7,7 +7,7 @@ from data_exporter.dig_a_plan_to_expansion import (
     dig_a_plan_to_expansion,
     remove_switches_from_grid_data,
 )
-from pathlib import Path
+from pipelines.expansion.admm_helpers import ADMM
 from pipelines.expansion.models.request import (
     PlanningParams,
     AdditionalParams,
@@ -28,6 +28,15 @@ class ExpansionTestBase:
         self.grid_data = pandapower_to_dig_a_plan_schema(self.net)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.cache_dir = test_cache_dir
+
+    def create_groups(self):
+        return {
+            0: [19, 20, 21, 29, 32, 35],
+            1: [35, 30, 33, 25, 26, 27],
+            2: [27, 32, 22, 23, 34],
+            3: [31, 24, 28, 21, 22, 23],
+            4: [34, 26, 25, 24, 31],
+        }
 
     def create_planning_params(
         self, n_stages=3, initial_budget=100000, discount_rate=0.05
@@ -167,19 +176,22 @@ class TestExpansionADMM(ExpansionTestBase):
 
     def test_expansion_admm_setup(self):
         """Test basic ADMM configuration setup."""
-        # TODO: Implement ADMM expansion tests
-        # This demonstrates how the common base class can be extended
-        # for different types of expansion tests
-
-        # Example groups configuration for ADMM
-        groups = {
-            0: [19, 20, 21, 29, 32, 35],
-            1: [35, 30, 33, 25, 26, 27],
-            2: [27, 32, 22, 23, 34],
-            3: [31, 24, 28, 21, 22, 23],
-            4: [34, 26, 25, 24, 31],
-        }
-
-        # Placeholder test - to be implemented when ADMM expansion is available
-        assert groups is not None
-        assert len(groups) == 5
+        expansion_request = self.create_expansion_request()
+        node_ids = [node.id for node in expansion_request.optimization.grid.nodes]
+        edge_ids = [edge.id for edge in expansion_request.optimization.grid.edges]
+        results = run_sddp(expansion_request, self.cache_dir)
+        groups = self.create_groups()
+        admm = ADMM(groups=groups, grid_data=self.grid_data)
+        for stage in range(expansion_request.optimization.planning_params.n_stages):
+            for ω in range(len(expansion_request.scenarios.model_dump().keys())):
+                admm.update_grid_data(
+                    δ_load=results.simulations[ω][stage].δ_load,
+                    δ_pv=results.simulations[ω][stage].δ_pv,
+                    node_ids=node_ids,
+                    δ_cap=results.simulations[ω][stage].δ_cap,
+                    edge_ids=edge_ids,
+                )
+                admm.solve()
+                break
+            break
+        assert True
