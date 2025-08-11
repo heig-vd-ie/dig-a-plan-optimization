@@ -3,6 +3,7 @@ import logging
 import os
 import requests
 from pathlib import Path
+from pipelines.expansion.models import ExpansionResponse
 
 
 logging.basicConfig(
@@ -25,12 +26,6 @@ class ExpansionModel:
         self.server_port = SERVER_PORT
         self.base_url = SERVER_BASE_URL
         logger.info(f"Expansion API server at: {SERVER_BASE_URL}")
-        self.data_path = (
-            data_path
-            if data_path
-            else Path(__file__).parent.parent.parent.parent / "data" / "default.json"
-        )
-        logger.info(f"Using data path: {self.data_path}")
 
     def get_server_config(self):
         return {
@@ -39,9 +34,17 @@ class ExpansionModel:
             "base_url": self.base_url,
         }
 
-    def run_sddp(self) -> requests.Response:
+    def run_sddp_native(self, data_path: Path | None = None) -> requests.Response:
         try:
-            with open(self.data_path, "r") as f:
+            data_path = (
+                data_path
+                if data_path
+                else Path(__file__).parent.parent.parent.parent
+                / "data"
+                / "default.json"
+            )
+            logger.info(f"Using data path: {data_path}")
+            with open(data_path, "r") as f:
                 request_data = json.load(f)
 
             response = requests.patch(
@@ -56,10 +59,14 @@ class ExpansionModel:
                 logger.info(f"🎉 Response status: {response.status_code}")
             return response
         except FileNotFoundError:
-            raise FileNotFoundError(f"✗ Could not find data file at {self.data_path}")
+            raise FileNotFoundError(f"✗ Could not find data file at {data_path}")
         except json.JSONDecodeError as e:
             raise ValueError(f"✗ Error parsing JSON: {e}")
         except requests.RequestException as e:
             raise ConnectionError(f"✗ Request error: {e}")
         except Exception as e:
             raise RuntimeError(f"✗ Unexpected error: {e}")
+
+    def run_sddp(self, data_path: Path | None = None) -> ExpansionResponse:
+        response = self.run_sddp_native(data_path)
+        return ExpansionResponse(**response.json())
