@@ -91,11 +91,11 @@ function handle_stochastic_planning(req::HTTP.Request)
     n_stages = planning_params["n_stages"]
     initial_budget = planning_params["initial_budget"]
     investment_costs =
-        Dict(edge => planning_params["investment_costs"][string(edge.id)] for edge in edges)
+        Dict(edge => grid_data["investment_costs"][string(edge.id)] for edge in edges)
     penalty_costs_load =
-        Dict(node => planning_params["penalty_costs_load"][string(node.id)] for node in nodes)
+        Dict(node => grid_data["penalty_costs_load"][string(node.id)] for node in nodes)
     penalty_costs_pv =
-        Dict(node => planning_params["penalty_costs_pv"][string(node.id)] for node in nodes)
+        Dict(node => grid_data["penalty_costs_pv"][string(node.id)] for node in nodes)
 
     discount_rate = planning_params["discount_rate"]
     bender_cuts_data =

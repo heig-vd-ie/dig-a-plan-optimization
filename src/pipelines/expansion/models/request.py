@@ -66,14 +66,15 @@ class Grid(BaseModel):
     initial_cap: Dict[str, int]
     load: Dict[str, int]
     pv: Dict[str, float]
+    investment_costs: Dict[str, int]
+    penalty_costs_load: Dict[str, int]
+    penalty_costs_pv: Dict[str, int]
 
 
 class PlanningParams(BaseModel):
     n_stages: int
     initial_budget: int
-    investment_costs: Dict[str, int]
-    penalty_costs_load: Dict[str, int]
-    penalty_costs_pv: Dict[str, int]
+
     discount_rate: float
 
 
