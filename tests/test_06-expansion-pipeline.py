@@ -1,13 +1,17 @@
+import math
+import numpy as np
 import pandapower as pp
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from data_exporter.dig_a_plan_to_expansion import dig_a_plan_to_expansion
+from data_exporter.dig_a_plan_to_expansion import (
+    dig_a_plan_to_expansion,
+    remove_switches_from_grid_data,
+)
 from pathlib import Path
 from pipelines.expansion.models.request import (
     PlanningParams,
     AdditionalParams,
     BenderCuts,
     RiskMeasureType,
-    Scenarios,
 )
 from pipelines.expansion.ltscenarios import generate_long_term_scenarios
 from pipelines.expansion.api import run_sddp
@@ -30,8 +34,9 @@ def test_expansion_data_exporter():
         risk_measure_param=0.1,
         seed=42,
     )
+    grid_data_rm = remove_switches_from_grid_data(grid_data)
     scenario_data = generate_long_term_scenarios(
-        nodes=grid_data.node_data,
+        nodes=grid_data_rm.node_data,
         δ_load_var=0.1,
         δ_pv_var=0.1,
         δ_b_var=0.1,
@@ -40,18 +45,27 @@ def test_expansion_data_exporter():
         seed_number=42,
     )
     expansion_request = dig_a_plan_to_expansion(
-        grid_data=grid_data,
+        grid_data=grid_data_rm,
         planning_params=planning_params,
         additional_params=additional_params,
         scenarios_data=scenario_data,
         bender_cuts=BenderCuts(cuts={}),
         scenarios_cache=Path(".cache/test/scenarios.json"),
         bender_cuts_cache=Path(".cache/test/bender_cuts.json"),
+        optimization_config_cache=Path(".cache/test/optimization_config.json"),
     )
 
     results = run_sddp(expansion_request, Path(".cache/test"))
 
     assert results is not None
+    assert np.mean(results.objectives) == 0.0
+    assert math.isclose(
+        np.mean(
+            [results.simulations[ω][0].δ_load for ω in range(len(results.simulations))]
+        ),
+        0.049133186516891136,
+        rel_tol=1e-6,
+    )
 
 
 # from pipelines.reconfiguration.configs import ADMMConfig

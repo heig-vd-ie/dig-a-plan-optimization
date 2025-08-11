@@ -1,5 +1,10 @@
+import networkx as nx
+import copy
+import json
+import polars as pl
 from typing import Dict
 from pathlib import Path
+from networkx import connected_components
 from polars import col as c
 from pipelines.expansion.models.request import (
     Node,
@@ -16,6 +21,58 @@ from pipelines.expansion.models.request import (
 from data_schema import NodeEdgeModel
 
 
+def remove_switches_from_grid_data(grid_data: NodeEdgeModel) -> NodeEdgeModel:
+    """Remove switches from the grid data."""
+    graph = nx.Graph()
+    for edge in grid_data.edge_data.filter(c("type") == "switch").iter_rows(named=True):
+        graph.add_edge(edge["u_of_edge"], edge["v_of_edge"])
+    connected_subgraphs = list(connected_components(graph))
+
+    nodes_mapping = [
+        {
+            "nodes": list(s),
+            "keep": (
+                list(s)[0]
+                if not any(
+                    [
+                        grid_data.node_data.filter(c("node_id") == n)["type"][0]
+                        == "slack"
+                        for n in s
+                    ]
+                )
+                else grid_data.node_data.filter(c("type") == "slack")["node_id"][0]
+            ),
+        }
+        for s in connected_subgraphs
+    ]
+    nodes_to_remove = [
+        node
+        for mapping in nodes_mapping
+        for node in mapping["nodes"]
+        if mapping["keep"] != node
+    ]
+
+    grid_data_rm = copy.deepcopy(grid_data)
+    grid_data_rm.node_data = grid_data_rm.node_data.filter(
+        ~c("node_id").is_in(nodes_to_remove)
+    )
+    grid_data_rm.edge_data = grid_data_rm.edge_data.filter(c("type") != "switch")
+    for s in nodes_mapping:
+        grid_data_rm.edge_data = grid_data_rm.edge_data.with_columns(
+            c("u_of_edge")
+            .map_elements(
+                lambda x: s["keep"] if x in s["nodes"] else x, return_dtype=pl.Int32
+            )
+            .alias("u_of_edge"),
+            c("v_of_edge")
+            .map_elements(
+                lambda x: s["keep"] if x in s["nodes"] else x, return_dtype=pl.Int32
+            )
+            .alias("v_of_edge"),
+        )
+    return grid_data_rm
+
+
 def dig_a_plan_to_expansion(
     grid_data: NodeEdgeModel,
     planning_params: PlanningParams,
@@ -27,8 +84,9 @@ def dig_a_plan_to_expansion(
     bender_cuts: BenderCuts | None = None,
     scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
+    optimization_config_cache: Path | None = None,
 ) -> ExpansionRequest:
-
+    """Convert Dig-A-Plan data model to expansion request."""
     nodes = [
         Node(id=node["node_id"]) for node in grid_data.node_data.iter_rows(named=True)
     ]
@@ -64,13 +122,13 @@ def dig_a_plan_to_expansion(
         }
     if isinstance(penalty_costs_load, (int, float)):
         penalty_costs_load = {
-            str(edge["edge_id"]): float(penalty_costs_load)
-            for edge in grid_data.edge_data.iter_rows(named=True)
+            str(node["node_id"]): float(penalty_costs_load)
+            for node in grid_data.node_data.iter_rows(named=True)
         }
     if isinstance(penalty_costs_pv, (int, float)):
         penalty_costs_pv = {
-            str(edge["edge_id"]): float(penalty_costs_pv)
-            for edge in grid_data.edge_data.iter_rows(named=True)
+            str(node["node_id"]): float(penalty_costs_pv)
+            for node in grid_data.node_data.iter_rows(named=True)
         }
 
     grid = Grid(
@@ -85,21 +143,25 @@ def dig_a_plan_to_expansion(
         penalty_costs_load=penalty_costs_load,
         penalty_costs_pv=penalty_costs_pv,
     )
+    optimization_config = OptimizationConfig(
+        grid=grid,
+        scenarios=(
+            str(scenarios_cache) if scenarios_cache else ".cache/scenarios.json"
+        ),
+        bender_cuts=(
+            str(bender_cuts_cache) if bender_cuts_cache else ".cache/bender_cuts.json"
+        ),
+        planning_params=planning_params,
+        additional_params=additional_params,
+    )
+
+    if optimization_config_cache:
+        optimization_config_dict = optimization_config.model_dump()
+        with open(optimization_config_cache, "w") as f:
+            json.dump(optimization_config_dict, f)
 
     return ExpansionRequest(
-        optimization=OptimizationConfig(
-            grid=grid,
-            scenarios=(
-                str(scenarios_cache) if scenarios_cache else ".cache/scenarios.json"
-            ),
-            bender_cuts=(
-                str(bender_cuts_cache)
-                if bender_cuts_cache
-                else ".cache/bender_cuts.json"
-            ),
-            planning_params=planning_params,
-            additional_params=additional_params,
-        ),
+        optimization=optimization_config,
         scenarios=scenarios_data,
         bender_cuts=bender_cuts if bender_cuts else BenderCuts(cuts={}),
     )

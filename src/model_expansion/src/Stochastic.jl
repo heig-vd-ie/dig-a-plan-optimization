@@ -63,7 +63,17 @@ function stochastic_planning(
     simulations = SDDP.simulate(
         model,
         n_simulations,
-        [:investment_cost, :total_unmet_load, :total_unmet_pv, :cap, :δ_cap, :obj],
+        [
+            :investment_cost,
+            :total_unmet_load,
+            :total_unmet_pv,
+            :cap,
+            :δ_cap,
+            :obj,
+            :δ_load,
+            :δ_pv,
+            :δ_b,
+        ],
     )
     objectives = [sum(stage[:obj] for stage in data) for data in simulations]
 

@@ -7,12 +7,6 @@ class StateVar(BaseModel):
     out: float
 
 
-class NoiseTerm(BaseModel):
-    δ_load: StateVar
-    δ_pv: StateVar
-    δ_b: float
-
-
 class Simulation(BaseModel):
     bellman_term: float
     node_index: int
@@ -23,6 +17,10 @@ class Simulation(BaseModel):
     cap: List[StateVar]
     obj: float
     total_unmet_load: List[StateVar]
+    total_unmet_pv: List[StateVar]
+    δ_load: List[float]
+    δ_pv: List[float]
+    δ_b: float
 
 
 class ExpansionResponse(BaseModel):
