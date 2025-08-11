@@ -85,10 +85,18 @@ class AdditionalParams(BaseModel):
     seed: int
 
 
-class ExpansionRequest(BaseModel):
+class OptimizationConfig(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, validate_by_alias=True)
 
     grid: Grid
     scenarios: str
     planning_params: PlanningParams
     additional_params: AdditionalParams
+
+
+class ExpansionRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, validate_by_alias=True)
+
+    optimization: OptimizationConfig
+    scenarios: Scenarios
+    bender_cuts: BenderCuts
