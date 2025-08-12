@@ -283,13 +283,13 @@ class PipelineModelManagerBender(PipelineModelManager):
             .unnest("name")
         )
         marginal_cost_df = (
-            marginal_cost_df.select(
+            marginal_cost_df.filter(c("name").is_in(constraint_name))
+            .select(
                 c("name"),
                 c("TrTap").str.split(",").list.to_struct(fields=["Tr", "tap"]),
                 c("marginal_cost"),
             )
             .unnest("TrTap")
-            .filter(c("name").is_in(constraint_name))
             .with_columns(c("Tr").cast(pl.Int64))
         ).with_columns(
             pl.concat_list(c("Tr").cast(pl.Int64), c("tap").cast(pl.Int64)).alias(

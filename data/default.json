@@ -2,32 +2,28 @@
     "grid": {
         "nodes": [{ "id": 1 }, { "id": 2 }, { "id": 3 }, { "id": 4 }],
         "edges": [
-            { "id": 1, "from": 1, "to": 2 },
-            { "id": 2, "from": 2, "to": 3 },
-            { "id": 3, "from": 3, "to": 1 },
-            { "id": 4, "from": 2, "to": 4 },
-            { "id": 5, "from": 3, "to": 4 }
+            { "id": 1, "target": 1, "source": 2 },
+            { "id": 2, "target": 2, "source": 3 },
+            { "id": 3, "target": 3, "source": 1 },
+            { "id": 4, "target": 2, "source": 4 },
+            { "id": 5, "target": 3, "source": 4 }
         ],
         "cuts": [{ "id": 1 }, { "id": 2 }, { "id": 3 }, { "id": 4 }],
         "external_grid": 1,
         "initial_cap": { "1": 1, "2": 1, "3": 1, "4": 1, "5": 1 },
         "load": { "1": 1, "2": 1, "3": 1, "4": 1 },
-        "pv": { "1": 0.1, "2": 0.1, "3": 0.1, "4": 0.1 }
-    },
-    "scenarios": "../../data/scenarios.json",
-    "planning_params": {
-        "n_stages": 5,
-        "initial_budget": 50,
+        "pv": { "1": 0.1, "2": 0.1, "3": 0.1, "4": 0.1 },
         "investment_costs": { "1": 90, "2": 95, "3": 100, "4": 105, "5": 110 },
         "penalty_costs_load": { "1": 6000, "2": 6000, "3": 6000, "4": 6000 },
-        "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 },
-        "discount_rate": 0.05,
-        "bender_cuts": "../../data/bender_cuts.json"
+        "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 }
     },
+    "scenarios": "data/scenarios.json",
+    "bender_cuts": "data/bender_cuts.json",
+    "planning_params": { "n_stages": 5, "initial_budget": 50, "discount_rate": 0.05 },
     "additional_params": {
         "iteration_limit": 10,
         "n_simulations": 100,
-        "risk_measure_type": "expectation",
+        "risk_measure_type": "Expectation",
         "risk_measure_param": 0.1,
         "seed": 1234
     }

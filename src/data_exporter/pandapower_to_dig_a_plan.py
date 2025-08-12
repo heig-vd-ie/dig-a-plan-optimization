@@ -25,9 +25,11 @@ def pandapower_to_dig_a_plan_schema(
     bus = net["bus"]
     bus.index.name = "node_id"
 
-    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index())
-    load: pl.DataFrame = pl.from_pandas(net.load)
-    sgen: pl.DataFrame = pl.from_pandas(net.sgen)
+    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index()).with_columns(
+        c("node_id").cast(pl.Int32)
+    )
+    load: pl.DataFrame = pl.from_pandas(net.load).with_columns(c("bus").cast(pl.Int32))
+    sgen: pl.DataFrame = pl.from_pandas(net.sgen).with_columns(c("bus").cast(pl.Int32))
 
     sgen = sgen.group_by("bus").agg(
         (-c("p_mw").sum() * 1e6 / s_base).alias("p_pv"),
@@ -56,10 +58,8 @@ def pandapower_to_dig_a_plan_schema(
             (c("vn_kv") * 1e3).alias("v_base"),
             pl.lit(0.9).alias("v_min_pu"),
             pl.lit(1.1).alias("v_max_pu"),
-            pl.lit(0.0).alias("p_node_max_pu"),
-            pl.lit(0.0).alias("p_node_min_pu"),
-            pl.lit(0.0).alias("q_node_max_pu"),
-            pl.lit(0.0).alias("q_node_min_pu"),
+            pl.lit(1.0).alias("cons_installed"),
+            pl.lit(1.0).alias("prod_installed"),
             c("p_cons_pu").fill_null(0.0),
             c("q_cons_pu").fill_null(0.0),
             c("p_prod_pu").fill_null(0.0),
