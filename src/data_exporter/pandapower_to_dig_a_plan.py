@@ -25,9 +25,11 @@ def pandapower_to_dig_a_plan_schema(
     bus = net["bus"]
     bus.index.name = "node_id"
 
-    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index())
-    load: pl.DataFrame = pl.from_pandas(net.load)
-    sgen: pl.DataFrame = pl.from_pandas(net.sgen)
+    node_data: pl.DataFrame = pl.from_pandas(net.bus.reset_index()).with_columns(
+        c("node_id").cast(pl.Int32)
+    )
+    load: pl.DataFrame = pl.from_pandas(net.load).with_columns(c("bus").cast(pl.Int32))
+    sgen: pl.DataFrame = pl.from_pandas(net.sgen).with_columns(c("bus").cast(pl.Int32))
 
     sgen = sgen.group_by("bus").agg(
         (-c("p_mw").sum() * 1e6 / s_base).alias("p_pv"),

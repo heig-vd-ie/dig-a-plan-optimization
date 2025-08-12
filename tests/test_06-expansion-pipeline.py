@@ -1,6 +1,5 @@
 import math
 import numpy as np
-import pandapower as pp
 import pytest
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
 from data_exporter.dig_a_plan_to_expansion import (
@@ -22,21 +21,15 @@ class ExpansionTestBase:
     """Base class for expansion pipeline tests with common setup."""
 
     @pytest.fixture(autouse=True)
-    def setup_common_data(self, test_data_dir, test_cache_dir):
+    def setup_common_data(
+        self, test_simple_grid, test_cache_dir, test_simple_grid_groups
+    ):
         """Set up common test data and configurations."""
-        self.net = pp.from_pickle(test_data_dir / "simple_grid.p")
+        self.net = test_simple_grid
         self.grid_data = pandapower_to_dig_a_plan_schema(self.net)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.cache_dir = test_cache_dir
-
-    def create_groups(self):
-        return {
-            0: [19, 20, 21, 29, 32, 35],
-            1: [35, 30, 33, 25, 26, 27],
-            2: [27, 32, 22, 23, 34],
-            3: [31, 24, 28, 21, 22, 23],
-            4: [34, 26, 25, 24, 31],
-        }
+        self.simple_grid_groups = test_simple_grid_groups
 
     def create_planning_params(
         self, n_stages=3, initial_budget=100000, discount_rate=0.05
@@ -180,7 +173,7 @@ class TestExpansionADMM(ExpansionTestBase):
         node_ids = [node.id for node in expansion_request.optimization.grid.nodes]
         edge_ids = [edge.id for edge in expansion_request.optimization.grid.edges]
         results = run_sddp(expansion_request, self.cache_dir)
-        groups = self.create_groups()
+        groups = self.simple_grid_groups
         admm = ADMM(groups=groups, grid_data=self.grid_data)
         for stage in range(expansion_request.optimization.planning_params.n_stages):
             for ω in range(len(expansion_request.scenarios.model_dump().keys())):
