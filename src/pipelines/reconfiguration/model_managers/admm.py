@@ -34,10 +34,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
         if grid_data_parameters_dict is None:
             raise ValueError("Grid data parameters dictionary cannot be None.")
         self.admm_linear_model_instance = self.admm_linear_model.create_instance(grid_data_parameters_dict[list(grid_data_parameters_dict.keys())[0]])  # type: ignore
-        for scen in grid_data_parameters_dict.keys():
-            self.admm_model_instances[scen] = self.admm_model.create_instance(grid_data_parameters_dict[scen])  # type: ignore
+        for ω in grid_data_parameters_dict.keys():
+            self.admm_model_instances[ω] = self.admm_model.create_instance(grid_data_parameters_dict[ω])  # type: ignore
 
-    def solve_model(self, **kwargs) -> None:
+    def solve_model(self, fixed_switches: bool = False, **kwargs) -> None:
         """Solve the ADMM model with the given parameters."""
         random.seed(self.config.seed_number)
         self.s_norm: float | None = None
@@ -80,8 +80,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
         }
 
         δ_map, ζ_map = self.__solve_model(self.admm_linear_model_instance)
+
         # ADMM iterations
-        for k in range(1, self.config.max_iters + 1):
+        for k in range(1, self.config.max_iters + 1 if not fixed_switches else 2):
             zδ_old = self.zδ.copy()
             zζ_old = self.zζ.copy()
             # Broadcast z and λ into the model
@@ -94,8 +95,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
             ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]] = {
                 ω: ζ_map for ω in self.Ω
             }
-
-            for ω, g in itertools.product(self.Ω, range(self.number_of_groups)):
+            for ω, g in itertools.product(
+                self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
+            ):
                 m = self.admm_model_instances[ω]  # type: ignore
                 selected_switches = self.__fix_switches(m, δ_map, g)
                 δ_map, ζ_map = self.__solve_model(m, δ_map, selected_switches, k=k)
@@ -323,9 +325,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
             )
         )
 
-    def __fix_switches(self, m: pyo.ConcreteModel, δ_map: dict, g: int) -> List:
+    def __fix_switches(self, m: pyo.ConcreteModel, δ_map: dict, g: int | None) -> List:
         """Fix switches based on δ_map and group g."""
-        if isinstance(self.groups, int):
+        if isinstance(self.groups, int) and (g is not None):
             random_switches = random.sample(
                 self.switch_list,
                 k=min(
@@ -338,15 +340,21 @@ class PipelineModelManagerADMM(PipelineModelManager):
             )
         else:
             random_switches = []
+
         for edge_id, δ in δ_map.items():
             if ((edge_id in random_switches) and isinstance(self.groups, int)) | (
-                (not isinstance(self.groups, int)) and (edge_id in self.groups[g])
+                (not isinstance(self.groups, int) and (g is not None))
+                and (edge_id in self.groups[g])
             ):
                 m.δ[edge_id].unfix()  # type: ignore
             else:
                 m.δ[edge_id].fix(1.0 if δ > 0.5 else 0.0)  # type: ignore
 
-        return random_switches if isinstance(self.groups, int) else self.groups[g]
+        return (
+            random_switches
+            if isinstance(self.groups, int) or g is None
+            else self.groups[g]
+        )
 
     def __solve_model(
         self,

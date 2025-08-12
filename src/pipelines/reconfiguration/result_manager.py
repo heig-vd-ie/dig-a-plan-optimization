@@ -30,15 +30,15 @@ class PipelineResultManager:
         self.data_manager = data_manager
         self.model_manager = model_manager
 
-    def init_model_instance(self):
-        if isinstance(self.model_manager, PipelineModelManagerCombined):
+    def init_model_instance(self, scenario: int = 0):
+        if isinstance(self.model_manager, PipelineModelManagerADMM):
+            self.model_instance = self.model_manager.admm_model_instances[
+                list(self.model_manager.admm_model_instances.keys())[scenario]
+            ]
+        elif isinstance(self.model_manager, PipelineModelManagerCombined):
             self.model_instance = self.model_manager.combined_model_instance
         elif isinstance(self.model_manager, PipelineModelManagerBender):
             self.model_instance = self.model_manager.optimal_slave_model_instance
-        elif isinstance(self.model_manager, PipelineModelManagerADMM):
-            self.model_instance = self.model_manager.admm_model_instances[
-                list(self.model_manager.admm_model_instances.keys())[0]
-            ]
 
     def extract_switch_status(self) -> pl.DataFrame:
         self.init_model_instance()
@@ -87,8 +87,8 @@ class PipelineResultManager:
         )
         return tt
 
-    def extract_node_voltage(self) -> pl.DataFrame:
-        self.init_model_instance()
+    def extract_node_voltage(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
 
         return (
             extract_optimization_results(self.model_instance, "v_sq")
@@ -102,8 +102,8 @@ class PipelineResultManager:
             )
         )
 
-    def extract_edge_current(self) -> pl.DataFrame:
-        self.init_model_instance()
+    def extract_edge_current(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
         return (
             extract_optimization_results(self.model_instance, "i_sq")
             .select(
@@ -121,8 +121,8 @@ class PipelineResultManager:
             )
         )
 
-    def extract_edge_active_power_flow(self) -> pl.DataFrame:
-        self.init_model_instance()
+    def extract_edge_active_power_flow(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
         return (
             extract_optimization_results(self.model_instance, "p_flow")
             .select(
@@ -140,8 +140,8 @@ class PipelineResultManager:
             )
         )
 
-    def extract_edge_reactive_power_flow(self) -> pl.DataFrame:
-        self.init_model_instance()
+    def extract_edge_reactive_power_flow(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
         return (
             extract_optimization_results(self.model_instance, "q_flow")
             .select(
@@ -156,5 +156,20 @@ class PipelineResultManager:
                 ],
                 on="edge_id",
                 how="inner",
+            )
+        )
+
+    def extract_node_active_power_flow(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
+        return (
+            extract_optimization_results(self.model_instance, "p_node_cons")
+            .select(
+                c("p_node_cons").alias("p_pu"),
+                c("NΩ").list.get(0).alias("node_id"),
+            )
+            .join(
+                self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
+                on="node_id",
+                how="left",
             )
         )
