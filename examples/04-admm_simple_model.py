@@ -9,7 +9,7 @@ from examples import *
 # %% set parameters
 
 net = pp.from_pickle("data/simple_grid.p")
-grid_data = pandapower_to_dig_a_plan_schema(net, number_of_random_scenarios=10)
+grid_data = pandapower_to_dig_a_plan_schema(net, number_of_random_scenarios=100)
 groups = {
     0: [19, 20, 21, 29, 32, 35],
     1: [35, 30, 33, 25, 26, 27],
@@ -209,7 +209,7 @@ current_df = pl.concat(all_currents).with_columns(pl.col("edge_id").cast(pl.Int6
 # %% Check results
 all_powers = []
 for ω in range(len(dap.model_manager.admm_model_instances)):
-    powers = dap.result_manager.extract_edge_reactive_power_flow(ω)
+    powers = dap.result_manager.extract_edge_active_power_flow(ω)
     powers = powers.with_columns(
         pl.lit(ω).alias("scenario"),
     )
@@ -222,7 +222,7 @@ power_df = (
 )
 all_powers = []
 for ω in range(len(dap2.model_manager.admm_model_instances)):
-    powers = dap2.result_manager.extract_edge_reactive_power_flow(ω)
+    powers = dap2.result_manager.extract_edge_active_power_flow(ω)
     powers = powers.with_columns(
         pl.lit(ω).alias("scenario"),
     )
@@ -250,10 +250,10 @@ combined_df_pd = combined_power.to_pandas()
 fig = px.box(
     combined_df_pd,
     x="edge_id",
-    y="q_pu",
+    y="p_pu",
     color="method",
     title="Power Distribution by Edge: ADMM vs Fixed Switches",
-    labels={"edge_id": "Edge ID", "q_pu": "Power (p.u.)", "method": "Method"},
+    labels={"edge_id": "Edge ID", "p_pu": "Power (p.u.)", "method": "Method"},
     hover_data=["scenario"],
 )
 
@@ -264,6 +264,65 @@ fig.update_layout(
     height=600,
     xaxis_title="Edge ID",
     yaxis_title="Power (p.u.)",
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    hovermode="x unified",
+)
+
+# Sort x-axis by bus ID
+fig.update_xaxes(categoryorder="category ascending")
+
+fig.show()
+
+# %%
+all_voltages = []
+for ω in range(len(dap.model_manager.admm_model_instances)):
+    voltages = dap.result_manager.extract_node_curtailed_consumption(ω)
+    voltages = voltages.with_columns(
+        pl.lit(ω).alias("scenario"),
+    )
+    all_voltages.append(voltages)
+voltage_df = pl.concat(all_voltages).with_columns(pl.col("node_id").cast(pl.Int64))
+
+all_voltages = []
+
+for ω in range(len(dap2.model_manager.admm_model_instances)):
+    voltages = dap2.result_manager.extract_node_curtailed_consumption(ω)
+    voltages = voltages.with_columns(
+        pl.lit(ω).alias("scenario"),
+    )
+    all_voltages.append(voltages)
+
+voltage_df2 = pl.concat(all_voltages).with_columns(pl.col("node_id").cast(pl.Int64))
+
+
+voltage_df_labeled = voltage_df.with_columns(pl.lit("ADMM").alias("method"))
+voltage_df2_labeled = voltage_df2.with_columns(pl.lit("Fixed Switches").alias("method"))
+
+# Combine both datasets
+combined_voltage_df = pl.concat([voltage_df_labeled, voltage_df2_labeled])
+
+import plotly.express as px
+
+# Convert to pandas for plotly
+combined_df_pd = combined_voltage_df.to_pandas()
+
+# Create interactive box plot
+fig = px.box(
+    combined_df_pd,
+    x="node_id",
+    y="p_pu",
+    color="method",
+    title="Voltage Distribution by Bus: ADMM vs Fixed Switches",
+    labels={"node_id": "Bus ID", "p_pu": "Voltage (p.u.)", "method": "Method"},
+    hover_data=["scenario"],
+)
+
+# Update layout for better visualization
+fig.update_layout(
+    width=1200,
+    height=600,
+    xaxis_title="Bus ID",
+    yaxis_title="Voltage (p.u.)",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     hovermode="x unified",
 )

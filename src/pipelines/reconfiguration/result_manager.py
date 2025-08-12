@@ -173,3 +173,33 @@ class PipelineResultManager:
                 how="left",
             )
         )
+
+    def extract_node_curtailed_consumption(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
+        return (
+            extract_optimization_results(self.model_instance, "q_curt_cons")
+            .select(
+                c("q_curt_cons").alias("p_pu"),
+                c("NΩ").list.get(0).alias("node_id"),
+            )
+            .join(
+                self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
+                on="node_id",
+                how="left",
+            )
+        )
+
+    def extract_node_curtailed_production(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
+        return (
+            extract_optimization_results(self.model_instance, "q_curt_prod")
+            .select(
+                c("q_curt_prod").alias("p_pu"),
+                c("NΩ").list.get(0).alias("node_id"),
+            )
+            .join(
+                self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
+                on="node_id",
+                how="left",
+            )
+        )
