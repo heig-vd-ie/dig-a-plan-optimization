@@ -4,6 +4,7 @@ import numpy as np
 import polars as pl
 import patito as pt
 from data_schema import NodeData, LoadData
+import random
 
 
 def generate_random_load_scenarios(
@@ -27,6 +28,7 @@ def generate_random_load_scenarios(
     if v_bounds is None:
         v_bounds = (-0.03, 0.03)
 
+    random.seed(seed)
     rng = np.random.default_rng(seed)
 
     node_ids = node_data["node_id"].to_numpy()
@@ -39,11 +41,12 @@ def generate_random_load_scenarios(
     scenarios: Dict[int, pt.DataFrame[LoadData]] = {}
 
     for i in range(1, number_of_random_scenarios + 1):
-        p_rand = rng.uniform(low=p_min, high=p_max, size=n_nodes)
-        q_rand = rng.uniform(low=q_min, high=q_max, size=n_nodes)
-        pv_rand = rng.uniform(low=p_min, high=p_max, size=n_nodes)
-        qv_rand = rng.uniform(low=q_min, high=q_max, size=n_nodes)
-        v_rand = rng.uniform(low=v_min, high=v_max, size=n_nodes)
+        random_numbers = rng.uniform(low=0, high=1, size=5 * n_nodes)
+        p_rand = random_numbers[0 * n_nodes : 1 * n_nodes] * (p_max - p_min) + p_min
+        q_rand = random_numbers[1 * n_nodes : 2 * n_nodes] * (q_max - q_min) + q_min
+        pv_rand = random_numbers[2 * n_nodes : 3 * n_nodes] * (p_max - p_min) + p_min
+        qv_rand = random_numbers[3 * n_nodes : 4 * n_nodes] * (q_max - q_min) + q_min
+        v_rand = random_numbers[4 * n_nodes : 5 * n_nodes] * (v_max - v_min) + v_min
 
         df = pl.DataFrame(
             {

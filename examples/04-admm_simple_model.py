@@ -11,10 +11,10 @@ from examples import *
 net = pp.from_pickle("data/simple_grid.p")
 grid_data = pandapower_to_dig_a_plan_schema(
     net,
-    number_of_random_scenarios=10,
-    p_bounds=(-1.0, 1.0),
+    number_of_random_scenarios=100,
+    p_bounds=(-0.6, 1.5),
     q_bounds=(-0.1, 0.1),
-    v_bounds=(-0.07, 0.07),
+    v_bounds=(-0.1, 0.1),
     v_min=0.95,
     v_max=1.05,
 )
@@ -38,9 +38,9 @@ config = ADMMConfig(
     ρ=2.0,
     γ_infeasibility=10,
     γ_admm_penalty=1.0,
-    γ_trafo_loss=1.0,
+    γ_trafo_loss=1e2,
     groups=groups,
-    max_iters=10,
+    max_iters=20,
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
