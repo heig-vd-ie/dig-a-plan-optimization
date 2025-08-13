@@ -28,6 +28,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
         # ADMM artifacts
         self.z: Dict[int, float] = {}
         self.λ: Dict[tuple, float] = {}
+        self.zδ_variable: pl.DataFrame
+        self.zζ_variable: pl.DataFrame
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         """Instantiate the ADMM model with the provided grid data parameters."""
@@ -100,7 +102,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
             ):
                 m = self.admm_model_instances[ω]  # type: ignore
                 selected_switches = self.__fix_switches(m, δ_map, g)
-                δ_map, ζ_map = self.__solve_model(m, δ_map, selected_switches, k=k)
+                δ_map, ζ_map = self.__solve_model(
+                    m, δ_map, ζ_map, selected_switches, k=k
+                )
                 δ_by_sc[ω] = δ_map
                 ζ_by_sc[ω] = ζ_map
 
@@ -360,6 +364,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self,
         model: pyo.ConcreteModel,
         δ_map: Dict[str, float] = {},
+        ζ_map: Dict[Tuple[str, str], float] = {},
         selected_switches: List | None = None,
         k: int | None = None,
     ) -> Tuple[Dict[str, float], Dict[Tuple[str, str], float]]:

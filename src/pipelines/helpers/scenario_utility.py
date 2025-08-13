@@ -12,14 +12,21 @@ def generate_random_load_scenarios(
     load_data: pl.DataFrame,
     number_of_random_scenarios: int,
     seed: int = 42,
-    p_bounds: Tuple[float, float] = (-0.2, 0.2),
-    q_bounds: Tuple[float, float] = (-0.2, 0.2),
-    v_bounds: Tuple[float, float] = (-0.03, 0.03),
+    p_bounds: Tuple[float, float] | None = None,
+    q_bounds: Tuple[float, float] | None = None,
+    v_bounds: Tuple[float, float] | None = None,
 ) -> Dict[int, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
     against `data_schema.load_data.NodeData`.
     """
+    if p_bounds is None:
+        p_bounds = (-0.2, 0.2)
+    if q_bounds is None:
+        q_bounds = (-0.2, 0.2)
+    if v_bounds is None:
+        v_bounds = (-0.03, 0.03)
+
     rng = np.random.default_rng(seed)
 
     node_ids = node_data["node_id"].to_numpy()

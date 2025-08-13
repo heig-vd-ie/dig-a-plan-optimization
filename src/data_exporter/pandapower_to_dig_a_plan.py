@@ -6,6 +6,7 @@ from data_schema import NodeEdgeModel
 from data_schema import NodeData
 import numpy as np
 import pandapower as pp
+from typing import Tuple
 from polars_function import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
@@ -20,6 +21,11 @@ def pandapower_to_dig_a_plan_schema(
     s_base: float = 1e6,
     number_of_random_scenarios: int = 10,
     taps: List[int] | None = None,
+    p_bounds: Tuple[float, float] | None = None,
+    q_bounds: Tuple[float, float] | None = None,
+    v_bounds: Tuple[float, float] | None = None,
+    v_min: float = 0.9,
+    v_max: float = 1.1,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -56,8 +62,8 @@ def pandapower_to_dig_a_plan_schema(
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
-            pl.lit(0.9).alias("v_min_pu"),
-            pl.lit(1.1).alias("v_max_pu"),
+            pl.lit(v_min).alias("v_min_pu"),
+            pl.lit(v_max).alias("v_max_pu"),
             pl.lit(1.0).alias("cons_installed"),
             pl.lit(1.0).alias("prod_installed"),
             c("p_cons_pu").fill_null(0.0),
@@ -218,6 +224,9 @@ def pandapower_to_dig_a_plan_schema(
         v_slack_node_sqr_pu=v_slack_node_sqr_pu,
         load_data=load_data,
         number_of_random_scenarios=number_of_random_scenarios,
+        p_bounds=p_bounds,
+        q_bounds=q_bounds,
+        v_bounds=v_bounds,
     )
 
     return NodeEdgeModel(

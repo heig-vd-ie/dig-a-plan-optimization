@@ -15,8 +15,9 @@ def objective_rule_loss(m):
 def objective_rule_infeasibility(m):
     p_curt = sum(m.p_curt_cons[n, ω] + m.p_curt_prod[n, ω] for n in m.N for ω in m.Ω)
     q_curt = sum(m.q_curt_cons[n, ω] + m.q_curt_prod[n, ω] for n in m.N for ω in m.Ω)
+    v_relax = sum(m.v_relax_up[n, ω] + m.v_relax_down[n, ω] for n, ω in m.NΩ)
 
-    return p_curt + q_curt
+    return p_curt + q_curt + v_relax
 
 
 def objective_rule_admm_penalty(m):
@@ -301,11 +302,11 @@ def optimal_current_limit_rule(m, l, i, j, ω):
 
 
 def optimal_voltage_upper_limits_rule(m, n, ω):
-    return m.v_sq[n, ω] <= m.v_max[n] ** 2
+    return m.v_sq[n, ω] <= m.v_max[n] ** 2 + m.v_relax_up[n, ω]
 
 
 def optimal_voltage_lower_limits_rule(m, n, ω):
-    return m.v_sq[n, ω] >= m.v_min[n] ** 2
+    return m.v_sq[n, ω] >= m.v_min[n] ** 2 - m.v_relax_down[n, ω]
 
 
 def optimal_voltage_upper_limits_distflow_rule(m, n, ω):
