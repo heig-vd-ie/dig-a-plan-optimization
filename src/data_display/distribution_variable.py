@@ -51,8 +51,18 @@ class DistributionVariable:
         if self.variable_name == "voltage":
             return "v_pu"
         if self.variable_name == "current":
-            return "i_pu"
+            return "i_pct"
         return self.variable_name
+
+    def voltage_min_limit(self):
+        return (
+            self.daps[next(iter(self.daps))].data_manager.node_data["v_min_pu"].mean()
+        )
+
+    def voltage_max_limit(self):
+        return (
+            self.daps[next(iter(self.daps))].data_manager.node_data["v_max_pu"].mean()
+        )
 
     def plot_distribution_variable(self) -> None:
         df = self.merge_variables()
@@ -77,35 +87,43 @@ class DistributionVariable:
 
         if self.variable_name == "voltage":
             fig.add_hline(
-                y=0.95,
+                y=self.voltage_min_limit(),
                 line_dash="dash",
                 line_color="red",
-                annotation_text="Min Voltage Limit (0.95 p.u.)",
+                annotation_text="Min Voltage Limit",
             )
             fig.add_hline(
-                y=1.05,
+                y=self.voltage_max_limit(),
                 line_dash="dash",
                 line_color="red",
-                annotation_text="Max Voltage Limit (1.05 p.u.)",
+                annotation_text="Max Voltage Limit",
             )
             fig.add_hline(
                 y=1.0,
                 line_dash="solid",
                 line_color="green",
-                annotation_text="Nominal Voltage (1.0 p.u.)",
+                annotation_text="Nominal Voltage",
+            )
+        elif self.variable_name == "current":
+            fig.add_hline(
+                y=100.0,
+                line_dash="solid",
+                line_color="red",
+                annotation_text="Max Current limit",
             )
 
         fig.update_layout(
             width=1200,
             height=600,
             xaxis_title="Bus ID" if self.variable_type == "nodal" else "Edge ID",
-            yaxis_title=f"{self.variable_name.capitalize()} (p.u.)",
+            yaxis_title=f"{self.variable_name.capitalize()} ({'%' if self.variable_name == 'current' else 'p.u.'})",
             legend=dict(
                 orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
             ),
             hovermode="x unified",
         )
         fig.update_xaxes(categoryorder="category ascending")
+        fig.write_html(f".cache/distribution_{self.variable_name}.html")
         fig.show()
 
 

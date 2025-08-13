@@ -9,10 +9,12 @@ from examples import *
 # %% set parameters
 
 net = pp.from_pickle("data/simple_grid.p")
+net.line["max_i_ka"] = net.line["max_i_ka"] * 0.5
+net.trafo["sn_mva"] = net.trafo["sn_mva"]
 grid_data = pandapower_to_dig_a_plan_schema(
     net,
-    number_of_random_scenarios=10,
-    p_bounds=(-0.5, 1.0),
+    number_of_random_scenarios=100,
+    p_bounds=(-0.5, 2.0),
     q_bounds=(-0.5, 0.5),
     v_bounds=(-0.07, 0.07),
     v_min=0.95,
@@ -36,7 +38,7 @@ config = ADMMConfig(
     big_m=1e3,
     ε=1,
     ρ=2.0,
-    γ_infeasibility=1e3,
+    γ_infeasibility=100,
     γ_admm_penalty=1.0,
     groups=groups,
     max_iters=10,
@@ -68,12 +70,16 @@ dap_fixed.solve_model(fixed_switches=True)
 # %% Plot Distribution
 nodal_variables = [
     "voltage",
-    "p_curt_cons",
-    "p_curt_prod",
-    "q_curt_cons",
-    "q_curt_prod",
+    # "p_curt_cons",
+    # "p_curt_prod",
+    # "q_curt_cons",
+    # "q_curt_prod",
 ]
-edge_variables = ["current", "p_flow", "q_flow"]
+edge_variables = [
+    "current",
+    # "p_flow",
+    # "q_flow",
+]
 for variable in nodal_variables + edge_variables:
     plot_distribution_variable(
         daps={"ADMM": dap, "Normal Open": dap_fixed},

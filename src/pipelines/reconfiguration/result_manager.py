@@ -94,9 +94,11 @@ class PipelineResultManager:
             extract_optimization_results(self.model_instance, variable)
             .select((c(variable)).sqrt(), c("NΩ").list.get(0).alias("node_id"))
             .join(
-                self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
+                self.data_manager.node_data[
+                    ["cn_fk", "node_id", "v_base", "v_min_pu", "v_max_pu"]
+                ],
                 on="node_id",
-                how="left",
+                how="full",
             )
         )
 
@@ -113,12 +115,12 @@ class PipelineResultManager:
             )
             .join(
                 self.data_manager.edge_data.filter(c("type") != "switch")[
-                    ["eq_fk", "edge_id", "i_base"]
+                    ["eq_fk", "edge_id", "i_base", "type", "i_max_pu"]
                 ],
                 on="edge_id",
-                how="left",
+                how="full",
             )
-        )
+        ).filter(c("type") != "switch")
 
     def extract_node_voltage(self, scenario: int = 0) -> pl.DataFrame:
         return self.extract_nodal_variables("v_sq", scenario=scenario).with_columns(
@@ -127,7 +129,10 @@ class PipelineResultManager:
 
     def extract_edge_current(self, scenario: int = 0) -> pl.DataFrame:
         return self.extract_edge_variables("i_sq", scenario=scenario).with_columns(
-            (c("i_sq") ** 0.5).alias("i_pu")
+            [
+                (c("i_sq") ** 0.5).alias("i_pu"),
+                ((c("i_sq") ** 0.5) * 100 / c("i_max_pu")).alias("i_pct"),
+            ]
         )
 
     def extract_edge_active_power_flow(self, scenario: int = 0) -> pl.DataFrame:
