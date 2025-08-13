@@ -83,6 +83,10 @@ node_data, edge_data = compare_dig_a_plan_with_pandapower(
 )
 plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
+# %%
+plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan, color_by_results=True)
+
+
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
 print(
     extract_optimization_results(dig_a_plan.model_manager.master_model_instance, "δ")
