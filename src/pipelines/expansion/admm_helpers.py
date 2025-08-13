@@ -21,6 +21,7 @@ class ADMM:
             ρ=2.0,  # initial rho
             γ_infeasibility=1.0,
             γ_admm_penalty=1.0,
+            γ_trafo_loss=1e2,
             max_iters=10,
             μ=10.0,
             τ_incr=2.0,

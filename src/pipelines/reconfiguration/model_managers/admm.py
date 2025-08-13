@@ -1,4 +1,5 @@
 import itertools
+import time
 from typing import Dict, List, Tuple
 import random
 import pyomo.environ as pyo
@@ -30,6 +31,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.λ: Dict[tuple, float] = {}
         self.zδ_variable: pl.DataFrame
         self.zζ_variable: pl.DataFrame
+        self.s_norm_list: List[float] = []
+        self.r_norm_list: List[float] = []
+        self.time_list: List[float] = []
 
     def instantaniate_model(self, grid_data_parameters_dict: dict | None) -> None:
         """Instantiate the ADMM model with the provided grid data parameters."""
@@ -83,6 +87,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         δ_map, ζ_map = self.__solve_model(self.admm_linear_model_instance)
 
+        self.time_list.append(time.process_time())
         # ADMM iterations
         for k in range(1, self.config.max_iters + 1 if not fixed_switches else 2):
             zδ_old = self.zδ.copy()
@@ -126,6 +131,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
                     zζ=self.zζ,
                     zζ_old=zζ_old,
                 )
+                self.r_norm_list.append(self.r_norm)
+                self.s_norm_list.append(self.s_norm)
+                self.time_list.append(time.process_time())
 
             # ---- λ-update (scaled duals) ----
             for ω, s in itertools.product(self.Ω, self.switch_list):

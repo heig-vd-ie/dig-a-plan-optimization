@@ -83,6 +83,7 @@ class DistributionVariable:
             title=f"{self.variable_name.capitalize()} Distribution by Bus",
             labels=labels,
             hover_data=["scenario"],
+            points=False,
         )
 
         if self.variable_name == "voltage":

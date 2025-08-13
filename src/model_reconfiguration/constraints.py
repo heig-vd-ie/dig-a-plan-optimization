@@ -8,7 +8,7 @@ def master_obj(m):
 def objective_rule_loss(m):
     # Minimize network losses
     return sum(m.r[l] * m.i_sq[l, i, j, ω] for (l, i, j, ω) in m.ClΩ) + sum(
-        m.r[l] * m.i_sq[l, i, j, ω] for (l, i, j, ω) in m.CtΩ
+        m.r[l] * m.i_sq[l, i, j, ω] * m.γ_trafo_loss for (l, i, j, ω) in m.CtΩ
     )
 
 

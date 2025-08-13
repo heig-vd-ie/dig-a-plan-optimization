@@ -5,6 +5,7 @@ def model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:
     # Topology & radiality
     model.number_of_lines = pyo.Param()
     model.ε = pyo.Param()  # Small constant for radiality constraints
+    model.γ_trafo_loss = pyo.Param(default=1.0)  # Trafo loss penalty
     # Line parameters
     model.r = pyo.Param(model.E)  # Resistance (pu)
     model.x = pyo.Param(model.E)  # Reactance (pu)
