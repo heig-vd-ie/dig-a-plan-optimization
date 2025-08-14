@@ -1,9 +1,6 @@
 # %%
 import os
 
-from matplotlib import legend
-from pyparsing import line
-
 os.chdir(os.getcwd().replace("/src", ""))
 # %% import libraries
 from examples import *
@@ -81,6 +78,7 @@ fig.write_html(".cache/bender-convergence.html")
 node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
 )
+# %%
 plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
 
 # %%

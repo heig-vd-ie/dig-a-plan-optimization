@@ -144,6 +144,14 @@ def node_reactive_power_balance_rule(m, n, ω):
     )
 
 
+def node_reactive_power_rule(m, n, ω):
+    return m.q_curt_cons[n, ω] <= m.q_node_cons[n, ω]
+
+
+def node_reactive_power_prod_rule(m, n, ω):
+    return m.q_curt_prod[n, ω] <= m.q_node_prod[n, ω]
+
+
 def edge_active_power_balance_switch_rule(m, l, ω):
     return sum(m.p_flow[l_, i, j, ω] for (l_, i, j) in m.C if l_ == l) == 0
 

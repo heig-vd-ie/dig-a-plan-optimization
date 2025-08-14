@@ -128,11 +128,26 @@ class PipelineResultManager:
         )
 
     def extract_edge_current(self, scenario: int = 0) -> pl.DataFrame:
-        return self.extract_edge_variables("i_sq", scenario=scenario).with_columns(
-            [
-                (c("i_sq") ** 0.5).alias("i_pu"),
-                ((c("i_sq") ** 0.5) * 100 / c("i_max_pu")).alias("i_pct"),
-            ]
+        p = self.extract_edge_variables("p_flow", scenario=scenario)
+        q = self.extract_edge_variables("q_flow", scenario=scenario)
+        i = self.extract_edge_variables("i_sq", scenario=scenario)
+        return (
+            p.join(
+                q[["edge_id", "from_node_id", "to_node_id", "q_flow"]],
+                on=["edge_id", "from_node_id", "to_node_id"],
+                how="inner",
+            )
+            .join(
+                i[["edge_id", "from_node_id", "to_node_id", "i_sq"]],
+                on=["edge_id", "from_node_id", "to_node_id"],
+                how="inner",
+            )
+            .with_columns(
+                [
+                    (c("i_sq") ** 0.5).alias("i_pu"),
+                    ((c("i_sq") ** 0.5) * 100 / c("i_max_pu")).alias("i_pct"),
+                ]
+            )
         )
 
     def extract_edge_active_power_flow(self, scenario: int = 0) -> pl.DataFrame:
