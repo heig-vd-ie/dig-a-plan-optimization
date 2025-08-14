@@ -39,12 +39,22 @@ def generate_bus_coordinates(dig_a_plan: DigAPlan, switch_status: dict) -> dict:
     edge_data = dig_a_plan.data_manager.edge_data.filter(
         ~((c("type") == "switch") & c("eq_fk").is_in(open_switches))
     )
+
+    external_node = dig_a_plan.data_manager.node_data.filter(
+        c("type") == "slack"
+    ).get_column("node_id")[0]
+
     nx_graph = nx.Graph()
     for edge in edge_data.iter_rows(named=True):
         nx_graph.add_edge(edge["u_of_edge"], edge["v_of_edge"])
+    for n in nx_graph.nodes():
+        nx_graph.nodes[n]["name"] = n
 
     i_graph = ig.Graph.from_networkx(nx_graph)
-    layout = i_graph.layout_sugiyama()
+    root_idx = i_graph.vs.find(name=external_node).index
+    distances = i_graph.shortest_paths(root_idx)[0]
+    layers = [int(d) for d in distances]
+    layout = i_graph.layout_sugiyama(layers=layers)
     coord_mapping = dict(zip(range(len(layout)), list(layout)))
 
     node_mapping = {}
