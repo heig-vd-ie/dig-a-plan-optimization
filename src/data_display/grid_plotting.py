@@ -483,6 +483,7 @@ def _plot_buses(
     node_size: int,
     voltage_dict: dict,
     color_by_results: bool,
+    voltage_range: Tuple,
 ):
     """
     Plot the buses on the grid.
@@ -494,7 +495,10 @@ def _plot_buses(
             voltage_val = voltage_dict.get(bus_id, 1.0)
             bus_voltages.append(voltage_val)
 
-        bus_colors = _create_rainbow_cm(bus_voltages, min_val=0.95, max_val=1.05)
+        # Use provided voltage range or calculate from data
+        bus_colors = _create_rainbow_cm(
+            bus_voltages, min_val=voltage_range[0], max_val=voltage_range[1]
+        )
 
         fig.add_trace(
             go.Scatter(
@@ -578,24 +582,63 @@ def _plot_loads(fig: go.Figure, bus: pl.DataFrame, net: pp.pandapowerNet):
             )
 
 
-def _add_color_legend(fig: go.Figure, color_by_results: bool):
+def _add_color_legend(
+    fig: go.Figure,
+    color_by_results: bool,
+    voltage_range: Tuple,
+    current_range: Tuple,
+):
     """
     Add a color legend to the figure.
     """
     if color_by_results:
-        fig.add_annotation(
-            x=0.02,
-            y=0.98,
-            xref="paper",
-            yref="paper",
-            text="<b>Color Legend:</b><br>"
-            + "Nodes: Voltage (Blue=Low, Red=High)<br>"
-            + "Lines: Current (Blue=Low, Red=High)",
-            showarrow=False,
-            font=dict(size=10),
-            bgcolor="rgba(255,255,255,0.8)",
-            bordercolor="black",
-            borderwidth=1,
+        min_volt, max_volt = voltage_range
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(
+                    colorscale="jet",
+                    showscale=True,
+                    cmin=min_volt,
+                    cmax=max_volt,
+                    colorbar=dict(
+                        title=dict(text="Voltage (p.u.)", side="right"),
+                        x=1.02,
+                        y=0.8,
+                        len=0.3,
+                        thickness=15,
+                    ),
+                ),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+        # Add current colorbar
+        min_curr, max_curr = current_range
+        fig.add_trace(
+            go.Scatter(
+                x=[None],
+                y=[None],
+                mode="markers",
+                marker=dict(
+                    colorscale="jet",
+                    showscale=True,
+                    cmin=min_curr,
+                    cmax=max_curr,
+                    colorbar=dict(
+                        title=dict(text="Current (p.u.)", side="right"),
+                        x=1.02,
+                        y=0.4,
+                        len=0.3,
+                        thickness=15,
+                    ),
+                ),
+                showlegend=False,
+                hoverinfo="skip",
+            )
         )
 
 
@@ -624,6 +667,11 @@ def plot_grid_from_pandapower(
 
     fig = go.Figure()
 
+    voltage_range = (
+        dig_a_plan.data_manager.node_data["v_min_pu"].min(),
+        dig_a_plan.data_manager.node_data["v_max_pu"].max(),
+    )
+
     if color_by_results:
         line_currents, line_powers, line_qs, trafo_currents, trafo_powers, trafo_qs = (
             _get_line_currents(
@@ -642,6 +690,7 @@ def plot_grid_from_pandapower(
         )
         line_colors = colors[: len(line_currents)]
         trafo_colors = colors[len(line_currents) :]
+        all_currents = line_currents + trafo_currents
 
         _plot_colored_lines(
             fig,
@@ -660,24 +709,27 @@ def plot_grid_from_pandapower(
             trafo_colors=trafo_colors,
         )
         _plot_switches_with_status(fig, switch)
+        current_range = (min(all_currents), max(all_currents))
+        _add_color_legend(fig, color_by_results, voltage_range, current_range)
     else:
         _plot_default_lines(fig, line, "black")
         _plot_default_trafo(fig, trafo, "black")
         _plot_switches_with_status(fig, switch)
 
-    _plot_buses(fig, bus, node_size, voltage_dict, color_by_results)
+    _plot_buses(fig, bus, node_size, voltage_dict, color_by_results, voltage_range)
     _plot_loads(fig, bus, net)
-    _add_color_legend(fig, color_by_results)
 
     fig.update_layout(
-        margin=dict(t=5, l=65, r=10, b=5),
+        margin=dict(t=5, l=65, r=120, b=5),  # Increased right margin for colorbars
         width=width,
         height=height,
         paper_bgcolor="white",
         plot_bgcolor="white",
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        title="Grid Topology"
-        + (" with Color-Coded Results" if color_by_results else ""),
     )
     fig.show()
+    fig.write_html(
+        f".cache/grid_plot{'_colored' if color_by_results else '_default'}.html",
+        include_plotlyjs="cdn",
+    )
