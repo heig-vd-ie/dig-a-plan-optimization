@@ -46,3 +46,12 @@ voltages = dig_a_plan.result_manager.extract_node_voltage()
 currents = dig_a_plan.result_manager.extract_edge_current()
 active_power_flow = dig_a_plan.result_manager.extract_edge_active_power_flow()
 reactive_power_flow = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
+
+# %% extract and compare results
+fig: go.Figure = plot_power_flow_results(
+    base_grid_data=base_grid_data,
+    switches=switches,
+    currents=currents,
+    voltages= voltages
+    )
+fig.show()
