@@ -16,4 +16,4 @@ net = joblib.load(".cache/boisy_net.joblib")
 plot_grid_from_pandapower(net=net, dap=dap, from_z=True, color_by_results=True, text_size=8, node_size=12)  # type: ignore
 
 # %% Plot fixed switches
-# plot_grid_from_pandapower(net=net, dap=dap_fixed, from_z=True, color_by_results=True, text_size=8, node_size=12)  # type: ignore
+plot_grid_from_pandapower(net=net, dap=dap_fixed, from_z=True, color_by_results=True, text_size=8, node_size=12)  # type: ignore

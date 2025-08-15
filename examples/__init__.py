@@ -40,7 +40,7 @@ from pandapower.networks import create_cigre_network_mv
 from shapely import from_geojson
 from general_function import pl_to_dict, build_non_existing_dirs
 import joblib
-from data_exporter.dap import save_dap_state, load_dap_state
+from data_exporter.mock_dap import save_dap_state, load_dap_state
 
 os.chdir(os.getcwd().replace("/src", ""))
 os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
