@@ -79,10 +79,10 @@ node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
 )
 # %%
-plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
+plot_grid_from_pandapower(net=net, dap=dig_a_plan)
 
 # %%
-plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan, color_by_results=True)
+plot_grid_from_pandapower(net=net, dap=dig_a_plan, color_by_results=True)
 
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())

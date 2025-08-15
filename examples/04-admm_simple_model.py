@@ -1,5 +1,4 @@
 # %%
-import copy
 import os
 
 os.chdir(os.getcwd().replace("/src", ""))
@@ -60,7 +59,7 @@ node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dap, net=net, from_z=True
 )
 # %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(net, dap, from_z=True)
+fig = plot_grid_from_pandapower(net=net, dap=dap, from_z=True)
 
 # %% Fixed switches
 dap_fixed = copy.deepcopy(dap)

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Tuple
 import pandapower as pp
 import polars as pl
@@ -8,8 +9,37 @@ import numpy as np
 import plotly.colors as pc
 import networkx as nx
 import igraph as ig
-
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
+
+
+@dataclass
+class GridDataFrames:
+    bus: pl.DataFrame
+    line: pl.DataFrame
+    trafo: pl.DataFrame
+    switches: pl.DataFrame
+
+
+@dataclass
+class ResultData:
+    voltage_dict: dict
+    current_dict: dict
+    p_dict: dict
+    q_dict: dict
+    edge_id_mapping: dict
+
+
+@dataclass
+class EdgeFlows:
+    p: list[float]
+    q: list[float]
+    i: list[float]
+
+
+@dataclass
+class EdgeFlowResults:
+    line: EdgeFlows
+    trafo: EdgeFlows
 
 
 def _create_rainbow_cm(values: list[float], min_val: float, max_val: float) -> List:
@@ -18,25 +48,25 @@ def _create_rainbow_cm(values: list[float], min_val: float, max_val: float) -> L
     return [pc.sample_colorscale("jet", [norm_val])[0] for norm_val in normalized]
 
 
-def _generate_bus_coordinates(dig_a_plan: DigAPlan, switch_status: dict) -> dict:
+def _generate_bus_coordinates(dap: DigAPlan, switch_status: dict) -> dict:
     """Generate coordinates for each bus in the network."""
     open_switches = [k for k, v in switch_status.items() if not v]
-    edge_data = dig_a_plan.data_manager.edge_data.filter(
+    edge_data = dap.data_manager.edge_data.filter(
         ~((c("type") == "switch") & c("eq_fk").is_in(open_switches))
     )
 
-    external_node = dig_a_plan.data_manager.node_data.filter(
-        c("type") == "slack"
-    ).get_column("node_id")[0]
+    external_node = dap.data_manager.node_data.filter(c("type") == "slack").get_column(
+        "node_id"
+    )[0]
 
     nx_graph = nx.Graph()
     for edge in edge_data.iter_rows(named=True):
         nx_graph.add_edge(edge["u_of_edge"], edge["v_of_edge"])
     for n in nx_graph.nodes():
-        nx_graph.nodes[n]["name"] = n
+        nx_graph.nodes[n]["node_id"] = n
 
     i_graph = ig.Graph.from_networkx(nx_graph)
-    root_idx = i_graph.vs.find(name=external_node).index
+    root_idx = i_graph.vs.find(node_id=external_node).index
     distances = i_graph.shortest_paths(root_idx)[0]
     layers = [-int(d) for d in distances]
     layout = i_graph.layout_sugiyama(layers=layers)
@@ -49,189 +79,153 @@ def _generate_bus_coordinates(dig_a_plan: DigAPlan, switch_status: dict) -> dict
     }
 
 
-def _extract_switch_status(
-    net: pp.pandapowerNet, dig_a_plan: DigAPlan, from_z: bool
-) -> dict:
+def _extract_switch_status(dap: DigAPlan, from_z: bool) -> dict:
     """Extract the switch status from the given pandapower network and DigAPlan."""
-    if from_z and isinstance(dig_a_plan, DigAPlanADMM):
+    if from_z and isinstance(dap, DigAPlanADMM):
         switch_status = pl_to_dict(
-            dig_a_plan.model_manager.zδ_variable.select("eq_fk", "closed")
+            dap.model_manager.zδ_variable.select("eq_fk", "closed")
         )
     else:
         switch_status = pl_to_dict(
-            dig_a_plan.result_manager.extract_switch_status().select(
-                "eq_fk", ~c("open")
-            )
+            dap.result_manager.extract_switch_status().select("eq_fk", ~c("open"))
         )
-
-    net["switch"]["closed"] = net["switch"]["name"].apply(lambda x: switch_status[x])
     return switch_status
 
 
-def _prepare_data_frames_with_algorithm(
+def _prepare_dfs_w_coordinates(
+    dap: DigAPlan,
     net: pp.pandapowerNet,
-    dig_a_plan: DigAPlan,
     switch_status: dict,
-) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    is_generate_coords: bool = False,
+) -> GridDataFrames:
     """Prepare data frames for visualization with the given algorithm."""
-    coord_mapping = _generate_bus_coordinates(dig_a_plan, switch_status)
+    bus = dap.data_manager.node_data
 
-    bus = pl.from_pandas(net["bus"])
-    coords_list = [
-        coord_mapping[bus_id] if bus_id in coord_mapping else [0, 0]
-        for bus_id in bus["bus_id"]
-    ]
+    edges = dap.data_manager.edge_data
+    if is_generate_coords:
+        coord_mapping = _generate_bus_coordinates(dap, switch_status)
+        coord_mapping_pl = pl.DataFrame(
+            {
+                "node_id": list(coord_mapping.keys()),
+                "coords": [
+                    [float(coords[0]), float(coords[1])]
+                    for coords in coord_mapping.values()
+                ],
+            }
+        )
 
-    bus = bus.with_columns(pl.Series(coords_list).alias("coords"))
+    else:
+        coord_mapping_pl = pl.DataFrame(
+            {
+                "node_id": list(net.bus.index),
+                "coords": [
+                    [float(coords[0]), float(coords[1])]
+                    for coords in net.bus["coords"].values.tolist()
+                ],
+            }
+        )
 
-    line = pl.from_pandas(net["line"])
-    line_x_coords = [
-        [coord_mapping.get(from_bus, [0, 0])[0], coord_mapping.get(to_bus, [0, 0])[0]]
-        for from_bus, to_bus in zip(line["from_bus"], line["to_bus"])
-    ]
-    line_y_coords = [
-        [coord_mapping.get(from_bus, [0, 0])[1], coord_mapping.get(to_bus, [0, 0])[1]]
-        for from_bus, to_bus in zip(line["from_bus"], line["to_bus"])
-    ]
-    line = line.with_columns(
-        pl.Series(line_x_coords).alias("x_coords"),
-        pl.Series(line_y_coords).alias("y_coords"),
+    bus = bus.join(coord_mapping_pl, on="node_id", how="left")
+
+    edges = (
+        edges.join(
+            coord_mapping_pl.rename({"node_id": "u_of_edge", "coords": "from_coords"}),
+            on="u_of_edge",
+            how="left",
+        )
+        .join(
+            coord_mapping_pl.rename({"node_id": "v_of_edge", "coords": "to_coords"}),
+            on="v_of_edge",
+            how="left",
+        )
+        .with_columns(
+            [
+                pl.concat_list(
+                    [c("from_coords").list.get(0), c("to_coords").list.get(0)]
+                ).alias("x_coords"),
+                pl.concat_list(
+                    [c("from_coords").list.get(1), c("to_coords").list.get(1)]
+                ).alias("y_coords"),
+            ]
+        )
     )
-
-    trafo = pl.from_pandas(net["trafo"]).join(
-        dig_a_plan.data_manager.edge_data.filter(c("type") == "transformer")[
-            ["eq_fk", "edge_id"]
-        ].rename({"eq_fk": "name"}),
-        on="name",
-        how="left",
+    line = edges.filter(c("type") == "branch")
+    trafo = edges.filter(c("type") == "transformer")
+    switches = edges.filter(c("type") == "switch")
+    switch_status_pl = pl.DataFrame(
+        {
+            "eq_fk": list(switch_status.keys()),
+            "closed": list(switch_status.values()),
+        }
     )
-    trafo_x_coords = [
-        [coord_mapping.get(hv_bus, [0, 0])[0], coord_mapping.get(lv_bus, [0, 0])[0]]
-        for hv_bus, lv_bus in zip(trafo["hv_bus"], trafo["lv_bus"])
-    ]
-    trafo_y_coords = [
-        [coord_mapping.get(hv_bus, [0, 0])[1], coord_mapping.get(lv_bus, [0, 0])[1]]
-        for hv_bus, lv_bus in zip(trafo["hv_bus"], trafo["lv_bus"])
-    ]
+    switches = switches.join(switch_status_pl, on="eq_fk", how="left")
 
-    trafo = trafo.with_columns(
-        pl.Series(trafo_x_coords).alias("x_coords"),
-        pl.Series(trafo_y_coords).alias("y_coords"),
-    )
-
-    switch = pl.from_pandas(net["switch"])
-    switch = switch.filter(c("closed"))
-
-    switch_x_coords = [
-        [coord_mapping.get(bus_id, [0, 0])[0], coord_mapping.get(element, [0, 0])[0]]
-        for bus_id, element in zip(switch["bus"], switch["element"])
-    ]
-    switch_y_coords = [
-        [coord_mapping.get(bus_id, [0, 0])[1], coord_mapping.get(element, [0, 0])[1]]
-        for bus_id, element in zip(switch["bus"], switch["element"])
-    ]
-    switch = switch.with_columns(
-        pl.Series(switch_x_coords).alias("x_coords"),
-        pl.Series(switch_y_coords).alias("y_coords"),
-    )
-
-    return bus, line, trafo, switch
+    return GridDataFrames(bus=bus, line=line, trafo=trafo, switches=switches)
 
 
-def _prepare_data_frames(
-    net: pp.pandapowerNet,
-) -> tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """Prepare data frames for visualization."""
-    bus = pl.from_pandas(net["bus"])
-    line = pl.from_pandas(net["line"])
-    trafo = pl.from_pandas(net["trafo"])
-    switch = pl.from_pandas(net["switch"])
-
-    return bus, line, trafo, switch
-
-
-def _get_results_data(
-    dig_a_plan: DigAPlan, color_by_results: bool
-) -> tuple[dict, dict, dict, dict, dict]:
+def _get_results_data(dap: DigAPlan) -> ResultData:
     """Extract voltage, current, and edge ID mapping data from the DigAPlan."""
-    voltage_dict = {}
-    current_dict = {}
-    edge_id_mapping = {}
-    power_dict = {}
-    q_dict = {}
+    voltages = dap.result_manager.extract_node_voltage()
+    voltage_dict = pl_to_dict(voltages.select("node_id", "v_pu"))
 
-    if color_by_results:
-        voltages = dig_a_plan.result_manager.extract_node_voltage()
-        voltage_dict = pl_to_dict(voltages.select("node_id", "v_pu"))
-
-        currents = dig_a_plan.result_manager.extract_edge_current()
-        currents = (
-            currents.with_columns([pl.col("p_flow").abs(), pl.col("q_flow").abs()])
-            .group_by("edge_id")
-            .agg(
-                [
-                    pl.mean("i_pu").alias("i_pu"),
-                    pl.mean("p_flow").alias("p_flow"),
-                    pl.mean("q_flow").alias("q_flow"),
-                ]
-            )
+    currents = dap.result_manager.extract_edge_current()
+    currents = (
+        currents.with_columns([pl.col("p_flow").abs(), pl.col("q_flow").abs()])
+        .group_by("edge_id")
+        .agg(
+            [
+                pl.mean("i_pu").alias("i_pu"),
+                pl.mean("p_flow").alias("p_flow"),
+                pl.mean("q_flow").alias("q_flow"),
+            ]
         )
-        edge_id_mapping = pl_to_dict(
-            dig_a_plan.data_manager.edge_data.select("eq_fk", "edge_id")
-        )
-        current_dict = pl_to_dict(currents.select("edge_id", "i_pu"))
-        power_dict = pl_to_dict(currents.select("edge_id", "p_flow"))
-        q_dict = pl_to_dict(currents.select("edge_id", "q_flow"))
+    )
+    edge_id_mapping = pl_to_dict(dap.data_manager.edge_data.select("eq_fk", "edge_id"))
+    current_dict = pl_to_dict(currents.select("edge_id", "i_pu"))
+    p_dict = pl_to_dict(currents.select("edge_id", "p_flow"))
+    q_dict = pl_to_dict(currents.select("edge_id", "q_flow"))
 
-    return voltage_dict, current_dict, edge_id_mapping, power_dict, q_dict
+    return ResultData(
+        voltage_dict=voltage_dict,
+        current_dict=current_dict,
+        p_dict=p_dict,
+        q_dict=q_dict,
+        edge_id_mapping=edge_id_mapping,
+    )
 
 
-def _get_line_currents(
-    line: pl.DataFrame,
-    trafo: pl.DataFrame,
-    edge_id_mapping: dict,
-    current_dict: dict,
-    power_dict: dict,
-    q_dict: dict,
-) -> Tuple[
-    list[float], list[float], list[float], list[float], list[float], list[float]
-]:
+def _get_edge_flows(
+    grid_data: GridDataFrames, result_data: ResultData
+) -> EdgeFlowResults:
     """Extract line currents from the current dictionary using edge ID mapping."""
-    line_currents = []
-    line_powers = []
+    line_is = []
+    line_ps = []
     line_qs = []
-    trafo_currents = []
-    trafo_powers = []
+    trafo_is = []
+    trafo_ps = []
     trafo_qs = []
-    for _, row in line.to_pandas().iterrows():
-        line_name = row["name"]
-        if line_name in edge_id_mapping:
-            edge_id = edge_id_mapping[line_name]
-            current_val = current_dict.get(edge_id, 0.0)
-            power_val = power_dict.get(edge_id, 0.0)
-            q_val = q_dict.get(edge_id, 0.0)
-        else:
-            current_val = 0.0
-            power_val = 0.0
-            q_val = 0.0
-        line_currents.append(current_val)
-        line_powers.append(power_val)
+    for _, row in grid_data.line.to_pandas().iterrows():
+        line_name = row["eq_fk"]
+        edge_id = result_data.edge_id_mapping[line_name]
+        i_val = result_data.current_dict.get(edge_id, 0.0)
+        p_val = result_data.p_dict.get(edge_id, 0.0)
+        q_val = result_data.q_dict.get(edge_id, 0.0)
+        line_is.append(i_val)
+        line_ps.append(p_val)
         line_qs.append(q_val)
-    for _, row in trafo.to_pandas().iterrows():
-        trafo_name = row["name"]
-        if trafo_name in edge_id_mapping:
-            edge_id = edge_id_mapping[trafo_name]
-            current_val = current_dict.get(edge_id, 0.0)
-            power_val = power_dict.get(edge_id, 0.0)
-            q_val = q_dict.get(edge_id, 0.0)
-        else:
-            current_val = 0.0
-            power_val = 0.0
-            q_val = 0.0
-        trafo_currents.append(current_val)
-        trafo_powers.append(power_val)
+    for _, row in grid_data.trafo.to_pandas().iterrows():
+        trafo_name = row["eq_fk"]
+        edge_id = result_data.edge_id_mapping[trafo_name]
+        i_val = result_data.current_dict.get(edge_id, 0.0)
+        p_val = result_data.p_dict.get(edge_id, 0.0)
+        q_val = result_data.q_dict.get(edge_id, 0.0)
+        trafo_is.append(i_val)
+        trafo_ps.append(p_val)
         trafo_qs.append(q_val)
-    return line_currents, line_powers, line_qs, trafo_currents, trafo_powers, trafo_qs
+    return EdgeFlowResults(
+        line=EdgeFlows(i=line_is, p=line_ps, q=line_qs),
+        trafo=EdgeFlows(i=trafo_is, p=trafo_ps, q=trafo_qs),
+    )
 
 
 def _add_hover_marker(
@@ -242,46 +236,43 @@ def _add_hover_marker(
     name: str | None = None,
 ):
     """Add a hover marker to the figure."""
-    if len(x_coords) >= 2 and len(y_coords) >= 2:
-        mid_x = (x_coords[0] + x_coords[-1]) / 2
-        mid_y = (y_coords[0] + y_coords[-1]) / 2
-        fig.add_trace(
-            go.Scatter(
-                x=[mid_x],
-                y=[mid_y],
-                mode="markers",
-                marker=dict(size=12, color="rgba(0,0,0,0)"),
-                hoverinfo="text",
-                hovertext=hover_text,
-                showlegend=False,
-                name=name,
-            )
+    mid_x = (x_coords[0] + x_coords[-1]) / 2
+    mid_y = (y_coords[0] + y_coords[-1]) / 2
+    fig.add_trace(
+        go.Scatter(
+            x=[mid_x],
+            y=[mid_y],
+            mode="markers",
+            marker=dict(size=12, color="rgba(0,0,0,0)"),
+            hoverinfo="text",
+            hovertext=hover_text,
+            showlegend=False,
+            name=name,
         )
-    return fig
+    )
 
 
 def _plot_colored_lines(
     fig: go.Figure,
-    line: pl.DataFrame,
-    line_currents: list[float],
-    line_powers: list[float],
-    line_qs: list[float],
+    grid_data: GridDataFrames,
+    line_flows: EdgeFlows,
     line_colors: list[str],
+    default_color: str,
+    node_size: float,
 ):
     """Plot colored lines on the figure."""
-    for i, data in enumerate(line.to_dicts()):
+    for i, data in enumerate(grid_data.line.to_dicts()):
         x_coords = data.get("x_coords", [])
         y_coords = data.get("y_coords", [])
 
-        color = line_colors[i] if i < len(line_colors) else "black"
+        color = line_colors[i] if i < len(line_colors) else default_color
 
         hover_text = (
-            f"Line: {data.get('name', 'N/A')}<br>"
-            f"Current: {line_currents[i]:.3f} p.u.<br>"
-            f"Power: {line_powers[i]:.3f} p.u.<br>"
-            f"Reactive Power: {line_qs[i]:.3f} p.u.<br>"
-            f"Max Current: {data.get('max_i_ka', 0):.3f} kA<br>"
-            f"Length: {data.get('length_km', 0):.3f} km"
+            f"Line: {data.get('eq_fk', 'N/A')}<br>"
+            f"Current: {line_flows.i[i]:.3f} p.u.<br>"
+            f"Power: {line_flows.p[i]:.3f} p.u.<br>"
+            f"Reactive Power: {line_flows.q[i]:.3f} p.u.<br>"
+            f"Max Current: {data.get('i_max_pu', 0):.3f} p.u."
         )
 
         fig.add_trace(
@@ -289,7 +280,7 @@ def _plot_colored_lines(
                 x=x_coords,
                 y=y_coords,
                 mode="lines",
-                line=dict(width=3, color=color),
+                line=dict(width=3 * node_size / 22, color=color),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -304,7 +295,9 @@ def _plot_colored_lines(
         )
 
 
-def _plot_default_lines(fig: go.Figure, line: pl.DataFrame, color: str):
+def _plot_default_lines(
+    fig: go.Figure, line: pl.DataFrame, default_color: str, node_size: float
+):
     """Plot default lines on the figure."""
     for data in line.to_dicts():
         x_coords = data.get("x_coords", [])
@@ -312,8 +305,7 @@ def _plot_default_lines(fig: go.Figure, line: pl.DataFrame, color: str):
 
         hover_text = (
             f"Line: {data.get('name', 'N/A')}<br>"
-            f"Max Current: {data.get('max_i_ka', 0):.3f} kA<br>"
-            f"Length: {data.get('length_km', 0):.3f} km<br>"
+            f"Max Current: {data.get('i_max_pu', 0):.3f} p.u."
         )
 
         fig.add_trace(
@@ -321,7 +313,7 @@ def _plot_default_lines(fig: go.Figure, line: pl.DataFrame, color: str):
                 x=x_coords,
                 y=y_coords,
                 mode="lines",
-                line=dict(width=3, color=color),
+                line=dict(width=3 * node_size / 22, color=default_color),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -330,7 +322,9 @@ def _plot_default_lines(fig: go.Figure, line: pl.DataFrame, color: str):
         _add_hover_marker(fig, x_coords, y_coords, hover_text)
 
 
-def _plot_default_trafo(fig: go.Figure, trafo: pl.DataFrame, color: str):
+def _plot_default_trafo(
+    fig: go.Figure, trafo: pl.DataFrame, default_color: str, node_size: float
+):
     """Plot default transformers on the figure."""
     for data in trafo.to_dicts():
         x_coords = data.get("x_coords", [])
@@ -350,7 +344,7 @@ def _plot_default_trafo(fig: go.Figure, trafo: pl.DataFrame, color: str):
                 x=x_coords,
                 y=y_coords,
                 mode="lines",
-                line=dict(width=3, color=color),
+                line=dict(width=3 * node_size / 22, color=default_color),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -364,7 +358,9 @@ def _plot_default_trafo(fig: go.Figure, trafo: pl.DataFrame, color: str):
                 y=[mid_y],
                 mode="text",
                 text=["<b>⧚</b>"],
-                textfont=dict(size=20, color=color, family="Arial Black"),
+                textfont=dict(
+                    size=20 * node_size / 22, color=default_color, family="Arial Black"
+                ),
                 hoverinfo="text",
                 hovertext=hover_text,
                 showlegend=False,
@@ -374,24 +370,24 @@ def _plot_default_trafo(fig: go.Figure, trafo: pl.DataFrame, color: str):
 
 def _plot_colored_trafo(
     fig: go.Figure,
-    trafo: pl.DataFrame,
-    trafo_currents: list[float],
-    trafo_powers: list[float],
-    trafo_qs: list[float],
+    grid_data: GridDataFrames,
+    trafo_flows: EdgeFlows,
     trafo_colors: list[str],
+    default_color: str,
+    node_size: float,
 ):
     """Plot colored transformers on the figure."""
-    for i, data in enumerate(trafo.to_dicts()):
+    for i, data in enumerate(grid_data.trafo.to_dicts()):
         x_coords = data.get("x_coords", [])
         y_coords = data.get("y_coords", [])
 
-        color = trafo_colors[i] if i < len(trafo_colors) else "black"
+        color = trafo_colors[i] if i < len(trafo_colors) else default_color
 
         hover_text = (
             f"Transformer: {data.get('name', 'N/A')}<br>"
-            f"Current: {trafo_currents[i]} p.u.<br>"
-            f"Power: {trafo_powers[i]} p.u.<br>"
-            f"Reactive Power: {trafo_qs[i]} p.u.<br>"
+            f"Current: {trafo_flows.i[i]} p.u.<br>"
+            f"Power: {trafo_flows.p[i]} p.u.<br>"
+            f"Reactive Power: {trafo_flows.q[i]} p.u.<br>"
             f"HV Bus: {data.get('hv_bus', 'N/A')}<br>"
             f"LV Bus: {data.get('lv_bus', 'N/A')}<br>"
             f"Power Rating: {data.get('sn_mva', 0):.2f} MVA<br>"
@@ -404,7 +400,7 @@ def _plot_colored_trafo(
                 x=x_coords,
                 y=y_coords,
                 mode="lines",
-                line=dict(width=3, color=color),
+                line=dict(width=3 * node_size / 22, color=color),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -418,7 +414,9 @@ def _plot_colored_trafo(
                 y=[mid_y],
                 mode="text",
                 text=["<b>⧚</b>"],
-                textfont=dict(size=20, color=color, family="Arial Black"),
+                textfont=dict(
+                    size=20 * node_size / 22, color=color, family="Arial Black"
+                ),
                 hoverinfo="text",
                 hovertext=hover_text,
                 showlegend=False,
@@ -426,13 +424,20 @@ def _plot_colored_trafo(
         )
 
 
-def _plot_switches_with_status(fig: go.Figure, switch: pl.DataFrame):
+def _plot_switches(
+    fig: go.Figure,
+    switch: pl.DataFrame,
+    node_size: float,
+    plot_open_switch: bool = True,
+):
     """Plot switches with their status on the figure."""
     for data in switch.to_dicts():
         x_coords = data.get("x_coords", [])
         y_coords = data.get("y_coords", [])
 
         is_closed = data.get("closed", False)
+        if (not plot_open_switch) and (not is_closed):
+            continue
         status_text = "Closed" if is_closed else "Open"
         hover_text = (
             f"Switch: {data.get('name', 'N/A')}<br>"
@@ -448,7 +453,7 @@ def _plot_switches_with_status(fig: go.Figure, switch: pl.DataFrame):
                 x=x_coords,
                 y=y_coords,
                 mode="lines",
-                line=dict(width=3, color="black", dash=line_style),
+                line=dict(width=3 * node_size / 22, color="black", dash=line_style),
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -465,7 +470,7 @@ def _plot_switches_with_status(fig: go.Figure, switch: pl.DataFrame):
                 y=[mid_y],
                 mode="markers",
                 marker=dict(
-                    size=8,
+                    size=8 * node_size / 22,
                     color=box_color,
                     symbol="square",
                     line=dict(color=box_line_color, width=1),
@@ -479,20 +484,21 @@ def _plot_switches_with_status(fig: go.Figure, switch: pl.DataFrame):
 
 def _plot_buses(
     fig: go.Figure,
-    bus: pl.DataFrame,
+    grid_dfs: GridDataFrames,
+    result_data: ResultData,
     node_size: int,
-    voltage_dict: dict,
     color_by_results: bool,
     voltage_range: Tuple,
+    text_size: int,
 ):
     """
     Plot the buses on the grid.
     """
-    if color_by_results and voltage_dict:
+    if color_by_results and result_data.voltage_dict:
         bus_voltages = []
-        bus_ids = bus["bus_id"].to_list()
-        for bus_id in bus_ids:
-            voltage_val = voltage_dict.get(bus_id, 1.0)
+        node_ids = grid_dfs.bus["node_id"].to_list()
+        for node_id in node_ids:
+            voltage_val = result_data.voltage_dict.get(node_id, 1.0)
             bus_voltages.append(voltage_val)
 
         # Use provided voltage range or calculate from data
@@ -502,19 +508,19 @@ def _plot_buses(
 
         fig.add_trace(
             go.Scatter(
-                x=bus.select(c("coords").list.get(0))["coords"].to_list(),
-                y=bus.select(c("coords").list.get(1))["coords"].to_list(),
-                text=bus.with_columns("</b>" + c("bus_id").cast(pl.Utf8) + "</b>")[
-                    "bus_id"
-                ].to_list(),
+                x=grid_dfs.bus.select(c("coords").list.get(0))["coords"].to_list(),
+                y=grid_dfs.bus.select(c("coords").list.get(1))["coords"].to_list(),
+                text=grid_dfs.bus.with_columns(
+                    "</b>" + c("node_id").cast(pl.Utf8) + "</b>"
+                )["node_id"].to_list(),
                 mode="markers+text",
                 hoverinfo="text",
                 hovertext=[
-                    f"Bus {bus_id}<br>Voltage: {volt:.3f} pu"
-                    for bus_id, volt in zip(bus_ids, bus_voltages)
+                    f"Bus {node_id}<br>Voltage: {volt:.3f} pu"
+                    for node_id, volt in zip(node_ids, bus_voltages)
                 ],
                 showlegend=False,
-                textfont=dict(color="black"),
+                textfont=dict(color="black", size=text_size),
                 marker=dict(
                     size=node_size,
                     color=bus_colors,
@@ -526,11 +532,11 @@ def _plot_buses(
     else:
         fig.add_trace(
             go.Scatter(
-                x=bus.select(c("coords").list.get(0))["coords"].to_list(),
-                y=bus.select(c("coords").list.get(1))["coords"].to_list(),
-                text=bus.with_columns("</b>" + c("bus_id").cast(pl.Utf8) + "</b>")[
-                    "bus_id"
-                ].to_list(),
+                x=grid_dfs.bus.select(c("coords").list.get(0))["coords"].to_list(),
+                y=grid_dfs.bus.select(c("coords").list.get(1))["coords"].to_list(),
+                text=grid_dfs.bus.with_columns(
+                    "</b>" + c("node_id").cast(pl.Utf8) + "</b>"
+                )["node_id"].to_list(),
                 mode="markers+text",
                 hoverinfo="none",
                 showlegend=False,
@@ -540,14 +546,17 @@ def _plot_buses(
         )
 
 
-def _plot_loads(fig: go.Figure, bus: pl.DataFrame, net: pp.pandapowerNet):
+def _plot_loads(
+    fig: go.Figure, net: pp.pandapowerNet, grid_dfs: GridDataFrames, node_size: int
+):
     """
     Plot the loads on the grid.
     """
     load_id = list(net.load["bus"])
+    bus = grid_dfs.bus
     gen_id = list(net.gen["bus"]) + list(net.sgen["bus"])
-    for bus_id in load_id:
-        bus_row = bus.filter(pl.col("bus_id") == bus_id)
+    for node_id in load_id:
+        bus_row = bus.filter(pl.col("node_id") == node_id)
         if len(bus_row) > 0:
             bus_coords = bus_row.select("coords").to_series()[0]
             x_coord = bus_coords[0]
@@ -555,16 +564,18 @@ def _plot_loads(fig: go.Figure, bus: pl.DataFrame, net: pp.pandapowerNet):
 
             # Add annotation with rotation for load symbol
             fig.add_annotation(
-                x=x_coord + 0.1,
-                y=y_coord - 0.4,
+                x=x_coord + 0.1 * node_size / 22,
+                y=y_coord - 0.4 * node_size / 22,
                 text="⍗",
-                font=dict(size=16, color="black", family="Arial Black"),
+                font=dict(
+                    size=node_size * 16 / 22, color="black", family="Arial Black"
+                ),
                 textangle=-35,
                 showarrow=False,
-                hovertext=f"Load at Bus {bus_id}",
+                hovertext=f"Load at Bus {node_id}",
             )
-    for bus_id in gen_id:
-        bus_row = bus.filter(pl.col("bus_id") == bus_id)
+    for node_id in gen_id:
+        bus_row = bus.filter(pl.col("node_id") == node_id)
         if len(bus_row) > 0:
             bus_coords = bus_row.select("coords").to_series()[0]
             x_coord = bus_coords[0]
@@ -572,13 +583,15 @@ def _plot_loads(fig: go.Figure, bus: pl.DataFrame, net: pp.pandapowerNet):
 
             # Add annotation with rotation for load symbol
             fig.add_annotation(
-                x=x_coord - 0.1,
-                y=y_coord - 0.4,
+                x=x_coord - 0.1 * node_size / 22,
+                y=y_coord - 0.4 * node_size / 22,
                 text="⍐",
-                font=dict(size=16, color="black", family="Arial Black"),
+                font=dict(
+                    size=node_size * 16 / 22, color="black", family="Arial Black"
+                ),
                 textangle=35,
                 showarrow=False,
-                hovertext=f"PV at Bus {bus_id}",
+                hovertext=f"PV at Bus {node_id}",
             )
 
 
@@ -643,81 +656,95 @@ def _add_color_legend(
 
 
 def plot_grid_from_pandapower(
+    dap: DigAPlan,
     net: pp.pandapowerNet,
-    dig_a_plan: DigAPlan,
     node_size: int = 22,
+    text_size: int = 10,
     width: int = 800,
     height: int = 700,
     from_z: bool = False,
     color_by_results: bool = False,
+    line_default_color: str = "black",
+    trafo_default_color: str = "black",
 ) -> None:
     """Plot the grid from a pandapower network."""
-    switch_status = _extract_switch_status(net, dig_a_plan, from_z)
-
-    if color_by_results:
-        bus, line, trafo, switch = _prepare_data_frames_with_algorithm(
-            net, dig_a_plan, switch_status
-        )
-    else:
-        bus, line, trafo, switch = _prepare_data_frames(net)
-
-    voltage_dict, current_dict, edge_id_mapping, power_dict, q_dict = _get_results_data(
-        dig_a_plan, color_by_results
+    switch_status = _extract_switch_status(dap, from_z)
+    grid_dfs = _prepare_dfs_w_coordinates(
+        dap, net, switch_status, is_generate_coords=color_by_results
     )
+    result_data = _get_results_data(dap)
 
     fig = go.Figure()
 
+    if color_by_results:
+        edge_flows = _get_edge_flows(grid_dfs, result_data)
+        colors = _create_rainbow_cm(
+            edge_flows.line.i + edge_flows.trafo.i,
+            min_val=min(edge_flows.line.i + edge_flows.trafo.i),
+            max_val=max(edge_flows.line.i + edge_flows.trafo.i),
+        )
+        line_colors = colors[: len(edge_flows.line.i)]
+        trafo_colors = colors[len(edge_flows.line.i) :]
+        all_currents = edge_flows.line.i + edge_flows.trafo.i
+        current_range = (min(all_currents), max(all_currents))
+
     voltage_range = (
-        dig_a_plan.data_manager.node_data["v_min_pu"].min(),
-        dig_a_plan.data_manager.node_data["v_max_pu"].max(),
+        dap.data_manager.node_data["v_min_pu"].min(),
+        dap.data_manager.node_data["v_max_pu"].max(),
     )
 
     if color_by_results:
-        line_currents, line_powers, line_qs, trafo_currents, trafo_powers, trafo_qs = (
-            _get_line_currents(
-                line=line,
-                trafo=trafo,
-                edge_id_mapping=edge_id_mapping,
-                current_dict=current_dict,
-                power_dict=power_dict,
-                q_dict=q_dict,
-            )
-        )
-        colors = _create_rainbow_cm(
-            line_currents + trafo_currents,
-            min_val=min(line_currents + trafo_currents),
-            max_val=max(line_currents + trafo_currents),
-        )
-        line_colors = colors[: len(line_currents)]
-        trafo_colors = colors[len(line_currents) :]
-        all_currents = line_currents + trafo_currents
-
         _plot_colored_lines(
             fig,
-            line=line,
-            line_currents=line_currents,
-            line_powers=line_powers,
-            line_qs=line_qs,
+            grid_data=grid_dfs,
+            line_flows=edge_flows.line,
             line_colors=line_colors,
+            default_color=line_default_color,
+            node_size=node_size,
         )
         _plot_colored_trafo(
             fig,
-            trafo=trafo,
-            trafo_powers=trafo_powers,
-            trafo_currents=trafo_currents,
-            trafo_qs=trafo_qs,
+            grid_data=grid_dfs,
+            trafo_flows=edge_flows.trafo,
             trafo_colors=trafo_colors,
+            default_color=trafo_default_color,
+            node_size=node_size,
         )
-        _plot_switches_with_status(fig, switch)
-        current_range = (min(all_currents), max(all_currents))
+        _plot_switches(
+            fig,
+            grid_dfs.switches,
+            plot_open_switch=False,
+            node_size=node_size,
+        )
+        _plot_buses(
+            fig,
+            grid_dfs=grid_dfs,
+            result_data=result_data,
+            node_size=node_size,
+            color_by_results=True,
+            voltage_range=voltage_range,
+            text_size=text_size,
+        )
         _add_color_legend(fig, color_by_results, voltage_range, current_range)
     else:
-        _plot_default_lines(fig, line, "black")
-        _plot_default_trafo(fig, trafo, "black")
-        _plot_switches_with_status(fig, switch)
+        _plot_default_lines(fig, grid_dfs.line, line_default_color, node_size=node_size)
+        _plot_default_trafo(
+            fig, grid_dfs.trafo, trafo_default_color, node_size=node_size
+        )
+        _plot_switches(
+            fig, grid_dfs.switches, plot_open_switch=True, node_size=node_size
+        )
+        _plot_buses(
+            fig,
+            grid_dfs=grid_dfs,
+            result_data=result_data,
+            node_size=node_size,
+            color_by_results=False,
+            voltage_range=voltage_range,
+            text_size=text_size,
+        )
 
-    _plot_buses(fig, bus, node_size, voltage_dict, color_by_results, voltage_range)
-    _plot_loads(fig, bus, net)
+    _plot_loads(fig, net=net, grid_dfs=grid_dfs, node_size=node_size)
 
     fig.update_layout(
         margin=dict(t=5, l=65, r=120, b=5),  # Increased right margin for colorbars

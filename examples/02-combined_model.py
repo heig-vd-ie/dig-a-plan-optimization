@@ -41,7 +41,7 @@ taps = dig_a_plan.result_manager.extract_transformer_tap_position()
 print(taps)
 
 # %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(net, dig_a_plan)
+fig = plot_grid_from_pandapower(net=net, dap=dig_a_plan)
 
 # %% compare DigAPlan results with pandapower results
 

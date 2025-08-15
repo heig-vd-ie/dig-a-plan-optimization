@@ -60,8 +60,17 @@ dap.add_grid_data(grid_data)
 # %% Run ADMM
 dap.model_manager.solve_model()
 
+# %%
+dap_fixed = copy.deepcopy(dap)
+dap_fixed.solve_model(fixed_switches=True)
+
 # %% Inspect consensus and per-scenario deltas
 
 print("\n=== ADMM consensus switch states (z) ===")
 print(dap.model_manager.zδ_variable)
 print(dap.model_manager.zζ_variable)
+
+# %%
+save_dap_state(dap)
+save_dap_state(dap_fixed, ".cache/boisy_dap_fixed")
+joblib.dump(net, ".cache/boisy_net.joblib")
