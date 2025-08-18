@@ -163,7 +163,6 @@ def plot_grid_from_pandapower(
     )
     fig.show()
 
-
 def generate_interactive_plot():
     data = make_subplots(
         rows=2,
@@ -208,7 +207,6 @@ def get_continuous_color(colorscale, intermed):
 
     Plotly doesn't make the colorscales directly accessible in a common format.
     Some are ready to use:
-
         colorscale = plotly.colors.PLOTLY_SCALES["Greens"]
 
     Others are just swatches that need to be constructed into a colorscale:
