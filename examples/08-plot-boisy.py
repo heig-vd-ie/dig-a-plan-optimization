@@ -49,3 +49,5 @@ plot_power_flow_results(
     currents=currents,
     node_size=5,
 )
+
+# %%

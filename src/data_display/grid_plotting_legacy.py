@@ -163,6 +163,7 @@ def plot_grid_from_pandapower(
     )
     fig.show()
 
+
 def generate_interactive_plot():
     data = make_subplots(
         rows=2,
@@ -451,4 +452,5 @@ def plot_power_flow_results(
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
+    fig.write_html(".cache/boisy_grid_plot.html", include_plotlyjs="cdn")
     return fig
