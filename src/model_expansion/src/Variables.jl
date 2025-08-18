@@ -41,6 +41,7 @@ function define_decision_variables!(m::Model, grid::Types.Grid)
     @variable(m, unmet_load[node in grid.nodes])  # unmet load variable
     @variable(m, unmet_pv[node in grid.nodes])  # unmet PV variable
     @variable(m, flow[edge in grid.edges])  # flow variable
+    @variable(m, θ[cut in grid.cuts] >= 0) # Benders cut variable
     @variable(m, external_flow) # external flow variable
     @variable(m, obj) # objective value variable
     # Random variables (fixed by scenario)
@@ -53,6 +54,7 @@ function define_decision_variables!(m::Model, grid::Types.Grid)
         unmet_load = unmet_load,
         unmet_pv = unmet_pv,
         flow = flow,
+        θ = θ,
         external_flow = external_flow,
         obj = obj,
         δ_load = δ_load,
