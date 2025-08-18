@@ -28,6 +28,9 @@ class PipelineModelManager:
         self.solver.options["IntegralityFocus"] = (
             config.solver_integrality_focus
         )  # To insure master binary variable remains binary
+        self.solver.options["Seed"] = config.seed
+        if config.threads is not None:
+            self.solver.options["Threads"] = config.threads
         self.solver.options["Method"] = config.solver_method
         self.solver.options["TimeLimit"] = config.time_limit
         self.solver.options["OptimalityTol"] = config.optimality_tolerance

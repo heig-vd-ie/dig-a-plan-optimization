@@ -68,6 +68,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
 
         config = CombinedConfig(
             verbose=True,
+            threads=1,
             big_m=1e3,
             ε=1,
             pipeline_type=PipelineType.COMBINED,

@@ -57,6 +57,7 @@ def test_bender_config() -> BenderConfig:
     """Provide Bender configuration for the test case."""
     return BenderConfig(
         verbose=False,
+        threads=1,
         big_m=1e2,
         factor_p=1e-3,
         factor_q=1e-3,
@@ -71,6 +72,7 @@ def test_bender_config() -> BenderConfig:
 def test_combined_config() -> CombinedConfig:
     return CombinedConfig(
         verbose=False,
+        threads=1,
         big_m=1e3,
         γ_infeasibility=1.0,
         factor_p=1e-3,
@@ -85,6 +87,7 @@ def test_combined_config() -> CombinedConfig:
 def test_admm_config() -> ADMMConfig:
     return ADMMConfig(
         verbose=False,
+        threads=1,
         pipeline_type=PipelineType.ADMM,
         solver_name="gurobi",
         solver_non_convex=2,

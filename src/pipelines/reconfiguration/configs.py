@@ -41,6 +41,8 @@ class PipelineConfig:
     solver_bar_qcp_conv_tol: float | None = None
     solver_bar_homogeneous: int | None = None
     all_scenarios: bool = False
+    seed: int = 1234
+    threads: int | None = None
 
 
 @dataclass
