@@ -26,10 +26,10 @@ function serialize_nodes(obj)
 end
 
 # === Main example ===
-n_stages = 5
+n_stages = 10
 n_scenarios = 100
 iteration_limit = 10
-n_simulations = 1000
+n_simulations = 5000
 nodes = [Types.Node(1), Types.Node(2), Types.Node(3), Types.Node(4)]
 edges = [
     Types.Edge(1, 1, 2),
@@ -109,11 +109,11 @@ params = Types.PlanningParams(
     penalty_costs_load,
     penalty_costs_pv,
     0.0,  # discount_rate
+    bender_cuts,
 )
 simulations1, objectives1 = Stochastic.stochastic_planning(
     grid,
     scenarios,
-    bender_cuts,
     params,
     iteration_limit,
     n_simulations,
@@ -122,16 +122,14 @@ simulations1, objectives1 = Stochastic.stochastic_planning(
 simulations2, objectives2 = Stochastic.stochastic_planning(
     grid,
     scenarios,
-    bender_cuts,
     params,
     iteration_limit,
     n_simulations,
-    SDDP.Entropic(0.1),
+    SDDP.WorstCase(),
 )
 simulations3, objectives3 = Stochastic.stochastic_planning(
     grid,
     scenarios,
-    bender_cuts,
     params,
     iteration_limit,
     n_simulations,
@@ -140,57 +138,57 @@ simulations3, objectives3 = Stochastic.stochastic_planning(
 
 histogram(
     [objectives1, objectives2, objectives3],
-    normalize=true,
-    nbins=100,
-    xlabel="Objective Value",
-    ylabel="Frequency",
-    title="Objective Distribution Across Scenarios",
-    label=["Without risk measure" "With risk measure Χ" "Wasserstein"],
-    opacity=0.2,
-    legend=:topright,
-    fillalpha=0.5,
-    linecolor=[:blue :red :green],
-    fillcolor=[:blue :red :green],
+    normalize = true,
+    nbins = 100,
+    xlabel = "Objective Value",
+    ylabel = "Frequency",
+    title = "Objective Distribution Across Scenarios",
+    label = ["Without risk measure" "With risk measure WorstCase" "DRO Wasserstein"],
+    opacity = 0.2,
+    legend = :topright,
+    fillalpha = 0.5,
+    linecolor = [:blue :red :green],
+    fillcolor = [:blue :red :green],
 )
 isdir(".cache") || mkpath(".cache")
 savefig(".cache/objective_histogram.pdf")
 
 plt1 = SDDP.SpaghettiPlot(simulations1)
 
-SDDP.add_spaghetti(plt1; title="Total Unmet Load") do data
+SDDP.add_spaghetti(plt1; title = "Total Unmet Load") do data
     return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
-SDDP.add_spaghetti(plt1; title="Total Unmet PV") do data
+SDDP.add_spaghetti(plt1; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
 end
-SDDP.add_spaghetti(plt1; title="Capacity") do data
+SDDP.add_spaghetti(plt1; title = "Capacity") do data
     return sum(data[:cap][node].out for node in axes(data[:cap], 1))
 end
-SDDP.plot(plt1, ".cache/example1.html", open=true)
+SDDP.plot(plt1, ".cache/example1.html", open = true)
 
 plt2 = SDDP.SpaghettiPlot(simulations2)
-SDDP.add_spaghetti(plt2; title="Total Unmet Load") do data
+SDDP.add_spaghetti(plt2; title = "Total Unmet Load") do data
     return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
-SDDP.add_spaghetti(plt2; title="Total Unmet PV") do data
+SDDP.add_spaghetti(plt2; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
 end
-SDDP.add_spaghetti(plt2; title="Capacity") do data
+SDDP.add_spaghetti(plt2; title = "Capacity") do data
     return sum(data[:cap][node].out for node in axes(data[:cap], 1))
 end
-SDDP.plot(plt2, ".cache/example2.html", open=true)
+SDDP.plot(plt2, ".cache/example2.html", open = true)
 
 plt3 = SDDP.SpaghettiPlot(simulations3)
-SDDP.add_spaghetti(plt3; title="Total Unmet Load") do data
+SDDP.add_spaghetti(plt3; title = "Total Unmet Load") do data
     return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
 end
-SDDP.add_spaghetti(plt3; title="Total Unmet PV") do data
+SDDP.add_spaghetti(plt3; title = "Total Unmet PV") do data
     return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
 end
-SDDP.add_spaghetti(plt3; title="Capacity") do data
+SDDP.add_spaghetti(plt3; title = "Capacity") do data
     return sum(data[:cap][node].out for node in axes(data[:cap], 1))
 end
-SDDP.plot(plt3, ".cache/example3.html", open=true)
+SDDP.plot(plt3, ".cache/example3.html", open = true)
 
 p1 = Vector{Plots.Plot}(undef, 3)
 p2 = Vector{Plots.Plot}(undef, 3)
@@ -198,25 +196,25 @@ p3 = Vector{Plots.Plot}(undef, 3)
 for (k, simulation) in enumerate([simulations1, simulations2, simulations3])
     p1[k] = SDDP.publication_plot(
         simulation;
-        title="Total Unmet Load",
-        ylabel="Unmet Load (MWh)",
-        xlabel="Stage",
+        title = "Total Unmet Load",
+        ylabel = "Unmet Load (MWh)",
+        xlabel = "Stage",
     ) do data
         return sum(data[:total_unmet_load][node].out for node in axes(data[:total_unmet_load], 1))
     end
     p2[k] = SDDP.publication_plot(
         simulation;
-        title="Total Unmet PV",
-        ylabel="Unmet PV (MWh)",
-        xlabel="Stage",
+        title = "Total Unmet PV",
+        ylabel = "Unmet PV (MWh)",
+        xlabel = "Stage",
     ) do data
         return sum(data[:total_unmet_pv][node].out for node in axes(data[:total_unmet_pv], 1))
     end
     p3[k] = SDDP.publication_plot(
         simulation;
-        title="Total Capacity",
-        ylabel="Capacity (MW)",
-        xlabel="Stage",
+        title = "Total Capacity",
+        ylabel = "Capacity (MW)",
+        xlabel = "Stage",
     ) do data
         return sum(data[:cap][node].out for node in axes(data[:cap], 1))
     end
@@ -231,7 +229,7 @@ plt = Plots.plot(
     p1[3],
     p2[3],
     p3[3],
-    layout=(3, 3),
-    size=(900, 1200),
+    layout = (3, 3),
+    size = (900, 1200),
 )
 Plots.savefig(plt, ".cache/stochastic_planning_results1.pdf")

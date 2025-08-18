@@ -16,4 +16,7 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.p_curt_prod = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
     model.q_curt_prod = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
 
+    model.v_relax_up = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
+    model.v_relax_down = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
+
     return model

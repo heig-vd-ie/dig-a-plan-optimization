@@ -29,13 +29,7 @@ dig_a_plan.solve_model(max_iters=100)
 
 
 # %% plot the results
-fig = make_subplots(
-    rows=3,
-    cols=1,
-    shared_xaxes=True,
-    vertical_spacing=0.01,
-    row_titles=["Slave objective", "Master objective"],
-)
+fig = make_subplots(rows=1, cols=1)
 fig.add_trace(
     go.Scatter(
         go.Scatter(y=dig_a_plan.model_manager.slave_obj_list[1:]),
@@ -51,25 +45,45 @@ fig.add_trace(
         mode="lines",
         name="Master objective",
     ),
-    row=2,
+    row=1,
     col=1,
 )
 fig.add_trace(
     go.Scatter(
         go.Scatter(y=dig_a_plan.model_manager.convergence_list[1:]),
         mode="lines",
-        name="Convergence",
+        line=dict(dash="dot"),
+        name="Difference",
     ),
-    row=3,
+    row=1,
     col=1,
 )
-fig.update_layout(height=600, width=600, margin=dict(t=10, l=20, r=10, b=10))
+fig.update_layout(
+    height=600,
+    width=1200,
+    margin=dict(t=10, l=20, r=10, b=10),
+    legend=dict(
+        x=0.70,  # Position legend inside the plot area
+        y=0.98,  # Position at top-left
+        bgcolor="rgba(255,255,255,0.8)",  # Semi-transparent white background
+        bordercolor="rgba(0,0,0,0.2)",  # Light border
+        borderwidth=1,
+    ),
+    xaxis_title="Iteration",
+    yaxis_title="Objective Value",
+)
+fig.write_html(".cache/bender-convergence.html")
 
 # %% compare with pandapower
 node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
 )
-plot_grid_from_pandapower(net=net, dig_a_plan=dig_a_plan)
+# %%
+plot_grid_from_pandapower(net=net, dap=dig_a_plan)
+
+# %%
+plot_grid_from_pandapower(net=net, dap=dig_a_plan, color_by_results=True)
+
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
 print(

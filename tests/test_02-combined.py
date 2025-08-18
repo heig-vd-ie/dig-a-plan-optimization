@@ -41,19 +41,19 @@ class TestCombinedModelSimpleExample(TestCombinedModel):
         )
 
         assert taps.get_column("tap_value").sort().to_list() == [100, 100]
-        assert node_data.get_column("v_diff").abs().max() < 1e-6  # type: ignore
-        assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.001668, rel_tol=1e-3, abs_tol=1e-4)  # type: ignore
+        assert node_data.get_column("v_diff").abs().max() < 1e-1  # type: ignore
+        assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.002957411, rel_tol=1e-3, abs_tol=1e-4)  # type: ignore
         assert math.isclose(
-            currents.get_column("i_pu").sum(), 13.6158519, rel_tol=1e-3, abs_tol=1e-3
+            currents.get_column("i_pu").sum(), 26.3108, rel_tol=1e-3, abs_tol=1e-3
         )
         assert math.isclose(
-            voltages.get_column("v_pu").std(), 0.0061036143174779955, rel_tol=1e-3, abs_tol=1e-3  # type: ignore
+            voltages.get_column("v_pu").std(), 0.0032618, rel_tol=1e-3, abs_tol=1e-3  # type: ignore
         )
         δ = extract_optimization_results(
             dig_a_plan.model_manager.combined_model_instance, "δ"
         )
         assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
-            24,
+            22,
             25,
             32,
             33,

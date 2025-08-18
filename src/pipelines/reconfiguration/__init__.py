@@ -34,6 +34,7 @@ class DigAPlan:
             ρ=self.config.ρ,
             γ_infeasibility=self.config.γ_infeasibility,
             γ_admm_penalty=self.config.γ_admm_penalty,
+            γ_trafo_loss=self.config.γ_trafo_loss,
             all_scenarios=self.config.all_scenarios,
         )
         self.model_manager: (

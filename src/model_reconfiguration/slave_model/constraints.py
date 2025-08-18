@@ -262,6 +262,12 @@ def slave_model_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
     )
     model.tap_limit = pyo.Constraint(model.Tr, rule=tap_limit_rule)
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
+    model.p_curt_cons_rule = pyo.Constraint(model.NΩ, rule=node_active_power_rule)
+    model.q_curt_cons_rule = pyo.Constraint(model.NΩ, rule=node_reactive_power_rule)
+    model.p_curt_prod_rule = pyo.Constraint(model.NΩ, rule=node_active_power_prod_rule)
+    model.q_curt_prod_rule = pyo.Constraint(
+        model.NΩ, rule=node_reactive_power_prod_rule
+    )
 
     return model
 

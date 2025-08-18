@@ -30,15 +30,15 @@ class PipelineResultManager:
         self.data_manager = data_manager
         self.model_manager = model_manager
 
-    def init_model_instance(self):
-        if isinstance(self.model_manager, PipelineModelManagerCombined):
+    def init_model_instance(self, scenario: int = 0):
+        if isinstance(self.model_manager, PipelineModelManagerADMM):
+            self.model_instance = self.model_manager.admm_model_instances[
+                list(self.model_manager.admm_model_instances.keys())[scenario]
+            ]
+        elif isinstance(self.model_manager, PipelineModelManagerCombined):
             self.model_instance = self.model_manager.combined_model_instance
         elif isinstance(self.model_manager, PipelineModelManagerBender):
             self.model_instance = self.model_manager.optimal_slave_model_instance
-        elif isinstance(self.model_manager, PipelineModelManagerADMM):
-            self.model_instance = self.model_manager.admm_model_instances[
-                list(self.model_manager.admm_model_instances.keys())[0]
-            ]
 
     def extract_switch_status(self) -> pl.DataFrame:
         self.init_model_instance()
@@ -87,74 +87,75 @@ class PipelineResultManager:
         )
         return tt
 
-    def extract_node_voltage(self) -> pl.DataFrame:
-        self.init_model_instance()
+    def extract_nodal_variables(self, variable: str, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
 
         return (
-            extract_optimization_results(self.model_instance, "v_sq")
-            .select(
-                (c("v_sq")).sqrt().alias("v_pu"), c("NΩ").list.get(0).alias("node_id")
-            )
+            extract_optimization_results(self.model_instance, variable)
+            .select((c(variable)).sqrt(), c("NΩ").list.get(0).alias("node_id"))
             .join(
-                self.data_manager.node_data[["cn_fk", "node_id", "v_base"]],
+                self.data_manager.node_data[
+                    ["cn_fk", "node_id", "v_base", "v_min_pu", "v_max_pu"]
+                ],
                 on="node_id",
-                how="left",
+                how="full",
             )
         )
 
-    def extract_edge_current(self) -> pl.DataFrame:
-        self.init_model_instance()
-        return (
-            extract_optimization_results(self.model_instance, "i_sq")
-            .select(
-                (c("i_sq")).sqrt().alias("i_pu"), c("CΩ").list.get(0).alias("edge_id")
-            )
-            .group_by("edge_id")
-            .agg(c("i_pu").max())
-            .sort("edge_id")
-            .join(
-                self.data_manager.edge_data.filter(c("type") != "switch")[
-                    ["eq_fk", "edge_id", "i_base"]
-                ],
-                on="edge_id",
-                how="inner",
-            )
-        )
+    def extract_edge_variables(self, variable: str, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
 
-    def extract_edge_active_power_flow(self) -> pl.DataFrame:
-        self.init_model_instance()
         return (
-            extract_optimization_results(self.model_instance, "p_flow")
+            extract_optimization_results(self.model_instance, variable)
             .select(
-                c("p_flow").alias("p_pu"),
+                (c(variable)),
                 c("CΩ").list.get(0).alias("edge_id"),
                 c("CΩ").list.get(1).alias("from_node_id"),
                 c("CΩ").list.get(2).alias("to_node_id"),
             )
             .join(
                 self.data_manager.edge_data.filter(c("type") != "switch")[
-                    ["eq_fk", "edge_id"]
+                    ["eq_fk", "edge_id", "i_base", "type", "i_max_pu"]
                 ],
                 on="edge_id",
+                how="full",
+            )
+        ).filter(c("type") != "switch")
+
+    def extract_node_voltage(self, scenario: int = 0) -> pl.DataFrame:
+        return self.extract_nodal_variables("v_sq", scenario=scenario).with_columns(
+            (c("v_sq") ** 0.5).alias("v_pu")
+        )
+
+    def extract_edge_current(self, scenario: int = 0) -> pl.DataFrame:
+        p = self.extract_edge_variables("p_flow", scenario=scenario)
+        q = self.extract_edge_variables("q_flow", scenario=scenario)
+        i = self.extract_edge_variables("i_sq", scenario=scenario)
+        return (
+            p.join(
+                q[["edge_id", "from_node_id", "to_node_id", "q_flow"]],
+                on=["edge_id", "from_node_id", "to_node_id"],
                 how="inner",
+            )
+            .join(
+                i[["edge_id", "from_node_id", "to_node_id", "i_sq"]],
+                on=["edge_id", "from_node_id", "to_node_id"],
+                how="inner",
+            )
+            .with_columns(
+                [
+                    (c("i_sq") ** 0.5).alias("i_pu"),
+                    ((c("i_sq") ** 0.5) * 100 / c("i_max_pu")).alias("i_pct"),
+                ]
             )
         )
 
-    def extract_edge_reactive_power_flow(self) -> pl.DataFrame:
-        self.init_model_instance()
-        return (
-            extract_optimization_results(self.model_instance, "q_flow")
-            .select(
-                c("q_flow").alias("q_pu"),
-                c("CΩ").list.get(0).alias("edge_id"),
-                c("CΩ").list.get(1).alias("from_node_id"),
-                c("CΩ").list.get(2).alias("to_node_id"),
-            )
-            .join(
-                self.data_manager.edge_data.filter(c("type") != "switch")[
-                    ["eq_fk", "edge_id"]
-                ],
-                on="edge_id",
-                how="inner",
-            )
+    def extract_edge_active_power_flow(self, scenario: int = 0) -> pl.DataFrame:
+        return self.extract_edge_variables("p_flow", scenario=scenario).with_columns(
+            c("p_flow").alias("p_pu")
+        )
+
+    def extract_edge_reactive_power_flow(self, scenario: int = 0) -> pl.DataFrame:
+        return self.extract_edge_variables("q_flow", scenario=scenario).with_columns(
+            c("q_flow").alias("q_pu")
         )

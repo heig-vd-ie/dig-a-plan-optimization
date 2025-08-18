@@ -3,7 +3,6 @@ import pyomo.environ as pyo
 
 
 def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractModel:
-    # 1) Radiality: each non‑slack node has one incoming flow (per scenario)
     model.flow_balance = pyo.Constraint(model.Nes, rule=imaginary_flow_balance_rule)
     model.flow_balance_slack = pyo.Constraint(
         model.slack_node, rule=imaginary_flow_balance_slack_rule
@@ -20,7 +19,6 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.nb_closed_switches = pyo.Constraint(
         rule=imaginary_flow_nb_closed_switches_rule
     )
-    # 2) DistFlow & power balance (per scenario)
     model.slack_voltage = pyo.Constraint(model.snΩ, rule=slack_voltage_rule)
     model.node_active_power_balance = pyo.Constraint(
         model.NesΩ, rule=node_active_power_balance_rule
@@ -46,11 +44,9 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.edge_reactive_power_balance_line = pyo.Constraint(
         model.EΩ, rule=edge_reactive_power_balance_line_rule
     )
-    # 3) Voltage‐drop & cone (per scenario)
     model.voltage_limit_lower = pyo.Constraint(model.CsΩ, rule=voltage_limit_lower_rule)
     model.voltage_limit_upper = pyo.Constraint(model.CsΩ, rule=voltage_limit_upper_rule)
 
-    # 4) Switch power bounds (per scenario)
     model.switch_active_power_lower_bound = pyo.Constraint(
         model.CsΩ, rule=switch_active_power_lower_bound_rule
     )
@@ -63,24 +59,20 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.switch_reactive_power_upper_bound = pyo.Constraint(
         model.CsΩ, rule=switch_reactive_power_upper_bound_rule
     )
-    # 5) Current symmetry (per scenario)
     model.current_balance = pyo.Constraint(model.CΩ, rule=current_balance_rule)
-    # 6) Voltage limits (per scenario)
+    model.node_active_power = pyo.Constraint(model.NΩ, rule=node_active_power_rule)
+    model.node_active_power_prod = pyo.Constraint(
+        model.NΩ, rule=node_active_power_prod_rule
+    )
     model.current_limit = pyo.Constraint(model.ClΩ, rule=optimal_current_limit_rule)
     model.current_limit_tr = pyo.Constraint(model.CtΩ, rule=optimal_current_limit_rule)
+    model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     model.voltage_upper_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_upper_limits_rule
     )
     model.voltage_lower_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_lower_limits_rule
     )
-    # 7) Power limits (per scenario)
-    model.node_active_power = pyo.Constraint(model.NΩ, rule=node_active_power_rule)
-    model.node_active_power_prod = pyo.Constraint(
-        model.NΩ, rule=node_active_power_prod_rule
-    )
-
-    model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     return model
 
 
