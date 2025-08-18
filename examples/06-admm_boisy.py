@@ -7,7 +7,7 @@ os.chdir(os.getcwd().replace("/src", ""))
 from examples import *
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-if USE_SIMPLIFIED_GRID := False:
+if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
@@ -39,19 +39,19 @@ config = ADMMConfig(
     verbose=False,
     pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
-    solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
+    solver_non_convex=0,  # Set non-convex parameters to 2 for Boisy grid
     big_m=1e3,
     ε=1e-4,
     ρ=2.0,
     γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
-    time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
+    time_limit=1,  # TODO: set time limit to 10 seconds for actual boisy grid
     max_iters=10,
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
     mutation_factor=2,
-    groups=40,  # TODO: set number of groups for actual boisy grid to 40
+    groups=10,  # TODO: set number of groups for actual boisy grid to 40
 )
 
 dap = DigAPlanADMM(config=config)
@@ -123,7 +123,7 @@ plt.grid()
 plt.show()
 
 # %%
-plot_grid_from_pandapower(net=net, dap=dap, from_z=True, color_by_results=True, text_size=8, node_size=12)  # type: ignore
+plot_grid_from_pandapower(net=net, dap=dap, from_z=True, color_by_results=True, node_size=6)  # type: ignore
 
 # %% Plot fixed switches
-plot_grid_from_pandapower(net=net, dap=dap_fixed, from_z=True, color_by_results=True, text_size=8, node_size=12)  # type: ignore
+plot_grid_from_pandapower(net=net, dap=dap_fixed, from_z=True, color_by_results=True, node_size=6)  # type: ignore

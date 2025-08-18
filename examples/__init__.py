@@ -10,7 +10,12 @@ import polars as pl
 from polars import col as c
 
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
+from data_schema import NodeEdgeModel
 from data_display.grid_plotting import plot_grid_from_pandapower
+from data_display.grid_plotting_legacy import (
+    plot_grid_from_pandapower as plot_grid_from_pandapower_legacy,
+)
+from data_display.grid_plotting_legacy import plot_power_flow_results
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_display.distribution_variable import plot_distribution_variable
 from pipelines.reconfiguration import (
