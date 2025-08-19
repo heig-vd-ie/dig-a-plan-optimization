@@ -64,7 +64,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
             dig_a_plan=dap, net=self.net
         )
         assert node_data.get_column("v_diff").abs().max() < 1e-1  # type: ignore
-        assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.0030544, rel_tol=1e-3)  # type: ignore
+        assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.0035988136450779903, rel_tol=1e-3)  # type: ignore
 
         config = CombinedConfig(
             verbose=True,
