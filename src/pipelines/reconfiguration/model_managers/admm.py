@@ -2,8 +2,6 @@ import itertools
 import time
 from typing import Dict, List, Tuple
 import random
-from xml.parsers.expat import model
-from attr import mutable
 import pyomo.environ as pyo
 import numpy as np
 import polars as pl
