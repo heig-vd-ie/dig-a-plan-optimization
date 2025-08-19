@@ -103,7 +103,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]] = {
                 ω: ζ_map for ω in self.Ω
             }
-            δ_by_sc, ζ_by_sc = self.solve_admm_inner_loop(
+            δ_by_sc, ζ_by_sc, δ_map, ζ_map = self.solve_admm_inner_loop(
                 δ_map=δ_map,
                 ζ_map=ζ_map,
                 δ_by_sc=δ_by_sc,
@@ -200,7 +200,12 @@ class PipelineModelManagerADMM(PipelineModelManager):
         zζ_old: Dict[Tuple[str, str], float],
         fixed_switches: bool,
         k: int | None = None,
-    ) -> Tuple[Dict[int, Dict[str, float]], Dict[int, Dict[Tuple[str, str], float]]]:
+    ) -> Tuple[
+        Dict[int, Dict[str, float]],
+        Dict[int, Dict[Tuple[str, str], float]],
+        Dict[str, float],
+        Dict[Tuple[str, str], float],
+    ]:
         for ω, g in itertools.product(
             self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
         ):
@@ -232,7 +237,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             self.r_norm_list.append(self.r_norm)
             self.s_norm_list.append(self.s_norm)
             self.time_list.append(time.process_time())
-        return δ_by_sc, ζ_by_sc
+        return δ_by_sc, ζ_by_sc, δ_map, ζ_map
 
     def _set_zδ_from_zδ(self) -> None:
         """Broadcast consensus zδ[s] to δ_param[sc, s] for all scenarios sc."""
