@@ -10,7 +10,7 @@ from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 class ADMM:
     """ADMM (Alternating Direction Method of Multipliers) optimization class."""
 
-    def __init__(self, groups: Dict[int, List[int]], grid_data: NodeEdgeModel):
+    def __init__(self, groups: Dict[int, List[int]] | int, grid_data: NodeEdgeModel):
         self.config = ADMMConfig(
             verbose=False,
             pipeline_type=PipelineType.ADMM,
