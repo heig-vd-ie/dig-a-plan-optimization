@@ -69,6 +69,7 @@ def generate_combined_model() -> pyo.AbstractModel:
     combined_model = model_variables(combined_model)
     combined_model = combined_model_common_constraints(combined_model)
     combined_model = combined_model_constraints(combined_model)
+    combined_model.dual = Suffix(direction=Suffix.IMPORT)
     return combined_model
 
 

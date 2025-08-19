@@ -2,6 +2,8 @@ import itertools
 import time
 from typing import Dict, List, Tuple
 import random
+from xml.parsers.expat import model
+from attr import mutable
 import pyomo.environ as pyo
 import numpy as np
 import polars as pl
@@ -43,7 +45,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
         for ω in grid_data_parameters_dict.keys():
             self.admm_model_instances[ω] = self.admm_model.create_instance(grid_data_parameters_dict[ω])  # type: ignore
 
-    def solve_model(self, fixed_switches: bool = False, **kwargs) -> None:
+    def solve_model(
+        self, fixed_switches: bool = False, extract_duals: bool = False, **kwargs
+    ):
         """Solve the ADMM model with the given parameters."""
         random.seed(self.config.seed_number)
         self.s_norm: float | None = None
@@ -67,7 +71,6 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.switch_list = list(self.admm_model_instances[self.Ω[0]].S)  # type: ignore
         self.transformer_list = list(self.admm_model_instances[self.Ω[0]].Tr)  # type: ignore
         self.tap_list = list(self.admm_model_instances[self.Ω[0]].Taps)  # type: ignore
-        scenario_number = len(self.Ω)
 
         # Initialize consensus and duals
         self.zδ = {s: 0.5 for s in self.switch_list}  # consensus per switch
@@ -102,38 +105,16 @@ class PipelineModelManagerADMM(PipelineModelManager):
             ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]] = {
                 ω: ζ_map for ω in self.Ω
             }
-            for ω, g in itertools.product(
-                self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
-            ):
-                m = self.admm_model_instances[ω]  # type: ignore
-                selected_switches = self.__fix_switches(m, δ_map, g)
-                δ_map, ζ_map = self.__solve_model(
-                    m, δ_map, ζ_map, selected_switches, k=k
-                )
-                δ_by_sc[ω] = δ_map
-                ζ_by_sc[ω] = ζ_map
-
-                # ---- z-update (per switch) ----
-                for s in self.switch_list:
-                    self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / scenario_number
-                # ---- zζ-update (per transformer tap) ----
-                for tr, tap in self.zζ.keys():
-                    self.zζ[(tr, tap)] = (
-                        sum(ζ_by_sc[ω][(tr, tap)] for ω in self.Ω) / scenario_number
-                    )
-
-                # ---- residuals (after all scenarios solved) ----
-                self.r_norm, self.s_norm = self.__calculate_residuals(
-                    δ_by_sc=δ_by_sc,
-                    zδ=self.zδ,
-                    zδ_old=zδ_old,
-                    ζ_by_sc=ζ_by_sc,
-                    zζ=self.zζ,
-                    zζ_old=zζ_old,
-                )
-                self.r_norm_list.append(self.r_norm)
-                self.s_norm_list.append(self.s_norm)
-                self.time_list.append(time.process_time())
+            δ_by_sc, ζ_by_sc = self.solve_admm_inner_loop(
+                δ_map=δ_map,
+                ζ_map=ζ_map,
+                δ_by_sc=δ_by_sc,
+                ζ_by_sc=ζ_by_sc,
+                zδ_old=zδ_old,
+                zζ_old=zζ_old,
+                fixed_switches=fixed_switches,
+                k=k,
+            )
 
             # ---- λ-update (scaled duals) ----
             for ω, s in itertools.product(self.Ω, self.switch_list):
@@ -168,6 +149,16 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.__set_zδ_map()
         self.__set_zζ_map()
 
+        if extract_duals:
+            self.extract_dual_variables(
+                δ_map=δ_map,
+                ζ_map=ζ_map,
+                δ_by_sc=δ_by_sc,
+                ζ_by_sc=ζ_by_sc,
+                zδ_old=zδ_old,
+                zζ_old=zζ_old,
+            )
+
         # store total objective (sum over scenarios), if available
         final_obj = float(sum(pyo.value(getattr(m, "objective")) for m in self.admm_model_instances.values()))  # type: ignore
         log.info(f"ADMM final objective (sum over scenarios) = {final_obj:.4f}")
@@ -175,6 +166,75 @@ class PipelineModelManagerADMM(PipelineModelManager):
     # ---------------------------
     # ADMM helpers and main loop
     # ---------------------------
+
+    def extract_dual_variables(
+        self,
+        δ_map: Dict[str, float],
+        ζ_map: Dict[Tuple[str, str], float],
+        δ_by_sc: Dict[int, Dict[str, float]],
+        ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]],
+        zδ_old: Dict[int, float],
+        zζ_old: Dict[Tuple[str, str], float],
+    ):
+        for ω, m in self.admm_model_instances.items():
+            m = self.__fix_taps(m, ζ_by_sc[ω])
+            self.admm_model_instances[ω] = m
+
+        self.solver = pyo.SolverFactory(self.config.solver_name)
+
+        self.solve_admm_inner_loop(
+            δ_map=δ_map,
+            ζ_map=ζ_map,
+            δ_by_sc=δ_by_sc,
+            ζ_by_sc=ζ_by_sc,
+            zδ_old=zδ_old,
+            zζ_old=zζ_old,
+            fixed_switches=True,
+        )
+
+    def solve_admm_inner_loop(
+        self,
+        δ_map: Dict[str, float],
+        ζ_map: Dict[Tuple[str, str], float],
+        δ_by_sc: Dict[int, Dict[str, float]],
+        ζ_by_sc: Dict[int, Dict[Tuple[str, str], float]],
+        zδ_old: Dict[int, float],
+        zζ_old: Dict[Tuple[str, str], float],
+        fixed_switches: bool,
+        k: int | None = None,
+    ) -> Tuple[Dict[int, Dict[str, float]], Dict[int, Dict[Tuple[str, str], float]]]:
+        for ω, g in itertools.product(
+            self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
+        ):
+            m = self.admm_model_instances[ω]  # type: ignore
+            selected_switches = self.__fix_switches(m, δ_map, g)
+
+            δ_map, ζ_map = self.__solve_model(m, δ_map, ζ_map, selected_switches, k=k)
+            δ_by_sc[ω] = δ_map
+            ζ_by_sc[ω] = ζ_map
+
+            # ---- z-update (per switch) ----
+            for s in self.switch_list:
+                self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / len(self.Ω)
+            # ---- zζ-update (per transformer tap) ----
+            for tr, tap in self.zζ.keys():
+                self.zζ[(tr, tap)] = sum(ζ_by_sc[ω][(tr, tap)] for ω in self.Ω) / len(
+                    self.Ω
+                )
+
+            # ---- residuals (after all scenarios solved) ----
+            self.r_norm, self.s_norm = self.__calculate_residuals(
+                δ_by_sc=δ_by_sc,
+                zδ=self.zδ,
+                zδ_old=zδ_old,
+                ζ_by_sc=ζ_by_sc,
+                zζ=self.zζ,
+                zζ_old=zζ_old,
+            )
+            self.r_norm_list.append(self.r_norm)
+            self.s_norm_list.append(self.s_norm)
+            self.time_list.append(time.process_time())
+        return δ_by_sc, ζ_by_sc
 
     def _set_zδ_from_zδ(self) -> None:
         """Broadcast consensus zδ[s] to δ_param[sc, s] for all scenarios sc."""
@@ -367,6 +427,15 @@ class PipelineModelManagerADMM(PipelineModelManager):
             if isinstance(self.groups, int) or g is None
             else self.groups[g]
         )
+
+    def __fix_taps(
+        self,
+        m: pyo.ConcreteModel,
+        ζ_map: Dict[Tuple[str, str], float],
+    ) -> pyo.ConcreteModel:
+        for (tr, tap), ζ in ζ_map.items():
+            m.ζ[(tr, tap)].fix(ζ)  # type: ignore
+        return m
 
     def __solve_model(
         self,

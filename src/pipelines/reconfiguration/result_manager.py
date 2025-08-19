@@ -159,3 +159,12 @@ class PipelineResultManager:
         return self.extract_edge_variables("q_flow", scenario=scenario).with_columns(
             c("q_flow").alias("q_pu")
         )
+
+    def extract_dual_variables(self, scenario: int = 0) -> pl.DataFrame:
+        self.init_model_instance(scenario=scenario)
+        return pl.DataFrame(
+            {
+                "name": list(dict(self.model_instance.dual).keys()),  # type: ignore
+                "value": list(dict(self.model_instance.dual).values()),  # type: ignore
+            }
+        )

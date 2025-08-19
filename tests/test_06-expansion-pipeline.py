@@ -2,7 +2,6 @@ import math
 import numpy as np
 import pytest
 from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
-from pipelines.expansion.admm_helpers import ADMM
 from pipelines.expansion.algorithm import ExpansionAlgorithm
 from pipelines.expansion.models.request import RiskMeasureType
 
