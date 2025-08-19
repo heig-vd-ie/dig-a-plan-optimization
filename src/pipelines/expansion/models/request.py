@@ -1,5 +1,5 @@
 from typing import List, Dict, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from enum import Enum
 
 
@@ -74,7 +74,7 @@ class Grid(BaseModel):
 class PlanningParams(BaseModel):
     n_stages: int
     initial_budget: int
-
+    γ_cuts: float
     discount_rate: float
 
 

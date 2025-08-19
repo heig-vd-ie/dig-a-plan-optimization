@@ -123,7 +123,7 @@ function define_subsequent_stage_constraints!(
     @constraint(
         m,
         [cut in grid.cuts],
-        vars.θ[cut] - params.bender_cuts[cut].θ >=
+        params.γ_cuts * (vars.θ[cut] - params.bender_cuts[cut].θ) >=
         sum(
             (states.actual_load[node].out - params.bender_cuts[cut].load0[node]) *
             params.bender_cuts[cut].λ_load[node] +
@@ -154,10 +154,7 @@ function define_objective!(
         discount_factor * (
             vars.investment_cost +
             sum(
-                params.penalty_costs_load[node] * states.total_unmet_load[node].out for
-                node in grid.nodes
-            ) +
-            sum(
+                params.penalty_costs_load[node] * states.total_unmet_load[node].out +
                 params.penalty_costs_pv[node] * states.total_unmet_pv[node].out for
                 node in grid.nodes
             ) +

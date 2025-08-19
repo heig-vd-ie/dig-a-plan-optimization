@@ -32,12 +32,13 @@ class ExpansionTestBase:
         self.simple_grid_groups = test_simple_grid_groups
 
     def create_planning_params(
-        self, n_stages=3, initial_budget=100000, discount_rate=0.05
+        self, n_stages=3, initial_budget=100000, discount_rate=0.05, γ_cuts=0.0
     ):
         """Create planning parameters with default or custom values."""
         return PlanningParams(
             n_stages=n_stages,
             initial_budget=initial_budget,
+            γ_cuts=γ_cuts,
             discount_rate=discount_rate,
         )
 
