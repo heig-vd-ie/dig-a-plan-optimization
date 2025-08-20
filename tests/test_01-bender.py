@@ -39,8 +39,8 @@ class TestBenderModel(BenderTestCase):
         )
         assert δ.filter(pl.col("δ") == 0).get_column("S").sort().to_list() == [
             23,
+            26,
             28,
             32,
             33,
-            34,
         ]

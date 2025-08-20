@@ -69,10 +69,16 @@ class PipelineModelManagerBender(PipelineModelManager):
         self.convergence_list = []
 
         self.master_solver = pyo.SolverFactory(config.solver_name)
+        self.master_solver.options["Seed"] = config.seed
+        if config.threads is not None:
+            self.master_solver.options["Threads"] = config.threads
         self.master_solver.options["IntegralityFocus"] = (
             config.master_solver_integrality_focus
         )  # To insure master binary variable remains binary
         self.slave_solver = pyo.SolverFactory(config.solver_name)
+        self.slave_solver.options["Seed"] = config.seed
+        if config.threads is not None:
+            self.slave_solver.options["Threads"] = config.threads
         if config.solver_non_convex is not None:
             self.slave_solver.options["NonConvex"] = config.solver_non_convex
         if config.solver_qcp_dual is not None:
