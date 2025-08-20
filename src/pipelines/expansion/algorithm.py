@@ -69,7 +69,7 @@ class ExpansionAlgorithm:
         δ_load_var=0.1,
         δ_pv_var=0.1,
         δ_b_var=0.1,
-        number_of_scenarios=100,
+        number_of_scenarios=10,
         number_of_stages=3,
         seed_number=42,
     ):
@@ -190,8 +190,8 @@ class ExpansionAlgorithm:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(groups=self.admm_groups, grid_data=self.grid_data)
         bender_cuts = BenderCuts(cuts={})
-        for stage in self._range(self.n_stages):
-            for ω in self._range(self.n_scenarios):
+        for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
+            for ω in tqdm.tqdm(self._range(self.n_scenarios), desc="scenarios"):
                 admm.update_grid_data(
                     δ_load=sddp_response.simulations[ω][stage].δ_load,
                     δ_pv=sddp_response.simulations[ω][stage].δ_pv,
@@ -201,7 +201,7 @@ class ExpansionAlgorithm:
                 )
                 admm_results = admm.solve()
                 bender_cut = self.transform_admm_result_into_bender_cuts(admm_results)
-                self.bender_cuts.cuts[f"{ι}_{ω}_{stage}"] = bender_cut
+                bender_cuts.cuts[f"{ι}_{ω}_{stage}"] = bender_cut
         return bender_cuts
 
     def run_pipeline(self):

@@ -1,7 +1,7 @@
 import os
 
 os.chdir(os.getcwd() + "/src")
-
+from pathlib import Path
 from logging import config
 import copy
 import pandapower as pp
@@ -37,6 +37,7 @@ from pipelines.reconfiguration.model_managers.combined import (
     PipelineModelManagerCombined,
 )
 from pipelines.helpers.pyomo_utility import extract_optimization_results
+from pipelines.expansion.algorithm import ExpansionAlgorithm
 from plotly.subplots import make_subplots
 from general_function import pl_to_dict
 
