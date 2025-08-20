@@ -31,11 +31,11 @@ class BenderCut(BaseModel):
 
     λ_load: Dict[str, float]
     λ_pv: Dict[str, float]
-    pv0: Dict[str, int]
-    load0: Dict[str, int]
-    λ_cap: Dict[str, int]
-    cap0: Dict[str, int]
-    θ: int
+    pv0: Dict[str, float]
+    load0: Dict[str, float]
+    λ_cap: Dict[str, float]
+    cap0: Dict[str, float]
+    θ: float
 
 
 class BenderCuts(BaseModel):
