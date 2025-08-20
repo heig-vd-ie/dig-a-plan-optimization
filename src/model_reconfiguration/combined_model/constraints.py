@@ -73,6 +73,8 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.voltage_lower_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_lower_limits_rule
     )
+    model.installed_cons = pyo.Constraint(model.NΩ, rule=installed_cons_rule)
+    model.installed_prod = pyo.Constraint(model.NΩ, rule=installed_prod_rule)
     return model
 
 

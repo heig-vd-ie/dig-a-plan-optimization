@@ -64,8 +64,8 @@ def pandapower_to_dig_a_plan_schema(
             (c("vn_kv") * 1e3).alias("v_base"),
             pl.lit(v_min).alias("v_min_pu"),
             pl.lit(v_max).alias("v_max_pu"),
-            pl.lit(1.0).alias("cons_installed"),
-            pl.lit(1.0).alias("prod_installed"),
+            c("p_cons_pu").abs().alias("cons_installed").fill_null(0.0),
+            c("p_prod_pu").abs().alias("prod_installed").fill_null(0.0),
             c("p_cons_pu").fill_null(0.0),
             c("q_cons_pu").fill_null(0.0),
             c("p_prod_pu").fill_null(0.0),
@@ -79,6 +79,12 @@ def pandapower_to_dig_a_plan_schema(
 
     load_data = node_data.select(
         c("node_id"),
+        c("cons_installed").map_elements(
+            lambda x: x if x > 0.0 else 1e-6, return_dtype=pl.Float64
+        ),
+        c("prod_installed").map_elements(
+            lambda x: x if x > 0.0 else 1e-6, return_dtype=pl.Float64
+        ),
         c("p_cons_pu"),
         c("q_cons_pu"),
         c("p_prod_pu"),

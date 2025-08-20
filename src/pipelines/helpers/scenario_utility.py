@@ -55,22 +55,26 @@ def generate_random_load_scenarios(
                     (1 + p_rand) * load_data["p_cons_pu"]
                     if i != 1
                     else load_data["p_cons_pu"]
-                ),
+                )
+                / (load_data["cons_installed"]),
                 "q_cons_pu": (
                     (1 + q_rand) * load_data["q_cons_pu"]
                     if i != 1
                     else load_data["q_cons_pu"]
-                ),
+                )
+                / (load_data["cons_installed"]),
                 "p_prod_pu": abs(
                     (1 + pv_rand) * load_data["p_prod_pu"]
                     if i != 1
                     else load_data["p_prod_pu"]
-                ),
+                )
+                / (load_data["prod_installed"]),
                 "q_prod_pu": (
                     (1 + qv_rand) * load_data["q_prod_pu"]
                     if i != 1
                     else load_data["q_prod_pu"]
-                ),
+                )
+                / (load_data["prod_installed"]),
                 "v_node_sqr_pu": (
                     (1 + v_rand) * v_slack_node_sqr_pu
                     if i != 1

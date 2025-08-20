@@ -64,7 +64,7 @@ class Grid(BaseModel):
     cuts: List[Cut]
     external_grid: int
     initial_cap: Dict[str, float]
-    load: Dict[str, int]
+    load: Dict[str, float]
     pv: Dict[str, float]
     investment_costs: Dict[str, float]
     penalty_costs_load: Dict[str, float]

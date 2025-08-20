@@ -27,4 +27,4 @@ class TestADMMModelDualExample(ExpansionTestBase):
         dap.add_grid_data(self.grid_data)
         dap.model_manager.solve_model(extract_duals=True)
         duals = dap.result_manager.extract_dual_variables(scenario=0)
-        assert duals.shape[0] == 868
+        assert duals.shape[0] == 932

@@ -73,10 +73,8 @@ def test_combined_config() -> CombinedConfig:
     return CombinedConfig(
         verbose=False,
         threads=1,
-        big_m=1e3,
+        big_m=1e2,
         γ_infeasibility=1.0,
-        factor_p=1e-3,
-        factor_q=1e-3,
         factor_v=1,
         factor_i=1e-3,
         pipeline_type=PipelineType.COMBINED,
