@@ -1,3 +1,4 @@
+from typing import List
 import polars as pl
 from polars import col as c
 from pipelines.reconfiguration.data_manager import PipelineDataManager
@@ -8,6 +9,7 @@ from pipelines.reconfiguration.model_managers.bender import PipelineModelManager
 from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
 from polars_function import cast_boolean
 from pipelines.helpers.pyomo_utility import extract_optimization_results
+from polars_function import modify_string_col
 
 
 class PipelineResultManager:
@@ -168,3 +170,63 @@ class PipelineResultManager:
                 "value": list(dict(self.model_instance.dual).values()),  # type: ignore
             }
         )
+
+    def extract_duals_for_expansion(
+        self, constraint_names: List[str] | None = None
+    ) -> pl.DataFrame:
+        """Extract dual variables for a specific constraint."""
+        if constraint_names is None:
+            constraint_names = [
+                "current_limit",
+                "current_limit_tr",
+                "installed_cons",
+                "installed_prod",
+            ]
+        if not isinstance(self.model_manager, PipelineModelManagerADMM):
+            raise NotImplementedError("ADMM dual extraction is not implemented")
+        duals = []
+        for scenario, ω in enumerate(self.model_manager.Ω):
+            duals.append(
+                self.extract_dual_variables(scenario=scenario).with_columns(
+                    c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
+                    (pl.lit(ω).alias("ω")),
+                )
+            )
+        duals_df: pl.DataFrame = pl.concat(duals, how="vertical")
+        duals_df = (
+            duals_df.with_columns(
+                c("name")
+                .pipe(modify_string_col, format_str={"]": ""})
+                .str.split("[")
+                .list.to_struct(fields=["name", "index"])
+            )
+            .unnest("name")
+            .filter(c("name").is_in(constraint_names))
+        )
+        duals_df = (
+            duals_df.select(
+                [
+                    c("name"),
+                    c("ω"),
+                    c("index").str.split(",").list.get(0).alias("id"),
+                    c("value"),
+                ]
+            )
+            .group_by(["name", "id", "ω"])
+            .agg(c("value").sum().alias("value"))
+        ).sort(["name", "id", "ω"])
+        return duals_df
+
+    def extract_reconfiguration_θ(self) -> pl.DataFrame:
+        """Extract reconfiguration angles."""
+        if not isinstance(self.model_manager, PipelineModelManagerADMM):
+            raise NotImplementedError("Reconfiguration θ extraction is not implemented")
+        θs = []
+        for scenario, ω in enumerate(self.model_manager.Ω):
+            self.init_model_instance(scenario=scenario)
+            θs.append(
+                extract_optimization_results(self.model_instance, "θ").select(
+                    [pl.lit(ω).alias("ω"), c("θ")]
+                )
+            )
+        return pl.concat(θs, how="vertical")

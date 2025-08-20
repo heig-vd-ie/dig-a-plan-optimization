@@ -27,4 +27,11 @@ class TestADMMModelDualExample(ExpansionTestBase):
         dap.add_grid_data(self.grid_data)
         dap.model_manager.solve_model(extract_duals=True)
         duals = dap.result_manager.extract_dual_variables(scenario=0)
-        assert duals.shape[0] == 932
+        assert duals.shape[0] == 933
+        duals = dap.result_manager.extract_duals_for_expansion()
+        assert duals.shape[0] == 830
+        assert duals.shape[1] == 4
+        θs = dap.result_manager.extract_reconfiguration_θ()
+        assert θs.shape[0] == 10
+        assert θs.shape[1] == 2
+        assert θs["θ"].sum() == pytest.approx(0.8090748534282856, abs=1e-2)
