@@ -1,4 +1,5 @@
 from typing import Dict, List
+from dataclasses import dataclass
 import polars as pl
 from polars import col as c
 import patito as pt
@@ -7,15 +8,30 @@ from pipelines.reconfiguration import DigAPlanADMM
 from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 
 
+@dataclass
+class ADMMResult:
+    duals: pl.DataFrame
+    θs: pl.DataFrame
+    load0: pl.DataFrame
+    pv0: pl.DataFrame
+    cap0: pl.DataFrame
+
+
 class ADMM:
     """ADMM (Alternating Direction Method of Multipliers) optimization class."""
 
-    def __init__(self, groups: Dict[int, List[int]], grid_data: NodeEdgeModel):
+    def __init__(
+        self,
+        groups: Dict[int, List[int]] | int,
+        grid_data: NodeEdgeModel,
+        solver_non_convex: int,
+        time_limit: int,
+    ):
         self.config = ADMMConfig(
             verbose=False,
             pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
-            solver_non_convex=2,
+            solver_non_convex=solver_non_convex,
             big_m=1e3,
             ε=1e-4,
             ρ=2.0,  # initial rho
@@ -26,6 +42,7 @@ class ADMM:
             μ=10.0,
             τ_incr=2.0,
             τ_decr=2.0,
+            time_limit=time_limit,
             groups=groups,
         )
         self.grid_data = grid_data
@@ -103,9 +120,14 @@ class ADMM:
         self.update_node_grid_data(δ_load, δ_pv, node_ids)
         self.update_edge_grid_data(δ_cap, edge_ids)
 
-    def solve(self):
+    def solve(self) -> ADMMResult:
         """Solve the optimization problem using ADMM."""
         self.dap = DigAPlanADMM(config=self.config)
         self.dap.add_grid_data(grid_data=self.grid_data)
-        self.dap.solve_model()
-        return None
+        self.dap.solve_model(extract_duals=True)
+        duals = self.dap.result_manager.extract_duals_for_expansion()
+        θs = self.dap.result_manager.extract_reconfiguration_θ()
+        load0 = self.dap.data_manager.node_data[["node_id", "cons_installed"]]
+        pv0 = self.dap.data_manager.node_data[["node_id", "prod_installed"]]
+        cap0 = self.dap.data_manager.edge_data[["edge_id", "p_max_pu"]]
+        return ADMMResult(duals=duals, θs=θs, load0=load0, pv0=pv0, cap0=cap0)

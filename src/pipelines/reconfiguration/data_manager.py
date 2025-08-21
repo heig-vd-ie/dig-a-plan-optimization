@@ -200,7 +200,6 @@ class PipelineDataManager:
                         (n, s): self.__load_data[s]["node_id", "p_cons_pu"].filter(
                             c("node_id") == n
                         )["p_cons_pu"][0]
-                        * self.node_data.filter(c("node_id") == n)["cons_installed"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
@@ -208,7 +207,6 @@ class PipelineDataManager:
                         (n, s): self.__load_data[s]["node_id", "q_cons_pu"].filter(
                             c("node_id") == n
                         )["q_cons_pu"][0]
-                        * self.node_data.filter(c("node_id") == n)["cons_installed"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
@@ -216,7 +214,6 @@ class PipelineDataManager:
                         (n, s): self.__load_data[s]["node_id", "p_prod_pu"].filter(
                             c("node_id") == n
                         )["p_prod_pu"][0]
-                        * self.node_data.filter(c("node_id") == n)["prod_installed"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
@@ -224,9 +221,16 @@ class PipelineDataManager:
                         (n, s): self.__load_data[s]["node_id", "q_prod_pu"].filter(
                             c("node_id") == n
                         )["q_prod_pu"][0]
-                        * self.node_data.filter(c("node_id") == n)["prod_installed"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
+                    },
+                    "node_cons_installed_param": {
+                        n: self.node_data.filter(c("node_id") == n)["cons_installed"][0]
+                        for n in node_ids
+                    },
+                    "node_prod_installed_param": {
+                        n: self.node_data.filter(c("node_id") == n)["prod_installed"][0]
+                        for n in node_ids
                     },
                     # ADMM & big‑M parameters
                     "big_m": {None: self.big_m},

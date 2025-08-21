@@ -15,7 +15,7 @@ def generate_long_term_scenarios(
 ) -> Scenarios:
     random.seed(seed_number)
     Ω = []
-    for stage in range(number_of_stages):
+    for _ in range(number_of_stages):
         Ω.append(
             [
                 Scenario(

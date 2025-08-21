@@ -29,13 +29,13 @@ def objective_rule_admm_penalty(m):
     )
 
 
+def objective_rule_output(m):
+    return objective_rule_loss(m) + objective_rule_infeasibility(m) * m.γ_infeasibility
+
+
 def objective_rule_combined(m):
     # Minimize network losses and infeasibility penalties
-    return (
-        objective_rule_loss(m)
-        + objective_rule_infeasibility(m) * m.γ_infeasibility
-        + objective_rule_admm_penalty(m) * m.γ_admm_penalty
-    )
+    return objective_rule_output(m) + objective_rule_admm_penalty(m) * m.γ_admm_penalty
 
 
 ##### CONSTRAINTS #####
@@ -103,19 +103,19 @@ def node_active_power_balance_slack_rule(m, n, ω):
 def node_active_power_balance_rule(m, n, ω):
     return (
         sum(m.p_flow[l, i, j, ω] for (l, i, j) in m.C if (i == n))
-        == m.p_node_prod[n, ω]
-        - m.p_node_cons[n, ω]
+        == m.p_node_prod[n, ω] * m.node_prod_installed[n, ω]
+        - m.p_node_cons[n, ω] * m.node_cons_installed[n, ω]
         + m.p_curt_cons[n, ω]
         - m.p_curt_prod[n, ω]
     )
 
 
 def node_active_power_rule(m, n, ω):
-    return m.p_curt_cons[n, ω] <= m.p_node_cons[n, ω]
+    return m.p_curt_cons[n, ω] <= m.p_node_cons[n, ω] * m.node_cons_installed[n, ω]
 
 
 def node_active_power_prod_rule(m, n, ω):
-    return m.p_curt_prod[n, ω] <= m.p_node_prod[n, ω]
+    return m.p_curt_prod[n, ω] <= m.p_node_prod[n, ω] * m.node_prod_installed[n, ω]
 
 
 # (3) Node Power Balance (Reactive) for candidate (l,i,j).
@@ -137,19 +137,27 @@ def node_reactive_power_balance_rule(m, n, ω):
             for (l, i, j) in m.C
             if (i == n)
         )
-        == m.q_node_prod[n, ω]
-        - m.q_node_cons[n, ω]
+        == m.q_node_prod[n, ω] * m.node_prod_installed[n, ω]
+        - m.q_node_cons[n, ω] * m.node_cons_installed[n, ω]
         + m.q_curt_cons[n, ω]
         - m.q_curt_prod[n, ω]
     )
 
 
 def node_reactive_power_rule(m, n, ω):
-    return m.q_curt_cons[n, ω] <= m.q_node_cons[n, ω]
+    return m.q_curt_cons[n, ω] <= m.q_node_cons[n, ω] * m.node_cons_installed[n, ω]
 
 
 def node_reactive_power_prod_rule(m, n, ω):
-    return m.q_curt_prod[n, ω] <= m.q_node_prod[n, ω]
+    return m.q_curt_prod[n, ω] <= m.q_node_prod[n, ω] * m.node_prod_installed[n, ω]
+
+
+def installed_prod_rule(m, n, ω):
+    return m.node_prod_installed[n, ω] == m.node_prod_installed_param[n]
+
+
+def installed_cons_rule(m, n, ω):
+    return m.node_cons_installed[n, ω] == m.node_cons_installed_param[n]
 
 
 def edge_active_power_balance_switch_rule(m, l, ω):
@@ -270,10 +278,7 @@ def voltage_drop_transfo_rule(m, l, i, j, ω):
 
 def voltage_drop_transfo_lindistflow_rule(m, tr, i, j, ω):
     dv = -2 * (m.r[tr] * m.p_flow[tr, i, j, ω] + m.x[tr] * m.q_flow[tr, i, j, ω])
-    if i > j:
-        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv  # + m.vt_sq[i, ω]
-    else:
-        voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv  # - m.vt_sq[j, ω]
+    voltage_diff = m.v_sq[i, ω] - m.v_sq[j, ω] + dv
     return voltage_diff == 0
 
 

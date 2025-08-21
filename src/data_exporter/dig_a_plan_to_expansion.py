@@ -1,6 +1,5 @@
 import networkx as nx
 import copy
-import json
 import polars as pl
 from typing import Dict
 from pathlib import Path
@@ -19,6 +18,7 @@ from pipelines.expansion.models.request import (
     ExpansionRequest,
 )
 from data_schema import NodeEdgeModel
+from pipelines.helpers.json_rw import save_obj_to_json
 
 
 def remove_switches_from_grid_data(grid_data: NodeEdgeModel) -> NodeEdgeModel:
@@ -156,9 +156,7 @@ def dig_a_plan_to_expansion(
     )
 
     if optimization_config_cache:
-        optimization_config_dict = optimization_config.model_dump()
-        with open(optimization_config_cache, "w") as f:
-            json.dump(optimization_config_dict, f)
+        save_obj_to_json(optimization_config, optimization_config_cache)
 
     return ExpansionRequest(
         optimization=optimization_config,

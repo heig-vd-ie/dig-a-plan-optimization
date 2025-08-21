@@ -18,5 +18,7 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
 
     model.v_relax_up = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
     model.v_relax_down = pyo.Var(model.NΩ, domain=pyo.NonNegativeReals)
+    model.node_cons_installed = pyo.Var(model.NΩ, domain=pyo.Reals)
+    model.node_prod_installed = pyo.Var(model.NΩ, domain=pyo.Reals)
 
     return model

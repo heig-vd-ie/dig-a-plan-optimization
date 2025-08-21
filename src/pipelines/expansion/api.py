@@ -5,7 +5,7 @@ import requests
 from pathlib import Path
 from pipelines.expansion.models.response import ExpansionResponse
 from pipelines.expansion.models.request import ExpansionRequest
-
+from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -53,8 +53,7 @@ class ExpansionModel:
                     / "default.json"
                 )
                 logger.info(f"Using data path: {data_path}")
-                with open(data_path, "r") as f:
-                    request_data = json.load(f)
+                request_data = load_obj_from_json(data_path)
 
             response = requests.patch(
                 f"{self.base_url}/stochastic_planning",
@@ -87,18 +86,8 @@ class ExpansionModel:
         cache_path.mkdir(parents=True, exist_ok=True)
         scenarios_path = expansion_request.optimization.scenarios
         bender_cuts_path = expansion_request.optimization.bender_cuts
-        json.dump(
-            expansion_request.bender_cuts.model_dump(by_alias=True),
-            open(bender_cuts_path, "w"),
-            indent=4,
-            ensure_ascii=False,
-        )
-        json.dump(
-            expansion_request.scenarios.model_dump(by_alias=True),
-            open(scenarios_path, "w"),
-            indent=4,
-            ensure_ascii=False,
-        )
+        save_obj_to_json(expansion_request.bender_cuts, Path(bender_cuts_path))
+        save_obj_to_json(expansion_request.scenarios, Path(scenarios_path))
         return cache_path
 
     def run_sddp(

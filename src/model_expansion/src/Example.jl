@@ -105,11 +105,14 @@ println("Bender cuts exported to .cache/bender_cuts.json")
 params = Types.PlanningParams(
     n_stages,
     50.0,  # initial_budget
+    0.0,  # γ_cuts
     investment_costs,
     penalty_costs_load,
     penalty_costs_pv,
     0.0,  # discount_rate
     bender_cuts,
+    1,  # years_per_stage
+    1,  # n_cut_scenarios
 )
 simulations1, objectives1 = Stochastic.stochastic_planning(
     grid,

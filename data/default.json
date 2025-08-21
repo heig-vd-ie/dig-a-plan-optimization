@@ -19,7 +19,14 @@
     },
     "scenarios": "data/scenarios.json",
     "bender_cuts": "data/bender_cuts.json",
-    "planning_params": { "n_stages": 5, "initial_budget": 50, "discount_rate": 0.05 },
+    "planning_params": {
+        "n_stages": 5,
+        "γ_cuts": 0,
+        "initial_budget": 50,
+        "discount_rate": 0.05,
+        "years_per_stage": 1,
+        "n_cut_scenarios": 1
+    },
     "additional_params": {
         "iteration_limit": 10,
         "n_simulations": 100,

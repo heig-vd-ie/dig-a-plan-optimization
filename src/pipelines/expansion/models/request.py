@@ -1,5 +1,5 @@
 from typing import List, Dict, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from enum import Enum
 
 
@@ -31,11 +31,11 @@ class BenderCut(BaseModel):
 
     λ_load: Dict[str, float]
     λ_pv: Dict[str, float]
-    pv0: Dict[str, int]
-    load0: Dict[str, int]
-    λ_cap: Dict[str, int]
-    cap0: Dict[str, int]
-    θ: int
+    pv0: Dict[str, float]
+    load0: Dict[str, float]
+    λ_cap: Dict[str, float]
+    cap0: Dict[str, float]
+    θ: float
 
 
 class BenderCuts(BaseModel):
@@ -64,7 +64,7 @@ class Grid(BaseModel):
     cuts: List[Cut]
     external_grid: int
     initial_cap: Dict[str, float]
-    load: Dict[str, int]
+    load: Dict[str, float]
     pv: Dict[str, float]
     investment_costs: Dict[str, float]
     penalty_costs_load: Dict[str, float]
@@ -74,8 +74,10 @@ class Grid(BaseModel):
 class PlanningParams(BaseModel):
     n_stages: int
     initial_budget: int
-
+    γ_cuts: float
     discount_rate: float
+    years_per_stage: int
+    n_cut_scenarios: int
 
 
 class AdditionalParams(BaseModel):

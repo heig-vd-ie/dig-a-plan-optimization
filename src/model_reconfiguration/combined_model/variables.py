@@ -8,5 +8,6 @@ def model_variables(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.δ = pyo.Var(model.S, domain=pyo.Binary)
     model.ζ = pyo.Var(model.TrTaps, domain=pyo.Binary)
     model.i_sq = pyo.Var(model.CΩ, domain=pyo.NonNegativeReals)
+    model.θ = pyo.Var(domain=pyo.Reals)
 
     return model
