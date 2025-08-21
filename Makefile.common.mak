@@ -105,12 +105,9 @@ uninstall-venv: ## Uninstall the virtual environment
 
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
-	PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v
 	@if [ -n "$(file)" ]; then \
-		@test -d .venv || make _venv; \
 		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
 	else \
-		@test -d .venv || make _venv; \
 		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v;\
 	fi
 
