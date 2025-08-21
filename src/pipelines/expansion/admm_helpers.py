@@ -20,12 +20,18 @@ class ADMMResult:
 class ADMM:
     """ADMM (Alternating Direction Method of Multipliers) optimization class."""
 
-    def __init__(self, groups: Dict[int, List[int]] | int, grid_data: NodeEdgeModel):
+    def __init__(
+        self,
+        groups: Dict[int, List[int]] | int,
+        grid_data: NodeEdgeModel,
+        solver_non_convex: int,
+        time_limit: int,
+    ):
         self.config = ADMMConfig(
             verbose=False,
             pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
-            solver_non_convex=2,
+            solver_non_convex=solver_non_convex,
             big_m=1e3,
             ε=1e-4,
             ρ=2.0,  # initial rho
@@ -36,6 +42,7 @@ class ADMM:
             μ=10.0,
             τ_incr=2.0,
             τ_decr=2.0,
+            time_limit=time_limit,
             groups=groups,
         )
         self.grid_data = grid_data

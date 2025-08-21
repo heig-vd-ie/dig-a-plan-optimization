@@ -37,6 +37,8 @@ class ExpansionAlgorithm:
         iterations: int = 10,
         n_admm_simulations: int = 10,
         seed_number: int = 42,
+        time_limit: int = 1,
+        solver_non_convex: int = 2,
         just_test: bool = False,
     ):
         self.grid_data = grid_data
@@ -46,6 +48,8 @@ class ExpansionAlgorithm:
         self.just_test = just_test
         self.n_admm_simulations = n_admm_simulations
         self.seed_number = seed_number
+        self.time_limit = time_limit
+        self.solver_non_convex = solver_non_convex
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.create_planning_params()
@@ -212,7 +216,12 @@ class ExpansionAlgorithm:
 
     def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
-        admm = ADMM(groups=self.admm_groups, grid_data=self.grid_data)
+        admm = ADMM(
+            groups=self.admm_groups,
+            grid_data=self.grid_data,
+            solver_non_convex=self.solver_non_convex,
+            time_limit=self.time_limit,
+        )
         bender_cuts = BenderCuts(cuts={})
         for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
             for ω in tqdm.tqdm(self._range(self.n_admm_simulations), desc="scenarios"):
