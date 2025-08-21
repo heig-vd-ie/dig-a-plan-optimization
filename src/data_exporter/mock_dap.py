@@ -1,6 +1,6 @@
-import json
 import polars as pl
 from pathlib import Path
+from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 
 def save_dap_state(dap, base_path=".cache/boisy_dap"):
@@ -50,10 +50,7 @@ def save_dap_state(dap, base_path=".cache/boisy_dap"):
         "consensus_data": consensus_data,
         "results_data": results_data,
     }
-
-    with open(base_path / "metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2, default=str)
-
+    save_obj_to_json(metadata, base_path / "metadata.json")
     print(f"DAP state saved to {base_path}")
 
 
@@ -93,8 +90,8 @@ def load_dap_state(base_path=".cache/boisy_dap"):
 
     class MockDigAPlan:
         def __init__(self, path):
-            with open(str(path / "metadata.json"), "r") as f:
-                metadata = json.load(f)
+
+            metadata = load_obj_from_json(Path(path / "metadata.json"))
 
             self.data_manager = MockDataManager(path)
             self.model_manager = MockModelManager(metadata)

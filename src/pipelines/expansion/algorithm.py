@@ -1,7 +1,6 @@
-import json
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, final
 from pathlib import Path
 from polars import col as c
 import tqdm
@@ -17,10 +16,15 @@ from pipelines.expansion.models.request import (
     AdditionalParams,
     BenderCut,
     BenderCuts,
+    Cut,
+    ExpansionRequest,
+    OptimizationConfig,
     PlanningParams,
     RiskMeasureType,
 )
 from pipelines.expansion.models.response import ExpansionResponse
+from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
+from pipelines.reconfiguration.model_managers import bender
 
 
 class ExpansionAlgorithm:
@@ -169,18 +173,27 @@ class ExpansionAlgorithm:
         ι: int,
     ):
         """Update Bender cuts with new values."""
-        if not self.just_test:
-            sddp_response_dict = sddp_response.model_dump()
-            with open(self.cache_dir_run / f"sddp_response_{ι}.json", "w") as f:
-                json.dump(sddp_response_dict, f)
-            bender_cuts_dict = admm_response.model_dump()
-            with open(self.cache_dir_run / f"bender_cuts_{ι}.json", "w") as f:
-                json.dump(bender_cuts_dict, f)
-            with open(self.cache_dir_run / f"bender_cuts.json", "r") as f:
-                current_bender_cuts = json.load(f)
-            final_bender_cuts = {**current_bender_cuts, **bender_cuts_dict}
-            with open(self.cache_dir_run / f"bender_cuts.json", "w") as f:
-                json.dump(final_bender_cuts, f)
+        if self.just_test:
+            return None
+        save_obj_to_json(sddp_response, self.cache_dir_run / f"sddp_response_{ι}.json")
+        save_obj_to_json(admm_response, self.cache_dir_run / f"bender_cuts_{ι}.json")
+        current_cuts = BenderCuts(
+            **load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
+        )
+        final_cuts = BenderCuts(cuts={**current_cuts.cuts, **admm_response.cuts})
+        save_obj_to_json(final_cuts, self.cache_dir_run / f"bender_cuts.json")
+        opt_config = OptimizationConfig(
+            **load_obj_from_json(self.cache_dir_run / "optimization_config.json")
+        )
+        opt_config.grid.cuts = opt_config.grid.cuts + [
+            Cut(id=int(cut_id)) for cut_id in admm_response.cuts.keys()
+        ]
+        save_obj_to_json(opt_config, self.cache_dir_run / "optimization_config.json")
+        self.expansion_request = ExpansionRequest(
+            optimization=opt_config,
+            scenarios=self.expansion_request.scenarios,
+            bender_cuts=final_cuts,
+        )
 
     def run_sddp(self) -> ExpansionResponse:
         """Run the SDDP algorithm with the given expansion request."""
@@ -201,7 +214,9 @@ class ExpansionAlgorithm:
                 )
                 admm_results = admm.solve()
                 bender_cut = self.transform_admm_result_into_bender_cuts(admm_results)
-                bender_cuts.cuts[f"{ι}_{ω}_{stage}"] = bender_cut
+                bender_cuts.cuts[
+                    f"{ι * self.iterations + stage * self.n_scenarios + ω + 1}"
+                ] = bender_cut
         return bender_cuts
 
     def run_pipeline(self):

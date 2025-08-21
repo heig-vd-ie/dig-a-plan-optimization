@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import math
-import json
 from pathlib import Path
 from pipelines.expansion.api import run_sddp, run_sddp_native
 from pipelines.expansion.models.request import (
@@ -10,6 +9,7 @@ from pipelines.expansion.models.request import (
     Scenarios,
     BenderCuts,
 )
+from pipelines.helpers.json_rw import load_obj_from_json
 
 
 class TestExpansion:
@@ -45,9 +45,9 @@ class TestExpansionModel(TestExpansion):
         assert len(results.simulations) == 100
 
     def test_expansion_model_with_request(self):
-        expansion_request_data = json.load(open("data/default.json"))
-        scenarios_data = json.load(open("data/scenarios.json"))
-        bender_cuts_data = json.load(open("data/bender_cuts.json"))
+        expansion_request_data = load_obj_from_json(Path("data/default.json"))
+        scenarios_data = load_obj_from_json(Path("data/scenarios.json"))
+        bender_cuts_data = load_obj_from_json(Path("data/bender_cuts.json"))
         expansion_request_data["planning_params"]["bender_cuts"] = str(
             self.test_cache_dir / "bender_cuts.json"
         )
