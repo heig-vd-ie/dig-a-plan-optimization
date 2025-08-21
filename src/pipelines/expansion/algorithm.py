@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import random
 from typing import Dict, List
 from pathlib import Path
 from polars import col as c
@@ -34,6 +35,8 @@ class ExpansionAlgorithm:
         cache_dir: Path,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
+        n_admm_simulations: int = 10,
+        seed_number: int = 42,
         just_test: bool = False,
     ):
         self.grid_data = grid_data
@@ -41,6 +44,9 @@ class ExpansionAlgorithm:
         self.admm_groups = admm_groups
         self.iterations = iterations
         self.just_test = just_test
+        self.n_admm_simulations = n_admm_simulations
+        self.seed_number = seed_number
+        random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.create_planning_params()
         self.create_additional_params()
@@ -57,7 +63,12 @@ class ExpansionAlgorithm:
         return range(1 if self.just_test else i)
 
     def create_planning_params(
-        self, n_stages=3, initial_budget=100000, discount_rate=0.05, γ_cuts=0.0
+        self,
+        n_stages=3,
+        initial_budget=100000,
+        discount_rate=0.05,
+        γ_cuts=0.0,
+        years_per_stage=1,
     ):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
@@ -65,6 +76,8 @@ class ExpansionAlgorithm:
             initial_budget=initial_budget,
             γ_cuts=γ_cuts,
             discount_rate=discount_rate,
+            years_per_stage=years_per_stage,
+            n_cut_scenarios=len(list(self.grid_data.load_data.keys())),
         )
 
     def create_scenario_data(
@@ -74,7 +87,6 @@ class ExpansionAlgorithm:
         δ_b_var=0.1,
         number_of_scenarios=10,
         number_of_stages=3,
-        seed_number=42,
     ):
         """Generate long-term scenarios with configurable parameters."""
         self.scenario_data = generate_long_term_scenarios(
@@ -84,7 +96,7 @@ class ExpansionAlgorithm:
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_scenarios,
             number_of_stages=number_of_stages,
-            seed_number=seed_number,
+            seed_number=self.seed_number,
         )
 
     def create_additional_params(
@@ -93,7 +105,6 @@ class ExpansionAlgorithm:
         n_simulations=100,
         risk_measure_type=RiskMeasureType.EXPECTATION,
         risk_measure_param=0.1,
-        seed=42,
     ):
         """Create additional parameters with default or custom values."""
         self.additional_params = AdditionalParams(
@@ -101,7 +112,7 @@ class ExpansionAlgorithm:
             n_simulations=n_simulations,
             risk_measure_type=risk_measure_type,
             risk_measure_param=risk_measure_param,
-            seed=seed,
+            seed=self.seed_number,
         )
 
     def create_bender_cuts(self, cuts=None):
@@ -127,6 +138,7 @@ class ExpansionAlgorithm:
             edge.id for edge in self.expansion_request.optimization.grid.edges
         ]
         self.n_scenarios = len(self.expansion_request.scenarios.model_dump().keys())
+        self.n_simulations = self.additional_params.n_simulations
         self.n_stages = self.expansion_request.optimization.planning_params.n_stages
 
     @staticmethod
@@ -203,18 +215,19 @@ class ExpansionAlgorithm:
         admm = ADMM(groups=self.admm_groups, grid_data=self.grid_data)
         bender_cuts = BenderCuts(cuts={})
         for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
-            for ω in tqdm.tqdm(self._range(self.n_scenarios), desc="scenarios"):
+            for ω in tqdm.tqdm(self._range(self.n_admm_simulations), desc="scenarios"):
+                rand_ω = random.randint(0, self.n_simulations)
                 admm.update_grid_data(
-                    δ_load=sddp_response.simulations[ω][stage].δ_load,
-                    δ_pv=sddp_response.simulations[ω][stage].δ_pv,
+                    δ_load=sddp_response.simulations[rand_ω][stage].δ_load,
+                    δ_pv=sddp_response.simulations[rand_ω][stage].δ_pv,
                     node_ids=self.node_ids,
-                    δ_cap=sddp_response.simulations[ω][stage].δ_cap,
+                    δ_cap=sddp_response.simulations[rand_ω][stage].δ_cap,
                     edge_ids=self.edge_ids,
                 )
                 admm_results = admm.solve()
                 bender_cut = self.transform_admm_result_into_bender_cuts(admm_results)
                 bender_cuts.cuts[
-                    f"{ι * self.iterations + stage * self.n_scenarios + ω + 1}"
+                    f"{ι * self.iterations + stage * self.n_stages + ω + 1}"
                 ] = bender_cut
         return bender_cuts
 

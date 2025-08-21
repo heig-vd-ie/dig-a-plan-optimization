@@ -76,6 +76,8 @@ class PlanningParams(BaseModel):
     initial_budget: int
     γ_cuts: float
     discount_rate: float
+    years_per_stage: int
+    n_cut_scenarios: int
 
 
 class AdditionalParams(BaseModel):

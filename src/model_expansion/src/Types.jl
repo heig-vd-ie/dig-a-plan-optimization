@@ -56,6 +56,8 @@ struct PlanningParams
     penalty_costs_pv::Dict{Node, Float64}
     discount_rate::Float64
     bender_cuts::Dict{Cut, BenderCut}
+    years_per_stage::Int
+    n_cut_scenarios::Int
 end
 
 end
