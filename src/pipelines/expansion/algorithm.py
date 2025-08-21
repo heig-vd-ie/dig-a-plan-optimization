@@ -37,7 +37,7 @@ class ExpansionAlgorithm:
         iterations: int = 10,
         n_admm_simulations: int = 10,
         seed_number: int = 42,
-        time_limit: int = 1,
+        time_limit: int = 10,
         solver_non_convex: int = 2,
         just_test: bool = False,
     ):

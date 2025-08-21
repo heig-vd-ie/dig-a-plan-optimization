@@ -74,11 +74,20 @@ venv-activate-and-poetry-use-update: ## Activate venv and install packages
 	@test -d .venv || make _venv
 	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
 
+install-vscode-extensions: ## Install Visual Studio Code extensions
+	@echo "Installing Visual Studio Code extensions..."
+	@xargs -n 1 code --install-extension < .vscode/extensions.txt 
+
+freeze-vscode-extensions: ## Update Visual Studio Code extensions
+	@echo "Freezing Visual Studio Code extensions..."
+	@code --list-extensions > .vscode/extensions.txt
+
 install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-pipx
 	@$(MAKE) install-python-wsl
 	@$(MAKE) install-poetry
 	@$(MAKE) install-deps
+	@$(MAKE) install-vscode-extensions
 	@$(MAKE) _venv
 	@$(MAKE) venv-activate-and-poetry-use-update
 	@echo "All dependencies installed successfully!"
