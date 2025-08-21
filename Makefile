@@ -2,7 +2,9 @@
 include Makefile.common.mak
 
 SERVER_PORT ?= 8080 # Julia server targets
-
+DATA_EXPORTER_REPO := data-exporter
+DATA_EXPORTER_BRANCH := main
+DATA_EXPORTER_VERSION := 0.1.0
 
 install-julia:  ## Install Julia
 	@echo "Installing Julia..."
@@ -26,3 +28,5 @@ run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
 	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)
 
+fetch-all:
+	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)

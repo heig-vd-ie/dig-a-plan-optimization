@@ -5,14 +5,14 @@ set -e
 #   ./fetch_local_wheel.sh <org> <repo> <branch> [version] [dest_dir]
 #
 # Example:
-#   ./fetch_local_wheel.sh heig-vd-ie digrid-schema main 0.5.0 ./dist
-#   ./fetch_local_wheel.sh heig-vd-ie digrid-schema main latest ./dist
+#   ./fetch_local_wheel.sh heig-vd-ie digrid-schema main 0.5.0 ./external-dist
+#   ./fetch_local_wheel.sh heig-vd-ie digrid-schema main latest ./external-dist
 
 ORG="$1"
 REPO="$2"
 BRANCH="$3"
 VERSION="$4"
-DEST_DIR="${5:-./dist}"
+DEST_DIR="${5:-./external-dist}"
 
 if [[ -z "$ORG" || -z "$REPO" || -z "$BRANCH" ]]; then
     echo "Usage: $0 <org> <repo> <branch> [version|latest] [dest_dir]"

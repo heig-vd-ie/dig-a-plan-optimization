@@ -3,7 +3,6 @@
 PYTHON_VERSION := 3.12
 VENV_DIR := .venv
 ORG := heig-vd-ie
-DEST_DIR := ./dist
 
 # Default target: help
 .DEFAULT_GOAL := help
