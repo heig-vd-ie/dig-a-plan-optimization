@@ -34,7 +34,7 @@ run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
 	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)
 
-fetch-all:
+fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)
 	@$(MAKE) fetch-wheel REPO=$(TWINDIGRID_REPO) BRANCH=$(TWINDIGRID_BRANCH) VERSION=$(TWINDIGRID_VERSION)
 	@$(MAKE) fetch-wheel REPO=$(UTILITY_FUNCTIONS_REPO) BRANCH=$(UTILITY_FUNCTIONS_BRANCH) VERSION=$(UTILITY_FUNCTIONS_VERSION)
