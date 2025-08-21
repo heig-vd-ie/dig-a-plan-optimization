@@ -105,10 +105,13 @@ uninstall-venv: ## Uninstall the virtual environment
 
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
+	PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v
 	@if [ -n "$(file)" ]; then \
-		poetry run pytest -v "$(file)"; \
+		@test -d .venv || make _venv; \
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v \
 	else \
-		poetry run pytest; \
+		@test -d .venv || make _venv; \
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v\
 	fi
 
 format-julia:  ## Format Julia code in the src directory
