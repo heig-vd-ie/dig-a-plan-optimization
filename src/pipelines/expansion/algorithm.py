@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Dict, List, final
+from typing import Dict, List
 from pathlib import Path
 from polars import col as c
 import tqdm
@@ -24,7 +24,6 @@ from pipelines.expansion.models.request import (
 )
 from pipelines.expansion.models.response import ExpansionResponse
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
-from pipelines.reconfiguration.model_managers import bender
 
 
 class ExpansionAlgorithm:

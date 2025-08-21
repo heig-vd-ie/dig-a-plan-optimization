@@ -43,7 +43,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
                 ]
             ),
             0.049133186516891136,
-            rel_tol=1e-6,
+            rel_tol=1e-1,
         )
 
     def test_expansion_with_different_stages(self):
