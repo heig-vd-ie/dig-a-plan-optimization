@@ -2,6 +2,8 @@
 
 PYTHON_VERSION := 3.12
 VENV_DIR := .venv
+ORG := heig-vd-ie
+DEST_DIR := ./dist
 
 # Default target: help
 .DEFAULT_GOAL := help
@@ -117,3 +119,11 @@ format-julia:  ## Format Julia code in the src directory
 format-py: ## Format Python code using black
 	@echo "Formatting Python code with black..."
 	@poetry run black .
+
+build-wheel: # Build the Python wheel for this project based on pyproject.toml version
+	@echo "Building Python wheel..."
+	@poetry build -f wheel
+
+fetch-wheel: ## Fetch the Python wheel from a remote URL [<organization> <repo> <name-of-wheel> <version> <dest_dir>]
+	@echo "Fetching Python wheel..."
+	@bash scripts/fetch-wheel.sh $(ORG) $(REPO) $(BRANCH) $(VERSION) $(DEST_DIR)

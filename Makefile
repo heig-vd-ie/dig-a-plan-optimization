@@ -3,6 +3,7 @@ include Makefile.common.mak
 
 SERVER_PORT ?= 8080 # Julia server targets
 
+
 install-julia:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
@@ -24,3 +25,4 @@ format: format-jl format-py ## Format all code (Julia and Python)
 run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
 	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)
+
