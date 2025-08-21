@@ -108,10 +108,10 @@ run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwis
 	PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v
 	@if [ -n "$(file)" ]; then \
 		@test -d .venv || make _venv; \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v \
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
 	else \
 		@test -d .venv || make _venv; \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v\
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v;\
 	fi
 
 format-julia:  ## Format Julia code in the src directory
