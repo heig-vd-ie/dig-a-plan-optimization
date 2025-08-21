@@ -28,7 +28,9 @@ pydantic = "^2.11.7"
 seaborn = "^0.13.2"
 igraph = "^0.11.9"
 joblib = "^1.5.1"
-data-exporter = {path = "external-dist/data_exporter-0.1.0-py3-none-any.whl"}
+data-exporter = {path = "external-dist/data_exporter-0.1.0-py3-none-any.whl", optional = true}
+twindigrid-schema = {path = "external-dist/twindigrid_schema-0.5.0-py3-none-any.whl", optional = true}
+utility-functions = {path = "external-dist/utility_functions-0.1.0-py3-none-any.whl", optional = true}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -39,3 +41,6 @@ pytest = "^8.4.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+internal = ["data-exporter", "twindigrid-schema", "utility-functions"]

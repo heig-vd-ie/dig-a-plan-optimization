@@ -65,20 +65,20 @@ poetry-use: ## Install Python packages using Poetry
 	@echo "Installing Python packages using Poetry..."
 	poetry env use .venv/bin/python$(PYTHON_VERSION)
 
-poetry-update: ## Update Python packages using Poetry
+poetry-install: ## Update Python packages using Poetry
 	@echo "Updating Python packages using Poetry..."
-	@poetry update || ( \
+	@poetry install --extras "internal" || ( \
 		echo "⚠️ If psycopg-c installation fails, see:"; \
 		echo "https://stackoverflow.com/questions/77727508/problem-installing-psycopg2-for-python-venv-through-poetry"; \
 		echo "Error hint: _psycopg-c may not support PEP 517 builds or may be missing system dependencies."; \
 		exit 1 \
 	)
 
-venv-activate-and-poetry-use-update: SHELL:=/bin/bash
-venv-activate-and-poetry-use-update: ## Activate venv and install packages
+venv-activate-and-poetry-use-install: SHELL:=/bin/bash
+venv-activate-and-poetry-use-install: ## Activate venv and install packages
 	@echo "Activating virtual environment and installing packages..."
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
+	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-install; . scripts/enable-direnv.sh') -i
 
 install-vscode-extensions: ## Install Visual Studio Code extensions
 	@echo "Installing Visual Studio Code extensions..."
@@ -95,7 +95,7 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-deps
 	@$(MAKE) install-vscode-extensions
 	@$(MAKE) _venv
-	@$(MAKE) venv-activate-and-poetry-use-update
+	@$(MAKE) venv-activate-and-poetry-use-install
 	@echo "All dependencies installed successfully!"
 
 uninstall-venv: ## Uninstall the virtual environment
