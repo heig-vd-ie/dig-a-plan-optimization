@@ -15,7 +15,12 @@ def read_root():
 
 @app.post("/init-ray")
 def init_ray():
-    ray.init(address="auto")
+    ray.init(
+        address="auto",
+        runtime_env={
+            "working_dir": "/home/myi/projects/dig-a-plan-monorepo/optimization/src",
+        },
+    )
     return {
         "message": "Ray initialized",
         "nodes": ray.nodes(),
