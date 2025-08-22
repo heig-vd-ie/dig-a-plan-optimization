@@ -67,7 +67,7 @@ class ExpansionAlgorithm:
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):
-        return range(1 if self.just_test else i)
+        return range(1, 2 if self.just_test else i + 1)
 
     def create_planning_params(
         self,
