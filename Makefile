@@ -37,7 +37,7 @@ run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 
 run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Python API server on localhost:$(SERVER_PY_PORT)..."
-	uvicorn src.main:app --host 0.0.0.0 --port $(SERVER_PY_PORT)
+	PYTHONPATH=src uvicorn main:app --host 0.0.0.0 --port $(SERVER_PY_PORT) --reload
 
 run-server: ## Start both Julia and Python API servers
 	@echo "Starting both Julia and Python API servers..."

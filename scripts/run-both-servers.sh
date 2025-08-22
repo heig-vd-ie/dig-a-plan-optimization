@@ -4,6 +4,7 @@ SERVER_JL_PORT=${1}
 SERVER_PY_PORT=${2}
 
 source .venv/bin/activate
+direnv allow
 
 SESSION="optimization-servers"
 
@@ -22,8 +23,8 @@ tmux new-session -d -s $SESSION
 
 tmux send-keys -t $SESSION "make run-server-jl SERVER_JL_PORT=${SERVER_JL_PORT}" C-m
 tmux split-window -h -t $SESSION
-tmux send-keys -t $SESSION "make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}" C-m
+tmux send-keys -t $SESSION "echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}" C-m
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "source .venv/bin/activate" C-m
+tmux send-keys -t $SESSION "make venv-activate" C-m
 tmux select-pane -t 2 # Optional: focus on the first pane
 tmux attach -t $SESSION

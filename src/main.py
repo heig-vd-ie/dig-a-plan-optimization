@@ -1,4 +1,6 @@
+from api.bender import *
 from fastapi import FastAPI
+
 
 app = FastAPI()
 
@@ -8,6 +10,6 @@ def read_root():
     return {"message": "Hello World from Optimization Package!"}
 
 
-@app.patch("/test")
-def patch_test():
-    return {"message": "Test item patched!"}
+@app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
+def reconfiguration_bender(input: BenderInput) -> BenderOutput:
+    return run_bender(input)
