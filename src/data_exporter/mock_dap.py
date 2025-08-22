@@ -1,6 +1,7 @@
+import json
 import polars as pl
 from pathlib import Path
-from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
+from pipelines.helpers.json_rw import load_obj_from_json
 
 
 def save_dap_state(dap, base_path=".cache/boisy_dap"):
@@ -50,7 +51,10 @@ def save_dap_state(dap, base_path=".cache/boisy_dap"):
         "consensus_data": consensus_data,
         "results_data": results_data,
     }
-    save_obj_to_json(metadata, base_path / "metadata.json")
+
+    with open(base_path / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2, default=str)
+
     print(f"DAP state saved to {base_path}")
 
 

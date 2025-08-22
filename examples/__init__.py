@@ -1,6 +1,7 @@
 import os
 
 os.chdir(os.getcwd() + "/src")
+import numpy as np
 from pathlib import Path
 from logging import config
 import copy

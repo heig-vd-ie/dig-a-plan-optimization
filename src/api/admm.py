@@ -1,6 +1,4 @@
 from api import *
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 class ADMMInput(GridCaseModel):
@@ -65,25 +63,35 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
             variable_type=("nodal" if variable in nodal_variables else "edge"),
         )
 
-    plt.figure(figsize=(12, 6))
-    plt.plot(
-        np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0],
-        dap.model_manager.r_norm_list,
-        label="r_norm",
-        marker="o",
+    os.makedirs(".cache/output", exist_ok=True)
+    x_vals = np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=x_vals,
+            y=dap.model_manager.r_norm_list,
+            mode="lines+markers",
+            name="r_norm",
+        )
     )
-    plt.plot(
-        np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0],
-        dap.model_manager.s_norm_list,
-        label="s_norm",
-        marker="o",
+    fig.add_trace(
+        go.Scatter(
+            x=x_vals,
+            y=dap.model_manager.s_norm_list,
+            mode="lines+markers",
+            name="s_norm",
+        )
     )
-    plt.xlabel("Seconds")
-    plt.ylabel("Norm Value")
-    plt.title("ADMM Iteration: r_norm and s_norm")
-    plt.legend()
-    plt.grid()
-    plt.savefig(".cache/output/admm_iterations.png")
+    fig.update_layout(
+        title="ADMM Iteration: r_norm and s_norm",
+        xaxis_title="Seconds",
+        yaxis_title="Norm Value",
+        legend=dict(x=0.01, y=0.99),
+        template="plotly_white",
+        width=1000,
+        height=500,
+    )
+    fig.write_html(".cache/output/admm_iterations.html")
 
     switches = dap.model_manager.zδ_variable
     taps = dap.model_manager.zζ_variable
