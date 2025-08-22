@@ -302,7 +302,7 @@ def heavy_task(
 ):
     import os
 
-    os.environ["GRB_LICENSE_FILE"] = "/home/myi/gurobi_license/gurobi.lic"
+    os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
 
     rand_ω = random.randint(0, n_simulations)
     admm.update_grid_data(

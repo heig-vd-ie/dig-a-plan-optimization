@@ -18,7 +18,7 @@ def init_ray():
     ray.init(
         address="auto",
         runtime_env={
-            "working_dir": "/home/myi/projects/dig-a-plan-monorepo/optimization/src",
+            "working_dir": os.path.dirname(os.path.abspath(__file__)),
         },
     )
     return {
