@@ -31,6 +31,8 @@ joblib = "^1.5.1"
 data-exporter = {path = "external-dist/data_exporter-0.1.0-py3-none-any.whl", optional = true}
 twindigrid-schema = {path = "external-dist/twindigrid_schema-0.5.0-py3-none-any.whl", optional = true}
 utility-functions = {path = "external-dist/utility_functions-0.1.0-py3-none-any.whl", optional = true}
+fastapi = "^0.116.1"
+uvicorn = "^0.35.0"
 
 
 [tool.poetry.group.dev.dependencies]

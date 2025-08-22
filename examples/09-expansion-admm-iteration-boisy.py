@@ -7,7 +7,6 @@ from examples import *
 
 # %% set parameters
 
-
 if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(

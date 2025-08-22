@@ -1,7 +1,8 @@
 # Makefile for Dig-A-Plan setup (supports Linux and WSL)
 include Makefile.common.mak
 
-SERVER_PORT ?= 8080 # Julia server targets
+SERVER_JL_PORT ?= 8080 # Julia server targets
+SERVER_PY_PORT ?= 8000 # Python server targets
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
 DATA_EXPORTER_VERSION := 0.1.0
@@ -31,8 +32,16 @@ format-jl:  ## Format Julia code in the src directory
 format: format-jl format-py ## Format all code (Julia and Python)
 
 run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Julia API server on localhost:$(SERVER_PORT)..."
-	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_PORT)
+	@echo "Starting Julia API server on localhost:$(SERVER_JL_PORT)..."
+	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_JL_PORT)
+
+run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
+	@echo "Starting Python API server on localhost:$(SERVER_PY_PORT)..."
+	uvicorn src.main:app --host 0.0.0.0 --port $(SERVER_PY_PORT)
+
+run-server: ## Start both Julia and Python API servers
+	@echo "Starting both Julia and Python API servers..."
+	@bash ./scripts/run-both-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT)
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)
