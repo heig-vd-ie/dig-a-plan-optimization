@@ -3,7 +3,7 @@ include Makefile.common.mak
 
 SERVER_JL_PORT ?= 8080 # Julia server targets
 SERVER_PY_PORT ?= 8000 # Python server targets
-SERVER_RAY_PORT ?= 6379 # Ray server targets
+SERVER_RAY_PORT ?= 6380 # Ray server targets
 NUM_CPUS ?= 10
 NUM_GPUS ?= 1
 DATA_EXPORTER_REPO := data-exporter
@@ -75,3 +75,7 @@ kill-all-ports: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_JL_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
+
+access-ray-port: ## Access Ray server
+	@echo "Accessing Ray server on port $(SERVER_RAY_PORT)..."
+	sudo ufw allow $(SERVER_RAY_PORT)
