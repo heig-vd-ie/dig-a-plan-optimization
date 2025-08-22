@@ -1,5 +1,6 @@
 from api.bender import *
 from api.combined import *
+from api.admm import *
 from fastapi import FastAPI
 
 
@@ -19,3 +20,8 @@ def reconfiguration_bender(input: BenderInput) -> BenderOutput:
 @app.patch("/reconfiguration/combined", tags=["Reconfiguration"])
 def reconfiguration_combined(input: CombinedInput) -> CombinedOutput:
     return run_combined(input)
+
+
+@app.patch("/reconfiguration/admm", tags=["Reconfiguration"])
+def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
+    return run_admm(input)

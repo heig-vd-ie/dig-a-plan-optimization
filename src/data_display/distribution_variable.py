@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Literal
 import polars as pl
 import plotly.express as px
@@ -124,8 +125,8 @@ class DistributionVariable:
             hovermode="x unified",
         )
         fig.update_xaxes(categoryorder="category ascending")
-        fig.write_html(f".cache/distribution_{self.variable_name}.html")
-        fig.show()
+        os.makedirs(".cache/output", exist_ok=True)
+        fig.write_html(f".cache/output/distribution_{self.variable_name}.html")
 
 
 def plot_distribution_variable(

@@ -2,8 +2,6 @@ from api import *
 
 
 class CombinedInput(GridCaseModel):
-    grid_case: GridCase
-    max_iters: int = 100
     groups: int | None = None
 
 

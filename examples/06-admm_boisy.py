@@ -74,9 +74,9 @@ print(dap.model_manager.zδ_variable)
 print(dap.model_manager.zζ_variable)
 
 # %%
-save_dap_state(dap)
-save_dap_state(dap_fixed, ".cache/boisy_dap_fixed")
-joblib.dump(net, ".cache/boisy_net.joblib")
+save_dap_state(dap, ".cache/output/boisy_dap")
+save_dap_state(dap_fixed, ".cache/output/boisy_dap_fixed")
+joblib.dump(net, ".cache/output/boisy_net.joblib")
 
 # %% Plot Distribution
 nodal_variables = [
