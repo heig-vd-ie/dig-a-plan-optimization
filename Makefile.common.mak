@@ -2,6 +2,7 @@
 
 PYTHON_VERSION := 3.12
 VENV_DIR := .venv
+ORG := heig-vd-ie
 
 # Default target: help
 .DEFAULT_GOAL := help
@@ -64,20 +65,20 @@ poetry-use: ## Install Python packages using Poetry
 	@echo "Installing Python packages using Poetry..."
 	poetry env use .venv/bin/python$(PYTHON_VERSION)
 
-poetry-update: ## Update Python packages using Poetry
+poetry-install: ## Update Python packages using Poetry
 	@echo "Updating Python packages using Poetry..."
-	@poetry update || ( \
+	@poetry install --extras "internal" || ( \
 		echo "⚠️ If psycopg-c installation fails, see:"; \
 		echo "https://stackoverflow.com/questions/77727508/problem-installing-psycopg2-for-python-venv-through-poetry"; \
 		echo "Error hint: _psycopg-c may not support PEP 517 builds or may be missing system dependencies."; \
 		exit 1 \
 	)
 
-venv-activate-and-poetry-use-update: SHELL:=/bin/bash
-venv-activate-and-poetry-use-update: ## Activate venv and install packages
+venv-activate-and-poetry-use-install: SHELL:=/bin/bash
+venv-activate-and-poetry-use-install: ## Activate venv and install packages
 	@echo "Activating virtual environment and installing packages..."
 	@test -d .venv || make _venv
-	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-update; . scripts/enable-direnv.sh') -i
+	@bash --rcfile <(echo '. ~/.bashrc; . .venv/bin/activate; echo "You are now in a subshell with venv activated."; make poetry-use; make poetry-install; . scripts/enable-direnv.sh') -i
 
 install-vscode-extensions: ## Install Visual Studio Code extensions
 	@echo "Installing Visual Studio Code extensions..."
@@ -94,7 +95,7 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-deps
 	@$(MAKE) install-vscode-extensions
 	@$(MAKE) _venv
-	@$(MAKE) venv-activate-and-poetry-use-update
+	@$(MAKE) venv-activate-and-poetry-use-install
 	@echo "All dependencies installed successfully!"
 
 uninstall-venv: ## Uninstall the virtual environment
@@ -105,9 +106,9 @@ uninstall-venv: ## Uninstall the virtual environment
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
 	@if [ -n "$(file)" ]; then \
-		poetry run pytest -v "$(file)"; \
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
 	else \
-		poetry run pytest; \
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v;\
 	fi
 
 format-julia:  ## Format Julia code in the src directory
@@ -117,3 +118,11 @@ format-julia:  ## Format Julia code in the src directory
 format-py: ## Format Python code using black
 	@echo "Formatting Python code with black..."
 	@poetry run black .
+
+build-wheel: # Build the Python wheel for this project based on pyproject.toml version
+	@echo "Building Python wheel..."
+	@poetry build -f wheel
+
+fetch-wheel: ## Fetch the Python wheel from a remote URL [<organization> <repo> <name-of-wheel> <version> <dest_dir>]
+	@echo "Fetching Python wheel..."
+	@bash scripts/fetch-wheel.sh $(ORG) $(REPO) $(BRANCH) $(VERSION) $(DEST_DIR)
