@@ -205,9 +205,7 @@ class ExpansionAlgorithm:
             }
             bender_cuts = BenderCuts(
                 cuts={
-                    f"{ι * self.iterations + stage * self.n_stages + ω + 1}": ray.get(
-                        futures[(stage, ω)]
-                    )
+                    self._cut_number(ι, stage, ω): ray.get(futures[(stage, ω)])
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
@@ -226,10 +224,12 @@ class ExpansionAlgorithm:
                         node_ids=self.node_ids,
                         edge_ids=self.edge_ids,
                     )
-                    bender_cuts.cuts[
-                        f"{ι * self.iterations + stage * self.n_stages + ω + 1}"
-                    ] = bender_cut
+                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = bender_cut
         return bender_cuts
+
+    def _cut_number(self, ι: int, stage: int, ω: int) -> str:
+        """Generate a cut number based on the iteration, stage, and scenario."""
+        return f"{(ι - 1) * self.iterations + (stage - 1) * self.n_stages + ω}"
 
     def check_ray(self):
         """Check if Ray is available and initialized."""

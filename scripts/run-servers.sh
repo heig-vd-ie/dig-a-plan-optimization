@@ -27,5 +27,5 @@ tmux send-keys -t $SESSION "echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FIL
 tmux split-window -v -t $SESSION
 tmux send-keys -t $SESSION "ray stop && make run-server-ray && ray status" C-m
 
-tmux select-pane -t 1
+tmux select-pane -t 2
 tmux attach -t $SESSION

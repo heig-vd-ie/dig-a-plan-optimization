@@ -1,7 +1,9 @@
 #!/bin/bash
+rm -rf DownloadsTemporary23909
 mkdir DownloadsTemporary23909
 cd DownloadsTemporary23909
-sudo apt install curl
+sudo apt update
+sudo apt install curl tmux
 curl -L -O https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.0-linux-x86_64.tar.gz
 tar -xvzf julia-1.11.0-linux-x86_64.tar.gz
 sudo mv julia-1.11.0 /opt/

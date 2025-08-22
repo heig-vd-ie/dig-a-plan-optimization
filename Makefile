@@ -16,10 +16,11 @@ UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
 
-install-julia:  ## Install Julia
+
+install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
-
+	
 run-tests-jl:  ## Run tests of Julia
 	@echo "Running Julia tests..."
 	julia --project=src/model_expansion/. src/model_expansion/test/runtests.jl
@@ -58,3 +59,19 @@ fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)
 	@$(MAKE) fetch-wheel REPO=$(TWINDIGRID_REPO) BRANCH=$(TWINDIGRID_BRANCH) VERSION=$(TWINDIGRID_VERSION)
 	@$(MAKE) fetch-wheel REPO=$(UTILITY_FUNCTIONS_REPO) BRANCH=$(UTILITY_FUNCTIONS_BRANCH) VERSION=$(UTILITY_FUNCTIONS_VERSION)
+
+kill-port: ## Kill process running on specified port (PORT)
+	@echo "Killing process on port $(PORT)..."
+	@PID=$$(lsof -t -i :$(PORT)) || true; \
+	if [ -n "$$PID" ]; then \
+		echo "Found process $$PID on port $(PORT), killing it..."; \
+		kill -9 $$PID; \
+	else \
+		echo "No process found on port $(PORT)"; \
+	fi
+
+
+kill-all-ports: ## Kill all processes running on specified ports
+	@$(MAKE) kill-port PORT=$(SERVER_JL_PORT)
+	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
+	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
