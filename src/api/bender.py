@@ -10,18 +10,7 @@ class BenderOutput(ReconfigurationOutput):
 
 
 def run_bender(input: BenderInput) -> BenderOutput:
-    net = get_grid_case(input.grid_case)
-    base_grid_data = pandapower_to_dig_a_plan_schema(
-        net=net,
-        taps=input.taps,
-        v_bounds=input.v_bounds,
-        p_bounds=input.p_bounds,
-        q_bounds=input.q_bounds,
-        number_of_random_scenarios=input.number_of_random_scenarios,
-        v_min=input.v_min,
-        v_max=input.v_max,
-        seed=input.seed,
-    )
+    net, base_grid_data = get_grid_case(input)
     config = BenderConfig(
         verbose=False,
         big_m=1e2,

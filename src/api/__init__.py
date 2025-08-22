@@ -12,21 +12,6 @@ class GridCase(Enum):
     ESTAVAYER_SIMPLIFIED = "estavayer_simplified"
 
 
-def get_grid_case(grid_case: GridCase) -> pp.pandapowerNet:
-    match grid_case:
-        case GridCase.SIMPLE_GRID:
-            net = pp.from_pickle("data/simple_grid.p")
-        case GridCase.BOISY_GRID:
-            net = pp.from_pickle("data/boisy_grid.p")
-        case GridCase.BOISY_SIMPLIFIED:
-            net = pp.from_pickle("data/boisy_simplified.p")
-        case GridCase.ESTAVAYER_GRID:
-            net = pp.from_pickle("data/estavayer_grid.p")
-        case GridCase.ESTAVAYER_SIMPLIFIED:
-            net = pp.from_pickle("data/estavayer_simplified.p")
-    return net
-
-
 class GridCaseModel(BaseModel):
     grid_case: GridCase
     taps: list[int] = list(range(95, 105, 1))
@@ -44,3 +29,40 @@ class ReconfigurationOutput(BaseModel):
     voltages: list[dict]
     currents: list[dict]
     taps: list[dict]
+
+
+def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel]:
+    match input.grid_case:
+        case GridCase.SIMPLE_GRID:
+            net = pp.from_pickle("data/simple_grid.p")
+        case GridCase.BOISY_GRID:
+            net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
+        case GridCase.BOISY_SIMPLIFIED:
+            net = pp.from_pickle(".cache/input/boisy/boisy_grid_simplified.p")
+        case GridCase.ESTAVAYER_GRID:
+            net = pp.from_pickle(".cache/input/estavayer/estavayer_grid.p")
+        case GridCase.ESTAVAYER_SIMPLIFIED:
+            net = pp.from_pickle(".cache/input/estavayer/estavayer_simplified.p")
+    base_grid_data = pandapower_to_dig_a_plan_schema(
+        net=net,
+        taps=input.taps,
+        v_bounds=input.v_bounds,
+        p_bounds=input.p_bounds,
+        q_bounds=input.q_bounds,
+        number_of_random_scenarios=input.number_of_random_scenarios,
+        v_min=input.v_min,
+        v_max=input.v_max,
+        seed=input.seed,
+    )
+    if input.grid_case in {
+        GridCase.BOISY_SIMPLIFIED,
+        GridCase.ESTAVAYER_SIMPLIFIED,
+    }:
+        base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
+            pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
+            for col in ["b_pu", "r_pu", "x_pu"]
+        ).with_columns(
+            c("normal_open").fill_null(False),
+        )
+
+    return net, base_grid_data
