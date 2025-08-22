@@ -1,4 +1,5 @@
 import os
+import ray
 from datetime import datetime
 import random
 from typing import Dict, List
@@ -40,6 +41,7 @@ class ExpansionAlgorithm:
         time_limit: int = 10,
         solver_non_convex: int = 2,
         just_test: bool = False,
+        with_ray: bool = False,
     ):
         self.grid_data = grid_data
         self.cache_dir = cache_dir
@@ -50,6 +52,7 @@ class ExpansionAlgorithm:
         self.seed_number = seed_number
         self.time_limit = time_limit
         self.solver_non_convex = solver_non_convex
+        self.with_ray = with_ray
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.create_planning_params()
@@ -145,42 +148,6 @@ class ExpansionAlgorithm:
         self.n_simulations = self.additional_params.n_simulations
         self.n_stages = self.expansion_request.optimization.planning_params.n_stages
 
-    @staticmethod
-    def _calculate_cuts(
-        admm_result: ADMMResult, constraint_names: List[str]
-    ) -> Dict[str, float]:
-        df = (
-            admm_result.duals.filter(c("name").is_in(constraint_names))[["id", "value"]]
-            .group_by("id")
-            .agg(c("value").sum().alias("value"))
-        )
-        return {row["id"]: row["value"] for row in df.to_dicts()}
-
-    def transform_admm_result_into_bender_cuts(
-        self, admm_result: ADMMResult
-    ) -> BenderCut:
-        """Transform ADMM results into Bender cuts."""
-        return BenderCut(
-            λ_load=self._calculate_cuts(admm_result, ["installed_cons"]),
-            λ_pv=self._calculate_cuts(admm_result, ["installed_prod"]),
-            λ_cap=self._calculate_cuts(
-                admm_result, ["current_limit", "current_limit_tr"]
-            ),
-            load0={
-                str(row["node_id"]): row["cons_installed"]
-                for row in admm_result.load0.to_dicts()
-            },
-            pv0={
-                str(row["node_id"]): row["prod_installed"]
-                for row in admm_result.pv0.to_dicts()
-            },
-            cap0={
-                str(row["edge_id"]): row["p_max_pu"]
-                for row in admm_result.cap0.to_dicts()
-            },
-            θ=sum(admm_result.θs["θ"]),
-        )
-
     def record_update_cache(
         self,
         sddp_response: ExpansionResponse,
@@ -222,26 +189,67 @@ class ExpansionAlgorithm:
             solver_non_convex=self.solver_non_convex,
             time_limit=self.time_limit,
         )
-        bender_cuts = BenderCuts(cuts={})
-        for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
-            for ω in tqdm.tqdm(self._range(self.n_admm_simulations), desc="scenarios"):
-                rand_ω = random.randint(0, self.n_simulations)
-                admm.update_grid_data(
-                    δ_load=sddp_response.simulations[rand_ω][stage].δ_load,
-                    δ_pv=sddp_response.simulations[rand_ω][stage].δ_pv,
-                    node_ids=self.node_ids,
-                    δ_cap=sddp_response.simulations[rand_ω][stage].δ_cap,
-                    edge_ids=self.edge_ids,
+        if self.run_by_ray:
+            heavy_task_remote = ray.remote(heavy_task)
+            futures = {
+                (stage, ω): heavy_task_remote.remote(
+                    self.n_admm_simulations,
+                    sddp_response,
+                    admm,
+                    stage,
+                    self.node_ids,
+                    self.edge_ids,
                 )
-                admm_results = admm.solve()
-                bender_cut = self.transform_admm_result_into_bender_cuts(admm_results)
-                bender_cuts.cuts[
-                    f"{ι * self.iterations + stage * self.n_stages + ω + 1}"
-                ] = bender_cut
+                for stage in self._range(self.n_stages)
+                for ω in self._range(self.n_admm_simulations)
+            }
+            bender_cuts = BenderCuts(
+                cuts={
+                    f"{ι * self.iterations + stage * self.n_stages + ω + 1}": ray.get(
+                        futures[(stage, ω)]
+                    )
+                    for stage in self._range(self.n_stages)
+                    for ω in self._range(self.n_admm_simulations)
+                }
+            )
+        else:
+            bender_cuts = BenderCuts(cuts={})
+            for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
+                for ω in tqdm.tqdm(
+                    self._range(self.n_admm_simulations), desc="scenarios"
+                ):
+                    bender_cut = heavy_task(
+                        n_simulations=self.n_admm_simulations,
+                        sddp_response=sddp_response,
+                        admm=admm,
+                        stage=stage,
+                        node_ids=self.node_ids,
+                        edge_ids=self.edge_ids,
+                    )
+                    bender_cuts.cuts[
+                        f"{ι * self.iterations + stage * self.n_stages + ω + 1}"
+                    ] = bender_cut
         return bender_cuts
+
+    def check_ray(self):
+        """Check if Ray is available and initialized."""
+        try:
+            import ray
+
+            RAY_AVAILABLE = True
+        except ImportError:
+            RAY_AVAILABLE = False
+
+        if RAY_AVAILABLE and self.with_ray and ray.is_initialized():
+            print("Running Pipeline with Ray")
+            self.run_by_ray = True
+        else:
+            self.run_by_ray = False
+            print("Running Pipeline without Ray")
 
     def run_pipeline(self):
         """Run the entire expansion pipeline."""
+        self.check_ray()
         self.create_expansion_request()
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
@@ -250,3 +258,56 @@ class ExpansionAlgorithm:
                 sddp_response=sddp_response, admm_response=admm_response, ι=ι
             )
         return None
+
+
+def _calculate_cuts(
+    admm_result: ADMMResult, constraint_names: List[str]
+) -> Dict[str, float]:
+    df = (
+        admm_result.duals.filter(c("name").is_in(constraint_names))[["id", "value"]]
+        .group_by("id")
+        .agg(c("value").sum().alias("value"))
+    )
+    return {row["id"]: row["value"] for row in df.to_dicts()}
+
+
+def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCut:
+    """Transform ADMM results into Bender cuts."""
+    return BenderCut(
+        λ_load=_calculate_cuts(admm_result, ["installed_cons"]),
+        λ_pv=_calculate_cuts(admm_result, ["installed_prod"]),
+        λ_cap=_calculate_cuts(admm_result, ["current_limit", "current_limit_tr"]),
+        load0={
+            str(row["node_id"]): row["cons_installed"]
+            for row in admm_result.load0.to_dicts()
+        },
+        pv0={
+            str(row["node_id"]): row["prod_installed"]
+            for row in admm_result.pv0.to_dicts()
+        },
+        cap0={
+            str(row["edge_id"]): row["p_max_pu"] for row in admm_result.cap0.to_dicts()
+        },
+        θ=sum(admm_result.θs["θ"]),
+    )
+
+
+def heavy_task(
+    n_simulations: int,
+    sddp_response: ExpansionResponse,
+    admm: ADMM,
+    stage: int,
+    node_ids: List[int],
+    edge_ids: List[int],
+):
+    rand_ω = random.randint(0, n_simulations)
+    admm.update_grid_data(
+        δ_load=sddp_response.simulations[rand_ω][stage].δ_load,
+        δ_pv=sddp_response.simulations[rand_ω][stage].δ_pv,
+        node_ids=node_ids,
+        δ_cap=sddp_response.simulations[rand_ω][stage].δ_cap,
+        edge_ids=edge_ids,
+    )
+    admm_results = admm.solve()
+    bender_cut = _transform_admm_result_into_bender_cuts(admm_results)
+    return bender_cut

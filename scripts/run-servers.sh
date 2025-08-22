@@ -23,7 +23,7 @@ tmux new-session -d -s $SESSION
 
 tmux send-keys -t $SESSION "make run-server-jl SERVER_JL_PORT=${SERVER_JL_PORT}" C-m
 tmux split-window -v -t $SESSION
-tmux send-keys -t $SESSION "echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}" C-m
+tmux send-keys -t $SESSION "echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}" C-m
 tmux split-window -v -t $SESSION
 tmux send-keys -t $SESSION "ray stop && make run-server-ray && ray status" C-m
 

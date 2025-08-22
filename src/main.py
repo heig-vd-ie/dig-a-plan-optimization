@@ -46,5 +46,7 @@ def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
 
 
 @app.patch("/expansion", tags=["Expansion"])
-def expansion(input: ExpansionInput) -> ExpansionOutput:
-    return run_expansion(input)
+def expansion(input: ExpansionInput, with_ray: bool = False) -> ExpansionOutput:
+    if with_ray and not ray.is_initialized():
+        init_ray()
+    return run_expansion(input, with_ray=with_ray)
