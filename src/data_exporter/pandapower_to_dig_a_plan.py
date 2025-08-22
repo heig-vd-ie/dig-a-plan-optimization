@@ -26,6 +26,7 @@ def pandapower_to_dig_a_plan_schema(
     v_bounds: Tuple[float, float] | None = None,
     v_min: float = 0.9,
     v_max: float = 1.1,
+    seed: int = 42,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -233,6 +234,7 @@ def pandapower_to_dig_a_plan_schema(
         p_bounds=p_bounds,
         q_bounds=q_bounds,
         v_bounds=v_bounds,
+        seed=seed,
     )
 
     return NodeEdgeModel(

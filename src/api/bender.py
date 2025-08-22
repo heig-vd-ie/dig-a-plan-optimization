@@ -1,20 +1,27 @@
 from api import *
 
 
-class BenderInput(BaseModel):
-    grid_case: GridCase
+class BenderInput(GridCaseModel):
     max_iters: int = 100
 
 
-class BenderOutput(BaseModel):
-    switches: list[dict]
-    voltages: list[dict]
-    currents: list[dict]
-    taps: list[dict]
+class BenderOutput(ReconfigurationOutput):
+    pass
 
 
 def run_bender(input: BenderInput) -> BenderOutput:
-    base_grid_data, net = get_grid_case(input.grid_case)
+    net = get_grid_case(input.grid_case)
+    base_grid_data = pandapower_to_dig_a_plan_schema(
+        net=net,
+        taps=input.taps,
+        v_bounds=input.v_bounds,
+        p_bounds=input.p_bounds,
+        q_bounds=input.q_bounds,
+        number_of_random_scenarios=input.number_of_random_scenarios,
+        v_min=input.v_min,
+        v_max=input.v_max,
+        seed=input.seed,
+    )
     config = BenderConfig(
         verbose=False,
         big_m=1e2,

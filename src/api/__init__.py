@@ -12,11 +12,10 @@ class GridCase(Enum):
     ESTAVAYER_SIMPLIFIED = "estavayer_simplified"
 
 
-def get_grid_case(grid_case: GridCase) -> Tuple[NodeEdgeModel, pp.pandapowerNet]:
+def get_grid_case(grid_case: GridCase) -> pp.pandapowerNet:
     match grid_case:
         case GridCase.SIMPLE_GRID:
             net = pp.from_pickle("data/simple_grid.p")
-            base_grid_data = pandapower_to_dig_a_plan_schema(net)
         case GridCase.BOISY_GRID:
             net = pp.from_pickle("data/boisy_grid.p")
         case GridCase.BOISY_SIMPLIFIED:
@@ -25,4 +24,23 @@ def get_grid_case(grid_case: GridCase) -> Tuple[NodeEdgeModel, pp.pandapowerNet]
             net = pp.from_pickle("data/estavayer_grid.p")
         case GridCase.ESTAVAYER_SIMPLIFIED:
             net = pp.from_pickle("data/estavayer_simplified.p")
-    return base_grid_data, net
+    return net
+
+
+class GridCaseModel(BaseModel):
+    grid_case: GridCase
+    taps: list[int] = list(range(95, 105, 1))
+    p_bounds: Tuple[float, float] = (-0.2, 0.2)
+    q_bounds: Tuple[float, float] = (-0.2, 0.2)
+    v_bounds: Tuple[float, float] = (-0.03, 0.03)
+    number_of_random_scenarios: int = 10
+    v_min: float = 0.9
+    v_max: float = 1.1
+    seed: int = 42
+
+
+class ReconfigurationOutput(BaseModel):
+    switches: list[dict]
+    voltages: list[dict]
+    currents: list[dict]
+    taps: list[dict]

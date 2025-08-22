@@ -1,4 +1,5 @@
 from api.bender import *
+from api.combined import *
 from fastapi import FastAPI
 
 
@@ -13,3 +14,8 @@ def read_root():
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
 def reconfiguration_bender(input: BenderInput) -> BenderOutput:
     return run_bender(input)
+
+
+@app.patch("/reconfiguration/combined", tags=["Reconfiguration"])
+def reconfiguration_combined(input: CombinedInput) -> CombinedOutput:
+    return run_combined(input)
