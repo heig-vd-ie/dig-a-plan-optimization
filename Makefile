@@ -48,9 +48,9 @@ run-server-ray: ## Start Ray server
 	@echo "Starting Ray server..."
 	ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
 
-run-server-worker: ## Start Ray worker
-	@echo "Starting Ray worker..."
-	ray start --address=localhost:$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
+run-ray-worker: ## Remote Ray worker
+	@echo "Starting remote Ray worker..."
+	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
 
 run-servers: ## Start both Julia and Python API servers
 	@echo "Starting Julia, Python API, and Ray servers..."
@@ -81,6 +81,3 @@ permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
-remote-ray-worker: ## Remote Ray worker
-	@echo "Starting remote Ray worker..."
-	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
