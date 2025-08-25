@@ -4,7 +4,7 @@ include Makefile.common.mak
 CURRENT_HOST ?= $(shell hostname -I | awk '{print $$1}')
 CURRENT_CPUS ?= $(shell nproc)
 CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
-CURRENT_GPUS ?= $(shell nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+CURRENT_GPUS ?= $$(which nvidia-smi >/dev/null 2>&1 && nvidia-smi -L | wc -l || echo 0)
 
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
