@@ -310,10 +310,10 @@ def heavy_task(
     print(stage)
     print(len(sddp_response.simulations[rand_ω]))
     admm.update_grid_data(
-        δ_load=sddp_response.simulations[rand_ω][stage].δ_load,
-        δ_pv=sddp_response.simulations[rand_ω][stage].δ_pv,
+        δ_load=sddp_response.simulations[rand_ω][stage - 1].δ_load,
+        δ_pv=sddp_response.simulations[rand_ω][stage - 1].δ_pv,
         node_ids=node_ids,
-        δ_cap=sddp_response.simulations[rand_ω][stage].δ_cap,
+        δ_cap=sddp_response.simulations[rand_ω][stage - 1].δ_cap,
         edge_ids=edge_ids,
     )
     admm_results = admm.solve()
