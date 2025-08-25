@@ -180,3 +180,4 @@ data/wal/*
 NOTICE
 prometheus
 promtool
+prometheus-*

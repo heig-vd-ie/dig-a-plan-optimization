@@ -54,9 +54,15 @@ def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
 def expansion(input: ExpansionInput, with_ray: bool = False) -> ExpansionOutput:
     if with_ray and not ray.is_initialized():
         init_ray()
-    return run_expansion(input, with_ray=with_ray)
+    results = run_expansion(input, with_ray=with_ray)
+    shutdown_ray()
+    return results
 
 
 @app.get("/where-am-i")
 def where_am_i_endpoint():
-    return ray.get([where_am_i.remote() for _ in range(10)])
+    if not ray.is_initialized():
+        init_ray()
+    results = ray.get([where_am_i.remote() for _ in range(10)])
+    shutdown_ray()
+    return results
