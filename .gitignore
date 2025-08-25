@@ -172,3 +172,11 @@ cython_debug/
 .cache/*
 *.cuts.json
 *.mof.json
+*.tar.gz
+data/lock
+data/queries.active
+data/chunks_head/*
+data/wal/*
+NOTICE
+prometheus
+promtool

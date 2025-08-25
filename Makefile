@@ -58,7 +58,8 @@ run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
 
 run-server-ray: ## Start Ray server
 	@echo "Starting Ray server..."
-	ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(SERVER_RAY_CPUS) --num-gpus=$(SERVER_RAY_GPUS)
+	@ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(SERVER_RAY_CPUS) --num-gpus=$(SERVER_RAY_GPUS)  --dashboard-host=$(CURRENT_HOST) --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT)  --metrics-export-port=$(SERVER_RAY_METRICS_PORT) --disable-usage-stats
+	@ray metrics launch-prometheus
 
 run-ray-worker: ## Remote Ray worker
 	@echo "Starting remote Ray worker..."
@@ -88,9 +89,12 @@ kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
 
-kill-ray-all: ## Kill all Ray processes
+stop: ## Kill all Ray processes
 	@echo "Killing all Ray processes..."
-	ray stop || true
+	@ray stop || true
+	@$(MAKE) kill-ports-all
+	@ray metrics shutdown-prometheus || true
+
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
