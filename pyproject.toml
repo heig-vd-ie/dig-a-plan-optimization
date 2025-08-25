@@ -8,7 +8,6 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12,<3.14"
-polars = "^1.25.2"
 pyocclient = "^0.6"
 pyomo = "^6.9.1"
 gurobipy = ">=12.0.1,<13.0.0"
@@ -35,6 +34,7 @@ fastapi = "^0.116.1"
 uvicorn = "^0.35.0"
 ray = {extras = ["default"], version = "^2.48.0"}
 py-spy = "^0.4.1"
+polars-lts-cpu = "^1.32.3"
 
 
 [tool.poetry.group.dev.dependencies]
