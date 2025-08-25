@@ -82,7 +82,9 @@ venv-activate-and-poetry-use-install: ## Activate venv and install packages
 
 install-vscode-extensions: ## Install Visual Studio Code extensions
 	@echo "Installing Visual Studio Code extensions..."
-	@xargs -n 1 code --install-extension < .vscode/extensions.txt 
+	@while read extension; do \
+		code --install-extension "$$extension" --force; \
+	done < .vscode/extensions.txt
 
 freeze-vscode-extensions: ## Update Visual Studio Code extensions
 	@echo "Freezing Visual Studio Code extensions..."
