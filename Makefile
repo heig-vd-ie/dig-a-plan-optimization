@@ -4,10 +4,13 @@ include Makefile.common.mak
 SERVER_JL_PORT ?= 8080 # Julia server targets
 SERVER_PY_PORT ?= 8000 # Python server targets
 SERVER_RAY_PORT ?= 6380 # Ray server targets
-HEAD_HOST ?= 10.192.189.51 # Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
-WORKER_HOST ?= 10.192.189.149 # Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
+# Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
+HEAD_HOST ?= 10.192.189.51
+WORKER_HOST ?= 10.192.189.149
+
 NUM_CPUS ?= 20
 NUM_GPUS ?= 1
+
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
 DATA_EXPORTER_VERSION := 0.1.0
