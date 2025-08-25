@@ -81,6 +81,10 @@ kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
 
+kill-ray-all: ## Kill all Ray processes
+	@echo "Killing all Ray processes..."
+	ray stop || true
+
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
