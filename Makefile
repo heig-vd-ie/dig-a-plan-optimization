@@ -4,7 +4,8 @@ include Makefile.common.mak
 SERVER_JL_PORT ?= 8080 # Julia server targets
 SERVER_PY_PORT ?= 8000 # Python server targets
 SERVER_RAY_PORT ?= 6380 # Ray server targets
-HEAD_HOST ?= 10.192.189.51
+HEAD_HOST ?= 10.192.189.51 # Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
+WORKER_HOST ?= 10.192.189.149 # Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
 NUM_CPUS ?= 20
 NUM_GPUS ?= 1
 DATA_EXPORTER_REPO := data-exporter
@@ -54,7 +55,7 @@ run-server-ray: ## Start Ray server
 
 run-ray-worker: ## Remote Ray worker
 	@echo "Starting remote Ray worker..."
-	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
+	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(WORKER_HOST) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
 
 run-servers: ## Start both Julia and Python API servers
 	@echo "Starting Julia, Python API, and Ray servers..."
@@ -74,7 +75,6 @@ kill-port: ## Kill process running on specified port (PORT)
 	else \
 		echo "No process found on port $(PORT)"; \
 	fi
-
 
 kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_JL_PORT)
