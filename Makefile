@@ -22,6 +22,10 @@ install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
 	
+install-docker: ## Install Docker
+	@echo "Installing Docker..."
+	@bash scripts/install-docker.sh
+
 run-tests-jl:  ## Run tests of Julia
 	@echo "Running Julia tests..."
 	julia --project=src/model_expansion/. src/model_expansion/test/runtests.jl

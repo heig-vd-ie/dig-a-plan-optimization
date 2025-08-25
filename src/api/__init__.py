@@ -2,6 +2,13 @@ from examples import *
 from enum import Enum
 from typing import Tuple
 from pydantic import BaseModel
+import ray
+import socket
+
+
+@ray.remote
+def where_am_i():
+    return socket.gethostname(), ray.util.get_node_ip_address()
 
 
 class GridCase(Enum):
