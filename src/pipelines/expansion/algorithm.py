@@ -305,6 +305,8 @@ def heavy_task(
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
 
     rand_ω = random.randint(0, n_simulations - 1)
+    print(len(sddp_response.simulations))
+    print(rand_ω)
     admm.update_grid_data(
         δ_load=sddp_response.simulations[rand_ω][stage].δ_load,
         δ_pv=sddp_response.simulations[rand_ω][stage].δ_pv,
