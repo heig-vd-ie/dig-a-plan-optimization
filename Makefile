@@ -1,15 +1,10 @@
 # Makefile for Dig-A-Plan setup (supports Linux and WSL)
 include Makefile.common.mak
 
-SERVER_JL_PORT ?= 8080 # Julia server targets
-SERVER_PY_PORT ?= 8000 # Python server targets
-SERVER_RAY_PORT ?= 6380 # Ray server targets
-# Find it with ip addr show (eth0) or ipconfig in cmd (use ping to check access)
-HEAD_HOST ?= 10.192.189.51
-WORKER_HOST ?= 10.192.189.149
-
-NUM_CPUS ?= 20
-NUM_GPUS ?= 1
+CURRENT_HOST ?= $(shell hostname -I | awk '{print $$1}')
+CURRENT_CPUS ?= $(shell nproc)
+CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
+CURRENT_GPUS ?= $(shell nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
@@ -25,7 +20,16 @@ UTILITY_FUNCTIONS_VERSION := 0.1.0
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
-	
+
+show-host-ip: ## Show current IP value
+	@echo "HEAD_HOST: $(HEAD_HOST)"
+
+show-current-specs: ## Show current host IP value
+	@echo "CURRENT_HOST: $(CURRENT_HOST)"
+	@echo "CURRENT_CPUS: $(CURRENT_CPUS)"
+	@echo "CURRENT_RAMS: $(CURRENT_RAMS)"
+	@echo "CURRENT_GPUS: $(CURRENT_GPUS)"
+
 install-docker: ## Install Docker
 	@echo "Installing Docker..."
 	@bash scripts/install-docker.sh
@@ -54,11 +58,11 @@ run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
 
 run-server-ray: ## Start Ray server
 	@echo "Starting Ray server..."
-	ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
+	ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(SERVER_RAY_CPUS) --num-gpus=$(SERVER_RAY_GPUS)
 
 run-ray-worker: ## Remote Ray worker
 	@echo "Starting remote Ray worker..."
-	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(WORKER_HOST) --num-cpus=$(NUM_CPUS) --num-gpus=$(NUM_GPUS)
+	ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(CURRENT_HOST) --num-cpus=$(CURRENT_CPUS) --num-gpus=$(CURRENT_GPUS)
 
 run-servers: ## Start both Julia and Python API servers
 	@echo "Starting Julia, Python API, and Ray servers..."
