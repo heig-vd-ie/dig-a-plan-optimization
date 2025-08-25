@@ -229,7 +229,7 @@ class ExpansionAlgorithm:
 
     def _cut_number(self, ι: int, stage: int, ω: int) -> str:
         """Generate a cut number based on the iteration, stage, and scenario."""
-        return f"{(ι - 1) * self.iterations + (stage - 1) * self.n_stages + ω}"
+        return f"{(ι - 1) * self.n_admm_simulations * self.n_stages + (stage - 1) * self.n_admm_simulations + ω}"
 
     def check_ray(self):
         """Check if Ray is available and initialized."""
