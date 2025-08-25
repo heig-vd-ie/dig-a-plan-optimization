@@ -63,6 +63,6 @@ def expansion(input: ExpansionInput, with_ray: bool = False) -> ExpansionOutput:
 def where_am_i_endpoint():
     if not ray.is_initialized():
         init_ray()
-    results = ray.get([where_am_i.remote() for _ in range(10)])
+    results = ray.get([where_am_i.remote() for _ in range(1000)])
     shutdown_ray()
     return results
