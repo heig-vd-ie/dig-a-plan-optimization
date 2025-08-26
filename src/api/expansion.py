@@ -50,7 +50,7 @@ class LongTermUncertainty(BaseModel):
     )
     δ_load_var: float = Field(default=0.1, description="Load variation in per unit")
     δ_pv_var: float = Field(default=0.1, description="PV variation in per unit")
-    δ_b_var: float = Field(default=0.1, description="Battery variation in per unit")
+    δ_b_var: float = Field(default=10e3, description="Budget variation in k$")
 
 
 class SDDPConfig(BaseModel):
@@ -72,7 +72,7 @@ class ADMMParams(BaseModel):
 
 
 class SDDPParams(BaseModel):
-    initial_budget: float = Field(default=1e6, description="Initial budget in $")
+    initial_budget: float = Field(default=50e3, description="Initial budget in k$")
     discount_rate: float = Field(default=0.05, description="Discount rate in per unit")
     years_per_stage: int = Field(default=1, description="Years per stage")
     risk_measure_type: RiskMeasureType = Field(
@@ -80,19 +80,19 @@ class SDDPParams(BaseModel):
     )
     risk_measure_param: float = Field(default=0.1, description="Risk measure parameter")
     expansion_line_cost_per_km_kw: float = Field(
-        default=1e3, description="Expansion line cost in $ per km per kW"
+        default=0.2, description="Expansion line cost in k$ per km per kW"
     )
     expansion_transformer_cost_per_kw: float = Field(
-        default=1e3, description="Expansion transformer cost in $ per kW"
+        default=0.15, description="Expansion transformer cost in k$ per kW"
     )
     penalty_cost_per_consumption_kw: float = Field(
-        default=1e3, description="Penalty cost in $ per consumption per kW"
+        default=0.05, description="Penalty cost in k$ per consumption per kW"
     )
     penalty_cost_per_production_kw: float = Field(
-        default=1e3, description="Penalty cost in $ per production per kW"
+        default=0.05, description="Penalty cost in k$ per production per kW"
     )
     penalty_cost_per_infeasibility_kw: float = Field(
-        default=1e3, description="Penalty cost in $ per infeasibility per kW"
+        default=0.1, description="Penalty cost in k$ per infeasibility per kW"
     )
 
 
