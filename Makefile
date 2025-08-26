@@ -112,7 +112,7 @@ run-ray-worker: ## Remote Ray worker
 	@POLARS_SKIP_CPU_CHECK=1 ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(CURRENT_HOST) --num-cpus=$(CURRENT_CPUS) --num-gpus=$(CURRENT_GPUS)
 	@$(MAKE) logs-ray
 
-run-servers: ## Start both Julia and Python API servers
+all: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT)
