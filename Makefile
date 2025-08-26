@@ -7,6 +7,7 @@ CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
 CURRENT_GPUS ?= $$(which nvidia-smi >/dev/null 2>&1 && nvidia-smi -L | wc -l || echo 0)
 
 RAY_LOG_INTERVAL ?= 5
+USE_RAY ?= true
 
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
@@ -154,3 +155,9 @@ permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
+run-expansion: ## Curl expansion for a payload
+	@echo "Triggering expansion..."
+	@curl -X PATCH \
+		-H "Content-Type: application/json" \
+    	-d @$(PAYLOAD) \
+		http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)
