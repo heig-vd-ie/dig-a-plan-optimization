@@ -142,6 +142,7 @@ def pandapower_to_dig_a_plan_schema(
             ).alias("b_pu"),
             (c("max_i_ka") * 1e3 / c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"),
+            c("length_km"),
             c("i_base"),
             (np.sqrt(3) * c("max_i_ka") * 1e3 * c("v_base") / s_base).alias("p_max_pu"),
         )

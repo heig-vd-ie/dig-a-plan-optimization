@@ -54,9 +54,11 @@ class ExpansionAlgorithm:
         δ_pv_var: float = 0.1,
         δ_b_var: float = 0.1,
         number_of_sddp_scenarios: int = 100,
-        investment_costs: float = 1e3,
-        penalty_costs_load: float = 1e3,
-        penalty_costs_pv: float = 1e3,
+        expansion_transformer_cost_per_kw: float = 1e3,
+        expansion_line_cost_per_km: float = 1e3,
+        penalty_cost_per_consumption_kw: float = 1e3,
+        penalty_cost_per_production_kw: float = 1e3,
+        s_base: float = 1e6,
         with_ray: bool = False,
     ):
         self.grid_data = grid_data
@@ -69,9 +71,12 @@ class ExpansionAlgorithm:
         self.time_limit = time_limit
         self.solver_non_convex = solver_non_convex
         self.with_ray = with_ray
-        self.investment_costs = investment_costs
-        self.penalty_costs_load = penalty_costs_load
-        self.penalty_costs_pv = penalty_costs_pv
+        self.expansion_transformer_cost_per_kw = expansion_transformer_cost_per_kw
+        self.expansion_line_cost_per_km = expansion_line_cost_per_km
+        self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
+        self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
+        self.s_base = s_base
+
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
         self.create_planning_params(
@@ -166,11 +171,13 @@ class ExpansionAlgorithm:
         """Create expansion request with provided or default parameters."""
         self.expansion_request = dig_a_plan_to_expansion(
             grid_data=self.grid_data_rm,
+            s_base=self.s_base,
             planning_params=self.planning_params,
             additional_params=self.additional_params,
-            investment_costs=self.investment_costs,
-            penalty_costs_load=self.penalty_costs_load,
-            penalty_costs_pv=self.penalty_costs_pv,
+            expansion_line_cost_per_km=self.expansion_line_cost_per_km,
+            expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
+            penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
+            penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
             scenarios_data=self.scenario_data,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
