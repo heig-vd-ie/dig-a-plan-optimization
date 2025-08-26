@@ -7,8 +7,10 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Dig-A-Plan-Optimization"
-copyright = "2025, Mokhles-Gerami Adeleh, Tomasini Luca, Bozorg Mokhtar"
-author = "Mokhles-Gerami Adeleh, Tomasini Luca, Bozorg Mokhtar"
+copyright = (
+    "2025, Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
+)
+author = "Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

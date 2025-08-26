@@ -32,7 +32,7 @@
 2.4. Constraints and Objective
 ----------------------------------
 
-.. automodule:: reconfiguration_model.slave_model.constraints
+.. automodule:: docs.constraints_slave
    :no-index:
 
 

@@ -30,7 +30,7 @@
 1.4. Constraints and Objective
 -----------------------------------
 
-.. automodule:: reconfiguration_model.master_model.constraints
+.. automodule:: docs.constraints_master
    :no-index:
 
 
