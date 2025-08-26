@@ -58,7 +58,18 @@ class ExpansionAlgorithm:
         expansion_line_cost_per_km_kw: float = 1e3,
         penalty_cost_per_consumption_kw: float = 1e3,
         penalty_cost_per_production_kw: float = 1e3,
+        penalty_cost_per_infeasibility_kw: float = 1e3,
         s_base: float = 1e6,
+        admm_big_m: float = 1e3,
+        admm_ε: float = 1e-4,
+        admm_ρ: float = 2.0,
+        admm_γ_infeasibility: float = 1.0,
+        admm_γ_admm_penalty: float = 1.0,
+        admm_γ_trafo_loss: float = 1e2,
+        admm_max_iters: int = 10,
+        admm_μ: float = 10.0,
+        admm_τ_incr: float = 2.0,
+        admm_τ_decr: float = 2.0,
         with_ray: bool = False,
     ):
         self.grid_data = grid_data
@@ -75,7 +86,18 @@ class ExpansionAlgorithm:
         self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
         self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
         self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
+        self.penalty_cost_per_infeasibility_kw = penalty_cost_per_infeasibility_kw
         self.s_base = s_base
+        self.admm_big_m = admm_big_m
+        self.admm_ε = admm_ε
+        self.admm_ρ = admm_ρ
+        self.admm_γ_infeasibility = admm_γ_infeasibility
+        self.admm_γ_admm_penalty = admm_γ_admm_penalty
+        self.admm_γ_trafo_loss = admm_γ_trafo_loss
+        self.admm_max_iters = admm_max_iters
+        self.admm_μ = admm_μ
+        self.admm_τ_incr = admm_τ_incr
+        self.admm_τ_decr = admm_τ_decr
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -178,6 +200,7 @@ class ExpansionAlgorithm:
             expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
             penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
+            penalty_cost_per_infeasibility_kw=self.penalty_cost_per_infeasibility_kw,
             scenarios_data=self.scenario_data,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
@@ -234,6 +257,16 @@ class ExpansionAlgorithm:
             grid_data=self.grid_data,
             solver_non_convex=self.solver_non_convex,
             time_limit=self.time_limit,
+            big_m=self.admm_big_m,
+            ε=self.admm_ε,
+            ρ=self.admm_ρ,
+            γ_infeasibility=self.admm_γ_infeasibility,
+            γ_admm_penalty=self.admm_γ_admm_penalty,
+            γ_trafo_loss=self.admm_γ_trafo_loss,
+            max_iters=self.admm_max_iters,
+            μ=self.admm_μ,
+            τ_incr=self.admm_τ_incr,
+            τ_decr=self.admm_τ_decr,
         )
         if self.run_by_ray:
             heavy_task_remote = ray.remote(heavy_task)

@@ -99,6 +99,7 @@ function handle_stochastic_planning(req::HTTP.Request)
         Dict(node => grid_data["penalty_costs_load"][string(node.id)] for node in nodes)
     penalty_costs_pv =
         Dict(node => grid_data["penalty_costs_pv"][string(node.id)] for node in nodes)
+    penalty_costs_infeasibility = grid_data["penalty_costs_infeasibility"]
 
     discount_rate = planning_params["discount_rate"]
     bender_cuts_data =
@@ -143,6 +144,7 @@ function handle_stochastic_planning(req::HTTP.Request)
         investment_costs,
         penalty_costs_load,
         penalty_costs_pv,
+        penalty_costs_infeasibility,
         discount_rate,
         bender_cuts,
         years_per_stage,

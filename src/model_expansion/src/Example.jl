@@ -60,7 +60,7 @@ open(".cache/scenarios.json", "w") do file
 end
 println("Scenarios exported to .cache/scenarios.json")
 
-investment_costs, penalty_costs_load, penalty_costs_pv =
+investment_costs, penalty_costs_load, penalty_costs_pv, penalty_costs_infeasibility =
     ScenariosGeneration.generate_costs(edges, nodes)
 scenarios = Types.Scenarios(Ω, P)
 λ_cap = ScenariosGeneration.generate_λ_cap(cuts, edges)
@@ -109,6 +109,7 @@ params = Types.PlanningParams(
     investment_costs,
     penalty_costs_load,
     penalty_costs_pv,
+    penalty_costs_infeasibility,
     0.0,  # discount_rate
     bender_cuts,
     1,  # years_per_stage

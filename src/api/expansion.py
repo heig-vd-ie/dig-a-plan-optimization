@@ -1,3 +1,4 @@
+from unittest.mock import Base
 from api import *
 from pydantic import Field
 from typing import Dict, List
@@ -6,61 +7,108 @@ from pipelines.expansion.models.response import ExpansionResponse
 
 
 class GridModel(BaseModel):
-    kace: GridCase = GridCase.SIMPLE_GRID
-    s_base: float = 1e6
-    taps: List[int] = list(range(95, 105, 1))
-    v_min: float = 0.9
-    v_max: float = 1.1
-    groups: int | Dict[int, List[int]] = 10
+    kace: GridCase = Field(default=GridCase.SIMPLE_GRID, description="Grid case to use")
+    s_base: float = Field(default=1e6, description="Rated power in Watts")
+    taps: List[int] = Field(
+        default=list(range(95, 105, 1)), description="Tap positions"
+    )
+    v_min: float = Field(default=0.9, description="Minimum voltage in per unit")
+    v_max: float = Field(default=1.1, description="Maximum voltage in per unit")
 
 
 class ShortTermUncertainty(BaseModel):
-    number_of_scenarios: int = 10
-    p_bounds: Tuple[float, float] = (-0.2, 0.2)
-    q_bounds: Tuple[float, float] = (-0.2, 0.2)
-    v_bounds: Tuple[float, float] = (-0.03, 0.03)
+    number_of_scenarios: int = Field(
+        default=10, description="Number of short term scenarios"
+    )
+    p_bounds: Tuple[float, float] = Field(
+        default=(-0.2, 0.2), description="Active power bounds in per unit"
+    )
+    q_bounds: Tuple[float, float] = Field(
+        default=(-0.2, 0.2), description="Reactive power bounds in per unit"
+    )
+    v_bounds: Tuple[float, float] = Field(
+        default=(-0.03, 0.03), description="Voltage bounds in per unit"
+    )
 
 
 class ADMMOptConfig(BaseModel):
-    iterations: int = 10
-    n_simulations: int = 10
-    solver_non_convex: bool = True
-    time_limit: int = 10
+    iterations: int = Field(default=10, description="Number of iterations")
+    n_simulations: int = Field(
+        default=10, description="Number of simulations per stage"
+    )
+    solver_non_convex: bool = Field(default=True, description="Use non-convex solver")
+    time_limit: int = Field(default=10, description="Time limit in seconds")
+    groups: int | Dict[int, List[int]] = Field(
+        default=10, description="Number of groups for ADMM"
+    )
 
 
 class LongTermUncertainty(BaseModel):
-    n_stages: int = 3
-    number_of_scenarios: int = 100
-    δ_load_var: float = 0.1
-    δ_pv_var: float = 0.1
-    δ_b_var: float = 0.1
+    n_stages: int = Field(default=3, description="Number of stages")
+    number_of_scenarios: int = Field(
+        default=100, description="Number of long-term scenarios"
+    )
+    δ_load_var: float = Field(default=0.1, description="Load variation in per unit")
+    δ_pv_var: float = Field(default=0.1, description="PV variation in per unit")
+    δ_b_var: float = Field(default=0.1, description="Battery variation in per unit")
 
 
 class SDDPConfig(BaseModel):
-    iterations: int = 10
-    n_simulations: int = 100
+    iterations: int = Field(default=10, description="Number of iterations")
+    n_simulations: int = Field(default=100, description="Number of simulations")
+
+
+class ADMMParams(BaseModel):
+    big_m: float = Field(default=1e3, description="Big M parameter")
+    ε: float = Field(default=1e-4, description="ADMM epsilon")
+    ρ: float = Field(default=2.0, description="ADMM rho")
+    γ_infeasibility: float = Field(default=1.0, description="ADMM gamma infeasibility")
+    γ_admm_penalty: float = Field(default=1.0, description="ADMM gamma ADMM penalty")
+    γ_trafo_loss: float = Field(default=1e2, description="ADMM gamma transformer loss")
+    max_iters: int = Field(default=10, description="ADMM max iterations")
+    μ: float = Field(default=10.0, description="ADMM mu")
+    τ_incr: float = Field(default=2.0, description="ADMM tau increment")
+    τ_decr: float = Field(default=2.0, description="ADMM tau decrement")
 
 
 class SDDPParams(BaseModel):
-    initial_budget: float = 1e6
-    discount_rate: float = 0.05
-    years_per_stage: int = 1
-    risk_measure_type: RiskMeasureType = RiskMeasureType.EXPECTATION
-    risk_measure_param: float = 0.1
-    expansion_line_cost_per_km_kw: float = 1e3
-    expansion_transformer_cost_per_kw: float = 1e3
-    penalty_cost_per_consumption_kw: float = 1e3
-    penalty_cost_per_production_kw: float = 1e3
+    initial_budget: float = Field(default=1e6, description="Initial budget in $")
+    discount_rate: float = Field(default=0.05, description="Discount rate in per unit")
+    years_per_stage: int = Field(default=1, description="Years per stage")
+    risk_measure_type: RiskMeasureType = Field(
+        default=RiskMeasureType.EXPECTATION, description="Risk measure type"
+    )
+    risk_measure_param: float = Field(default=0.1, description="Risk measure parameter")
+    expansion_line_cost_per_km_kw: float = Field(
+        default=1e3, description="Expansion line cost in $ per km per kW"
+    )
+    expansion_transformer_cost_per_kw: float = Field(
+        default=1e3, description="Expansion transformer cost in $ per kW"
+    )
+    penalty_cost_per_consumption_kw: float = Field(
+        default=1e3, description="Penalty cost in $ per consumption per kW"
+    )
+    penalty_cost_per_production_kw: float = Field(
+        default=1e3, description="Penalty cost in $ per production per kW"
+    )
+    penalty_cost_per_infeasibility_kw: float = Field(
+        default=1e3, description="Penalty cost in $ per infeasibility per kW"
+    )
 
 
 class ExpansionInput(BaseModel):
-    grid: GridModel
-    short_term_uncertainty: ShortTermUncertainty
-    long_term_uncertainty: LongTermUncertainty
-    admm_config: ADMMOptConfig
-    sddp_config: SDDPConfig
-    sddp_params: SDDPParams
-    seed: int = 42
+    grid: GridModel = Field(description="Grid model")
+    short_term_uncertainty: ShortTermUncertainty = Field(
+        description="Short term uncertainty model"
+    )
+    long_term_uncertainty: LongTermUncertainty = Field(
+        description="Long term uncertainty model"
+    )
+    admm_config: ADMMOptConfig = Field(description="ADMM configuration")
+    sddp_config: SDDPConfig = Field(description="SDDP configuration")
+    admm_params: ADMMParams = Field(description="ADMM parameters")
+    sddp_params: SDDPParams = Field(description="SDDP parameters")
+    seed: int = Field(default=42, description="Random seed")
 
 
 class ExpansionOutput(ExpansionResponse):
@@ -85,7 +133,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
         cache_dir=Path(".cache"),
-        admm_groups=input.grid.groups,
+        admm_groups=input.admm_config.groups,
         iterations=input.admm_config.iterations,
         n_admm_simulations=input.admm_config.n_simulations,
         seed_number=input.seed,
@@ -108,6 +156,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         expansion_transformer_cost_per_kw=input.sddp_params.expansion_transformer_cost_per_kw,
         penalty_cost_per_consumption_kw=input.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=input.sddp_params.penalty_cost_per_production_kw,
+        penalty_cost_per_infeasibility_kw=input.sddp_params.penalty_cost_per_infeasibility_kw,
         s_base=input.grid.s_base,
         with_ray=with_ray,
     )

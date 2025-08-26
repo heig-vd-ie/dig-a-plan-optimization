@@ -54,6 +54,7 @@ struct PlanningParams
     investment_costs::Dict{Edge, Float64}
     penalty_costs_load::Dict{Node, Float64}
     penalty_costs_pv::Dict{Node, Float64}
+    penalty_costs_infeasibility::Float64
     discount_rate::Float64
     bender_cuts::Dict{Cut, BenderCut}
     years_per_stage::Int

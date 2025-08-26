@@ -57,7 +57,8 @@ function generate_costs(edges::Vector{Types.Edge}, nodes::Vector{Types.Node})
     investment_costs = Dict(e => rand(90.0:95:100.0) for e in edges)
     penalty_costs_load = Dict(n => 6000.0 for n in nodes)
     penalty_costs_pv = Dict(n => 6000.0 for n in nodes)
-    return investment_costs, penalty_costs_load, penalty_costs_pv
+    penalty_costs_infeasibility = 6000
+    return investment_costs, penalty_costs_load, penalty_costs_pv, penalty_costs_infeasibility
 end
 
 function generate_λ_load(cuts::Vector{Types.Cut}, nodes::Vector{Types.Node})

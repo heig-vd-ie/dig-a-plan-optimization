@@ -69,6 +69,7 @@ class Grid(BaseModel):
     investment_costs: Dict[str, float]
     penalty_costs_load: Dict[str, float]
     penalty_costs_pv: Dict[str, float]
+    penalty_costs_infeasibility: float
 
 
 class PlanningParams(BaseModel):
