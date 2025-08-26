@@ -6,6 +6,8 @@ CURRENT_CPUS ?= $(shell nproc)
 CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
 CURRENT_GPUS ?= $$(which nvidia-smi >/dev/null 2>&1 && nvidia-smi -L | wc -l || echo 0)
 
+RAY_LOG_INTERVAL ?= 5
+
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
 DATA_EXPORTER_VERSION := 0.1.0
@@ -15,6 +17,12 @@ TWINDIGRID_VERSION := 0.5.0
 UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
+
+install-all:  ## Install all dependencies and set up the environment
+	@$(MAKE) install-basics
+	@$(MAKE) install-grafana
+	@$(MAKE) install-jl
+	@$(MAKE) install-docker
 
 install-grafana: ## Install Grafana
 	@echo "Installing Grafana..."
@@ -31,6 +39,7 @@ run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to sp
 		--name ray-grafana \
 		custom-grafana
 	@echo "Grafana running → http://localhost:$${GRAFANA_PORT:-4000}"
+	@docker logs -f ray-grafana
 
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
@@ -75,15 +84,22 @@ run-server-ray: ## Start Ray server
 	@echo "Starting Ray server..."
 	@ray metrics launch-prometheus
 	@ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(SERVER_RAY_CPUS) --num-gpus=$(SERVER_RAY_GPUS)  --dashboard-host=localhost --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) --disable-usage-stats
+	@$(MAKE) logs-ray
 
 run-ray-worker: ## Remote Ray worker
 	@echo "Starting remote Ray worker..."
+	@$(MAKE) stop
 	@POLARS_SKIP_CPU_CHECK=1 ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(CURRENT_HOST) --num-cpus=$(CURRENT_CPUS) --num-gpus=$(CURRENT_GPUS)
+	@$(MAKE) logs-ray
 
 run-servers: ## Start both Julia and Python API servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT)
+
+logs-ray: ## Log Ray server
+	@echo "Logging Ray server..."
+	@watch -n $(RAY_LOG_INTERVAL) ray status
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)
@@ -113,7 +129,6 @@ stop: ## Kill all Ray processes
 	@$(MAKE) kill-ports-all
 	@ray metrics shutdown-prometheus || true
 	@sudo rm -rf prometheus-*
-
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
