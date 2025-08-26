@@ -21,7 +21,7 @@
     },
     "admm_config": {
         "iterations": 20,
-        "n_simulations": 100,
+        "n_simulations": 20,
         "solver_non_convex": true,
         "time_limit": 10,
         "groups": 40
