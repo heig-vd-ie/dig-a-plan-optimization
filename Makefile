@@ -83,7 +83,20 @@ run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
 run-server-ray: ## Start Ray server
 	@echo "Starting Ray server..."
 	@ray metrics launch-prometheus
-	@ray start --head --port=$(SERVER_RAY_PORT) --num-cpus=$(SERVER_RAY_CPUS) --num-gpus=$(SERVER_RAY_GPUS)  --dashboard-host=localhost --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) --disable-usage-stats
+	@RAY_GRAFANA_HOST=http://localhost:$(GRAFANA_PORT) \
+	RAY_GRAFANA_IFRAME_HOST=http://localhost:$(GRAFANA_PORT) \
+	RAY_GRAFANA_ORG_ID=1 \
+	RAY_PROMETHEUS_HOST=http://localhost:9090 \
+	RAY_PROMETHEUS_NAME=Prometheus \
+	ray start \
+		--head \
+		 --port=$(SERVER_RAY_PORT) \
+		 --num-cpus=$(SERVER_RAY_CPUS) \
+		 --num-gpus=$(SERVER_RAY_GPUS)  \
+		 --dashboard-host=localhost \
+		 --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) \
+		 --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) \
+		 --disable-usage-stats
 	@$(MAKE) logs-ray
 
 run-ray-worker: ## Remote Ray worker
