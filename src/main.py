@@ -4,6 +4,9 @@ from api.admm import *
 from api.expansion import *
 from fastapi import FastAPI
 import ray
+import warnings
+
+warnings.simplefilter("ignore", SyntaxWarning)
 
 app = FastAPI()
 
