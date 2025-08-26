@@ -8,7 +8,6 @@ direnv allow
 
 SESSION="optimization-servers"
 
-# Always attempt to kill both ports first
 if [[ -n "$SERVER_JL_PORT" ]]; then
   fuser -k ${SERVER_JL_PORT}/tcp 2>/dev/null
 fi
@@ -23,27 +22,23 @@ commands=(
   "echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}"
   "ray stop && make run-server-ray && ray status"
   "make run-server-grafana"
-  "ssh -t mohammad@10.192.189.173"
+  "echo Additional pane if needed"
+  "ssh -t mohammad@${WORKER_HOST}"
 )
 
-# Create a detached session with first pane
 tmux new-session -d -s $SESSION
 
-# Split 4 more times → total 5 panes
-for i in {1..4}; do
+for i in {1..7}; do
   tmux split-window -h -t $SESSION:0
 done
 
-# Arrange evenly
 tmux select-layout -t $SESSION:0 even-vertical
 
 
 sleep 1.0
 
-# Send commands to each pane
 for i in "${!commands[@]}"; do
   tmux send-keys -t $SESSION:0.$i "${commands[$i]}" C-m
 done
 
-# Attach once
 tmux attach -t $SESSION

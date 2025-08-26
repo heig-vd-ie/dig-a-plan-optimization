@@ -99,8 +99,8 @@ run-server-ray: ## Start Ray server
 	ray start \
 		--head \
 		 --port=$(SERVER_RAY_PORT) \
-		 --num-cpus=$(SERVER_RAY_CPUS) \
-		 --num-gpus=$(SERVER_RAY_GPUS)  \
+		 --num-cpus=$(CURRENT_CPUS) \
+		 --num-gpus=$(CURRENT_GPUS)  \
 		 --dashboard-host=localhost \
 		 --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) \
 		 --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) \
