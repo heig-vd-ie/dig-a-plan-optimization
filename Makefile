@@ -18,6 +18,13 @@ UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
 
+clean: ## Clean ignored files
+	@echo "Cleaning up ignored files..."
+	@echo "This will remove all ignored files except .cache. Are you sure? (y/n)"
+	@bash -c 'read -r answer; if [ "$$answer" != "y" ]; then echo "Aborted."; exit 1; fi'
+	@git clean -fdX -e .cache
+	@echo "Cleaned."
+
 install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-basics
 	@$(MAKE) install-grafana

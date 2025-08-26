@@ -1,5 +1,6 @@
 import networkx as nx
 import copy
+from numpy import s_
 import polars as pl
 from typing import Dict
 from pathlib import Path
@@ -80,7 +81,7 @@ def dig_a_plan_to_expansion(
     scenarios_data: Scenarios,
     s_base: float = 1e6,
     expansion_transformer_cost_per_kw: int | float = 1000,
-    expansion_line_cost_per_km: int | float = 1000,
+    expansion_line_cost_per_km_kw: int | float = 1000,
     penalty_cost_per_consumption_kw: int | float = 1000,
     penalty_cost_per_production_kw: int | float = 1000,
     bender_cuts: BenderCuts | None = None,
@@ -119,10 +120,13 @@ def dig_a_plan_to_expansion(
 
     investment_costs = {
         str(edge["edge_id"]): (
-            float(expansion_line_cost_per_km) * edge["length_km"]
+            float(expansion_line_cost_per_km_kw) * edge["length_km"] * s_base / 1e3
             if edge["type"] == "line"
             else (
-                float(expansion_transformer_cost_per_kw) * edge["p_max_pu"] * s_base
+                float(expansion_transformer_cost_per_kw)
+                * edge["p_max_pu"]
+                * s_base
+                / 1e3
                 if edge["type"] == "transformer"
                 else 0.0
             )
@@ -132,11 +136,15 @@ def dig_a_plan_to_expansion(
     penalty_costs_load = {
         str(node["node_id"]): float(penalty_cost_per_consumption_kw)
         * node["cons_installed"]
+        * s_base
+        / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
     penalty_costs_pv = {
         str(node["node_id"]): float(penalty_cost_per_production_kw)
         * node["prod_installed"]
+        * s_base
+        / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
 

@@ -55,7 +55,7 @@ class ExpansionAlgorithm:
         δ_b_var: float = 0.1,
         number_of_sddp_scenarios: int = 100,
         expansion_transformer_cost_per_kw: float = 1e3,
-        expansion_line_cost_per_km: float = 1e3,
+        expansion_line_cost_per_km_kw: float = 1e3,
         penalty_cost_per_consumption_kw: float = 1e3,
         penalty_cost_per_production_kw: float = 1e3,
         s_base: float = 1e6,
@@ -72,7 +72,7 @@ class ExpansionAlgorithm:
         self.solver_non_convex = solver_non_convex
         self.with_ray = with_ray
         self.expansion_transformer_cost_per_kw = expansion_transformer_cost_per_kw
-        self.expansion_line_cost_per_km = expansion_line_cost_per_km
+        self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
         self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
         self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
         self.s_base = s_base
@@ -174,7 +174,7 @@ class ExpansionAlgorithm:
             s_base=self.s_base,
             planning_params=self.planning_params,
             additional_params=self.additional_params,
-            expansion_line_cost_per_km=self.expansion_line_cost_per_km,
+            expansion_line_cost_per_km_kw=self.expansion_line_cost_per_km_kw,
             expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
             penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
@@ -303,7 +303,11 @@ class ExpansionAlgorithm:
             self.record_update_cache(
                 sddp_response=sddp_response, admm_response=admm_response, ι=ι
             )
-        return self.run_sddp()
+        sddp_response = self.run_sddp()
+        save_obj_to_json(
+            sddp_response, self.cache_dir_run / f"sddp_response_{ι+1}.json"
+        )
+        return sddp_response
 
 
 def _calculate_cuts(

@@ -47,7 +47,7 @@ class SDDPParams(BaseModel):
     years_per_stage: int = 1
     risk_measure_type: RiskMeasureType = RiskMeasureType.EXPECTATION
     risk_measure_param: float = 0.1
-    expansion_line_cost_per_km: float = 1e3
+    expansion_line_cost_per_km_kw: float = 1e3
     expansion_transformer_cost_per_kw: float = 1e3
     penalty_cost_per_consumption_kw: float = 1e3
     penalty_cost_per_production_kw: float = 1e3
@@ -104,7 +104,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         δ_pv_var=input.long_term_uncertainty.δ_pv_var,
         δ_b_var=input.long_term_uncertainty.δ_b_var,
         number_of_sddp_scenarios=input.long_term_uncertainty.number_of_scenarios,
-        expansion_line_cost_per_km=input.sddp_params.expansion_line_cost_per_km,
+        expansion_line_cost_per_km_kw=input.sddp_params.expansion_line_cost_per_km_kw,
         expansion_transformer_cost_per_kw=input.sddp_params.expansion_transformer_cost_per_kw,
         penalty_cost_per_consumption_kw=input.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=input.sddp_params.penalty_cost_per_production_kw,
