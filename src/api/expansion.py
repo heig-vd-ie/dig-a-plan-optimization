@@ -111,8 +111,8 @@ class ExpansionInput(BaseModel):
     seed: int = Field(default=42, description="Random seed")
 
 
-class ExpansionOutput(ExpansionResponse):
-    pass
+class ExpansionOutput(BaseModel):
+    sddp_response: ExpansionResponse
 
 
 def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
@@ -161,4 +161,4 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()
-    return ExpansionOutput(**result.model_dump())
+    return ExpansionOutput(sddp_response=result)
