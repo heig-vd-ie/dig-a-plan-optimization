@@ -26,6 +26,8 @@ tmux split-window -v -t $SESSION
 tmux send-keys -t $SESSION "echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}" C-m
 tmux split-window -v -t $SESSION
 tmux send-keys -t $SESSION "ray stop && make run-server-ray && ray status" C-m
+tmux split-window -v -t $SESSION
+tmux send-keys -t $SESSION "make run-server-grafana" C-m
 
-tmux select-pane -t 2
+tmux select-pane -t 3
 tmux attach -t $SESSION
