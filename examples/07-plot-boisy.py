@@ -7,10 +7,10 @@ os.chdir(os.getcwd().replace("/src", ""))
 from examples import *
 
 # %%
-dap = load_dap_state(".cache/full_boisy_dap")
-dap_fixed = load_dap_state(".cache/full_boisy_dap_fixed")
+dap = load_dap_state(".cache/output/boisy_dap")
+dap_fixed = load_dap_state(".cache/output/boisy_dap_fixed")
 
-net = joblib.load(".cache/boisy_net.joblib")
+net = joblib.load(".cache/output/boisy_net.joblib")
 
 base_grid_data = NodeEdgeModel(
     node_data=dap.data_manager.node_data,  # type: ignore
@@ -49,5 +49,3 @@ plot_power_flow_results(
     currents=currents,
     node_size=5,
 )
-
-# %%

@@ -1,6 +1,7 @@
 # Common Makefile
 
 PYTHON_VERSION := 3.12
+POETRY_VERSION := 2.1.3
 VENV_DIR := .venv
 ORG := heig-vd-ie
 
@@ -45,7 +46,7 @@ install-python-wsl: ## Install Python $(PYTHON_VERSION) and venv support on WSL
 
 install-poetry: ## Install Poetry using pipx
 	@echo "Installing Poetry..."
-	pipx install poetry
+	pipx install poetry==$(POETRY_VERSION)
 
 install-deps: ## Install system dependencies
 	@echo "Installing system dependencies..."
@@ -82,13 +83,15 @@ venv-activate-and-poetry-use-install: ## Activate venv and install packages
 
 install-vscode-extensions: ## Install Visual Studio Code extensions
 	@echo "Installing Visual Studio Code extensions..."
-	@xargs -n 1 code --install-extension < .vscode/extensions.txt 
+	@while read extension; do \
+		code --install-extension "$$extension" --force; \
+	done < .vscode/extensions.txt
 
 freeze-vscode-extensions: ## Update Visual Studio Code extensions
 	@echo "Freezing Visual Studio Code extensions..."
 	@code --list-extensions > .vscode/extensions.txt
 
-install-all:  ## Install all dependencies and set up the environment
+install-basics:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-pipx
 	@$(MAKE) install-python-wsl
 	@$(MAKE) install-poetry

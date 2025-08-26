@@ -72,7 +72,8 @@ fig.update_layout(
     xaxis_title="Iteration",
     yaxis_title="Objective Value",
 )
-fig.write_html(".cache/bender-convergence.html")
+os.makedirs(".cache/output", exist_ok=True)
+fig.write_html(".cache/output/bender-convergence.html")
 
 # %% compare with pandapower
 node_data, edge_data = compare_dig_a_plan_with_pandapower(

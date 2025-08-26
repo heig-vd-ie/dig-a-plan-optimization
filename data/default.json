@@ -15,7 +15,8 @@
         "pv": { "1": 0.1, "2": 0.1, "3": 0.1, "4": 0.1 },
         "investment_costs": { "1": 90, "2": 95, "3": 100, "4": 105, "5": 110 },
         "penalty_costs_load": { "1": 6000, "2": 6000, "3": 6000, "4": 6000 },
-        "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 }
+        "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 },
+        "penalty_costs_infeasibility": 6000
     },
     "scenarios": "data/scenarios.json",
     "bender_cuts": "data/bender_cuts.json",

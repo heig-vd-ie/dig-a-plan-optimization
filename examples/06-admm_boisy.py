@@ -8,7 +8,7 @@ from examples import *
 
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
 if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(".cache/boisy_grid_simplified.p")
+    net = pp.from_pickle(".cache/input/boisy/boisy_grid_simplified.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
         number_of_random_scenarios=10,
@@ -18,7 +18,7 @@ if USE_SIMPLIFIED_GRID := True:
         taps=[95, 98, 99, 100, 101, 102, 105],
     )
 else:
-    net = pp.from_pickle(".cache/boisy_grid.p")
+    net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
     grid_data = pandapower_to_dig_a_plan_schema(
         net,
         number_of_random_scenarios=10,
@@ -74,9 +74,9 @@ print(dap.model_manager.zδ_variable)
 print(dap.model_manager.zζ_variable)
 
 # %%
-save_dap_state(dap)
-save_dap_state(dap_fixed, ".cache/boisy_dap_fixed")
-joblib.dump(net, ".cache/boisy_net.joblib")
+save_dap_state(dap, ".cache/output/boisy_dap")
+save_dap_state(dap_fixed, ".cache/output/boisy_dap_fixed")
+joblib.dump(net, ".cache/output/boisy_net.joblib")
 
 # %% Plot Distribution
 nodal_variables = [

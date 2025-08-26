@@ -1,5 +1,6 @@
 import networkx as nx
 import copy
+from numpy import s_
 import polars as pl
 from typing import Dict
 from pathlib import Path
@@ -78,9 +79,12 @@ def dig_a_plan_to_expansion(
     planning_params: PlanningParams,
     additional_params: AdditionalParams,
     scenarios_data: Scenarios,
-    investment_costs: int | float | Dict[str, float] = 1000,
-    penalty_costs_load: int | float | Dict[str, float] = 1000,
-    penalty_costs_pv: int | float | Dict[str, float] = 1000,
+    s_base: float = 1e6,
+    expansion_transformer_cost_per_kw: int | float = 1000,
+    expansion_line_cost_per_km_kw: int | float = 1000,
+    penalty_cost_per_consumption_kw: int | float = 1000,
+    penalty_cost_per_production_kw: int | float = 1000,
+    penalty_cost_per_infeasibility_kw: int | float = 1000,
     bender_cuts: BenderCuts | None = None,
     scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
@@ -115,21 +119,38 @@ def dig_a_plan_to_expansion(
         for node in grid_data.node_data.iter_rows(named=True)
     }
 
-    if isinstance(investment_costs, (int, float)):
-        investment_costs = {
-            str(edge["edge_id"]): float(investment_costs)
-            for edge in grid_data.edge_data.iter_rows(named=True)
-        }
-    if isinstance(penalty_costs_load, (int, float)):
-        penalty_costs_load = {
-            str(node["node_id"]): float(penalty_costs_load)
-            for node in grid_data.node_data.iter_rows(named=True)
-        }
-    if isinstance(penalty_costs_pv, (int, float)):
-        penalty_costs_pv = {
-            str(node["node_id"]): float(penalty_costs_pv)
-            for node in grid_data.node_data.iter_rows(named=True)
-        }
+    investment_costs = {
+        str(edge["edge_id"]): (
+            float(expansion_line_cost_per_km_kw) * edge["length_km"] * s_base / 1e3
+            if edge["type"] == "line"
+            else (
+                float(expansion_transformer_cost_per_kw)
+                * edge["p_max_pu"]
+                * s_base
+                / 1e3
+                if edge["type"] == "transformer"
+                else 0.0
+            )
+        )
+        for edge in grid_data.edge_data.iter_rows(named=True)
+    }
+    penalty_costs_load = {
+        str(node["node_id"]): float(penalty_cost_per_consumption_kw)
+        * node["cons_installed"]
+        * s_base
+        / 1e3
+        for node in grid_data.node_data.iter_rows(named=True)
+    }
+    penalty_costs_pv = {
+        str(node["node_id"]): float(penalty_cost_per_production_kw)
+        * node["prod_installed"]
+        * s_base
+        / 1e3
+        for node in grid_data.node_data.iter_rows(named=True)
+    }
+    penalty_costs_infeasibility = (
+        float(penalty_cost_per_infeasibility_kw) * s_base / 1e3
+    )
 
     grid = Grid(
         nodes=nodes,
@@ -142,6 +163,7 @@ def dig_a_plan_to_expansion(
         investment_costs=investment_costs,
         penalty_costs_load=penalty_costs_load,
         penalty_costs_pv=penalty_costs_pv,
+        penalty_costs_infeasibility=penalty_costs_infeasibility,
     )
     optimization_config = OptimizationConfig(
         grid=grid,

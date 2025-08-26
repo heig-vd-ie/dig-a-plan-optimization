@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import List, Tuple
 import pandapower as pp
@@ -755,8 +756,8 @@ def plot_grid_from_pandapower(
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
-    fig.show()
+    os.makedirs(".cache/output", exist_ok=True)
     fig.write_html(
-        f".cache/grid_plot{'_colored' if color_by_results else '_default'}.html",
+        f".cache/output/grid_plot{'_colored' if color_by_results else '_default'}.html",
         include_plotlyjs="cdn",
     )

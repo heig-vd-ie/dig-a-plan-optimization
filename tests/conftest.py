@@ -100,3 +100,8 @@ def test_admm_config() -> ADMMConfig:
         τ_decr=2.0,
         groups=1,
     )
+
+
+@pytest.fixture(scope="session")
+def test_basic_grid_quick_expansion() -> Path:
+    return Path("data/payloads/simple_grid_quick_test.json")

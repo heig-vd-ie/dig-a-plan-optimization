@@ -26,6 +26,7 @@ def pandapower_to_dig_a_plan_schema(
     v_bounds: Tuple[float, float] | None = None,
     v_min: float = 0.9,
     v_max: float = 1.1,
+    seed: int = 42,
 ) -> NodeEdgeModel:
 
     bus = net["bus"]
@@ -141,6 +142,7 @@ def pandapower_to_dig_a_plan_schema(
             ).alias("b_pu"),
             (c("max_i_ka") * 1e3 / c("i_base")).alias("i_max_pu"),
             pl.lit("branch").alias("type"),
+            c("length_km"),
             c("i_base"),
             (np.sqrt(3) * c("max_i_ka") * 1e3 * c("v_base") / s_base).alias("p_max_pu"),
         )
@@ -233,6 +235,7 @@ def pandapower_to_dig_a_plan_schema(
         p_bounds=p_bounds,
         q_bounds=q_bounds,
         v_bounds=v_bounds,
+        seed=seed,
     )
 
     return NodeEdgeModel(

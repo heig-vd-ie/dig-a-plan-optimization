@@ -17,6 +17,7 @@ class EdgeData(pt.Model):
     x_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     b_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
     g_pu: float = pt.Field(dtype=pl.Float64, default=0.0)
+    length_km: Optional[float] = pt.Field(dtype=pl.Float64)
     i_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
     p_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=10.0)
     normal_open: bool = pt.Field(dtype=pl.Boolean, default=False)

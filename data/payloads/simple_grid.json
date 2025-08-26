@@ -1,0 +1,49 @@
+{
+    "grid": {
+        "kace": "simple_grid",
+        "s_base": 1000000,
+        "taps": [ 95, 96, 97, 98, 99, 100, 101, 102, 103, 104 ],
+        "v_min": 0.9,
+        "v_max": 1.1
+    },
+    "short_term_uncertainty": {
+        "number_of_scenarios": 10,
+        "p_bounds": [ -0.2, 0.2 ],
+        "q_bounds": [ -0.2, 0.2 ],
+        "v_bounds": [ -0.03, 0.03 ]
+    },
+    "long_term_uncertainty": {
+        "n_stages": 5,
+        "number_of_scenarios": 100,
+        "δ_load_var": 0.1,
+        "δ_pv_var": 0.1,
+        "δ_b_var": 10000
+    },
+    "admm_config": { "iterations": 20, "n_simulations": 20, "solver_non_convex": true, "time_limit": 10, "groups": 10 },
+    "sddp_config": { "iterations": 100, "n_simulations": 1000 },
+    "admm_params": {
+        "big_m": 1000,
+        "ε": 0.0001,
+        "ρ": 2,
+        "γ_infeasibility": 1,
+        "γ_admm_penalty": 1,
+        "γ_trafo_loss": 100,
+        "max_iters": 10,
+        "μ": 10,
+        "τ_incr": 2,
+        "τ_decr": 2
+    },
+    "sddp_params": {
+        "initial_budget": 50000,
+        "discount_rate": 0.05,
+        "years_per_stage": 5,
+        "risk_measure_type": "Expectation",
+        "risk_measure_param": 0.1,
+        "expansion_line_cost_per_km_kw": 0.2,
+        "expansion_transformer_cost_per_kw": 0.15,
+        "penalty_cost_per_consumption_kw": 0.05,
+        "penalty_cost_per_production_kw": 0.05,
+        "penalty_cost_per_infeasibility_kw": 0.1
+    },
+    "seed": 42
+}
