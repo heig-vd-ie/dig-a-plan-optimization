@@ -73,7 +73,7 @@ class Grid(BaseModel):
 
 class PlanningParams(BaseModel):
     n_stages: int
-    initial_budget: int
+    initial_budget: float
     γ_cuts: float
     discount_rate: float
     years_per_stage: int

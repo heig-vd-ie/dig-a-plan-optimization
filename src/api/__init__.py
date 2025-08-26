@@ -21,6 +21,7 @@ class GridCase(Enum):
 
 class GridCaseModel(BaseModel):
     grid_case: GridCase
+    s_base: float = 1e6
     taps: list[int] = list(range(95, 105, 1))
     p_bounds: Tuple[float, float] = (-0.2, 0.2)
     q_bounds: Tuple[float, float] = (-0.2, 0.2)
@@ -52,6 +53,7 @@ def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel
             net = pp.from_pickle(".cache/input/estavayer/estavayer_simplified.p")
     base_grid_data = pandapower_to_dig_a_plan_schema(
         net=net,
+        s_base=input.s_base,
         taps=input.taps,
         v_bounds=input.v_bounds,
         p_bounds=input.p_bounds,
@@ -61,15 +63,11 @@ def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel
         v_max=input.v_max,
         seed=input.seed,
     )
-    if input.grid_case in {
-        GridCase.BOISY_SIMPLIFIED,
-        GridCase.ESTAVAYER_SIMPLIFIED,
-    }:
+    if input.grid_case != GridCase.SIMPLE_GRID:
         base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
             pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
             for col in ["b_pu", "r_pu", "x_pu"]
         ).with_columns(
             c("normal_open").fill_null(False),
         )
-
     return net, base_grid_data

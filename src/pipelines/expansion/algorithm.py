@@ -40,7 +40,23 @@ class ExpansionAlgorithm:
         seed_number: int = 42,
         time_limit: int = 10,
         solver_non_convex: int = 2,
+        n_stages: int = 3,
+        initial_budget: float = 1e6,
+        discount_rate: float = 0.05,
+        γ_cuts: float = 0.0,
+        years_per_stage: int = 1,
+        sddp_iteration_limit: int = 10,
+        sddp_simulations: int = 100,
         just_test: bool = False,
+        risk_measure_type: RiskMeasureType = RiskMeasureType.EXPECTATION,
+        risk_measure_param: float = 0.1,
+        δ_load_var: float = 0.1,
+        δ_pv_var: float = 0.1,
+        δ_b_var: float = 0.1,
+        number_of_sddp_scenarios: int = 100,
+        investment_costs: float = 1e3,
+        penalty_costs_load: float = 1e3,
+        penalty_costs_pv: float = 1e3,
         with_ray: bool = False,
     ):
         self.grid_data = grid_data
@@ -53,11 +69,31 @@ class ExpansionAlgorithm:
         self.time_limit = time_limit
         self.solver_non_convex = solver_non_convex
         self.with_ray = with_ray
+        self.investment_costs = investment_costs
+        self.penalty_costs_load = penalty_costs_load
+        self.penalty_costs_pv = penalty_costs_pv
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
-        self.create_planning_params()
-        self.create_additional_params()
-        self.create_scenario_data()
+        self.create_planning_params(
+            n_stages=n_stages,
+            initial_budget=initial_budget,
+            discount_rate=discount_rate,
+            γ_cuts=γ_cuts,
+            years_per_stage=years_per_stage,
+        )
+        self.create_additional_params(
+            iteration_limit=sddp_iteration_limit,
+            n_simulations=sddp_simulations,
+            risk_measure_type=risk_measure_type,
+            risk_measure_param=risk_measure_param,
+        )
+        self.create_scenario_data(
+            δ_load_var=δ_load_var,
+            δ_pv_var=δ_pv_var,
+            δ_b_var=δ_b_var,
+            number_of_scenarios=number_of_sddp_scenarios,
+            number_of_stages=n_stages,
+        )
         self.create_bender_cuts()
         self.cache_dir_run = (
             self.cache_dir
@@ -71,11 +107,11 @@ class ExpansionAlgorithm:
 
     def create_planning_params(
         self,
-        n_stages=3,
-        initial_budget=100000,
-        discount_rate=0.05,
-        γ_cuts=0.0,
-        years_per_stage=1,
+        n_stages: int = 3,
+        initial_budget: float = 1e6,
+        discount_rate: float = 0.05,
+        γ_cuts: float = 0.0,
+        years_per_stage: int = 1,
     ):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
@@ -132,6 +168,9 @@ class ExpansionAlgorithm:
             grid_data=self.grid_data_rm,
             planning_params=self.planning_params,
             additional_params=self.additional_params,
+            investment_costs=self.investment_costs,
+            penalty_costs_load=self.penalty_costs_load,
+            penalty_costs_pv=self.penalty_costs_pv,
             scenarios_data=self.scenario_data,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
@@ -247,7 +286,7 @@ class ExpansionAlgorithm:
             self.run_by_ray = False
             print("Running Pipeline without Ray")
 
-    def run_pipeline(self):
+    def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
         self.check_ray()
         self.create_expansion_request()
@@ -257,7 +296,7 @@ class ExpansionAlgorithm:
             self.record_update_cache(
                 sddp_response=sddp_response, admm_response=admm_response, ι=ι
             )
-        return None
+        return self.run_sddp()
 
 
 def _calculate_cuts(
