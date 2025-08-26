@@ -68,12 +68,6 @@ cd .. && make run-extraction
 3. Grafana Dashboard [http://localhost:4000](http://localhost:4000)
 4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
 
-export SERVER_JL_PORT=8080
-export SERVER_PY_PORT=8000
-export SERVER_RAY_PORT=6380
-export GRAFANA_PORT=4000
-export SERVER_RAY_METRICS_EXPORT_PORT=6381
-export SERVER_RAY_DASHBOARD_PORT=8265
 
 ## Development
 
