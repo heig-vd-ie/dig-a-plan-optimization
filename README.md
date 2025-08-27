@@ -67,6 +67,7 @@ cd .. && make run-extraction
 2. Ray Dashboard: [http://localhost:8265](http://localhost:8265)
 3. Grafana Dashboard [http://localhost:4000](http://localhost:4000)
 4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
+5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
 
 ## Development

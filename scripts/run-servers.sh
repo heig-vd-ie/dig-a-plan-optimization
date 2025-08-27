@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+SESSION="optimization-servers"
+tmux kill-session -t $SESSION 2>/dev/null
+
 SERVER_JL_PORT=${1}
 SERVER_PY_PORT=${2}
 BE_NATIVE=${3:-false}
@@ -7,62 +10,52 @@ BE_NATIVE=${3:-false}
 source .venv/bin/activate
 direnv allow
 
-SESSION="optimization-servers"
-
-if [[ -n "$SERVER_JL_PORT" ]]; then
-  fuser -k ${SERVER_JL_PORT}/tcp 2>/dev/null
-fi
-if [[ -n "$SERVER_PY_PORT" ]]; then
-  fuser -k ${SERVER_PY_PORT}/tcp 2>/dev/null
-fi
-
-tmux kill-session -t $SESSION 2>/dev/null
-
 commands=(
-  "make run-server-jl SERVER_JL_PORT=${SERVER_JL_PORT}"
+  "make run-server-jl SERVER_JL_PORT=${SERVER_JL_PORT}; sleep 3"
 )
-
-# Conditionally append
 if [[ "$BE_NATIVE" == "true" ]]; then
-    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py-native SERVER_PY_PORT=${SERVER_PY_PORT}")
+    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py-native SERVER_PY_PORT=${SERVER_PY_PORT}; sleep 3")
 else
-    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}")
+    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}; sleep 3")
 fi
-commands+=("make run-server-ray")
-commands+=("make run-server-grafana")
+commands+=("make run-server-ray; sleep 3")
+commands+=("make run-server-grafana; sleep 3")
+commands+=("make run-server-mongodb; sleep 3")
 commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
-commands+=("./scripts/run-interactive.sh")
-
+commands+=("./scripts/run-interactive.sh; sleep 3")
 
 tmux new-session -d -s $SESSION
 
-for i in {1..5}; do
-  tmux split-window -h -t $SESSION:0
+for ((i=1; i<${#commands[@]}; i++)); do
+    tmux split-window -v -t $SESSION:0
+    tmux select-layout -t $SESSION:0 tiled
 done
-
-tmux select-layout -t $SESSION:0 even-vertical
-
-sleep 1.0
 
 for i in "${!commands[@]}"; do
-  tmux send-keys -t $SESSION:0.$i "${commands[$i]}" C-m
+    tmux send-keys -t $SESSION:0.$i "${commands[$i]}" C-m
+    sleep 0.5
 done
 
+# Optionally set titles
 titles=(
   "JL Server"
   "PY Server"
   "Ray Server"
   "Grafana"
+  "MongoDB"
   "Ray Worker"
   "Interactive"
 )
+
 for i in "${!titles[@]}"; do
     tmux select-pane -t $SESSION:0.$i -T "${titles[$i]}"
 done
 
-tmux select-pane -t $SESSION:0.4
+tmux select-pane -t $SESSION:0.5
 
 tmux set-option -g pane-border-status top
 tmux set-option -g pane-border-format "#{pane_title}"
+
+tmux select-layout -t $SESSION:0 even-vertical
 
 tmux attach -t $SESSION

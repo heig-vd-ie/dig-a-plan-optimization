@@ -23,11 +23,19 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-grafana
 	@$(MAKE) install-jl
 	@$(MAKE) install-docker
+	@$(MAKE) install-mongodb-gui
 
 install-grafana: ## Install Grafana
 	@echo "Installing Grafana..."
 	@sudo apt update
 	@sudo apt install -y grafana
+
+install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
+	@echo "Installing MongoDB Compass..."
+	@wget https://downloads.mongodb.com/compass/mongodb-compass_1.46.8_amd64.deb
+	@sudo dpkg -i mongodb-compass_1.46.8_amd64.deb
+	@sudo apt-get install -f
+	@rm mongodb-compass_1.46.8_amd64.deb
 
 run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to specify port)
 	@echo "Building custom Grafana image..."
@@ -109,12 +117,23 @@ run-server-ray: ## Start Ray server natively
 		$(GRAFANA_PORT)
 	@ray status
 
-run-ray-worker:
+run-ray-worker:  ## Start Ray worker
 	@echo -n "Run Worker?..."
 	@read dummy
 	@direnv allow && \
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
+
+run-server-mongodb: ## Start MongoDB server
+	@echo "Starting MongoDB server..."
+	@docker pull mongo:latest
+	@docker run -d \
+		--name mongo-db \
+		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
+		-v /path/on/host/mongo-data:/data/db \
+		mongo:latest
+	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
+	@docker logs -f mongo-db
 
 run-all-native: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
@@ -160,6 +179,7 @@ kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_DASHBOARD_PORT)
 	@$(MAKE) kill-port PORT=$(GRAFANA_PORT)
+	@$(MAKE) kill-port PORT=$(SERVER_MONGODB_PORT)
 
 clean-ray:  ## Clean up Ray processes and files
 	@echo "Stopping all Ray processes..."
