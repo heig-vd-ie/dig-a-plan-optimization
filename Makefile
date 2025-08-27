@@ -212,3 +212,8 @@ run-expansion: ## Curl expansion for a payload
 		-H "Content-Type: application/json" \
     	-d @$(PAYLOAD) \
 		http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)
+
+# Run with: make sync-mongodb FORCE=true
+sync-mongodb: ## Sync data from MongoDB
+	@echo "Syncing data from MongoDB..."
+	@python ./scripts/sync-mongodb.py $(if $(FORCE:-false),--force)
