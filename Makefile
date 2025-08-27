@@ -115,7 +115,8 @@ run-server-ray: ## Start Ray server
 		 --dashboard-host=localhost \
 		 --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) \
 		 --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		 --disable-usage-stats
+		 --disable-usage-stats \
+		 --object-spilling-directory=/tmp/spill
 	@$(MAKE) logs-ray
 
 run-ray-worker: ## Remote Ray worker
@@ -127,7 +128,8 @@ run-ray-worker: ## Remote Ray worker
 		--node-ip-address=$(CURRENT_HOST) \
 		--num-cpus=$(ALLOC_CPUS) \
 		--num-gpus=$(ALLOC_GPUS) \
-		--memory=$(ALLOC_RAMS)
+		--memory=$(ALLOC_RAMS) \
+		--object-spilling-directory=/tmp/spill
 	@$(MAKE) logs-ray
 
 all: ## Start all servers

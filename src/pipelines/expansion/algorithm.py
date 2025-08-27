@@ -33,6 +33,7 @@ class ExpansionAlgorithm:
     def __init__(
         self,
         grid_data: NodeEdgeModel,
+        each_task_memory: float,
         cache_dir: Path,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
@@ -74,6 +75,7 @@ class ExpansionAlgorithm:
     ):
         self.grid_data = grid_data
         self.cache_dir = cache_dir
+        self.each_task_memory = each_task_memory
         self.admm_groups = admm_groups
         self.iterations = iterations
         self.just_test = just_test
@@ -269,15 +271,19 @@ class ExpansionAlgorithm:
             τ_decr=self.admm_τ_decr,
         )
         if self.run_by_ray:
-            heavy_task_remote = ray.remote(heavy_task)
+            heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
+            sddp_response_ref = ray.put(sddp_response)
+            admm_ref = ray.put(admm)
+            node_ids_ref = ray.put(self.node_ids)
+            edge_ids_ref = ray.put(self.edge_ids)
             futures = {
                 (stage, ω): heavy_task_remote.remote(
                     self.n_admm_simulations,
-                    sddp_response,
-                    admm,
+                    sddp_response_ref,
+                    admm_ref,
                     stage,
-                    self.node_ids,
-                    self.edge_ids,
+                    node_ids_ref,
+                    edge_ids_ref,
                 )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
