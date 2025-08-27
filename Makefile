@@ -164,18 +164,18 @@ kill-ports-all: ## Kill all processes running on specified ports
 clean-ray:  ## Clean up Ray processes and files
 	@echo "Stopping all Ray processes..."
 	@ray stop --force || true
-	@echo "Killing leftover Ray processes..."
-	@pkill -9 -f "ray" || true
 	@echo "Removing Ray session folders..."
 	@rm -rf /tmp/ray/session_* || true
+	@echo "Cleaned Ray."
+
 
 stop: ## Kill all Ray processes and clean Docker
 	@echo "Killing all Ray processes..."
-	-@$(MAKE) clean-ray
+	@$(MAKE) clean-ray  || true
 	@echo "Stopping all Docker containers..."
-	-@docker stop $(docker ps -aq) 2>/dev/null || true
+	@if [ -n "$$(docker ps -aq)" ]; then docker stop $$(docker ps -aq); else echo "No Docker containers to stop."; fi
 	@echo "Removing all Docker containers..."
-	-@docker rm $(docker ps -aq) 2>/dev/null || true
+	@if [ -n "$$(docker ps -aq)" ]; then docker rm $$(docker ps -aq); else echo "No Docker containers to remove."; fi
 	@$(MAKE) kill-ports-all
 	@echo "Shutting down Prometheus metrics..."
 	@ray metrics shutdown-prometheus || true
