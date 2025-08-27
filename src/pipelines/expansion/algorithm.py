@@ -27,6 +27,28 @@ from pipelines.expansion.models.request import (
 from pipelines.expansion.models.response import ExpansionResponse
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
+SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
+
+
+def init_ray():
+    ray.init(
+        address=SERVER_RAY_ADDRESS,
+        runtime_env={
+            "working_dir": os.path.dirname(os.path.abspath(__file__)),
+        },
+    )
+    return {
+        "message": "Ray initialized",
+        "nodes": ray.nodes(),
+        "available_resources": ray.cluster_resources(),
+        "used_resources": ray.available_resources(),
+    }
+
+
+def shutdown_ray():
+    ray.shutdown()
+    return {"message": "Ray shutdown"}
+
 
 class ExpansionAlgorithm:
 
@@ -270,7 +292,9 @@ class ExpansionAlgorithm:
             τ_incr=self.admm_τ_incr,
             τ_decr=self.admm_τ_decr,
         )
-        if self.run_by_ray:
+        if self.with_ray:
+            init_ray()
+            self.check_ray()
             heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
             sddp_response_ref = ray.put(sddp_response)
             admm_ref = ray.put(admm)
@@ -295,6 +319,7 @@ class ExpansionAlgorithm:
                     for ω in self._range(self.n_admm_simulations)
                 }
             )
+            shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
@@ -327,14 +352,11 @@ class ExpansionAlgorithm:
 
         if RAY_AVAILABLE and self.with_ray and ray.is_initialized():
             print("Running Pipeline with Ray")
-            self.run_by_ray = True
         else:
-            self.run_by_ray = False
             print("Running Pipeline without Ray")
 
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
-        self.check_ray()
         self.create_expansion_request()
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()

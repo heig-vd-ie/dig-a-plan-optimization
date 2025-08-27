@@ -2,6 +2,7 @@ from api.bender import *
 from api.combined import *
 from api.admm import *
 from api.expansion import *
+from pipelines.expansion.algorithm import init_ray, shutdown_ray
 from fastapi import FastAPI
 import ray
 import warnings
@@ -10,34 +11,20 @@ warnings.simplefilter("ignore", SyntaxWarning)
 
 app = FastAPI()
 
-SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
+
+@app.patch("/init-ray", tags=["Ray"])
+def init_ray_endpoint():
+    return init_ray()
+
+
+@app.patch("/shutdown-ray", tags=["Ray"])
+def shutdown_ray_endpoint():
+    return shutdown_ray()
 
 
 @app.get("/")
 def read_root():
     return {"message": "Hello World from Optimization Package!"}
-
-
-@app.post("/init-ray")
-def init_ray():
-    ray.init(
-        address=SERVER_RAY_ADDRESS,
-        runtime_env={
-            "working_dir": os.path.dirname(os.path.abspath(__file__)),
-        },
-    )
-    return {
-        "message": "Ray initialized",
-        "nodes": ray.nodes(),
-        "available_resources": ray.cluster_resources(),
-        "used_resources": ray.available_resources(),
-    }
-
-
-@app.post("/shutdown-ray")
-def shutdown_ray():
-    ray.shutdown()
-    return {"message": "Ray shutdown"}
 
 
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
@@ -57,10 +44,7 @@ def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
 
 @app.patch("/expansion", tags=["Expansion"])
 def expansion(input: ExpansionInput, with_ray: bool = False) -> ExpansionOutput:
-    if with_ray and not ray.is_initialized():
-        init_ray()
     results = run_expansion(input, with_ray=with_ray)
-    shutdown_ray()
     return results
 
 
