@@ -1,24 +1,6 @@
 # Makefile for Dig-A-Plan setup (supports Linux and WSL)
 include Makefile.common.mak
 
-CURRENT_HOST ?= $(shell hostname -I | awk '{print $$1}')
-CURRENT_CPUS ?= $(shell nproc)
-CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
-CURRENT_GPUS ?= $$(which nvidia-smi >/dev/null 2>&1 && nvidia-smi -L | wc -l || echo 0)
-
-# Fractions
-CPU_FRACTION ?= 0.8
-RAM_FRACTION ?= 0.8
-GPU_FRACTION ?= 0.8
-
-# Derived allocations (ensure at least 1 if >0.0)
-ALLOC_CPUS := $(shell echo "$(CURRENT_CPUS) * $(CPU_FRACTION)" | bc | awk '{print ($$1<1?1:int($$1))}')
-ALLOC_RAMS := $(shell echo "$(CURRENT_RAMS) * $(RAM_FRACTION) * 1024 * 1024" | bc | awk '{print int($$1)}')
-ALLOC_GPUS := $(shell echo "$(CURRENT_GPUS) * $(GPU_FRACTION)" | bc | awk '{print ($$1<1?1:int($$1))}')
-
-RAY_LOG_INTERVAL ?= 5
-USE_RAY ?= true
-
 DATA_EXPORTER_REPO := data-exporter
 DATA_EXPORTER_BRANCH := main
 DATA_EXPORTER_VERSION := 0.1.0
@@ -126,20 +108,13 @@ run-server-ray: ## Start Ray server natively
 		$(ALLOC_RAMS) \
 		$(GRAFANA_PORT)
 	@ray status
-	@$(MAKE) logs-ray
 
-run-ray-worker: ## Start Ray worker natively
+run-ray-worker:
 	@echo -n "Run Worker?..."
 	@read dummy
-	@bash -c 'direnv allow && \
-		echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)" && \
-		./scripts/start-ray-worker.sh \
-			"$(HEAD_HOST)" \
-			"$(SERVER_RAY_PORT)" \
-			"$(ALLOC_CPUS)" \
-			"$(ALLOC_GPUS)" \
-			"$(ALLOC_RAMS)"'
-	@$(MAKE) logs-ray
+	@direnv allow && \
+	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
+	./scripts/start-ray-worker.sh
 
 run-all-servers-native: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."

@@ -21,3 +21,4 @@ ray start --head \
     --disable-usage-stats \
     --object-spilling-directory=/tmp/spill
 
+make logs-ray
