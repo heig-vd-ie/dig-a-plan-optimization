@@ -1,8 +1,9 @@
+import json
 import os
 import ray
 from datetime import datetime
 import random
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from pathlib import Path
 from polars import col as c
 import tqdm
@@ -292,6 +293,7 @@ class ExpansionAlgorithm:
             τ_incr=self.admm_τ_incr,
             τ_decr=self.admm_τ_decr,
         )
+        (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
             self.check_ray()
@@ -312,9 +314,14 @@ class ExpansionAlgorithm:
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
+            future_results = {
+                (stage, ω): ray.get(futures[(stage, ω)])
+                for stage in self._range(self.n_stages)
+                for ω in self._range(self.n_admm_simulations)
+            }
             bender_cuts = BenderCuts(
                 cuts={
-                    self._cut_number(ι, stage, ω): ray.get(futures[(stage, ω)])
+                    self._cut_number(ι, stage, ω): future_results[(stage, ω)][0]
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
@@ -322,11 +329,12 @@ class ExpansionAlgorithm:
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
+            future_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
                     self._range(self.n_admm_simulations), desc="scenarios"
                 ):
-                    bender_cut = heavy_task(
+                    bender_cut, results = heavy_task(
                         n_simulations=self.n_admm_simulations,
                         sddp_response=sddp_response,
                         admm=admm,
@@ -335,6 +343,16 @@ class ExpansionAlgorithm:
                         edge_ids=self.edge_ids,
                     )
                     bender_cuts.cuts[self._cut_number(ι, stage, ω)] = bender_cut
+                    future_results[(stage, ω)] = (bender_cuts, results)
+
+        for stage in self._range(self.n_stages):
+            for ω in self._range(self.n_admm_simulations):
+                with open(
+                    self.cache_dir_run / "admm" / f"admm_result_{ι}_{stage}_{ω}.json",
+                    "w",
+                ) as f:
+                    json.dump(future_results[(stage, ω)][1], f, indent=4)
+
         return bender_cuts
 
     def _cut_number(self, ι: int, stage: int, ω: int) -> str:
@@ -410,7 +428,7 @@ def heavy_task(
     stage: int,
     node_ids: List[int],
     edge_ids: List[int],
-):
+) -> Tuple[BenderCut, Dict]:
     import os
 
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
@@ -425,4 +443,4 @@ def heavy_task(
     )
     admm_results = admm.solve()
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results)
-    return bender_cut
+    return bender_cut, admm_results.results

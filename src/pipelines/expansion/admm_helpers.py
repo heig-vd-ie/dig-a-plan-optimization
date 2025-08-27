@@ -1,4 +1,6 @@
+import json
 from typing import Dict, List
+from pathlib import Path
 from dataclasses import dataclass
 import polars as pl
 from polars import col as c
@@ -15,6 +17,7 @@ class ADMMResult:
     load0: pl.DataFrame
     pv0: pl.DataFrame
     cap0: pl.DataFrame
+    results: Dict
 
 
 class ADMM:
@@ -130,6 +133,34 @@ class ADMM:
         self.update_node_grid_data(δ_load, δ_pv, node_ids)
         self.update_edge_grid_data(δ_cap, edge_ids)
 
+    def _record_results(self) -> Dict:
+        """Record the results of the optimization."""
+        results = {"voltage": {}, "current": {}, "real_power": {}, "reactive_power": {}}
+
+        if self.dap.data_manager.grid_data_parameters_dict is None:
+            raise ValueError("No grid data parameters found.")
+
+        for ω in range(
+            len(list(self.dap.data_manager.grid_data_parameters_dict.keys()))
+        ):
+            results["voltage"][ω] = self.dap.result_manager.extract_node_voltage(
+                scenario=ω
+            ).to_dicts()
+            results["current"][ω] = self.dap.result_manager.extract_edge_current(
+                scenario=ω
+            ).to_dicts()
+            results["real_power"][ω] = (
+                self.dap.result_manager.extract_edge_active_power_flow(
+                    scenario=ω
+                ).to_dicts()
+            )
+            results["reactive_power"][ω] = (
+                self.dap.result_manager.extract_edge_reactive_power_flow(
+                    scenario=ω
+                ).to_dicts()
+            )
+        return results
+
     def solve(self) -> ADMMResult:
         """Solve the optimization problem using ADMM."""
         self.dap = DigAPlanADMM(config=self.config)
@@ -140,4 +171,12 @@ class ADMM:
         load0 = self.dap.data_manager.node_data[["node_id", "cons_installed"]]
         pv0 = self.dap.data_manager.node_data[["node_id", "prod_installed"]]
         cap0 = self.dap.data_manager.edge_data[["edge_id", "p_max_pu"]]
-        return ADMMResult(duals=duals, θs=θs, load0=load0, pv0=pv0, cap0=cap0)
+        results = self._record_results()
+        return ADMMResult(
+            duals=duals,
+            θs=θs,
+            load0=load0,
+            pv0=pv0,
+            cap0=cap0,
+            results=results,
+        )
