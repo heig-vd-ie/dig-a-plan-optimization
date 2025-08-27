@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+source .venv/bin/activate
+
 HEAD_HOST=${1}
 SERVER_RAY_PORT=${2}
 ALLOC_CPUS=${3}

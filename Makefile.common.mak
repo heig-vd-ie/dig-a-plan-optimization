@@ -1,6 +1,6 @@
 # Common Makefile
 
-PYTHON_VERSION := 3.12
+PYTHON_VERSION := 3.12.3
 POETRY_VERSION := 2.1.3
 VENV_DIR := .venv
 ORG := heig-vd-ie
