@@ -2,6 +2,7 @@
 
 SERVER_JL_PORT=${1}
 SERVER_PY_PORT=${2}
+BE_NATIVE=${3:-false}
 
 source .venv/bin/activate
 direnv allow
@@ -19,12 +20,19 @@ tmux kill-session -t $SESSION 2>/dev/null
 
 commands=(
   "make run-server-jl SERVER_JL_PORT=${SERVER_JL_PORT}"
-  "echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}"
-  "ray stop && make run-server-ray && ray status"
-  "make run-server-grafana"
-  "echo Additional pane if needed"
-  "ssh -t mohammad@${WORKER_HOST}"
 )
+
+# Conditionally append
+if [[ "$BE_NATIVE" == "true" ]]; then
+    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py-native SERVER_PY_PORT=${SERVER_PY_PORT}")
+else
+    commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}")
+fi
+commands+=("make run-server-ray")
+commands+=("make run-server-grafana")
+commands+=("echo Additional pane if needed")
+commands+=("ssh -t mohammad@${WORKER_HOST}")
+
 
 tmux new-session -d -s $SESSION
 

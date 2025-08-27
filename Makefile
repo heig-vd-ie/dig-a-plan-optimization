@@ -94,48 +94,54 @@ run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Julia API server on localhost:$(SERVER_JL_PORT)..."
 	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_JL_PORT)
 
-run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
+run-server-py-native: ## Start Python API server natively (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Python API server on localhost:$(SERVER_PY_PORT)..."
 	PYTHONPATH=src uvicorn main:app --host 0.0.0.0 --port $(SERVER_PY_PORT) --reload
 
-run-server-ray: ## Start Ray server
-	@echo "Starting Ray server on localhost:$(SERVER_RAY_PORT) with $(ALLOC_CPUS) CPUs, $(ALLOC_GPUS) GPUs, and $(ALLOC_RAMS) RAM"
-	@ray metrics launch-prometheus
-	@RAY_GRAFANA_HOST=http://localhost:$(GRAFANA_PORT) \
-	RAY_GRAFANA_IFRAME_HOST=http://localhost:$(GRAFANA_PORT) \
-	RAY_GRAFANA_ORG_ID=1 \
-	RAY_PROMETHEUS_HOST=http://localhost:9090 \
-	RAY_PROMETHEUS_NAME=Prometheus \
-	ray start \
-		--head \
-		 --port=$(SERVER_RAY_PORT) \
-		 --num-cpus=$(ALLOC_CPUS) \
-		 --num-gpus=$(ALLOC_GPUS)  \
-		 --memory=$(ALLOC_RAMS) \
-		 --dashboard-host=localhost \
-		 --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) \
-		 --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		 --disable-usage-stats \
-		 --object-spilling-directory=/tmp/spill
+run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to specify port)
+	@echo "Building Docker image..."
+	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
+	@docker build -t dap-py-api -f Dockerfile .
+	@docker run -it \
+	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
+	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
+	  --name dap-py-api \
+	  dap-py-api
+	@docker logs -f dap-py-api
+
+run-server-ray: ## Start Ray server natively
+	@echo "Starting Ray head node natively on localhost:$(SERVER_RAY_PORT)"
+	@ray stop
+	@./scripts/start-ray-head.sh \
+		$(SERVER_RAY_PORT) \
+		$(SERVER_RAY_DASHBOARD_PORT) \
+		$(SERVER_RAY_METRICS_EXPORT_PORT) \
+		$(ALLOC_CPUS) \
+		$(ALLOC_GPUS) \
+		$(ALLOC_RAMS) \
+		$(GRAFANA_PORT)
+	@ray status
 	@$(MAKE) logs-ray
 
-run-ray-worker: ## Remote Ray worker
-	@echo "Starting remote Ray worker on $(CURRENT_HOST) connected to $(HEAD_HOST):$(SERVER_RAY_PORT) with $(ALLOC_CPUS) CPUs, $(ALLOC_GPUS) GPUs, and $(ALLOC_RAMS) RAM"
-	@$(MAKE) stop
-	@POLARS_SKIP_CPU_CHECK=1 \
-	ray start \
-		--address=$(HEAD_HOST):$(SERVER_RAY_PORT) \
-		--node-ip-address=$(CURRENT_HOST) \
-		--num-cpus=$(ALLOC_CPUS) \
-		--num-gpus=$(ALLOC_GPUS) \
-		--memory=$(ALLOC_RAMS) \
-		--object-spilling-directory=/tmp/spill
+run-ray-worker: ## Start Ray worker natively
+	@echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)"
+	@./scripts/start-ray-worker.sh \
+		$(HEAD_HOST) \
+		$(SERVER_RAY_PORT) \
+		$(ALLOC_CPUS) \
+		$(ALLOC_GPUS) \
+		$(ALLOC_RAMS)
 	@$(MAKE) logs-ray
 
-all: ## Start all servers
+run-all-servers-native: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
-	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT)
+	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
+
+run-all-servers: ## Start all servers
+	@echo "Starting all servers..."
+	@$(MAKE) stop
+	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
 
 logs-ray: ## Log Ray server
 	@echo "Logging Ray server..."
@@ -172,12 +178,26 @@ kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_DASHBOARD_PORT)
 	@$(MAKE) kill-port PORT=$(GRAFANA_PORT)
 
-stop: ## Kill all Ray processes
+clean-ray:  ## Clean up Ray processes and files
+	@echo "Stopping all Ray processes..."
+	@ray stop --force || true
+	@echo "Killing leftover Ray processes..."
+	@pkill -9 -f "ray" || true
+	@echo "Removing Ray session folders..."
+	@rm -rf /tmp/ray/session_* || true
+
+stop: ## Kill all Ray processes and clean Docker
 	@echo "Killing all Ray processes..."
-	@ray stop || true
+	-@$(MAKE) clean-ray
+	@echo "Stopping all Docker containers..."
+	-@docker stop $(docker ps -aq) 2>/dev/null || true
+	@echo "Removing all Docker containers..."
+	-@docker rm $(docker ps -aq) 2>/dev/null || true
 	@$(MAKE) kill-ports-all
+	@echo "Shutting down Prometheus metrics..."
 	@ray metrics shutdown-prometheus || true
-	@sudo rm -rf prometheus-*
+	@echo "Cleaning up local Prometheus files..."
+	@sudo rm -rf prometheus-* || true
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
