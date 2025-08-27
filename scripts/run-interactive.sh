@@ -6,6 +6,7 @@ options=(
     "Run Expansion for simple grid"
     "Run Expansion for Simplified Boisy grid (it takes time)"
     "Run tests"
+    "Sync MongoDB"
     "Exit"
 )
 
@@ -31,6 +32,10 @@ while true; do
                 break
                 ;;
             5)
+                make sync-mongodb
+                break
+                ;;
+            6)
                 echo "Exiting..."
                 exit 0
                 ;;
