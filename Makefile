@@ -129,7 +129,8 @@ run-server-ray: ## Start Ray server natively
 	@$(MAKE) logs-ray
 
 run-ray-worker: ## Start Ray worker natively
-	@read -p \"Run Worker?...\";
+	@echo -n "Run Worker?..."
+	@read dummy
 	@direnv allow
 	@echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)"
 	@./scripts/start-ray-worker.sh \
