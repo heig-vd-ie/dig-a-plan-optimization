@@ -116,12 +116,12 @@ run-ray-worker:
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
 
-run-all-servers-native: ## Start all servers
+run-all-native: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
 
-run-all-servers: ## Start all servers
+run-all: ## Start all servers
 	@echo "Starting all servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
