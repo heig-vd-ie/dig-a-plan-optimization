@@ -42,13 +42,27 @@ done
 
 tmux select-layout -t $SESSION:0 even-vertical
 
-
 sleep 1.0
 
 for i in "${!commands[@]}"; do
   tmux send-keys -t $SESSION:0.$i "${commands[$i]}" C-m
 done
 
+titles=(
+  "JL Server"
+  "PY Server"
+  "Ray Server"
+  "Grafana"
+  "Ray Worker"
+  "Interactive"
+)
+for i in "${!titles[@]}"; do
+    tmux select-pane -t $SESSION:0.$i -T "${titles[$i]}"
+done
+
 tmux select-pane -t $SESSION:0.4
+
+tmux set-option -g pane-border-status top
+tmux set-option -g pane-border-format "#{pane_title}"
 
 tmux attach -t $SESSION
