@@ -131,14 +131,14 @@ run-server-ray: ## Start Ray server natively
 run-ray-worker: ## Start Ray worker natively
 	@echo -n "Run Worker?..."
 	@read dummy
-	@direnv allow
-	@echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)"
-	@./scripts/start-ray-worker.sh \
-		$(HEAD_HOST) \
-		$(SERVER_RAY_PORT) \
-		$(ALLOC_CPUS) \
-		$(ALLOC_GPUS) \
-		$(ALLOC_RAMS)
+	@bash -c 'direnv allow && \
+		echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)" && \
+		./scripts/start-ray-worker.sh \
+			"$(HEAD_HOST)" \
+			"$(SERVER_RAY_PORT)" \
+			"$(ALLOC_CPUS)" \
+			"$(ALLOC_GPUS)" \
+			"$(ALLOC_RAMS)"'
 	@$(MAKE) logs-ray
 
 run-all-servers-native: ## Start all servers
