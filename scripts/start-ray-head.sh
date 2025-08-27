@@ -9,6 +9,16 @@ ALLOC_GPUS=${5}
 ALLOC_RAMS=${6}
 GRAFANA_PORT=${7}
 
+# Launch Prometheus metrics for Ray
+ray metrics launch-prometheus
+
+# Set environment variables for Grafana/Prometheus
+export RAY_GRAFANA_HOST="http://localhost:${GRAFANA_PORT}"
+export RAY_GRAFANA_IFRAME_HOST="http://localhost:${GRAFANA_PORT}"
+export RAY_GRAFANA_ORG_ID=1
+export RAY_PROMETHEUS_HOST="http://localhost:9090"
+export RAY_PROMETHEUS_NAME="Prometheus"
+
 # Start Ray head
 ray start --head \
     --port=${SERVER_RAY_PORT} \
