@@ -108,6 +108,7 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
 	  -v /tmp/spill:/tmp/spill \
 	  -v /tmp/ray:/tmp/ray \
+	  -v .cache:/app/.cache:rw \
 	  --name dap-py-api \
 	  dap-py-api
 	@docker logs -f dap-py-api
@@ -127,6 +128,8 @@ run-server-ray: ## Start Ray server natively
 	@$(MAKE) logs-ray
 
 run-ray-worker: ## Start Ray worker natively
+	@read -p \"Run Worker?...\";
+	@direnv allow
 	@echo "Starting Ray worker natively connecting to $(HEAD_HOST):$(SERVER_RAY_PORT)"
 	@./scripts/start-ray-worker.sh \
 		$(HEAD_HOST) \
