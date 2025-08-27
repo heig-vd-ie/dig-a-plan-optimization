@@ -135,7 +135,14 @@ class ADMM:
 
     def _record_results(self) -> Dict:
         """Record the results of the optimization."""
-        results = {"voltage": {}, "current": {}, "real_power": {}, "reactive_power": {}}
+        results = {
+            "voltage": {},
+            "current": {},
+            "real_power": {},
+            "reactive_power": {},
+            "switches": self.dap.result_manager.extract_switch_status().to_dicts(),
+            "taps": self.dap.result_manager.extract_transformer_tap_position().to_dicts(),
+        }
 
         if self.dap.data_manager.grid_data_parameters_dict is None:
             raise ValueError("No grid data parameters found.")
@@ -159,6 +166,7 @@ class ADMM:
                     scenario=ω
                 ).to_dicts()
             )
+
         return results
 
     def solve(self) -> ADMMResult:

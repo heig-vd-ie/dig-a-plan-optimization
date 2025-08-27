@@ -1,5 +1,6 @@
 import json
 import os
+from re import A
 import ray
 from datetime import datetime
 import random
@@ -347,11 +348,12 @@ class ExpansionAlgorithm:
 
         for stage in self._range(self.n_stages):
             for ω in self._range(self.n_admm_simulations):
-                with open(
-                    self.cache_dir_run / "admm" / f"admm_result_{ι}_{stage}_{ω}.json",
-                    "w",
-                ) as f:
-                    json.dump(future_results[(stage, ω)][1], f, indent=4)
+                save_obj_to_json(
+                    obj=future_results[(stage, ω)][1],
+                    path_filename=self.cache_dir_run
+                    / "admm"
+                    / f"admm_result_{ι}_{stage}_{ω}.json",
+                )
 
         return bender_cuts
 
