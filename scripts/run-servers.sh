@@ -30,7 +30,7 @@ else
 fi
 commands+=("make run-server-ray")
 commands+=("make run-server-grafana")
-commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; source .venv/bin/activate; make run-ray-worker; bash'")
+commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; source .venv/bin/activate;read -p \"Run Worker?...\"; make run-ray-worker; bash'")
 commands+=("echo Additional pane if needed")
 
 
