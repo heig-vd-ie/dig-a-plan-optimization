@@ -352,7 +352,7 @@ class ExpansionAlgorithm:
                     obj=future_results[(stage, ω)][1],
                     path_filename=self.cache_dir_run
                     / "admm"
-                    / f"admm_result_{ι}_{stage}_{ω}.json",
+                    / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
                 )
 
         return bender_cuts

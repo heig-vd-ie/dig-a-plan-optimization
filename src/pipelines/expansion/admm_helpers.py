@@ -142,6 +142,8 @@ class ADMM:
             "reactive_power": {},
             "switches": self.dap.result_manager.extract_switch_status().to_dicts(),
             "taps": self.dap.result_manager.extract_transformer_tap_position().to_dicts(),
+            "r_norm": self.dap.model_manager.r_norm_list,
+            "s_norm": self.dap.model_manager.s_norm_list,
         }
 
         if self.dap.data_manager.grid_data_parameters_dict is None:

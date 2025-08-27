@@ -28,6 +28,7 @@ groups = {
 # %%
 expansion_algorithm = ExpansionAlgorithm(
     grid_data=grid_data,
+    each_task_memory=4 * 1024 * 1024 * 1024,  # 4 GB
     cache_dir=Path(".cache"),
     admm_groups=groups,
 )
