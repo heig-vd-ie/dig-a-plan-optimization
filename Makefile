@@ -6,6 +6,16 @@ CURRENT_CPUS ?= $(shell nproc)
 CURRENT_RAMS ?= $(shell free -m | awk '/^Mem:/{print $$2}')
 CURRENT_GPUS ?= $$(which nvidia-smi >/dev/null 2>&1 && nvidia-smi -L | wc -l || echo 0)
 
+# Fractions
+CPU_FRACTION ?= 0.8
+RAM_FRACTION ?= 0.8
+GPU_FRACTION ?= 0.8
+
+# Derived allocations (ensure at least 1 if >0.0)
+ALLOC_CPUS := $(shell echo "$(CURRENT_CPUS) * $(CPU_FRACTION)" | bc | awk '{print ($$1<1?1:int($$1))}')
+ALLOC_RAMS := $(shell echo "$(CURRENT_RAMS) * $(RAM_FRACTION) * 1024 * 1024" | bc | awk '{print int($$1)}')
+ALLOC_GPUS := $(shell echo "$(CURRENT_GPUS) * $(GPU_FRACTION)" | bc | awk '{print ($$1<1?1:int($$1))}')
+
 RAY_LOG_INTERVAL ?= 5
 USE_RAY ?= true
 
@@ -89,7 +99,7 @@ run-server-py: ## Start Python API server (use SERVER_PORT=xxxx to specify port)
 	PYTHONPATH=src uvicorn main:app --host 0.0.0.0 --port $(SERVER_PY_PORT) --reload
 
 run-server-ray: ## Start Ray server
-	@echo "Starting Ray server..."
+	@echo "Starting Ray server on localhost:$(SERVER_RAY_PORT) with $(ALLOC_CPUS) CPUs, $(ALLOC_GPUS) GPUs, and $(ALLOC_RAMS) RAM"
 	@ray metrics launch-prometheus
 	@RAY_GRAFANA_HOST=http://localhost:$(GRAFANA_PORT) \
 	RAY_GRAFANA_IFRAME_HOST=http://localhost:$(GRAFANA_PORT) \
@@ -99,8 +109,9 @@ run-server-ray: ## Start Ray server
 	ray start \
 		--head \
 		 --port=$(SERVER_RAY_PORT) \
-		 --num-cpus=$(CURRENT_CPUS) \
-		 --num-gpus=$(CURRENT_GPUS)  \
+		 --num-cpus=$(ALLOC_CPUS) \
+		 --num-gpus=$(ALLOC_GPUS)  \
+		 --memory=$(ALLOC_RAMS) \
 		 --dashboard-host=localhost \
 		 --dashboard-port=$(SERVER_RAY_DASHBOARD_PORT) \
 		 --metrics-export-port=$(SERVER_RAY_METRICS_EXPORT_PORT) \
@@ -108,9 +119,15 @@ run-server-ray: ## Start Ray server
 	@$(MAKE) logs-ray
 
 run-ray-worker: ## Remote Ray worker
-	@echo "Starting remote Ray worker..."
+	@echo "Starting remote Ray worker on $(CURRENT_HOST) connected to $(HEAD_HOST):$(SERVER_RAY_PORT) with $(ALLOC_CPUS) CPUs, $(ALLOC_GPUS) GPUs, and $(ALLOC_RAMS) RAM"
 	@$(MAKE) stop
-	@POLARS_SKIP_CPU_CHECK=1 ray start --address=$(HEAD_HOST):$(SERVER_RAY_PORT)  --node-ip-address=$(CURRENT_HOST) --num-cpus=$(CURRENT_CPUS) --num-gpus=$(CURRENT_GPUS)
+	@POLARS_SKIP_CPU_CHECK=1 \
+	ray start \
+		--address=$(HEAD_HOST):$(SERVER_RAY_PORT) \
+		--node-ip-address=$(CURRENT_HOST) \
+		--num-cpus=$(ALLOC_CPUS) \
+		--num-gpus=$(ALLOC_GPUS) \
+		--memory=$(ALLOC_RAMS)
 	@$(MAKE) logs-ray
 
 all: ## Start all servers
@@ -123,9 +140,18 @@ logs-ray: ## Log Ray server
 	@watch -n $(RAY_LOG_INTERVAL) ray status
 
 fetch-all:  ## Fetch all dependencies
-	@$(MAKE) fetch-wheel REPO=$(DATA_EXPORTER_REPO) BRANCH=$(DATA_EXPORTER_BRANCH) VERSION=$(DATA_EXPORTER_VERSION)
-	@$(MAKE) fetch-wheel REPO=$(TWINDIGRID_REPO) BRANCH=$(TWINDIGRID_BRANCH) VERSION=$(TWINDIGRID_VERSION)
-	@$(MAKE) fetch-wheel REPO=$(UTILITY_FUNCTIONS_REPO) BRANCH=$(UTILITY_FUNCTIONS_BRANCH) VERSION=$(UTILITY_FUNCTIONS_VERSION)
+	@$(MAKE) fetch-wheel \
+		REPO=$(DATA_EXPORTER_REPO) \
+		BRANCH=$(DATA_EXPORTER_BRANCH) \
+		VERSION=$(DATA_EXPORTER_VERSION)
+	@$(MAKE) fetch-wheel \
+		REPO=$(TWINDIGRID_REPO) \
+		BRANCH=$(TWINDIGRID_BRANCH) \
+		VERSION=$(TWINDIGRID_VERSION)
+	@$(MAKE) fetch-wheel \
+		REPO=$(UTILITY_FUNCTIONS_REPO) \
+		BRANCH=$(UTILITY_FUNCTIONS_BRANCH) \
+		VERSION=$(UTILITY_FUNCTIONS_VERSION)
 
 kill-port: ## Kill process running on specified port (PORT)
 	@echo "Killing process on port $(PORT)..."
