@@ -21,5 +21,3 @@ ray start --head \
     --disable-usage-stats \
     --object-spilling-directory=/tmp/spill
 
-# Keep container alive
-tail -f /dev/null

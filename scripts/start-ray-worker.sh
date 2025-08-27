@@ -15,6 +15,3 @@ POLARS_SKIP_CPU_CHECK=1 ray start \
     --num-gpus=${ALLOC_GPUS} \
     --memory=${ALLOC_RAMS} \
     --object-spilling-directory=/tmp/spill
-
-# Keep container alive
-tail -f /dev/null

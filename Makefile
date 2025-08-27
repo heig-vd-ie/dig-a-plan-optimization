@@ -103,6 +103,7 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
 	@docker build -t dap-py-api -f Dockerfile .
 	@docker run -it \
+	  -e SERVER_RAY_ADDRESS=$(SERVER_RAY_ADDRESS) \
 	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
 	  --name dap-py-api \
@@ -110,7 +111,7 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	@docker logs -f dap-py-api
 
 run-server-ray: ## Start Ray server natively
-	@echo "Starting Ray head node natively on localhost:$(SERVER_RAY_PORT)"
+	@echo "Starting Ray head node natively on $(SERVER_RAY_ADDRESS)"
 	@ray stop
 	@./scripts/start-ray-head.sh \
 		$(SERVER_RAY_PORT) \

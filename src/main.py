@@ -10,6 +10,8 @@ warnings.simplefilter("ignore", SyntaxWarning)
 
 app = FastAPI()
 
+SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
+
 
 @app.get("/")
 def read_root():
@@ -19,7 +21,7 @@ def read_root():
 @app.post("/init-ray")
 def init_ray():
     ray.init(
-        address="auto",
+        address=SERVER_RAY_ADDRESS,
         runtime_env={
             "working_dir": os.path.dirname(os.path.abspath(__file__)),
         },

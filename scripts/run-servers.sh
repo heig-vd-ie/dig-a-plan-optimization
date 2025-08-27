@@ -30,13 +30,13 @@ else
 fi
 commands+=("make run-server-ray")
 commands+=("make run-server-grafana")
+commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; source .venv/bin/activate; make run-ray-worker; bash'")
 commands+=("echo Additional pane if needed")
-commands+=("ssh -t mohammad@${WORKER_HOST}")
 
 
 tmux new-session -d -s $SESSION
 
-for i in {1..7}; do
+for i in {1..5}; do
   tmux split-window -h -t $SESSION:0
 done
 
@@ -48,5 +48,7 @@ sleep 1.0
 for i in "${!commands[@]}"; do
   tmux send-keys -t $SESSION:0.$i "${commands[$i]}" C-m
 done
+
+tmux select-pane -t $SESSION:0.4
 
 tmux attach -t $SESSION
