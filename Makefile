@@ -106,6 +106,8 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	  -e SERVER_RAY_ADDRESS=$(SERVER_RAY_ADDRESS) \
 	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
+	  -v /tmp/spill:/tmp/spill \
+	  -v /tmp/ray:/tmp/ray \
 	  --name dap-py-api \
 	  dap-py-api
 	@docker logs -f dap-py-api

@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
 WORKDIR /app
 
-COPY pyproject.toml /app/
+COPY pyproject.toml poetry.lock /app/
 COPY external-dist/ /app/external-dist/
 COPY scripts/ /app/scripts/
 
