@@ -25,7 +25,7 @@ make venv-activate
 
 You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
 ```sh
-make all
+make run-all
 ```
 
 ### Access to worker Machine
@@ -73,7 +73,7 @@ cd .. && make run-extraction
 
 ### Unit tests
 
-In a shell, run `make all`.
+In a shell, run `make run-all`.
 
 - If you add a new feature in python part, make sure to test `run-tests-py` to verify that existing features continue to work correctly.
 

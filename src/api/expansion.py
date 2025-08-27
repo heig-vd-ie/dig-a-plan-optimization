@@ -1,4 +1,3 @@
-from unittest.mock import Base
 from api import *
 from pydantic import Field
 from typing import Dict, List
@@ -109,6 +108,9 @@ class ExpansionInput(BaseModel):
     admm_params: ADMMParams = Field(description="ADMM parameters")
     sddp_params: SDDPParams = Field(description="SDDP parameters")
     seed: int = Field(default=42, description="Random seed")
+    each_task_memory: float = Field(
+        default=1e8, description="Memory allocated for each task in bytes"
+    )
 
 
 class ExpansionOutput(BaseModel):
@@ -133,6 +135,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
         cache_dir=Path(".cache"),
+        each_task_memory=input.each_task_memory,
         admm_groups=input.admm_config.groups,
         iterations=input.admm_config.iterations,
         n_admm_simulations=input.admm_config.n_simulations,

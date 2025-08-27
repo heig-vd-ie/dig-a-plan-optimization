@@ -20,6 +20,7 @@ class ExpansionTestBase:
         self.simple_grid_groups = test_simple_grid_groups
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
+            each_task_memory=1024,
             cache_dir=self.cache_dir,
             just_test=True,
         )
