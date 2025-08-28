@@ -3,9 +3,8 @@ set -e
 
 main_options=(
     "Run Expansion"
-    "Run tests"
-    "Sync MongoDB"
-    "Delete MongoDB data"
+    "Run Tests"
+    "Manage MongoDB"
     "Exit"
 )
 
@@ -25,82 +24,121 @@ simulations=(
     "Back"
 )
 
+mongodb_options=(
+    "Sync MongoDB"
+    "Delete MongoDB"
+    "Backup MongoDB"
+    "Restore MongoDB"
+    "Back"
+)
+
 PS3="Please enter your choice: "
 
 while true; do
     echo "Main Menu:"
-    select opt in "${main_options[@]}"; do
+    select main_opt in "${main_options[@]}"; do
         case "$REPLY" in
             1)
                 # Expansion menu
-                echo "Choose Expansion Case:"
-                select case_opt in "${expansion_cases[@]}"; do
-                    case "$REPLY" in
-                        1) payload="data/payloads/simple_grid_quick_test.json";;
-                        2) payload="data/payloads/simple_grid.json";;
-                        3) payload="data/payloads/simplified_boisy_grid.json";;
-                        4) payload="data/payloads/boisy_grid.json";;
-                        5) break 2;;  # back to main menu
-                        *) echo "Invalid option"; continue;;
-                    esac
-
-                    # Simulation menu
-                    echo "Choose Simulation:"
-                    select sim_opt in "${simulations[@]}"; do
+                while true; do
+                    echo "Choose Expansion Case:"
+                    select case_opt in "${expansion_cases[@]}"; do
                         case "$REPLY" in
-                            1)
-                                make run-expansion PAYLOAD="$payload"
-                                break 2
-                                ;;
-                            2)
-                                tmp_payload=$(mktemp)
-                                jq '.sddp_params.risk_measure_type = "WorstCase"' "$payload" > "$tmp_payload"
-                                make run-expansion PAYLOAD="$tmp_payload"
-                                break 2
-                                ;;
-                            3)
-                                tmp_payload=$(mktemp)
-                                jq '.sddp_params.risk_measure_type = "Wasserstein"' "$payload" > "$tmp_payload"
-                                make run-expansion PAYLOAD="$tmp_payload"
-                                break 2
-                                ;;
-                            4)
-                                make run-expansion PAYLOAD="$payload"
-                                tmp_payload=$(mktemp)
-                                jq '.sddp_params.risk_measure_type = "WorstCase"' "$payload" > "$tmp_payload"
-                                make run-expansion PAYLOAD="$tmp_payload"
-                                tmp_payload=$(mktemp)
-                                jq '.sddp_params.risk_measure_type = "Wasserstein"' "$payload" > "$tmp_payload"
-                                make run-expansion PAYLOAD="$tmp_payload"
-                                break 2
-                                ;;
-                            5) break;;  # back to expansion menu
-                            *) echo "Invalid option";;
+                            1) payload="data/payloads/simple_grid_quick_test.json";;
+                            2) payload="data/payloads/simple_grid.json";;
+                            3) payload="data/payloads/simplified_boisy_grid.json";;
+                            4) payload="data/payloads/boisy_grid.json";;
+                            5) break 2;;  # back to main menu
+                            *) echo "Invalid option"; continue;;
                         esac
+
+                        # Simulation menu
+                        while true; do
+                            echo "Choose Simulation:"
+                            select sim_opt in "${simulations[@]}"; do
+                                case "$REPLY" in
+                                    1)
+                                        make run-expansion PAYLOAD="$payload"
+                                        break 3
+                                        ;;
+                                    2)
+                                        tmp_payload=$(mktemp)
+                                        jq '.sddp_params.risk_measure_type = "WorstCase"' "$payload" > "$tmp_payload"
+                                        make run-expansion PAYLOAD="$tmp_payload"
+                                        rm "$tmp_payload"
+                                        break 3
+                                        ;;
+                                    3)
+                                        tmp_payload=$(mktemp)
+                                        jq '.sddp_params.risk_measure_type = "Wasserstein"' "$payload" > "$tmp_payload"
+                                        make run-expansion PAYLOAD="$tmp_payload"
+                                        rm "$tmp_payload"
+                                        break 3
+                                        ;;
+                                    4)
+                                        # Run all simulations sequentially
+                                        for risk in "Expectation" "WorstCase" "Wasserstein"; do
+                                            tmp_payload=$(mktemp)
+                                            if [ "$risk" = "Expectation" ]; then
+                                                cp "$payload" "$tmp_payload"
+                                            else
+                                                jq --arg r "$risk" '.sddp_params.risk_measure_type = $r' "$payload" > "$tmp_payload"
+                                            fi
+                                            make run-expansion PAYLOAD="$tmp_payload"
+                                            rm "$tmp_payload"
+                                        done
+                                        break 3
+                                        ;;
+                                    5) break 3;;  # back to expansion case menu
+                                    *) echo "Invalid option";;
+                                esac
+                            done
+                        done
                     done
                 done
-                break
                 ;;
             2)
                 make run-tests
                 break
                 ;;
             3)
-                make sync-mongodb
-                break
+                # MongoDB menu
+                while true; do
+                    echo "MongoDB Options:"
+                    select mongo_opt in "${mongodb_options[@]}"; do
+                        case "$REPLY" in
+                            1) 
+                                make sync-mongodb
+                                break 2
+                                ;;
+                            2) 
+                                make clean-mongodb
+                                break 2
+                                ;;
+                            3) 
+                                python scripts/mongo-backup-tools.py --db optimization --backup
+                                break 2
+                                ;;
+                            4) 
+                                read -p "Enter backup path: " backup_path
+                                python scripts/mongo-backup-tools.py --db optimization --restore "$backup_path"
+                                break 2
+                                ;;
+                            5) break;;  # back to main menu
+                            *) echo "Invalid option";;
+                        esac
+                    done
+                    break
+                done
                 ;;
             4)
-                make clean-mongodb
-                break
-                ;;
-            5)
                 echo "Exiting..."
                 exit 0
                 ;;
             *)
                 echo "Invalid option, try again."
-                break
                 ;;
         esac
+        break
     done
 done

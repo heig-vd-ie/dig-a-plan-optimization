@@ -182,3 +182,5 @@ NOTICE
 prometheus
 promtool
 prometheus-*
+
+mongo_backup

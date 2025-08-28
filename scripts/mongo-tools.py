@@ -2,13 +2,16 @@
 import argparse
 import json
 import os
+import subprocess
 from pathlib import Path
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Import JSON files into MongoDB")
+    parser = argparse.ArgumentParser(
+        description="Manage MongoDB data and import JSON files."
+    )
     parser.add_argument(
         "--force",
         action="store_true",
@@ -19,16 +22,30 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Delete the database before importing",
     )
+    parser.add_argument(
+        "--db",
+        default="optimization",
+        help="Database name to use (default: optimization)",
+    )
+    parser.add_argument(
+        "--backup",
+        action="store_true",
+        help="Backup the database to a timestamped folder",
+    )
+    parser.add_argument(
+        "--restore",
+        type=str,
+        metavar="BACKUP_PATH",
+        help="Restore the database from a backup folder",
+    )
     return parser.parse_args()
 
 
 def sanitize_collection_name(name: str) -> str:
-    """Ensure collection name is valid for MongoDB."""
     return name.replace(".", "_").replace(" ", "_")
 
 
 def import_file(path: Path, collection: Collection, force: bool) -> None:
-    """Import a single JSON file into MongoDB."""
     if path.stat().st_size == 0:
         print(f"Skipping empty file: {path}")
         return
@@ -40,7 +57,6 @@ def import_file(path: Path, collection: Collection, force: bool) -> None:
         print(f"Skipping invalid JSON file: {path} ({e})")
         return
 
-    # Add metadata
     if isinstance(data, list):
         for doc in data:
             doc["_source_file"] = str(path)
@@ -57,7 +73,6 @@ def import_file(path: Path, collection: Collection, force: bool) -> None:
         collection.delete_many(query)
         print(f"Re-importing (force) file: {path}")
 
-    # Insert data
     if isinstance(data, list):
         collection.insert_many(data)
     else:
@@ -66,18 +81,44 @@ def import_file(path: Path, collection: Collection, force: bool) -> None:
     print(f"Imported {path} into collection '{collection.name}'")
 
 
+def backup_db(db_name: str) -> None:
+    out_dir = Path.home() / "mongodb_backups" / f"{db_name}_{os.getpid()}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["mongodump", "--db", db_name, "--out", str(out_dir)], check=True)
+    print(f"Database '{db_name}' backed up to {out_dir}")
+
+
+def restore_db(db_name: str, backup_path: str) -> None:
+    backup_path_obj = Path(backup_path)
+    if not backup_path_obj.exists():
+        print(f"Backup path {backup_path_obj} does not exist")
+        return
+    subprocess.run(
+        ["mongorestore", "--db", db_name, str(backup_path_obj / db_name)], check=True
+    )
+    print(f"Database '{db_name}' restored from {backup_path}")
+
+
 def main() -> None:
     args = parse_args()
     force, to_delete = args.force, args.delete
+    db_name = args.db
 
-    # Setup MongoDB connection
     port = int(os.getenv("SERVER_MONGODB_PORT", 27017))
     client = MongoClient(f"mongodb://localhost:{port}")
-    db = client.optimization
+    db = client[db_name]
+
+    if args.backup:
+        backup_db(db_name)
+        return
+
+    if args.restore:
+        restore_db(db_name, args.restore)
+        return
 
     if to_delete:
-        client.drop_database(db.name)
-        print(f"Database '{db.name}' deleted.")
+        client.drop_database(db_name)
+        print(f"Database '{db_name}' deleted.")
         return
 
     base_dir = Path(".cache/algorithm")

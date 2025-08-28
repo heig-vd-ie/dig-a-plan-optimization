@@ -19,8 +19,8 @@
         "δ_pv_var": 0.1,
         "δ_b_var": 10000
     },
-    "admm_config": { "iterations": 10, "n_simulations": 5, "solver_non_convex": true, "time_limit": 10, "groups": 10 },
-    "sddp_config": { "iterations": 10, "n_simulations": 1000 },
+    "admm_config": { "iterations": 10, "n_simulations": 20, "solver_non_convex": true, "time_limit": 10, "groups": 10 },
+    "sddp_config": { "iterations": 100, "n_simulations": 1000 },
     "admm_params": {
         "big_m": 1000,
         "ε": 0.0001,

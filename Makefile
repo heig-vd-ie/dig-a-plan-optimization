@@ -232,8 +232,8 @@ run-expansion: ## Curl expansion for a payload
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB
 	@echo "Syncing data from MongoDB..."
-	@python ./scripts/sync-mongodb.py $(if $(FORCE:-false),--force)
+	@python ./scripts/mongo-tools.py $(if $(FORCE:-false),--force)
 
 clean-mongodb:  ## Clean up MongoDB data
 	@echo "Cleaning MongoDB data..."
-	@python ./scripts/sync-mongodb.py --delete
+	@python ./scripts/mongo-tools.py --delete
