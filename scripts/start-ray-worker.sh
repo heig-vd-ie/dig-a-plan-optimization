@@ -21,4 +21,4 @@ POLARS_SKIP_CPU_CHECK=1 ray start \
     --memory=${ALLOC_RAMS} \
     --object-spilling-directory=/tmp/spill
 
-make logs-ray
+watch -n 5 ray status
