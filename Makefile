@@ -188,7 +188,6 @@ clean-ray:  ## Clean up Ray processes and files
 	@rm -rf /tmp/ray/session_* || true
 	@echo "Cleaned Ray."
 
-
 stop: ## Kill all Ray processes and clean Docker
 	@echo "Killing all Ray processes..."
 	@$(MAKE) clean-ray  || true
@@ -212,8 +211,13 @@ run-expansion: ## Curl expansion for a payload
 		-H "Content-Type: application/json" \
     	-d @$(PAYLOAD) \
 		http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)
+	@$(MAKE) sync-mongodb
 
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB
 	@echo "Syncing data from MongoDB..."
 	@python ./scripts/sync-mongodb.py $(if $(FORCE:-false),--force)
+
+clean-mongodb:  ## Clean up MongoDB data
+	@echo "Cleaning MongoDB data..."
+	@python ./scripts/sync-mongodb.py --delete
