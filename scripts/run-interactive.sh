@@ -7,6 +7,7 @@ options=(
     "Run Expansion for Simplified Boisy grid (it takes time)"
     "Run tests"
     "Sync MongoDB"
+    "Delete MongoDB data"
     "Exit"
 )
 
@@ -36,6 +37,10 @@ while true; do
                 break
                 ;;
             6)
+                make clean-mongodb
+                break
+                ;;
+            7)
                 echo "Exiting..."
                 exit 0
                 ;;
