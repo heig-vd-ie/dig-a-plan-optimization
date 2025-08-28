@@ -299,7 +299,7 @@ class ExpansionAlgorithm:
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
-                (stage, ω): heavy_task_remote.remote(
+                self._cut_number(ι, stage, ω): heavy_task_remote.remote(
                     self.n_admm_simulations,
                     sddp_response_ref,
                     admm_ref,
@@ -311,19 +311,25 @@ class ExpansionAlgorithm:
                 for ω in self._range(self.n_admm_simulations)
             }
             future_results = {
-                (stage, ω): ray.get(futures[(stage, ω)])
+                self._cut_number(ι, stage, ω): ray.get(
+                    futures[self._cut_number(ι, stage, ω)]
+                )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
             bender_cuts = BenderCuts(
                 cuts={
-                    self._cut_number(ι, stage, ω): future_results[(stage, ω)].bender_cut
+                    self._cut_number(ι, stage, ω): future_results[
+                        self._cut_number(ι, stage, ω)
+                    ].bender_cut
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
             )
             admm_results = {
-                self._cut_number(ι, stage, ω): future_results[(stage, ω)].admm_results
+                self._cut_number(ι, stage, ω): future_results[
+                    self._cut_number(ι, stage, ω)
+                ].admm_results
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
