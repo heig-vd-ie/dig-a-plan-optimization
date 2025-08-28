@@ -1,8 +1,13 @@
 from api import *
+import re
+import time
+from zoneinfo import ZoneInfo
+from datetime import datetime
 from pydantic import Field
 from typing import Dict, List
 from pipelines.expansion.models.request import RiskMeasureType
 from pipelines.expansion.models.response import ExpansionResponse
+from pipelines.helpers.json_rw import save_obj_to_json
 
 
 class GridModel(BaseModel):
@@ -113,11 +118,28 @@ class ExpansionInput(BaseModel):
     )
 
 
+class InputObject(BaseModel):
+    expansion: ExpansionInput
+    time_now: str
+    with_ray: bool
+
+
 class ExpansionOutput(BaseModel):
     sddp_response: ExpansionResponse
 
 
+def get_session_name() -> str:
+    return datetime.now().strftime("run_%Y%m%d_%H%M%S")
+
+
 def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
+    session_name = get_session_name()
+    time_now = session_name
+    (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
+    save_obj_to_json(
+        InputObject(expansion=input, time_now=time_now, with_ray=with_ray),
+        Path(".cache/algorithm") / time_now / "input.json",
+    )
     _, grid_data = get_grid_case(
         GridCaseModel(
             grid_case=input.grid.kace,
@@ -135,6 +157,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
         cache_dir=Path(".cache"),
+        time_now=time_now,
         each_task_memory=input.each_task_memory,
         admm_groups=input.admm_config.groups,
         iterations=input.admm_config.iterations,

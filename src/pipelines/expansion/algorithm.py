@@ -1,8 +1,6 @@
-import json
 import os
 from re import A
 import ray
-from datetime import datetime
 import random
 from typing import Dict, List, Tuple
 from pathlib import Path
@@ -58,6 +56,7 @@ class ExpansionAlgorithm:
         self,
         grid_data: NodeEdgeModel,
         each_task_memory: float,
+        time_now: str,
         cache_dir: Path,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
@@ -148,11 +147,7 @@ class ExpansionAlgorithm:
             number_of_stages=n_stages,
         )
         self.create_bender_cuts()
-        self.cache_dir_run = (
-            self.cache_dir
-            / "algorithm"
-            / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
+        self.cache_dir_run = self.cache_dir / "algorithm" / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):

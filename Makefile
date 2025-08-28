@@ -104,9 +104,8 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	  dap-py-api
 	@docker logs -f dap-py-api
 
-run-server-ray: ## Start Ray server natively
+run-server-ray-native: ## Start Ray server natively
 	@echo "Starting Ray head node natively on $(SERVER_RAY_ADDRESS)"
-	@ray stop
 	@./scripts/start-ray-head.sh \
 		$(SERVER_RAY_PORT) \
 		$(SERVER_RAY_DASHBOARD_PORT) \
@@ -114,8 +113,22 @@ run-server-ray: ## Start Ray server natively
 		$(ALLOC_CPUS) \
 		$(ALLOC_GPUS) \
 		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT)
+		$(GRAFANA_PORT) \
+		true
 	@ray status
+
+run-server-ray: ## Start Ray server
+	@echo "Starting Ray head node on $(SERVER_RAY_ADDRESS)"
+	@./scripts/start-ray-head.sh \
+		$(SERVER_RAY_PORT) \
+		$(SERVER_RAY_DASHBOARD_PORT) \
+		$(SERVER_RAY_METRICS_EXPORT_PORT) \
+		$(ALLOC_CPUS) \
+		$(ALLOC_GPUS) \
+		$(ALLOC_RAMS) \
+		$(GRAFANA_PORT) \
+		false
+	@docker exec -it dap-py-api ray status
 
 run-ray-worker:  ## Start Ray worker
 	@echo -n "Run Worker?..."
@@ -144,10 +157,6 @@ run-all: ## Start all servers
 	@echo "Starting all servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
-
-logs-ray: ## Log Ray server
-	@echo "Logging Ray server..."
-	@watch -n $(RAY_LOG_INTERVAL) ray status
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel \

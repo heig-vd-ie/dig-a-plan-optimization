@@ -18,9 +18,13 @@ if [[ "$BE_NATIVE" == "true" ]]; then
 else
     commands+=("echo PYTHONPATH: $PYTHONPATH && echo GRB_LICENCE_FILE: $GRB_LICENSE_FILE && make run-server-py SERVER_PY_PORT=${SERVER_PY_PORT}; sleep 3")
 fi
-commands+=("make run-server-ray; sleep 3")
 commands+=("make run-server-grafana; sleep 3")
 commands+=("make run-server-mongodb; sleep 3")
+if [[ "$BE_NATIVE" == "true" ]]; then
+    commands+=("make run-server-ray-native; sleep 3")
+else
+    commands+=("make run-server-ray; sleep 3")
+fi
 commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
 commands+=("./scripts/run-interactive.sh; sleep 3")
 
@@ -40,9 +44,9 @@ done
 titles=(
   "JL Server"
   "PY Server"
-  "Ray Server"
   "Grafana"
   "MongoDB"
+  "Ray Server"
   "Ray Worker"
   "Interactive"
 )
