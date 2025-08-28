@@ -209,6 +209,13 @@ stop: ## Kill all Ray processes and clean Docker
 	@ray metrics shutdown-prometheus || true
 	@echo "Cleaning up local Prometheus files..."
 	@sudo rm -rf prometheus-* || true
+	@$(MAKE) fix-cache-permissions
+
+fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
+	@echo "Fixing permissions for .cache/algorithm..."
+	@sudo chown -R $(USER):$(USER) .cache/algorithm || true
+	@sudo chmod -R 775 .cache/algorithm || true
+	@echo "Done."
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."

@@ -21,6 +21,7 @@ simulations=(
     "Expectation"
     "Worst Case"
     "Wasserstein"
+    "All"
     "Back"
 )
 
@@ -63,7 +64,17 @@ while true; do
                                 make run-expansion PAYLOAD="$tmp_payload"
                                 break 2
                                 ;;
-                            4) break;;  # back to expansion menu
+                            4)
+                                make run-expansion PAYLOAD="$payload"
+                                tmp_payload=$(mktemp)
+                                jq '.sddp_params.risk_measure_type = "WorstCase"' "$payload" > "$tmp_payload"
+                                make run-expansion PAYLOAD="$tmp_payload"
+                                tmp_payload=$(mktemp)
+                                jq '.sddp_params.risk_measure_type = "Wasserstein"' "$payload" > "$tmp_payload"
+                                make run-expansion PAYLOAD="$tmp_payload"
+                                break 2
+                                ;;
+                            5) break;;  # back to expansion menu
                             *) echo "Invalid option";;
                         esac
                     done
