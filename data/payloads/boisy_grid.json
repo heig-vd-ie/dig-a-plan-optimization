@@ -1,16 +1,16 @@
 {
     "grid": {
-        "kace": "simple_grid",
+        "kace": "boisy_grid",
         "s_base": 1000000,
-        "taps": [ 95, 96, 97, 98, 99, 100, 101, 102, 103, 104 ],
+        "taps": [ 95, 98, 99, 100, 101, 102, 105 ],
         "v_min": 0.9,
         "v_max": 1.1
     },
     "short_term_uncertainty": {
         "number_of_scenarios": 10,
-        "p_bounds": [ -0.2, 0.2 ],
-        "q_bounds": [ -0.2, 0.2 ],
-        "v_bounds": [ -0.03, 0.03 ]
+        "p_bounds": [ -0.5, 1 ],
+        "q_bounds": [ -0.5, 0.5 ],
+        "v_bounds": [ -0.07, 0.07 ]
     },
     "long_term_uncertainty": {
         "n_stages": 5,
@@ -19,7 +19,7 @@
         "δ_pv_var": 0.1,
         "δ_b_var": 10000
     },
-    "admm_config": { "iterations": 10, "n_simulations": 10, "solver_non_convex": true, "time_limit": 10, "groups": 10 },
+    "admm_config": { "iterations": 10, "n_simulations": 10, "solver_non_convex": true, "time_limit": 10, "groups": 60 },
     "sddp_config": { "iterations": 100, "n_simulations": 1000 },
     "admm_params": {
         "big_m": 1000,
@@ -46,5 +46,5 @@
     },
     "iterations": 10,
     "seed": 42,
-    "each_task_memory": 100000000
+    "each_task_memory": 3000000000
 }

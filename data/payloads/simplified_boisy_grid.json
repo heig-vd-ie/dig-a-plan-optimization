@@ -19,7 +19,7 @@
         "δ_pv_var": 0.1,
         "δ_b_var": 10000
     },
-    "admm_config": { "iterations": 20, "n_simulations": 20, "solver_non_convex": true, "time_limit": 10, "groups": 40 },
+    "admm_config": { "iterations": 10, "n_simulations": 10, "solver_non_convex": true, "time_limit": 10, "groups": 40 },
     "sddp_config": { "iterations": 100, "n_simulations": 1000 },
     "admm_params": {
         "big_m": 1000,
@@ -28,7 +28,6 @@
         "γ_infeasibility": 1,
         "γ_admm_penalty": 1,
         "γ_trafo_loss": 100,
-        "max_iters": 10,
         "μ": 10,
         "τ_incr": 2,
         "τ_decr": 2
@@ -45,6 +44,7 @@
         "penalty_cost_per_production_kw": 0.05,
         "penalty_cost_per_infeasibility_kw": 0.1
     },
+    "iterations": 10,
     "seed": 42,
     "each_task_memory": 3000000000
 }

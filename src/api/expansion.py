@@ -1,7 +1,4 @@
 from api import *
-import re
-import time
-from zoneinfo import ZoneInfo
 from datetime import datetime
 from pydantic import Field
 from typing import Dict, List
@@ -69,7 +66,6 @@ class ADMMParams(BaseModel):
     γ_infeasibility: float = Field(default=1.0, description="ADMM gamma infeasibility")
     γ_admm_penalty: float = Field(default=1.0, description="ADMM gamma ADMM penalty")
     γ_trafo_loss: float = Field(default=1e2, description="ADMM gamma transformer loss")
-    max_iters: int = Field(default=10, description="ADMM max iterations")
     μ: float = Field(default=10.0, description="ADMM mu")
     τ_incr: float = Field(default=2.0, description="ADMM tau increment")
     τ_decr: float = Field(default=2.0, description="ADMM tau decrement")
@@ -112,6 +108,7 @@ class ExpansionInput(BaseModel):
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
     admm_params: ADMMParams = Field(description="ADMM parameters")
     sddp_params: SDDPParams = Field(description="SDDP parameters")
+    iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(
         default=1e8, description="Memory allocated for each task in bytes"
@@ -160,7 +157,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         time_now=time_now,
         each_task_memory=input.each_task_memory,
         admm_groups=input.admm_config.groups,
-        iterations=input.admm_config.iterations,
+        iterations=input.iterations,
         n_admm_simulations=input.admm_config.n_simulations,
         seed_number=input.seed,
         time_limit=input.admm_config.time_limit,
@@ -184,6 +181,7 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         penalty_cost_per_production_kw=input.sddp_params.penalty_cost_per_production_kw,
         penalty_cost_per_infeasibility_kw=input.sddp_params.penalty_cost_per_infeasibility_kw,
         s_base=input.grid.s_base,
+        admm_max_iters=input.admm_config.iterations,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()
