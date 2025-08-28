@@ -1,5 +1,5 @@
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import ray
 import random
 from typing import Dict, List
@@ -311,25 +311,23 @@ class ExpansionAlgorithm:
                 for ω in self._range(self.n_admm_simulations)
             }
             future_results = {
-                self._cut_number(ι, stage, ω): ray.get(
-                    futures[self._cut_number(ι, stage, ω)]
-                )
+                (ω, stage): ray.get(futures[self._cut_number(ι, stage, ω)])
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
+            for (ω, stage), result in future_results.items():
+                print(result)
+                print(f"ADMM Result (ω={ω}, stage={stage}): {result.admm_results}")
+                print(f"Bender Cut (ω={ω}, stage={stage}): {result.bender_cut}")
             bender_cuts = BenderCuts(
                 cuts={
-                    self._cut_number(ι, stage, ω): future_results[
-                        self._cut_number(ι, stage, ω)
-                    ].bender_cut
+                    self._cut_number(ι, stage, ω): future_results[(ω, stage)].bender_cut
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
             )
             admm_results = {
-                self._cut_number(ι, stage, ω): future_results[
-                    self._cut_number(ι, stage, ω)
-                ].admm_results
+                self._cut_number(ι, stage, ω): future_results[(ω, stage)].admm_results
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
@@ -434,6 +432,8 @@ def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCu
 
 
 class HeavyTaskOutput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     bender_cut: BenderCut
     admm_results: Dict
 
