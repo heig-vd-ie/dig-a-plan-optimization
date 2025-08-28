@@ -1,8 +1,8 @@
 import os
-from re import A
+from pydantic import BaseModel
 import ray
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from pathlib import Path
 from polars import col as c
 import tqdm
@@ -317,20 +317,25 @@ class ExpansionAlgorithm:
             }
             bender_cuts = BenderCuts(
                 cuts={
-                    self._cut_number(ι, stage, ω): future_results[(stage, ω)][0]
+                    self._cut_number(ι, stage, ω): future_results[(stage, ω)].bender_cut
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
             )
+            admm_results = {
+                self._cut_number(ι, stage, ω): future_results[(stage, ω)].admm_results
+                for stage in self._range(self.n_stages)
+                for ω in self._range(self.n_admm_simulations)
+            }
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
-            future_results = {}
+            admm_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
                     self._range(self.n_admm_simulations), desc="scenarios"
                 ):
-                    bender_cut, results = heavy_task(
+                    heavy_task_output = heavy_task(
                         n_simulations=self.n_admm_simulations,
                         sddp_response=sddp_response,
                         admm=admm,
@@ -338,13 +343,17 @@ class ExpansionAlgorithm:
                         node_ids=self.node_ids,
                         edge_ids=self.edge_ids,
                     )
-                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = bender_cut
-                    future_results[(stage, ω)] = (bender_cuts, results)
+                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
+                        heavy_task_output.bender_cut
+                    )
+                    admm_results[self._cut_number(ι, stage, ω)] = (
+                        heavy_task_output.admm_results
+                    )
 
         for stage in self._range(self.n_stages):
             for ω in self._range(self.n_admm_simulations):
                 save_obj_to_json(
-                    obj=future_results[(stage, ω)][1],
+                    obj=admm_results[self._cut_number(ι, stage, ω)],
                     path_filename=self.cache_dir_run
                     / "admm"
                     / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
@@ -418,6 +427,11 @@ def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCu
     )
 
 
+class HeavyTaskOutput(BaseModel):
+    bender_cut: BenderCut
+    admm_results: Dict
+
+
 def heavy_task(
     n_simulations: int,
     sddp_response: ExpansionResponse,
@@ -425,11 +439,10 @@ def heavy_task(
     stage: int,
     node_ids: List[int],
     edge_ids: List[int],
-) -> Tuple[BenderCut, Dict]:
+) -> HeavyTaskOutput:
     import os
 
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
-
     rand_ω = random.randint(0, n_simulations - 1)
     admm.update_grid_data(
         δ_load=sddp_response.simulations[rand_ω][stage - 1].δ_load,
@@ -440,4 +453,5 @@ def heavy_task(
     )
     admm_results = admm.solve()
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results)
-    return bender_cut, admm_results.results
+
+    return HeavyTaskOutput(bender_cut=bender_cut, admm_results=admm_results.results)
