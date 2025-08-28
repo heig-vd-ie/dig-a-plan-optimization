@@ -22,7 +22,7 @@ class ExpansionTestBase:
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
             each_task_memory=1024,
-            time_now=datetime.now().strftime("%Y%m%d_%H%M%S"),
+            time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             cache_dir=self.cache_dir,
             just_test=True,
         )
