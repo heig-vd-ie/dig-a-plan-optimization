@@ -225,8 +225,16 @@ run-expansion: ## Curl expansion for a payload
 	@echo "Triggering expansion..."
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
-    	-d @$(PAYLOAD) \
-		http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)
+		-d @$(PAYLOAD) \
+		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)"
+	@$(MAKE) sync-mongodb
+
+run-expansion-with-cut: ## Curl expansion for a payload with cut_file
+	@echo "Triggering expansion..."
+	@curl -X PATCH \
+		-H "Content-Type: application/json" \
+		--data-binary @$(PAYLOAD) \
+		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
 	@$(MAKE) sync-mongodb
 
 # Run with: make sync-mongodb FORCE=true

@@ -58,6 +58,7 @@ class ExpansionAlgorithm:
         each_task_memory: float,
         time_now: str,
         cache_dir: Path,
+        cuts: BenderCuts | None = None,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
         n_admm_simulations: int = 10,
@@ -146,7 +147,7 @@ class ExpansionAlgorithm:
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
         )
-        self.create_bender_cuts()
+        self.create_bender_cuts(cuts=cuts)
         self.cache_dir_run = self.cache_dir / "algorithm" / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
@@ -206,9 +207,9 @@ class ExpansionAlgorithm:
             seed=self.seed_number,
         )
 
-    def create_bender_cuts(self, cuts=None):
+    def create_bender_cuts(self, cuts: BenderCuts | None):
         """Create Bender cuts with default or custom values."""
-        self.bender_cuts = BenderCuts(cuts=cuts or {})
+        self.bender_cuts = BenderCuts(cuts={}) or cuts
 
     def create_expansion_request(self):
         """Create expansion request with provided or default parameters."""
@@ -386,6 +387,7 @@ class ExpansionAlgorithm:
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
         self.create_expansion_request()
+        ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
             admm_response = self.run_admm(sddp_response=sddp_response, ι=ι)

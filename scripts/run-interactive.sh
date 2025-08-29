@@ -81,10 +81,21 @@ while true; do
                                             tmp_payload=$(mktemp)
                                             if [ "$risk" = "Expectation" ]; then
                                                 cp "$payload" "$tmp_payload"
+                                                make run-expansion PAYLOAD="$tmp_payload"
+                                                latest_folder=$(ls -dt .cache/algorithm/*/ | head -n 1)
+                                                cut_file="${latest_folder%/}/bender_cuts.json"
                                             else
-                                                jq --arg r "$risk" '.sddp_params.risk_measure_type = $r' "$payload" > "$tmp_payload"
+                                                echo "Sending payload from ..."
+                                                echo "$tmp_payload"
+                                                echo "Using cut file: $cut_file"
+                                                cat "$tmp_payload"
+                                                jq --arg r "$risk" --arg i "0" \
+                                                    '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber)' \
+                                                    "$payload" > "$tmp_payload"
+                                                cat "$tmp_payload"
+                                                make run-expansion-with-cut PAYLOAD="$tmp_payload" CUT_FILE="$cut_file"
                                             fi
-                                            make run-expansion PAYLOAD="$tmp_payload"
+
                                             rm "$tmp_payload"
                                         done
                                         break 3

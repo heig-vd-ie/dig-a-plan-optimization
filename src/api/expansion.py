@@ -2,9 +2,9 @@ from api import *
 from datetime import datetime
 from pydantic import Field
 from typing import Dict, List
-from pipelines.expansion.models.request import RiskMeasureType
+from pipelines.expansion.models.request import BenderCuts, RiskMeasureType
 from pipelines.expansion.models.response import ExpansionResponse
-from pipelines.helpers.json_rw import save_obj_to_json
+from pipelines.helpers.json_rw import load_obj_from_json, save_obj_to_json
 
 
 class GridModel(BaseModel):
@@ -129,7 +129,9 @@ def get_session_name() -> str:
     return datetime.now().strftime("run_%Y%m%d_%H%M%S")
 
 
-def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
+def run_expansion(
+    input: ExpansionInput, with_ray: bool, cut_file: None | str = None
+) -> ExpansionOutput:
     session_name = get_session_name()
     time_now = session_name
     (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
@@ -154,6 +156,11 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
         cache_dir=Path(".cache"),
+        cuts=(
+            None
+            if cut_file is None
+            else BenderCuts(**load_obj_from_json(Path(cut_file)))
+        ),
         time_now=time_now,
         each_task_memory=input.each_task_memory,
         admm_groups=input.admm_config.groups,

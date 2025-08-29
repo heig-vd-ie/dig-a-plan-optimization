@@ -11,25 +11,40 @@ SERVER_MONGODB_PORT = os.getenv("SERVER_MONGODB_PORT", 27017)
 # Connect to MongoDB
 client = MongoClient(f"mongodb://localhost:{SERVER_MONGODB_PORT}")
 db = client.optimization
-collection = db.run_20250828_065031  # replace with your collection
-
+collections = {
+    "Expectation": db.run_20250829_091455,
+    "WorstCase": db.run_20250829_094645,
+    "Wasserstein": db.run_20250829_111420,
+}
 # Fetch all documents with objectives and source file
-cursor = collection.find({}, {"objectives": 1, "_source_file": 1, "_id": 0})
+cursors = {
+    name: collection.find({}, {"objectives": 1, "_source_file": 1, "_id": 0})
+    for name, collection in collections.items()
+}
 
 # Flatten into a DataFrame
-data = []
-for doc in cursor:
-    file_name = doc.get("_source_file", "unknown")
-    for obj in doc.get("objectives", []):
-        data.append(
-            {"objective": obj, "iteration": int(file_name.split("_")[-1].split(".")[0])}
-        )
+data = {}
+dfs = {}
+for name, cursor in cursors.items():
+    data[name] = []
+    for doc in cursor:
+        file_name = doc.get("_source_file", "unknown")
+        for obj in doc.get("objectives", []):
+            data[name].append(
+                {
+                    "objective": obj,
+                    "iteration": int(file_name.split("_")[-1].split(".")[0]),
+                }
+            )
 
-df = pd.DataFrame(data)
+    dfs[name] = pd.DataFrame(data[name])
+    dfs[name]["source"] = name
+
+df_all = pd.concat(dfs.values(), ignore_index=True)
 
 # Plot distribution using Plotly
 fig = px.histogram(
-    df,
+    dfs["Wasserstein"][dfs["Wasserstein"]["iteration"] > 3],
     x="objective",
     color="iteration",
     nbins=50,
@@ -46,7 +61,7 @@ fig = px.histogram(
 fig.update_layout(
     width=800,
     height=500,
-    legend=dict(title="Iteration number", orientation="v", x=1.02, y=1),
+    legend=dict(title="iteration", orientation="v", x=1.02, y=1),
     margin=dict(r=150),  # Add right margin for legend
 )
 
