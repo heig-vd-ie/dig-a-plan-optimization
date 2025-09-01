@@ -121,7 +121,7 @@ def dig_a_plan_to_expansion(
     investment_costs = {
         str(edge["edge_id"]): (
             float(expansion_line_cost_per_km_kw) * edge["length_km"] * s_base / 1e3
-            if edge["type"] == "line"
+            if edge["type"] == "branch"
             else (
                 float(expansion_transformer_cost_per_kw)
                 * edge["p_max_pu"]
