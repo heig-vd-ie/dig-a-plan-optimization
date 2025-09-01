@@ -410,7 +410,7 @@ def _calculate_cuts(
     df = (
         admm_result.duals.filter(c("name").is_in(constraint_names))[["id", "value"]]
         .group_by("id")
-        .agg(c("value").sum().alias("value"))
+        .agg(c("value").abs().sum().alias("value"))
     )
     return {row["id"]: row["value"] for row in df.to_dicts()}
 
@@ -420,7 +420,15 @@ def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCu
     return BenderCut(
         λ_load=_calculate_cuts(admm_result, ["installed_cons"]),
         λ_pv=_calculate_cuts(admm_result, ["installed_prod"]),
-        λ_cap=_calculate_cuts(admm_result, ["current_limit", "current_limit_tr"]),
+        λ_cap=_calculate_cuts(
+            admm_result,
+            [
+                "current_limit",
+                "current_limit_tr",
+                "voltage_drop_line_rule",
+                "voltage_drop_transfo_rule",
+            ],
+        ),
         load0={
             str(row["node_id"]): row["cons_installed"]
             for row in admm_result.load0.to_dicts()
