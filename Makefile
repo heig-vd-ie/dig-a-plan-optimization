@@ -148,12 +148,12 @@ run-server-mongodb: ## Start MongoDB server
 	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
 	@docker logs -f mongo-db
 
-run-all-native: ## Start all servers
+start-dev: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
 
-run-all: ## Start all servers
+start: ## Start all servers
 	@echo "Starting all servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
