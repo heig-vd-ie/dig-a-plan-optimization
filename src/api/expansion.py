@@ -69,6 +69,8 @@ class ADMMParams(BaseModel):
     μ: float = Field(default=10.0, description="ADMM mu")
     τ_incr: float = Field(default=2.0, description="ADMM tau increment")
     τ_decr: float = Field(default=2.0, description="ADMM tau decrement")
+    voll: float = Field(default=1.0, description="ADMM value of load curtailment")
+    volp: float = Field(default=1.0, description="ADMM value of production curtailment")
 
 
 class SDDPParams(BaseModel):
@@ -90,9 +92,6 @@ class SDDPParams(BaseModel):
     )
     penalty_cost_per_production_kw: float = Field(
         default=0.05, description="Penalty cost in k$ per production per kW"
-    )
-    penalty_cost_per_infeasibility_kw: float = Field(
-        default=0.1, description="Penalty cost in k$ per infeasibility per kW"
     )
 
 
@@ -155,6 +154,8 @@ def run_expansion(
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
+        admm_voll=input.admm_params.voll,
+        admm_volp=input.admm_params.volp,
         cache_dir=Path(".cache"),
         cuts=(
             None
@@ -186,7 +187,6 @@ def run_expansion(
         expansion_transformer_cost_per_kw=input.sddp_params.expansion_transformer_cost_per_kw,
         penalty_cost_per_consumption_kw=input.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=input.sddp_params.penalty_cost_per_production_kw,
-        penalty_cost_per_infeasibility_kw=input.sddp_params.penalty_cost_per_infeasibility_kw,
         s_base=input.grid.s_base,
         admm_max_iters=input.admm_config.iterations,
         with_ray=with_ray,

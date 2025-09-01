@@ -59,6 +59,8 @@ class ExpansionAlgorithm:
         time_now: str,
         cache_dir: Path,
         cuts: BenderCuts | None = None,
+        admm_voll: float = 1.0,
+        admm_volp: float = 1.0,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
         n_admm_simulations: int = 10,
@@ -83,7 +85,6 @@ class ExpansionAlgorithm:
         expansion_line_cost_per_km_kw: float = 1e3,
         penalty_cost_per_consumption_kw: float = 1e3,
         penalty_cost_per_production_kw: float = 1e3,
-        penalty_cost_per_infeasibility_kw: float = 1e3,
         s_base: float = 1e6,
         admm_big_m: float = 1e3,
         admm_ε: float = 1e-4,
@@ -99,6 +100,8 @@ class ExpansionAlgorithm:
     ):
         self.grid_data = grid_data
         self.cache_dir = cache_dir
+        self.admm_voll = admm_voll
+        self.admm_volp = admm_volp
         self.each_task_memory = each_task_memory
         self.admm_groups = admm_groups
         self.iterations = iterations
@@ -112,7 +115,6 @@ class ExpansionAlgorithm:
         self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
         self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
         self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
-        self.penalty_cost_per_infeasibility_kw = penalty_cost_per_infeasibility_kw
         self.s_base = s_base
         self.admm_big_m = admm_big_m
         self.admm_ε = admm_ε
@@ -222,7 +224,6 @@ class ExpansionAlgorithm:
             expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
             penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
-            penalty_cost_per_infeasibility_kw=self.penalty_cost_per_infeasibility_kw,
             scenarios_data=self.scenario_data,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
@@ -275,6 +276,8 @@ class ExpansionAlgorithm:
     def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(
+            volp=self.admm_volp,
+            voll=self.admm_voll,
             groups=self.admm_groups,
             grid_data=self.grid_data,
             solver_non_convex=self.solver_non_convex,

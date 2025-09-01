@@ -12,9 +12,9 @@ SERVER_MONGODB_PORT = os.getenv("SERVER_MONGODB_PORT", 27017)
 client = MongoClient(f"mongodb://localhost:{SERVER_MONGODB_PORT}")
 db = client.optimization
 collections = {
-    "Expectation": db.run_20250829_091455,
-    "WorstCase": db.run_20250829_094645,
-    "Wasserstein": db.run_20250829_111420,
+    "Expectation": db.run_20250901_065636,
+    "WorstCase": db.run_20250901_082627,
+    "Wasserstein": db.run_20250901_082659,
 }
 # Fetch all documents with objectives and source file
 cursors = {
@@ -42,11 +42,13 @@ for name, cursor in cursors.items():
 
 df_all = pd.concat(dfs.values(), ignore_index=True)
 
+df_all = df_all[(df_all["source"] != "Expectation") | (df_all["iteration"] == 4)]
+
 # Plot distribution using Plotly
 fig = px.histogram(
-    dfs["Wasserstein"][dfs["Wasserstein"]["iteration"] > 3],
+    df_all,
     x="objective",
-    color="iteration",
+    color="source",
     nbins=50,
     title="Distribution of Objectives by Iteration",
     labels={

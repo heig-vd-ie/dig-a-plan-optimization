@@ -84,7 +84,6 @@ def dig_a_plan_to_expansion(
     expansion_line_cost_per_km_kw: int | float = 1000,
     penalty_cost_per_consumption_kw: int | float = 1000,
     penalty_cost_per_production_kw: int | float = 1000,
-    penalty_cost_per_infeasibility_kw: int | float = 1000,
     bender_cuts: BenderCuts | None = None,
     scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
@@ -148,9 +147,7 @@ def dig_a_plan_to_expansion(
         / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
-    penalty_costs_infeasibility = (
-        float(penalty_cost_per_infeasibility_kw) * s_base / 1e3
-    )
+    penalty_costs_infeasibility = s_base * 1e3 / 1e3
 
     grid = Grid(
         nodes=nodes,

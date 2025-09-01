@@ -15,6 +15,8 @@ class PipelineConfig:
     """Configuration for the Dig A Plan optimization pipeline"""
 
     verbose: bool = False
+    voll: float = 1.0
+    volp: float = 1.0
     ρ: float = 10.0
     big_m: float = 1e4
     ε: float = 1

@@ -25,6 +25,8 @@ class ADMM:
 
     def __init__(
         self,
+        volp: float,
+        voll: float,
         groups: Dict[int, List[int]] | int,
         grid_data: NodeEdgeModel,
         solver_non_convex: int,
@@ -41,6 +43,8 @@ class ADMM:
         τ_decr: float = 2.0,
     ):
         self.config = ADMMConfig(
+            voll=voll,
+            volp=volp,
             verbose=False,
             pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
