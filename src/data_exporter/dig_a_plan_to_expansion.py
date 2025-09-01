@@ -147,7 +147,7 @@ def dig_a_plan_to_expansion(
         / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
-    penalty_costs_infeasibility = s_base * 1e3 / 1e3
+    penalty_costs_infeasibility = s_base / 1e3
 
     grid = Grid(
         nodes=nodes,
