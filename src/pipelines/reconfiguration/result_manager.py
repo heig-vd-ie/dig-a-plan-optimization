@@ -179,8 +179,6 @@ class PipelineResultManager:
             constraint_names = [
                 "current_limit",
                 "current_limit_tr",
-                "voltage_drop_line_rule",
-                "voltage_drop_transfo_rule",
                 "installed_cons",
                 "installed_prod",
             ]

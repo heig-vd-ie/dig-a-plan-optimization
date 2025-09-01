@@ -1,5 +1,6 @@
 import os
 from pydantic import BaseModel, ConfigDict
+import patito as pt
 import ray
 import random
 from typing import Dict, List
@@ -11,6 +12,7 @@ from data_exporter.dig_a_plan_to_expansion import (
     remove_switches_from_grid_data,
 )
 from data_schema import NodeEdgeModel
+from data_schema.edge_data import EdgeData
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from pipelines.expansion.api import run_sddp
 from pipelines.expansion.ltscenarios import generate_long_term_scenarios
@@ -415,20 +417,37 @@ def _calculate_cuts(
     return {row["id"]: row["value"] for row in df.to_dicts()}
 
 
-def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCut:
+def _calculate_ftrs(
+    λ_load: Dict[str, float],
+    λ_pv: Dict[str, float],
+    edges: pt.DataFrame[EdgeData],
+) -> Dict[str, float]:
+    return {
+        row["edge_id"]: (
+            abs(
+                λ_load.get(str(row["u_of_edge"]), 0)
+                - λ_load.get(str(row["v_of_edge"]), 0)
+            )
+            + abs(
+                λ_pv.get(str(row["v_of_edge"]), 0) - λ_pv.get(str(row["u_of_edge"]), 0)
+            )
+        )
+        / 2
+        for row in edges.iter_rows(named=True)
+    }
+
+
+def _transform_admm_result_into_bender_cuts(
+    admm_result: ADMMResult, edges: pt.DataFrame[EdgeData]
+) -> BenderCut:
     """Transform ADMM results into Bender cuts."""
+    λ_load = _calculate_cuts(admm_result, ["installed_cons"])
+    λ_pv = _calculate_cuts(admm_result, ["installed_prod"])
+    λ_cap = _calculate_ftrs(λ_load, λ_pv, edges)
     return BenderCut(
-        λ_load=_calculate_cuts(admm_result, ["installed_cons"]),
-        λ_pv=_calculate_cuts(admm_result, ["installed_prod"]),
-        λ_cap=_calculate_cuts(
-            admm_result,
-            [
-                "current_limit",
-                "current_limit_tr",
-                "voltage_drop_line_rule",
-                "voltage_drop_transfo_rule",
-            ],
-        ),
+        λ_load=λ_load,
+        λ_pv=λ_pv,
+        λ_cap=λ_cap,
         load0={
             str(row["node_id"]): row["cons_installed"]
             for row in admm_result.load0.to_dicts()
@@ -471,6 +490,7 @@ def heavy_task(
         edge_ids=edge_ids,
     )
     admm_results = admm.solve()
-    bender_cut = _transform_admm_result_into_bender_cuts(admm_results)
+    edges = admm.grid_data.edge_data
+    bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
     return HeavyTaskOutput(bender_cut=bender_cut, admm_results=admm_results.results)
