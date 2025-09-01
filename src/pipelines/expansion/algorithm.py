@@ -58,7 +58,7 @@ class ExpansionAlgorithm:
         each_task_memory: float,
         time_now: str,
         cache_dir: Path,
-        cuts: BenderCuts | None = None,
+        bender_cuts: BenderCuts | None = None,
         admm_voll: float = 1.0,
         admm_volp: float = 1.0,
         admm_groups: int | Dict[int, List[int]] = 1,
@@ -149,7 +149,7 @@ class ExpansionAlgorithm:
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
         )
-        self.create_bender_cuts(cuts=cuts)
+        self.create_bender_cuts(bender_cuts=bender_cuts)
         self.cache_dir_run = self.cache_dir / "algorithm" / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
@@ -209,9 +209,9 @@ class ExpansionAlgorithm:
             seed=self.seed_number,
         )
 
-    def create_bender_cuts(self, cuts: BenderCuts | None):
+    def create_bender_cuts(self, bender_cuts: BenderCuts | None):
         """Create Bender cuts with default or custom values."""
-        self.bender_cuts = BenderCuts(cuts={}) or cuts
+        self.bender_cuts = BenderCuts(cuts={}) if bender_cuts is None else bender_cuts
 
     def create_expansion_request(self):
         """Create expansion request with provided or default parameters."""

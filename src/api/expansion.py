@@ -157,7 +157,7 @@ def run_expansion(
         admm_voll=input.admm_params.voll,
         admm_volp=input.admm_params.volp,
         cache_dir=Path(".cache"),
-        cuts=(
+        bender_cuts=(
             None
             if cut_file is None
             else BenderCuts(**load_obj_from_json(Path(cut_file)))

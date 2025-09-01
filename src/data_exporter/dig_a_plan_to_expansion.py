@@ -180,5 +180,5 @@ def dig_a_plan_to_expansion(
     return ExpansionRequest(
         optimization=optimization_config,
         scenarios=scenarios_data,
-        bender_cuts=bender_cuts if bender_cuts else BenderCuts(cuts={}),
+        bender_cuts=bender_cuts if bender_cuts is not None else BenderCuts(cuts={}),
     )
