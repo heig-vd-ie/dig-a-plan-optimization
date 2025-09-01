@@ -19,7 +19,19 @@
         "δ_pv_var": 10,
         "δ_b_var": 100000
     },
-    "admm_config": { "iterations": 10, "n_simulations": 20, "solver_non_convex": true, "time_limit": 10, "groups": 10 },
+    "admm_config": {
+        "iterations": 10,
+        "n_simulations": 20,
+        "solver_non_convex": true,
+        "time_limit": 1,
+        "groups": {
+            "0": [ 19, 20, 21, 29, 32, 35 ],
+            "1": [ 35, 30, 33, 25, 26, 27 ],
+            "2": [ 27, 32, 22, 23, 34 ],
+            "3": [ 31, 24, 28, 21, 22, 23 ],
+            "4": [ 34, 26, 25, 24, 31 ]
+        }
+    },
     "sddp_config": { "iterations": 100, "n_simulations": 1000 },
     "admm_params": {
         "big_m": 1000,
