@@ -423,7 +423,7 @@ def _calculate_ftrs(
     edges: pt.DataFrame[EdgeData],
 ) -> Dict[str, float]:
     return {
-        str(row["edge_id"]): (
+        str(row["edge_id"]): -(
             abs(
                 λ_load.get(str(row["u_of_edge"]), 0)
                 - λ_load.get(str(row["v_of_edge"]), 0)
