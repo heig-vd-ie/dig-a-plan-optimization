@@ -32,7 +32,7 @@
             "4": [ 34, 26, 25, 24, 31 ]
         }
     },
-    "sddp_config": { "iterations": 500, "n_simulations": 5000 },
+    "sddp_config": { "iterations": 100, "n_simulations": 1000 },
     "admm_params": {
         "big_m": 1000,
         "ε": 0.0001,
