@@ -26,7 +26,7 @@ from pipelines.expansion.models.request import (
     PlanningParams,
     RiskMeasureType,
 )
-from pipelines.expansion.models.response import ExpansionResponse
+from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
@@ -300,16 +300,15 @@ class ExpansionAlgorithm:
             init_ray()
             self.check_ray()
             heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
-            sddp_response_ref = ray.put(sddp_response)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
                 self._cut_number(ι, stage, ω): heavy_task_remote.remote(
-                    self.n_admm_simulations,
-                    sddp_response_ref,
+                    sddp_response.simulations[
+                        random.randint(0, self.n_admm_simulations - 1)
+                    ][stage - 1],
                     admm_ref,
-                    stage,
                     node_ids_ref,
                     edge_ids_ref,
                 )
@@ -345,11 +344,11 @@ class ExpansionAlgorithm:
                 for ω in tqdm.tqdm(
                     self._range(self.n_admm_simulations), desc="scenarios"
                 ):
+                    rand_ω = random.randint(0, self.n_admm_simulations - 1)
+                    sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
                     heavy_task_output = heavy_task(
-                        n_simulations=self.n_admm_simulations,
-                        sddp_response=sddp_response,
+                        sddp_simulation=sddp_simulation,
                         admm=admm,
-                        stage=stage,
                         node_ids=self.node_ids,
                         edge_ids=self.edge_ids,
                     )
@@ -471,22 +470,19 @@ class HeavyTaskOutput(BaseModel):
 
 
 def heavy_task(
-    n_simulations: int,
-    sddp_response: ExpansionResponse,
+    sddp_simulation: Simulation,
     admm: ADMM,
-    stage: int,
     node_ids: List[int],
     edge_ids: List[int],
 ) -> HeavyTaskOutput:
     import os
 
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
-    rand_ω = random.randint(0, n_simulations - 1)
     admm.update_grid_data(
-        δ_load=sddp_response.simulations[rand_ω][stage - 1].δ_load,
-        δ_pv=sddp_response.simulations[rand_ω][stage - 1].δ_pv,
+        δ_load=sddp_simulation.δ_load,
+        δ_pv=sddp_simulation.δ_pv,
         node_ids=node_ids,
-        δ_cap=sddp_response.simulations[rand_ω][stage - 1].δ_cap,
+        δ_cap=sddp_simulation.δ_cap,
         edge_ids=edge_ids,
     )
     admm_results = admm.solve()
