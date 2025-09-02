@@ -38,6 +38,11 @@ def parse_args() -> argparse.Namespace:
         metavar="BACKUP_PATH",
         help="Restore the database from a backup folder",
     )
+    parser.add_argument(
+        "--chunk",
+        action="store_true",
+        help="Chunk large files before importing",
+    )
     return parser.parse_args()
 
 
@@ -56,6 +61,9 @@ def import_file(path: Path, collection: Collection, force: bool) -> None:
     except json.JSONDecodeError as e:
         print(f"Skipping invalid JSON file: {path} ({e})")
         return
+    except MemoryError as e:
+        print(f"Skipping large file that can't fit in memory: {path} ({e})")
+        return
 
     if isinstance(data, list):
         for doc in data:
@@ -73,10 +81,14 @@ def import_file(path: Path, collection: Collection, force: bool) -> None:
         collection.delete_many(query)
         print(f"Re-importing (force) file: {path}")
 
-    if isinstance(data, list):
-        collection.insert_many(data)
-    else:
-        collection.insert_one(data)
+    try:
+        if isinstance(data, list):
+            collection.insert_many(data)
+        else:
+            collection.insert_one(data)
+    except Exception as e:
+        print(f"Error inserting {path}: {e}")
+        return
 
     print(f"Imported {path} into collection '{collection.name}'")
 
@@ -114,6 +126,12 @@ def main() -> None:
 
     if args.restore:
         restore_db(db_name, args.restore)
+        return
+
+    if args.chunk:
+        print("Chunking large files...")
+        subprocess.run([".venv/bin/python", "scripts/chunk-files.py"], check=True)
+        print("Chunking completed.")
         return
 
     if to_delete:

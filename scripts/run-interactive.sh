@@ -29,6 +29,7 @@ mongodb_options=(
     "Delete MongoDB"
     "Backup MongoDB"
     "Restore MongoDB"
+    "Chunk Large Files"
     "Back"
 )
 
@@ -83,15 +84,21 @@ while true; do
                                         latest_folder=$(ls -dt .cache/algorithm/*/ | head -n 1)
                                         cut_file="${latest_folder%/}/bender_cuts.json"
                                         rm "$tmp_payload"
-                                        for risk in "WorstCase" "Wasserstein"; do
-                                            for risk_param in "0.02" "0.05" "0.1" "0.2"; do
-                                                tmp_payload=$(mktemp)
-                                                jq --arg r "$risk" --arg i "0" --arg p "$risk_param" \
-                                                    '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber) | .sddp_params.risk_measure_param = $p' \
-                                                    "$payload" > "$tmp_payload"
-                                                make run-expansion-with-cut PAYLOAD="$tmp_payload" CUT_FILE="$cut_file"
-                                                rm "$tmp_payload"
-                                            done
+
+                                        tmp_payload=$(mktemp)
+                                        jq --arg r "WorstCase" --arg i "0" --arg p "0.1" \
+                                            '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber) | .sddp_params.risk_measure_param = $p' \
+                                            "$payload" > "$tmp_payload"
+                                        make run-expansion-with-cut PAYLOAD="$tmp_payload" CUT_FILE="$cut_file"
+                                        rm "$tmp_payload"
+
+                                        for risk_param in "0.02" "0.05" "0.1" "0.2"; do
+                                            tmp_payload=$(mktemp)
+                                            jq --arg r "Wasserstein" --arg i "0" --arg p "$risk_param" \
+                                                '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber) | .sddp_params.risk_measure_param = $p' \
+                                                "$payload" > "$tmp_payload"
+                                            make run-expansion-with-cut PAYLOAD="$tmp_payload" CUT_FILE="$cut_file"
+                                            rm "$tmp_payload"
                                         done
                                         break 3
                                         ;;
@@ -122,15 +129,19 @@ while true; do
                                 break 2
                                 ;;
                             3) 
-                                python scripts/mongo-backup-tools.py --db optimization --backup
+                                .venv/bin/python scripts/mongo-backup-tools.py --db optimization --backup
                                 break 2
                                 ;;
                             4) 
                                 read -p "Enter backup path: " backup_path
-                                python scripts/mongo-backup-tools.py --db optimization --restore "$backup_path"
+                                .venv/bin/python scripts/mongo-backup-tools.py --db optimization --restore "$backup_path"
                                 break 2
                                 ;;
-                            5) break;;  # back to main menu
+                            5) 
+                                .venv/bin/python scripts/mongo-tools.py --chunk
+                                break 2
+                                ;;
+                            6) break;;  # back to main menu
                             *) echo "Invalid option";;
                         esac
                     done

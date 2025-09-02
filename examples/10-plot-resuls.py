@@ -12,9 +12,15 @@ SERVER_MONGODB_PORT = os.getenv("SERVER_MONGODB_PORT", 27017)
 client = MongoClient(f"mongodb://localhost:{SERVER_MONGODB_PORT}")
 db = client.optimization
 collections = {
-    "Expectation": db.run_20250902_065737,
-    "WorstCase": db.run_20250902_081649,
-    "Wasserstein": db.run_20250902_081649,
+    "Expectation": db.run_20250902_110438,
+    "WorstCase0.02": db.run_20250902_125013,
+    "WorstCase0.05": db.run_20250902_125339,
+    "WorstCase0.1": db.run_20250902_125602,
+    "WorstCase0.2": db.run_20250902_125740,
+    "Wasserstein0.02": db.run_20250902_125917,
+    "Wasserstein0.05": db.run_20250902_130117,
+    "Wasserstein0.1": db.run_20250902_130318,
+    "Wasserstein0.2": db.run_20250902_130518,
 }
 # Fetch all documents with objectives and source file
 cursors = {
@@ -43,6 +49,7 @@ for name, cursor in cursors.items():
 df_all = pd.concat(dfs.values(), ignore_index=True)
 
 df_all = df_all[
+
     (df_all["source"] != "Expectation")
     | (df_all["iteration"] == df_all["iteration"].max())
 ]
@@ -53,10 +60,11 @@ fig = px.histogram(
     x="objective",
     color="source",
     nbins=50,
+    histnorm="probability density",  # Normalize to probability density
     title="Distribution of Objectives by Iteration",
     labels={
         "objective": "Objective value",
-        "count": "Frequency",
+        "count": "Density",
         "iteration": "Iteration number",
     },
     barmode="group",
@@ -71,5 +79,3 @@ fig.update_layout(
 )
 
 fig.show()
-
-# %%
