@@ -23,6 +23,11 @@ export RAY_GRAFANA_ORG_ID=1
 export RAY_PROMETHEUS_HOST="http://localhost:9090"
 export RAY_PROMETHEUS_NAME="Prometheus"
 
+sudo chown -R $(id -u):$(id -g) /tmp/ray
+chmod -R 777 /tmp/ray
+sudo chown -R $(id -u):$(id -g) /tmp/spill
+chmod -R 777 /tmp/spill
+
 # Start Ray head
 ray stop
 ray start --head \
