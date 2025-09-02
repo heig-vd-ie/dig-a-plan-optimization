@@ -77,26 +77,21 @@ while true; do
                                         ;;
                                     4)
                                         # Run all simulations sequentially
-                                        for risk in "Expectation" "WorstCase" "Wasserstein"; do
-                                            tmp_payload=$(mktemp)
-                                            if [ "$risk" = "Expectation" ]; then
-                                                cp "$payload" "$tmp_payload"
-                                                make run-expansion PAYLOAD="$tmp_payload"
-                                                latest_folder=$(ls -dt .cache/algorithm/*/ | head -n 1)
-                                                cut_file="${latest_folder%/}/bender_cuts.json"
-                                            else
-                                                echo "Sending payload from ..."
-                                                echo "$tmp_payload"
-                                                echo "Using cut file: $cut_file"
-                                                cat "$tmp_payload"
-                                                jq --arg r "$risk" --arg i "0" \
-                                                    '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber)' \
+                                        tmp_payload=$(mktemp)
+                                        cp "$payload" "$tmp_payload"
+                                        make run-expansion PAYLOAD="$tmp_payload"
+                                        latest_folder=$(ls -dt .cache/algorithm/*/ | head -n 1)
+                                        cut_file="${latest_folder%/}/bender_cuts.json"
+                                        rm "$tmp_payload"
+                                        for risk in "WorstCase" "Wasserstein"; do
+                                            for risk_param in "0.02" "0.05" "0.1" "0.2"; do
+                                                tmp_payload=$(mktemp)
+                                                jq --arg r "$risk" --arg i "0" --arg p "$risk_param" \
+                                                    '.sddp_params.risk_measure_type = $r | .iterations = ($i|tonumber) | .sddp_params.risk_measure_param = $p' \
                                                     "$payload" > "$tmp_payload"
-                                                cat "$tmp_payload"
                                                 make run-expansion-with-cut PAYLOAD="$tmp_payload" CUT_FILE="$cut_file"
-                                            fi
-
-                                            rm "$tmp_payload"
+                                                rm "$tmp_payload"
+                                            done
                                         done
                                         break 3
                                         ;;

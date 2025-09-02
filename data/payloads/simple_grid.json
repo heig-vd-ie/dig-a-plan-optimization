@@ -32,7 +32,7 @@
             "4": [ 34, 26, 25, 24, 31 ]
         }
     },
-    "sddp_config": { "iterations": 100, "n_simulations": 1000 },
+    "sddp_config": { "iterations": 500, "n_simulations": 5000 },
     "admm_params": {
         "big_m": 1000,
         "ε": 0.0001,
@@ -57,7 +57,7 @@
         "penalty_cost_per_consumption_kw": 6,
         "penalty_cost_per_production_kw": 2
     },
-    "iterations": 3,
+    "iterations": 5,
     "seed": 42,
     "each_task_memory": 100000000
 }
