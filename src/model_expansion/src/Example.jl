@@ -43,11 +43,21 @@ initial_cap = Dict(e => 1.0 for e in edges)
 load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
 grid = Types.Grid(nodes, edges, cuts, Types.Node(1), initial_cap, load, pv)
-Ω = ScenariosGeneration.generate_scenarios(n_scenarios, n_stages, nodes)
+Ω = ScenariosGeneration.generate_scenarios(n_scenarios, n_stages, nodes, seed_number = 1234)
 P = fill(1.0 / n_scenarios, n_scenarios)
 
 # Export scenarios to JSON
 scenarios_data_raw = Dict("Ω" => Ω, "P" => P)
+
+Ωo = ScenariosGeneration.generate_scenarios(
+    n_scenarios,
+    n_stages,
+    nodes,
+    seed_number = 1234 + 1000,
+)
+Po = fill(1.0 / n_scenarios, n_scenarios)
+
+out_of_sample_scenarios_data_raw = Dict("Ω" => Ωo, "P" => Po)
 
 # Convert to JSON string, then fix Node representations
 json_string = JSON.json(scenarios_data_raw, 2)
@@ -60,9 +70,18 @@ open(".cache/scenarios.json", "w") do file
 end
 println("Scenarios exported to .cache/scenarios.json")
 
+json_string_o = JSON.json(out_of_sample_scenarios_data_raw, 2)
+json_string_o = replace(json_string_o, r"\"Node\((\d+)\)\"" => s"\"\1\"")
+
+open(".cache/out_of_sample_scenarios.json", "w") do file
+    write(file, json_string_o)
+end
+println("Out-of-sample scenarios exported to .cache/out_of_sample_scenarios.json")
+
 investment_costs, penalty_costs_load, penalty_costs_pv, penalty_costs_infeasibility =
     ScenariosGeneration.generate_costs(edges, nodes)
 scenarios = Types.Scenarios(Ω, P)
+out_of_sample_scenarios = Types.Scenarios(Ωo, Po)
 λ_cap = ScenariosGeneration.generate_λ_cap(cuts, edges)
 λ_load = ScenariosGeneration.generate_λ_load(cuts, nodes)
 λ_pv = ScenariosGeneration.generate_λ_pv(cuts, nodes)
@@ -115,25 +134,28 @@ params = Types.PlanningParams(
     1,  # years_per_stage
     1,  # n_cut_scenarios
 )
-simulations1, objectives1 = Stochastic.stochastic_planning(
+simulations1, objectives1, simulations1o, objectives1o = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    out_of_sample_scenarios,
     params,
     iteration_limit,
     n_simulations,
     SDDP.Expectation(),
 )
-simulations2, objectives2 = Stochastic.stochastic_planning(
+simulations2, objectives2, simulations2o, objectives2o = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    out_of_sample_scenarios,
     params,
     iteration_limit,
     n_simulations,
     SDDP.WorstCase(),
 )
-simulations3, objectives3 = Stochastic.stochastic_planning(
+simulations3, objectives3, simulations3o, objectives3o = Stochastic.stochastic_planning(
     grid,
     scenarios,
+    out_of_sample_scenarios,
     params,
     iteration_limit,
     n_simulations,
@@ -156,6 +178,23 @@ histogram(
 )
 isdir(".cache") || mkpath(".cache")
 savefig(".cache/objective_histogram.pdf")
+
+histogram(
+    [objectives1o, objectives2o, objectives3o],
+    normalize = true,
+    nbins = 100,
+    xlabel = "Objective Value",
+    ylabel = "Frequency",
+    title = "Objective Distribution Across Scenarios",
+    label = ["Without risk measure" "With risk measure WorstCase" "DRO Wasserstein"],
+    opacity = 0.2,
+    legend = :topright,
+    fillalpha = 0.5,
+    linecolor = [:blue :red :green],
+    fillcolor = [:blue :red :green],
+)
+isdir(".cache") || mkpath(".cache")
+savefig(".cache/objective_histogramo.pdf")
 
 plt1 = SDDP.SpaghettiPlot(simulations1)
 

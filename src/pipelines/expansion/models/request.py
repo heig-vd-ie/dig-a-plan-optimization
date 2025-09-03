@@ -94,6 +94,7 @@ class OptimizationConfig(BaseModel):
 
     grid: Grid
     scenarios: str
+    out_of_sample_scenarios: str
     bender_cuts: str
     planning_params: PlanningParams
     additional_params: AdditionalParams
@@ -104,4 +105,5 @@ class ExpansionRequest(BaseModel):
 
     optimization: OptimizationConfig
     scenarios: Scenarios
+    out_of_sample_scenarios: Scenarios
     bender_cuts: BenderCuts

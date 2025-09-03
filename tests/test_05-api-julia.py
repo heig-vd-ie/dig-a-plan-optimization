@@ -47,6 +47,9 @@ class TestExpansionModel(TestExpansion):
     def test_expansion_model_with_request(self):
         expansion_request_data = load_obj_from_json(Path("data/default.json"))
         scenarios_data = load_obj_from_json(Path("data/scenarios.json"))
+        out_of_sample_scenarios_data = load_obj_from_json(
+            Path("data/out_of_sample_scenarios.json")
+        )
         bender_cuts_data = load_obj_from_json(Path("data/bender_cuts.json"))
         expansion_request_data["planning_params"]["bender_cuts"] = str(
             self.test_cache_dir / "bender_cuts.json"
@@ -54,9 +57,13 @@ class TestExpansionModel(TestExpansion):
         expansion_request_data["scenarios"] = str(
             self.test_cache_dir / "scenarios.json"
         )
+        expansion_request_data["out_of_sample_scenarios"] = str(
+            self.test_cache_dir / "out_of_sample_scenarios.json"
+        )
         expansion_request = ExpansionRequest(
             optimization=OptimizationConfig(**expansion_request_data),
             scenarios=Scenarios(**scenarios_data),
+            out_of_sample_scenarios=Scenarios(**out_of_sample_scenarios_data),
             bender_cuts=BenderCuts(**bender_cuts_data),
         )
         results = run_sddp(

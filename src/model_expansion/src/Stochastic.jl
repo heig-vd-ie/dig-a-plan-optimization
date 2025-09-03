@@ -39,6 +39,7 @@ end
 function stochastic_planning(
     grid::Grid,
     scenarios::Scenarios,
+    out_of_sample_scenarios::Scenarios,
     params::PlanningParams,
     iteration_limit::Int64,
     n_simulations::Int64,
@@ -58,6 +59,18 @@ function stochastic_planning(
 
     SDDP.train(model, risk_measure = risk_measure, iteration_limit = iteration_limit)
 
+    in_sample_simulations, in_sample_objectives = in_sample_analysis(model, n_simulations, seed)
+
+    out_of_sample_simulations, out_of_sample_objectives =
+        out_of_sample_analysis(model, out_of_sample_scenarios, n_simulations, seed)
+
+    return in_sample_simulations,
+    in_sample_objectives,
+    out_of_sample_simulations,
+    out_of_sample_objectives
+end
+
+function in_sample_analysis(model, n_simulations::Int64, seed::Int = 1234)
     Random.seed!(seed)
 
     simulations = SDDP.simulate(
@@ -77,6 +90,57 @@ function stochastic_planning(
     )
     objectives = [sum(stage[:obj] for stage in data) for data in simulations]
 
+    return simulations, objectives
+end
+
+function out_of_sample_analysis(
+    trained_model,
+    out_of_sample_scenarios::Scenarios,
+    n_simulations::Int64,
+    seed::Int = 5678,
+)
+    Random.seed!(seed)
+
+    # Create OutOfSampleMonteCarlo sampling scheme using your probabilities
+    sampling_scheme =
+        SDDP.OutOfSampleMonteCarlo(trained_model; use_insample_transition = true) do node
+            stage = node  # For LinearPolicyGraph, node is just the stage number
+
+            if stage <= length(out_of_sample_scenarios.Ω)
+                # Get scenarios and their probabilities for this stage
+                stage_scenarios = out_of_sample_scenarios.Ω[stage]
+                stage_probabilities = out_of_sample_scenarios.P[stage]
+
+                # Create SDDP.Noise objects with your probabilities
+                noise_terms = [
+                    SDDP.Noise(scenario, prob) for
+                    (scenario, prob) in zip(stage_scenarios, stage_probabilities)
+                ]
+
+                return noise_terms
+            else
+                return SDDP.Noise[]
+            end
+        end
+
+    simulations = SDDP.simulate(
+        trained_model,
+        n_simulations,
+        [
+            :investment_cost,
+            :total_unmet_load,
+            :total_unmet_pv,
+            :cap,
+            :δ_cap,
+            :obj,
+            :δ_load,
+            :δ_pv,
+            :δ_b,
+        ];
+        sampling_scheme = sampling_scheme,
+    )
+
+    objectives = [sum(stage[:obj] for stage in data) for data in simulations]
     return simulations, objectives
 end
 

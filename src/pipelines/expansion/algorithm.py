@@ -150,6 +150,15 @@ class ExpansionAlgorithm:
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
+            seed_number=self.seed_number,
+        )
+        self.create_out_of_sample_scenario_data(
+            δ_load_var=δ_load_var,
+            δ_pv_var=δ_pv_var,
+            δ_b_var=δ_b_var,
+            number_of_scenarios=number_of_sddp_scenarios,
+            number_of_stages=n_stages,
+            seed_number=self.seed_number + 1000,
         )
         self.create_bender_cuts(bender_cuts=bender_cuts)
         self.cache_dir_run = self.cache_dir / "algorithm" / time_now
@@ -183,6 +192,7 @@ class ExpansionAlgorithm:
         δ_b_var=0.1,
         number_of_scenarios=10,
         number_of_stages=3,
+        seed_number=1000,
     ):
         """Generate long-term scenarios with configurable parameters."""
         self.scenario_data = generate_long_term_scenarios(
@@ -192,7 +202,27 @@ class ExpansionAlgorithm:
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_scenarios,
             number_of_stages=number_of_stages,
-            seed_number=self.seed_number,
+            seed_number=seed_number,
+        )
+
+    def create_out_of_sample_scenario_data(
+        self,
+        δ_load_var=0.1,
+        δ_pv_var=0.1,
+        δ_b_var=0.1,
+        number_of_scenarios=10,
+        number_of_stages=3,
+        seed_number=1000,
+    ):
+        """Generate long-term scenarios with configurable parameters."""
+        self.out_of_sample_scenarios = generate_long_term_scenarios(
+            nodes=self.grid_data_rm.node_data,
+            δ_load_var=δ_load_var,
+            δ_pv_var=δ_pv_var,
+            δ_b_var=δ_b_var,
+            number_of_scenarios=number_of_scenarios,
+            number_of_stages=number_of_stages,
+            seed_number=seed_number,
         )
 
     def create_additional_params(
@@ -227,8 +257,11 @@ class ExpansionAlgorithm:
             penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
             scenarios_data=self.scenario_data,
+            out_of_sample_scenarios=self.out_of_sample_scenarios,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
+            out_of_sample_scenarios_cache=self.cache_dir_run
+            / "out_of_sample_scenarios.json",
             bender_cuts_cache=self.cache_dir_run / "bender_cuts.json",
             optimization_config_cache=self.cache_dir_run / "optimization_config.json",
         )
@@ -268,6 +301,7 @@ class ExpansionAlgorithm:
         self.expansion_request = ExpansionRequest(
             optimization=opt_config,
             scenarios=self.expansion_request.scenarios,
+            out_of_sample_scenarios=self.expansion_request.out_of_sample_scenarios,
             bender_cuts=final_cuts,
         )
 

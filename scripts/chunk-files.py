@@ -22,13 +22,17 @@ def is_sddp_response_file(data: Dict[str, Any]) -> bool:
         isinstance(data, dict)
         and "simulations" in data
         and "objectives" in data
+        and "out_of_sample_simulations" in data
+        and "out_of_sample_objectives" in data
         and isinstance(data["simulations"], list)
         and isinstance(data["objectives"], list)
+        and isinstance(data["out_of_sample_simulations"], list)
+        and isinstance(data["out_of_sample_objectives"], list)
     )
 
 
 def chunk_sddp_file(
-    file_path: Path, chunk_size: int = 1000, max_file_size_mb: int = 15
+    file_path: Path, chunk_size: int = 500, max_file_size_mb: int = 15
 ) -> bool:
     """
     Chunk a large SDDP file into smaller files in the same directory.
@@ -61,6 +65,8 @@ def chunk_sddp_file(
 
     simulations = data["simulations"]
     objectives = data["objectives"]
+    out_of_sample_simulations = data["out_of_sample_simulations"]
+    out_of_sample_objectives = data["out_of_sample_objectives"]
     total_simulations = len(simulations)
     total_chunks = math.ceil(total_simulations / chunk_size)
 
@@ -78,6 +84,8 @@ def chunk_sddp_file(
         chunk_data = {
             "simulations": simulations[i:end_idx],
             "objectives": objectives[i:end_idx],
+            "out_of_sample_simulations": out_of_sample_simulations[i:end_idx],
+            "out_of_sample_objectives": out_of_sample_objectives[i:end_idx],
         }
 
         chunk_file = chunk_dir / f"{base_name}_chunk_{chunk_index:04d}.json"
@@ -105,9 +113,7 @@ def chunk_sddp_file(
     return True
 
 
-def chunk_directory(
-    directory: Path, chunk_size: int = 1000, max_file_size_mb: int = 15
-):
+def chunk_directory(directory: Path, chunk_size: int = 500, max_file_size_mb: int = 15):
     """Chunk all large SDDP files in a directory."""
     if not directory.exists():
         print(f"Directory {directory} does not exist")
@@ -136,7 +142,7 @@ def main():
         return
 
     # Default settings
-    chunk_size = int(os.getenv("CHUNK_SIZE", "1000"))
+    chunk_size = int(os.getenv("CHUNK_SIZE", "500"))
     max_file_size_mb = int(os.getenv("MAX_FILE_SIZE_MB", "15"))
 
     print(
