@@ -1,23 +1,27 @@
 import pandas as pd
 import plotly.express as px
-from plots import Config
+from plots.mongo_client import Config
 
 
 class MyObjectivePlotter:
-    def __init__(self, df: pd.DataFrame, config: Config):
+    def __init__(self, df: pd.DataFrame, config: Config, field: str):
         self.df = df
         self.config = config
+        self.field = field
 
     def create_histogram_plot(self):
         fig = px.histogram(
-            self.df,
-            x="objective",
+            self.df[
+                (self.df["risk_method"] != "Expectation")
+                | (self.df["iteration"] == self.df["iteration"].max())
+            ],
+            x=self.field,
             color="risk_label",
             nbins=self.config.histogram_bins,
             histnorm="probability density",
             title="Distribution of Objectives by Risk Method",
             labels={
-                "objective": "Objective value",
+                self.field: "Objective value",
                 "count": "Density",
                 "risk_label": "Risk Method",
             },
@@ -35,12 +39,15 @@ class MyObjectivePlotter:
 
     def create_box_plot(self):
         fig = px.box(
-            self.df,
+            self.df[
+                (self.df["risk_method"] != "Expectation")
+                | (self.df["iteration"] == self.df["iteration"].max())
+            ],
             x="risk_label",
-            y="objective",
+            y=self.field,
             title="Objective Value Distributions by Risk Method",
             labels={
-                "objective": "Objective Value",
+                self.field: "Objective Value",
                 "risk_label": "Risk Method",
             },
         )
@@ -53,42 +60,18 @@ class MyObjectivePlotter:
 
         return fig
 
-    def create_iteration_plot(self):
-        fig = px.line(
-            self.df,
-            x="iteration",
-            y="objective",
-            color="risk_label",
-            title="Objective Value Evolution by Iteration",
-            labels={
-                "iteration": "Iteration",
-                "objective": "Objective Value",
-                "risk_label": "Risk Method",
-            },
-        )
-
-        fig.update_layout(
-            width=self.config.plot_width,
-            height=self.config.plot_height,
-            legend=dict(title="Risk Method", orientation="v", x=1.02, y=1),
-            margin=dict(r=200),
-        )
-
-        return fig
-
     def create_scatter_plot(self):
-        fig = px.scatter(
-            self.df,
+        fig = px.box(
+            self.df[self.df["risk_method"] == "Expectation"],
             x="iteration",
-            y="objective",
+            y=self.field,
             color="risk_label",
-            title="Objective Values by Iteration (Scatter)",
+            title="Objective Values by Iteration",
             labels={
                 "iteration": "Iteration",
-                "objective": "Objective Value",
+                self.field: "Objective Value",
                 "risk_label": "Risk Method",
             },
-            opacity=0.7,
         )
 
         fig.update_layout(

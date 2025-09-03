@@ -7,7 +7,18 @@ import pandas as pd
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.collection import Collection
-from plots import Config
+
+
+@dataclass
+class Config:
+    start_collection: str = "run_20250902_110438"
+    end_collection: str = "run_20250902_130518"
+    mongodb_port: int = 27017
+    mongodb_host: str = "localhost"
+    database_name: str = "optimization"
+    plot_width: int = 1000
+    plot_height: int = 600
+    histogram_bins: int = 50
 
 
 def get_collections_in_range(
@@ -201,10 +212,18 @@ class MyMongoClient:
         risk_info_dict: Dict[str, Dict[str, Any]],
         field: str,
     ) -> pd.DataFrame:
-        cursors = {
-            name: collection.find({}, {field: 1, "_source_file": 1, "_id": 0})
-            for name, collection in collections_dict.items()
-        }
+        if field == "investment_cost":
+            cursors = {
+                name: collection.find(
+                    {}, {"simulations": 1, "_source_file": 1, "_id": 0}
+                )
+                for name, collection in collections_dict.items()
+            }
+        else:
+            cursors = {
+                name: collection.find({}, {field: 1, "_source_file": 1, "_id": 0})
+                for name, collection in collections_dict.items()
+            }
 
         data = {}
         dfs = {}
@@ -216,17 +235,67 @@ class MyMongoClient:
 
             for doc in cursor:
                 file_name = doc.get("_source_file", "unknown")
-                for obj in doc.get(field, []):
-                    data[name].append(
-                        {
-                            field: obj,
-                            "iteration": int(file_name.split("_")[-1].split(".")[0]),
-                            "risk_method": risk_method,
-                            "risk_parameter": risk_param,
-                            "risk_label": f"{risk_method}"
-                            + (f" ({risk_param})" if risk_param is not None else ""),
-                        }
-                    )
+
+                if field == "investment_cost":
+                    # Handle nested simulations data
+                    simulations = doc.get("simulations", [])
+                    for sim_idx, simulation in enumerate(simulations):
+                        if isinstance(simulation, list):
+                            for stage_idx, stage in enumerate(simulation):
+                                if isinstance(stage, dict):
+                                    # Extract iteration number from sddp_response_ pattern
+                                    iteration_match = re.search(
+                                        r"sddp_response_(\d+)", file_name
+                                    )
+                                    iteration = (
+                                        int(iteration_match.group(1))
+                                        if iteration_match
+                                        else 0
+                                    )
+
+                                    # Create a row with all stage data
+                                    row_data = {
+                                        "simulation": sim_idx,
+                                        "stage": stage_idx,
+                                        "iteration": iteration,
+                                        "risk_method": risk_method,
+                                        "risk_parameter": risk_param,
+                                        "risk_label": f"{risk_method}"
+                                        + (
+                                            f" ({risk_param})"
+                                            if risk_method == "Wasserstein"
+                                            else ""
+                                        ),
+                                    }
+
+                                    # Add all fields from the stage
+                                    for key, value in stage.items():
+                                        row_data[key] = value
+
+                                    data[name].append(row_data)
+                else:
+                    # Handle regular field data (existing logic)
+                    for obj in doc.get(field, []):
+                        # Extract iteration number from sddp_response_ pattern
+                        iteration_match = re.search(r"sddp_response_(\d+)", file_name)
+                        iteration = (
+                            int(iteration_match.group(1)) if iteration_match else 0
+                        )
+
+                        data[name].append(
+                            {
+                                field: obj,
+                                "iteration": iteration,
+                                "risk_method": risk_method,
+                                "risk_parameter": risk_param,
+                                "risk_label": f"{risk_method}"
+                                + (
+                                    f" ({risk_param})"
+                                    if risk_method == "Wasserstein"
+                                    else ""
+                                ),
+                            }
+                        )
 
             dfs[name] = pd.DataFrame(data[name])
             dfs[name]["source"] = name
