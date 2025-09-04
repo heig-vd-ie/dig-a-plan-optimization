@@ -63,7 +63,7 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
             variable_type=("nodal" if variable in nodal_variables else "edge"),
         )
 
-    os.makedirs(".cache/output", exist_ok=True)
+    os.makedirs(".cache/figs", exist_ok=True)
     x_vals = np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0]
     fig = go.Figure()
     fig.add_trace(
@@ -91,16 +91,16 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
         width=1000,
         height=500,
     )
-    fig.write_html(".cache/output/admm_iterations.html")
+    fig.write_html(".cache/figs/admm_iterations.html")
 
     switches = dap.model_manager.zδ_variable
     taps = dap.model_manager.zζ_variable
     voltages = dap.result_manager.extract_node_voltage(scenario=0)
     currents = dap.result_manager.extract_edge_current(scenario=0)
 
-    save_dap_state(dap, ".cache/output/boisy_dap")
-    save_dap_state(dap_fixed, ".cache/output/boisy_dap_fixed")
-    joblib.dump(net, ".cache/output/boisy_net.joblib")
+    save_dap_state(dap, ".cache/figs/boisy_dap")
+    save_dap_state(dap_fixed, ".cache/figs/boisy_dap_fixed")
+    joblib.dump(net, ".cache/figs/boisy_net.joblib")
 
     return ADMMOutput(
         switches=switches.to_dicts(),

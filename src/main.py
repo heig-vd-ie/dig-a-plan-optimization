@@ -43,8 +43,10 @@ def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
 
 
 @app.patch("/expansion", tags=["Expansion"])
-def expansion(input: ExpansionInput, with_ray: bool = False) -> ExpansionOutput:
-    results = run_expansion(input, with_ray=with_ray)
+def expansion(
+    input: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
+) -> ExpansionOutput:
+    results = run_expansion(input, with_ray=with_ray, cut_file=cut_file)
     return results
 
 

@@ -19,6 +19,7 @@
         "penalty_costs_infeasibility": 6000
     },
     "scenarios": "data/scenarios.json",
+    "out_of_sample_scenarios": "data/out_of_sample_scenarios.json",
     "bender_cuts": "data/bender_cuts.json",
     "planning_params": {
         "n_stages": 5,

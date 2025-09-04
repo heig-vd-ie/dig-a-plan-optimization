@@ -1,3 +1,4 @@
+import datetime
 import math
 import numpy as np
 import pytest
@@ -21,6 +22,7 @@ class ExpansionTestBase:
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
             each_task_memory=1024,
+            time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             cache_dir=self.cache_dir,
             just_test=True,
         )
@@ -51,6 +53,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
         """Test expansion with different number of stages."""
         self.expansion_algorithm.create_planning_params(n_stages=5)
         self.expansion_algorithm.create_scenario_data(number_of_stages=5)
+        self.expansion_algorithm.create_out_of_sample_scenario_data(number_of_stages=5)
         self.expansion_algorithm.create_expansion_request()
         results = self.expansion_algorithm.run_sddp()
 

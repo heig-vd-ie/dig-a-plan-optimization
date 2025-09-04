@@ -25,7 +25,7 @@ make venv-activate
 
 You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
 ```sh
-make run-all
+make start
 ```
 
 ### Access to worker Machine
@@ -67,13 +67,14 @@ cd .. && make run-extraction
 2. Ray Dashboard: [http://localhost:8265](http://localhost:8265)
 3. Grafana Dashboard [http://localhost:4000](http://localhost:4000)
 4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
+5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
 
 ## Development
 
 ### Unit tests
 
-In a shell, run `make run-all`.
+In a shell, run `make start`.
 
 - If you add a new feature in python part, make sure to test `run-tests-py` to verify that existing features continue to work correctly.
 

@@ -23,11 +23,19 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-grafana
 	@$(MAKE) install-jl
 	@$(MAKE) install-docker
+	@$(MAKE) install-mongodb-gui
 
 install-grafana: ## Install Grafana
 	@echo "Installing Grafana..."
 	@sudo apt update
 	@sudo apt install -y grafana
+
+install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
+	@echo "Installing MongoDB Compass..."
+	@wget https://downloads.mongodb.com/compass/mongodb-compass_1.46.8_amd64.deb
+	@sudo dpkg -i mongodb-compass_1.46.8_amd64.deb
+	@sudo apt-get install -f
+	@rm mongodb-compass_1.46.8_amd64.deb
 
 run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to specify port)
 	@echo "Building custom Grafana image..."
@@ -96,9 +104,8 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	  dap-py-api
 	@docker logs -f dap-py-api
 
-run-server-ray: ## Start Ray server natively
+run-server-ray-native: ## Start Ray server natively
 	@echo "Starting Ray head node natively on $(SERVER_RAY_ADDRESS)"
-	@ray stop
 	@./scripts/start-ray-head.sh \
 		$(SERVER_RAY_PORT) \
 		$(SERVER_RAY_DASHBOARD_PORT) \
@@ -106,29 +113,50 @@ run-server-ray: ## Start Ray server natively
 		$(ALLOC_CPUS) \
 		$(ALLOC_GPUS) \
 		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT)
+		$(GRAFANA_PORT) \
+		true
 	@ray status
 
-run-ray-worker:
+run-server-ray: ## Start Ray server
+	@echo "Starting Ray head node on $(SERVER_RAY_ADDRESS)"
+	@./scripts/start-ray-head.sh \
+		$(SERVER_RAY_PORT) \
+		$(SERVER_RAY_DASHBOARD_PORT) \
+		$(SERVER_RAY_METRICS_EXPORT_PORT) \
+		$(ALLOC_CPUS) \
+		$(ALLOC_GPUS) \
+		$(ALLOC_RAMS) \
+		$(GRAFANA_PORT) \
+		false
+	@docker exec -it dap-py-api ray status
+
+run-ray-worker:  ## Start Ray worker
 	@echo -n "Run Worker?..."
 	@read dummy
 	@direnv allow && \
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
 
-run-all-native: ## Start all servers
+run-server-mongodb: ## Start MongoDB server
+	@echo "Starting MongoDB server..."
+	@docker pull mongo:latest
+	@docker run -d \
+		--name mongo-db \
+		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
+		-v /path/on/host/mongo-data:/data/db \
+		mongo:latest
+	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
+	@docker logs -f mongo-db
+
+start-dev: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
 
-run-all: ## Start all servers
+start: ## Start all servers
 	@echo "Starting all servers..."
 	@$(MAKE) stop
 	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
-
-logs-ray: ## Log Ray server
-	@echo "Logging Ray server..."
-	@watch -n $(RAY_LOG_INTERVAL) ray status
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel \
@@ -160,6 +188,7 @@ kill-ports-all: ## Kill all processes running on specified ports
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
 	@$(MAKE) kill-port PORT=$(SERVER_RAY_DASHBOARD_PORT)
 	@$(MAKE) kill-port PORT=$(GRAFANA_PORT)
+	@$(MAKE) kill-port PORT=$(SERVER_MONGODB_PORT)
 
 clean-ray:  ## Clean up Ray processes and files
 	@echo "Stopping all Ray processes..."
@@ -167,7 +196,6 @@ clean-ray:  ## Clean up Ray processes and files
 	@echo "Removing Ray session folders..."
 	@rm -rf /tmp/ray/session_* || true
 	@echo "Cleaned Ray."
-
 
 stop: ## Kill all Ray processes and clean Docker
 	@echo "Killing all Ray processes..."
@@ -181,6 +209,13 @@ stop: ## Kill all Ray processes and clean Docker
 	@ray metrics shutdown-prometheus || true
 	@echo "Cleaning up local Prometheus files..."
 	@sudo rm -rf prometheus-* || true
+	@$(MAKE) fix-cache-permissions
+
+fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
+	@echo "Fixing permissions for .cache/algorithm..."
+	@sudo chown -R $(USER):$(USER) .cache/algorithm || true
+	@sudo chmod -R 775 .cache/algorithm || true
+	@echo "Done."
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
@@ -190,5 +225,25 @@ run-expansion: ## Curl expansion for a payload
 	@echo "Triggering expansion..."
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
-    	-d @$(PAYLOAD) \
-		http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)
+		-d @$(PAYLOAD) \
+		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)"
+
+run-expansion-with-cut: ## Curl expansion for a payload with cut_file
+	@echo "Triggering expansion..."
+	@curl -X PATCH \
+		-H "Content-Type: application/json" \
+		--data-binary @$(PAYLOAD) \
+		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
+
+# Run with: make sync-mongodb FORCE=true
+sync-mongodb: ## Sync data from MongoDB
+	@echo "Syncing data from MongoDB..."
+	@.venv/bin/python ./scripts/mongo-tools.py $(if $(FORCE),--force)
+
+clean-mongodb:  ## Clean up MongoDB data
+	@echo "Cleaning MongoDB data..."
+	@.venv/bin/python ./scripts/mongo-tools.py --delete
+
+chunk-mongodb: ## Chunk large files for MongoDB
+	@echo "Chunking large files..."
+	@.venv/bin/python ./scripts/mongo-tools.py --chunk

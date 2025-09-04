@@ -8,6 +8,10 @@ ALLOC_CPUS=${4}
 ALLOC_GPUS=${5}
 ALLOC_RAMS=${6}
 GRAFANA_PORT=${7}
+RUN_NATIVE=${8}
+
+# echo -n "Run Server (Wait for Python server to be UP)?..."
+# read dummy
 
 # Launch Prometheus metrics for Ray
 ray metrics launch-prometheus
@@ -19,7 +23,15 @@ export RAY_GRAFANA_ORG_ID=1
 export RAY_PROMETHEUS_HOST="http://localhost:9090"
 export RAY_PROMETHEUS_NAME="Prometheus"
 
+mkdir -p /tmp/ray
+mkdir -p /tmp/spill
+sudo chown -R $(id -u):$(id -g) /tmp/ray
+chmod -R 777 /tmp/ray
+sudo chown -R $(id -u):$(id -g) /tmp/spill
+chmod -R 777 /tmp/spill
+
 # Start Ray head
+ray stop
 ray start --head \
     --port=${SERVER_RAY_PORT} \
     --num-cpus=${ALLOC_CPUS} \
@@ -30,5 +42,4 @@ ray start --head \
     --metrics-export-port=${SERVER_RAY_METRICS_EXPORT_PORT} \
     --disable-usage-stats \
     --object-spilling-directory=/tmp/spill
-
-make logs-ray
+watch -n 5 ray status

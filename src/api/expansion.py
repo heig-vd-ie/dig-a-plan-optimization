@@ -1,8 +1,10 @@
 from api import *
+from datetime import datetime
 from pydantic import Field
 from typing import Dict, List
-from pipelines.expansion.models.request import RiskMeasureType
+from pipelines.expansion.models.request import BenderCuts, RiskMeasureType
 from pipelines.expansion.models.response import ExpansionResponse
+from pipelines.helpers.json_rw import load_obj_from_json, save_obj_to_json
 
 
 class GridModel(BaseModel):
@@ -64,10 +66,11 @@ class ADMMParams(BaseModel):
     γ_infeasibility: float = Field(default=1.0, description="ADMM gamma infeasibility")
     γ_admm_penalty: float = Field(default=1.0, description="ADMM gamma ADMM penalty")
     γ_trafo_loss: float = Field(default=1e2, description="ADMM gamma transformer loss")
-    max_iters: int = Field(default=10, description="ADMM max iterations")
     μ: float = Field(default=10.0, description="ADMM mu")
     τ_incr: float = Field(default=2.0, description="ADMM tau increment")
     τ_decr: float = Field(default=2.0, description="ADMM tau decrement")
+    voll: float = Field(default=1.0, description="ADMM value of load curtailment")
+    volp: float = Field(default=1.0, description="ADMM value of production curtailment")
 
 
 class SDDPParams(BaseModel):
@@ -90,9 +93,6 @@ class SDDPParams(BaseModel):
     penalty_cost_per_production_kw: float = Field(
         default=0.05, description="Penalty cost in k$ per production per kW"
     )
-    penalty_cost_per_infeasibility_kw: float = Field(
-        default=0.1, description="Penalty cost in k$ per infeasibility per kW"
-    )
 
 
 class ExpansionInput(BaseModel):
@@ -107,17 +107,37 @@ class ExpansionInput(BaseModel):
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
     admm_params: ADMMParams = Field(description="ADMM parameters")
     sddp_params: SDDPParams = Field(description="SDDP parameters")
+    iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(
         default=1e8, description="Memory allocated for each task in bytes"
     )
 
 
+class InputObject(BaseModel):
+    expansion: ExpansionInput
+    time_now: str
+    with_ray: bool
+
+
 class ExpansionOutput(BaseModel):
     sddp_response: ExpansionResponse
 
 
-def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
+def get_session_name() -> str:
+    return datetime.now().strftime("run_%Y%m%d_%H%M%S")
+
+
+def run_expansion(
+    input: ExpansionInput, with_ray: bool, cut_file: None | str = None
+) -> ExpansionOutput:
+    session_name = get_session_name()
+    time_now = session_name
+    (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
+    save_obj_to_json(
+        InputObject(expansion=input, time_now=time_now, with_ray=with_ray),
+        Path(".cache/algorithm") / time_now / "input.json",
+    )
     _, grid_data = get_grid_case(
         GridCaseModel(
             grid_case=input.grid.kace,
@@ -134,10 +154,18 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
+        admm_voll=input.admm_params.voll,
+        admm_volp=input.admm_params.volp,
         cache_dir=Path(".cache"),
+        bender_cuts=(
+            None
+            if cut_file is None
+            else BenderCuts(**load_obj_from_json(Path(cut_file)))
+        ),
+        time_now=time_now,
         each_task_memory=input.each_task_memory,
         admm_groups=input.admm_config.groups,
-        iterations=input.admm_config.iterations,
+        iterations=input.iterations,
         n_admm_simulations=input.admm_config.n_simulations,
         seed_number=input.seed,
         time_limit=input.admm_config.time_limit,
@@ -159,8 +187,8 @@ def run_expansion(input: ExpansionInput, with_ray: bool) -> ExpansionOutput:
         expansion_transformer_cost_per_kw=input.sddp_params.expansion_transformer_cost_per_kw,
         penalty_cost_per_consumption_kw=input.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=input.sddp_params.penalty_cost_per_production_kw,
-        penalty_cost_per_infeasibility_kw=input.sddp_params.penalty_cost_per_infeasibility_kw,
         s_base=input.grid.s_base,
+        admm_max_iters=input.admm_config.iterations,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()

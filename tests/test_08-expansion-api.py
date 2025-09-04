@@ -29,3 +29,7 @@ class TestExpansionApi(ExpansionApiTestBase):
             len(data["sddp_response"]["objectives"])
             == self.payload["sddp_config"]["n_simulations"]
         )
+        assert (
+            len(data["sddp_response"]["out_of_sample_objectives"])
+            == self.payload["sddp_config"]["n_simulations"]
+        )

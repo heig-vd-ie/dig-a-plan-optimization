@@ -27,3 +27,5 @@ class Simulation(BaseModel):
 class ExpansionResponse(BaseModel):
     objectives: List[float]
     simulations: List[List[Simulation]]
+    out_of_sample_simulations: List[List[Simulation]]
+    out_of_sample_objectives: List[float]

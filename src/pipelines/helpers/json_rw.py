@@ -1,12 +1,25 @@
 from pathlib import Path
 from pydantic import BaseModel
 from typing import Dict
+from enum import Enum
 import json
+
+
+def serialize_obj(obj):
+    if isinstance(obj, BaseModel):
+        obj = obj.model_dump(by_alias=True)
+    if isinstance(obj, Enum):
+        return obj.value
+    if isinstance(obj, list):
+        return [serialize_obj(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: serialize_obj(v) for k, v in obj.items()}
+    return obj
 
 
 def save_obj_to_json(obj: BaseModel | Dict, path_filename: Path):
     json.dump(
-        obj.model_dump(by_alias=True) if isinstance(obj, BaseModel) else obj,
+        serialize_obj(obj),
         open(path_filename, "w"),
         indent=4,
         ensure_ascii=False,

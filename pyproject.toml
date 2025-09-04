@@ -35,6 +35,8 @@ uvicorn = "^0.35.0"
 ray = {extras = ["default"], version = "^2.48.0"}
 py-spy = "^0.4.1"
 polars-lts-cpu = "^1.32.3"
+pymongo = "^4.14.1"
+kaleido = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]

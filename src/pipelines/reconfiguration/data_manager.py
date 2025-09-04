@@ -14,6 +14,8 @@ class PipelineDataManager:
         big_m: float,
         ε: float,
         ρ: float,
+        voll: float = 1.0,
+        volp: float = 1.0,
         γ_infeasibility: float = 1.0,
         γ_admm_penalty: float = 1.0,
         γ_trafo_loss: float = 1.0,
@@ -30,6 +32,8 @@ class PipelineDataManager:
         self.γ_trafo_loss: float = γ_trafo_loss
         self.z: dict[int, float] | None = z
         self.λ: dict[int, float] | None = λ
+        self.voll: float = voll
+        self.volp: float = volp
         self.all_scenarios: bool = all_scenarios
 
         # patito tables for static schemas
@@ -249,6 +253,8 @@ class PipelineDataManager:
                         if self.λ is not None
                         else {switch_id: 0.0 for switch_id in switch_ids}
                     ),
+                    "voll": {None: self.voll},
+                    "volp": {None: self.volp},
                 }
             }
             for scen_id in scen_ids

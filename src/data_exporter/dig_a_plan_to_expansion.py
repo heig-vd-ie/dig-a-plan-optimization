@@ -79,14 +79,15 @@ def dig_a_plan_to_expansion(
     planning_params: PlanningParams,
     additional_params: AdditionalParams,
     scenarios_data: Scenarios,
+    out_of_sample_scenarios: Scenarios,
     s_base: float = 1e6,
     expansion_transformer_cost_per_kw: int | float = 1000,
     expansion_line_cost_per_km_kw: int | float = 1000,
     penalty_cost_per_consumption_kw: int | float = 1000,
     penalty_cost_per_production_kw: int | float = 1000,
-    penalty_cost_per_infeasibility_kw: int | float = 1000,
     bender_cuts: BenderCuts | None = None,
     scenarios_cache: Path | None = None,
+    out_of_sample_scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
     optimization_config_cache: Path | None = None,
 ) -> ExpansionRequest:
@@ -122,7 +123,7 @@ def dig_a_plan_to_expansion(
     investment_costs = {
         str(edge["edge_id"]): (
             float(expansion_line_cost_per_km_kw) * edge["length_km"] * s_base / 1e3
-            if edge["type"] == "line"
+            if edge["type"] == "branch"
             else (
                 float(expansion_transformer_cost_per_kw)
                 * edge["p_max_pu"]
@@ -148,9 +149,7 @@ def dig_a_plan_to_expansion(
         / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
-    penalty_costs_infeasibility = (
-        float(penalty_cost_per_infeasibility_kw) * s_base / 1e3
-    )
+    penalty_costs_infeasibility = s_base / 1e3
 
     grid = Grid(
         nodes=nodes,
@@ -170,6 +169,11 @@ def dig_a_plan_to_expansion(
         scenarios=(
             str(scenarios_cache) if scenarios_cache else ".cache/scenarios.json"
         ),
+        out_of_sample_scenarios=(
+            str(out_of_sample_scenarios_cache)
+            if out_of_sample_scenarios_cache
+            else ".cache/out_of_sample_scenarios.json"
+        ),
         bender_cuts=(
             str(bender_cuts_cache) if bender_cuts_cache else ".cache/bender_cuts.json"
         ),
@@ -183,5 +187,6 @@ def dig_a_plan_to_expansion(
     return ExpansionRequest(
         optimization=optimization_config,
         scenarios=scenarios_data,
-        bender_cuts=bender_cuts if bender_cuts else BenderCuts(cuts={}),
+        out_of_sample_scenarios=out_of_sample_scenarios,
+        bender_cuts=bender_cuts if bender_cuts is not None else BenderCuts(cuts={}),
     )

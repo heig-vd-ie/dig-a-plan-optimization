@@ -43,6 +43,8 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Grid structure with defaults
     grid_data = get(body, "grid", default["grid"])
     scenarios_folder = get(body, "scenarios", default["scenarios"])
+    out_of_sample_scenarios_folder =
+        get(body, "out_of_sample_scenarios", default["out_of_sample_scenarios"])
     bender_cuts_folder = get(body, "bender_cuts", default["bender_cuts"])
     planning_params = get(body, "planning_params", default["planning_params"])
 
@@ -87,6 +89,24 @@ function handle_stochastic_planning(req::HTTP.Request)
     ]
     P = [scenarios_data["P"][i] for i in 1:length(scenarios_data["P"])]
     scenarios = ExpansionModel.Types.Scenarios(Ω, P)
+
+    out_of_sample_scenarios_data = JSON3.read(
+        read(joinpath(@__DIR__, "..", "..", "..", out_of_sample_scenarios_folder), String),
+    )
+    Ω_out = [
+        [
+            ExpansionModel.Types.Scenario(
+                Dict(node => scenario1["δ_load"][string(node.id)] for node in nodes),
+                Dict(node => scenario1["δ_pv"][string(node.id)] for node in nodes),
+                scenario1["δ_b"],
+            ) for scenario1 in scenario2
+        ] for scenario2 in out_of_sample_scenarios_data["Ω"]
+    ]
+    P_out = [
+        out_of_sample_scenarios_data["P"][i] for
+        i in 1:length(out_of_sample_scenarios_data["P"])
+    ]
+    out_of_sample_scenarios = ExpansionModel.Types.Scenarios(Ω_out, P_out)
 
     n_stages = planning_params["n_stages"]
     years_per_stage = planning_params["years_per_stage"]
@@ -172,20 +192,29 @@ function handle_stochastic_planning(req::HTTP.Request)
 
     println("[$(log_datetime())] Running SDDP optimization...")
     # Call your stochastic_planning function
-    simulations, objectives = ExpansionModel.Stochastic.stochastic_planning(
-        grid,
-        scenarios,
-        params,
-        iteration_limit,
-        n_simulations,
-        risk_measure,
-        additional_params["seed"],
-    )
+    simulations, objectives, out_of_sample_simulations, out_of_sample_objectives =
+        ExpansionModel.Stochastic.stochastic_planning(
+            grid,
+            scenarios,
+            out_of_sample_scenarios,
+            params,
+            iteration_limit,
+            n_simulations,
+            risk_measure,
+            additional_params["seed"],
+        )
 
     println("[$(log_datetime())] SDDP optimization completed")
 
     # Return the response as JSON
-    response = JSON3.write(Dict("simulations" => simulations, "objectives" => objectives))
+    response = JSON3.write(
+        Dict(
+            "simulations" => simulations,
+            "objectives" => objectives,
+            "out_of_sample_simulations" => out_of_sample_simulations,
+            "out_of_sample_objectives" => out_of_sample_objectives,
+        ),
+    )
 
     return HTTP.Response(200, response)
 end

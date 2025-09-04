@@ -32,6 +32,8 @@ class DigAPlan:
             big_m=self.config.big_m,
             ε=self.config.ε,
             ρ=self.config.ρ,
+            voll=self.config.voll,
+            volp=self.config.volp,
             γ_infeasibility=self.config.γ_infeasibility,
             γ_admm_penalty=self.config.γ_admm_penalty,
             γ_trafo_loss=self.config.γ_trafo_loss,

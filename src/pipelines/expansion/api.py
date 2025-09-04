@@ -85,9 +85,16 @@ class ExpansionModel:
             cache_path = Path(__file__).parent.parent.parent / ".cache"
         cache_path.mkdir(parents=True, exist_ok=True)
         scenarios_path = expansion_request.optimization.scenarios
+        out_of_sample_scenarios_path = (
+            expansion_request.optimization.out_of_sample_scenarios
+        )
         bender_cuts_path = expansion_request.optimization.bender_cuts
         save_obj_to_json(expansion_request.bender_cuts, Path(bender_cuts_path))
         save_obj_to_json(expansion_request.scenarios, Path(scenarios_path))
+        save_obj_to_json(
+            expansion_request.out_of_sample_scenarios,
+            Path(out_of_sample_scenarios_path),
+        )
         return cache_path
 
     def run_sddp(

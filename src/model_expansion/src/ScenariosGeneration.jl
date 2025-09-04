@@ -18,10 +18,10 @@ function generate_scenarios(
     n_scenarios::Int,
     n_stages::Int,
     nodes::Vector{Types.Node};
+    seed_number::Int = 1234,
     total_load_per_node::Float64 = 2.0,
     total_pv_per_node::Float64 = 1.0,
     total_budget::Float64 = 1000.0,
-    seed_number::Int = 1234,
 )
     Random.seed!(seed_number)
     Ω = Vector{Vector{Scenario}}(undef, n_scenarios)

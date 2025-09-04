@@ -1,6 +1,7 @@
 import os
+from pydantic import BaseModel, ConfigDict
+import patito as pt
 import ray
-from datetime import datetime
 import random
 from typing import Dict, List
 from pathlib import Path
@@ -11,6 +12,7 @@ from data_exporter.dig_a_plan_to_expansion import (
     remove_switches_from_grid_data,
 )
 from data_schema import NodeEdgeModel
+from data_schema.edge_data import EdgeData
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from pipelines.expansion.api import run_sddp
 from pipelines.expansion.ltscenarios import generate_long_term_scenarios
@@ -24,7 +26,7 @@ from pipelines.expansion.models.request import (
     PlanningParams,
     RiskMeasureType,
 )
-from pipelines.expansion.models.response import ExpansionResponse
+from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
@@ -56,7 +58,11 @@ class ExpansionAlgorithm:
         self,
         grid_data: NodeEdgeModel,
         each_task_memory: float,
+        time_now: str,
         cache_dir: Path,
+        bender_cuts: BenderCuts | None = None,
+        admm_voll: float = 1.0,
+        admm_volp: float = 1.0,
         admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
         n_admm_simulations: int = 10,
@@ -81,7 +87,6 @@ class ExpansionAlgorithm:
         expansion_line_cost_per_km_kw: float = 1e3,
         penalty_cost_per_consumption_kw: float = 1e3,
         penalty_cost_per_production_kw: float = 1e3,
-        penalty_cost_per_infeasibility_kw: float = 1e3,
         s_base: float = 1e6,
         admm_big_m: float = 1e3,
         admm_ε: float = 1e-4,
@@ -97,6 +102,8 @@ class ExpansionAlgorithm:
     ):
         self.grid_data = grid_data
         self.cache_dir = cache_dir
+        self.admm_voll = admm_voll
+        self.admm_volp = admm_volp
         self.each_task_memory = each_task_memory
         self.admm_groups = admm_groups
         self.iterations = iterations
@@ -110,7 +117,6 @@ class ExpansionAlgorithm:
         self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
         self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
         self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
-        self.penalty_cost_per_infeasibility_kw = penalty_cost_per_infeasibility_kw
         self.s_base = s_base
         self.admm_big_m = admm_big_m
         self.admm_ε = admm_ε
@@ -144,13 +150,18 @@ class ExpansionAlgorithm:
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
+            seed_number=self.seed_number,
         )
-        self.create_bender_cuts()
-        self.cache_dir_run = (
-            self.cache_dir
-            / "algorithm"
-            / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.create_out_of_sample_scenario_data(
+            δ_load_var=δ_load_var,
+            δ_pv_var=δ_pv_var,
+            δ_b_var=δ_b_var,
+            number_of_scenarios=number_of_sddp_scenarios,
+            number_of_stages=n_stages,
+            seed_number=self.seed_number + 1000,
         )
+        self.create_bender_cuts(bender_cuts=bender_cuts)
+        self.cache_dir_run = self.cache_dir / "algorithm" / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):
@@ -181,6 +192,7 @@ class ExpansionAlgorithm:
         δ_b_var=0.1,
         number_of_scenarios=10,
         number_of_stages=3,
+        seed_number=1000,
     ):
         """Generate long-term scenarios with configurable parameters."""
         self.scenario_data = generate_long_term_scenarios(
@@ -190,7 +202,27 @@ class ExpansionAlgorithm:
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_scenarios,
             number_of_stages=number_of_stages,
-            seed_number=self.seed_number,
+            seed_number=seed_number,
+        )
+
+    def create_out_of_sample_scenario_data(
+        self,
+        δ_load_var=0.1,
+        δ_pv_var=0.1,
+        δ_b_var=0.1,
+        number_of_scenarios=10,
+        number_of_stages=3,
+        seed_number=1000,
+    ):
+        """Generate long-term scenarios with configurable parameters."""
+        self.out_of_sample_scenarios = generate_long_term_scenarios(
+            nodes=self.grid_data_rm.node_data,
+            δ_load_var=δ_load_var,
+            δ_pv_var=δ_pv_var,
+            δ_b_var=δ_b_var,
+            number_of_scenarios=number_of_scenarios,
+            number_of_stages=number_of_stages,
+            seed_number=seed_number,
         )
 
     def create_additional_params(
@@ -209,9 +241,9 @@ class ExpansionAlgorithm:
             seed=self.seed_number,
         )
 
-    def create_bender_cuts(self, cuts=None):
+    def create_bender_cuts(self, bender_cuts: BenderCuts | None):
         """Create Bender cuts with default or custom values."""
-        self.bender_cuts = BenderCuts(cuts=cuts or {})
+        self.bender_cuts = BenderCuts(cuts={}) if bender_cuts is None else bender_cuts
 
     def create_expansion_request(self):
         """Create expansion request with provided or default parameters."""
@@ -224,10 +256,12 @@ class ExpansionAlgorithm:
             expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
             penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
-            penalty_cost_per_infeasibility_kw=self.penalty_cost_per_infeasibility_kw,
             scenarios_data=self.scenario_data,
+            out_of_sample_scenarios=self.out_of_sample_scenarios,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
+            out_of_sample_scenarios_cache=self.cache_dir_run
+            / "out_of_sample_scenarios.json",
             bender_cuts_cache=self.cache_dir_run / "bender_cuts.json",
             optimization_config_cache=self.cache_dir_run / "optimization_config.json",
         )
@@ -267,6 +301,7 @@ class ExpansionAlgorithm:
         self.expansion_request = ExpansionRequest(
             optimization=opt_config,
             scenarios=self.expansion_request.scenarios,
+            out_of_sample_scenarios=self.expansion_request.out_of_sample_scenarios,
             bender_cuts=final_cuts,
         )
 
@@ -277,6 +312,8 @@ class ExpansionAlgorithm:
     def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(
+            volp=self.admm_volp,
+            voll=self.admm_voll,
             groups=self.admm_groups,
             grid_data=self.grid_data,
             solver_non_convex=self.solver_non_convex,
@@ -292,49 +329,79 @@ class ExpansionAlgorithm:
             τ_incr=self.admm_τ_incr,
             τ_decr=self.admm_τ_decr,
         )
+        (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
             self.check_ray()
             heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
-            sddp_response_ref = ray.put(sddp_response)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
-                (stage, ω): heavy_task_remote.remote(
-                    self.n_admm_simulations,
-                    sddp_response_ref,
+                self._cut_number(ι, stage, ω): heavy_task_remote.remote(
+                    sddp_response.simulations[
+                        random.randint(0, self.n_admm_simulations - 1)
+                    ][stage - 1],
                     admm_ref,
-                    stage,
                     node_ids_ref,
                     edge_ids_ref,
                 )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.n_admm_simulations)
             }
+            future_results = {
+                (ω, stage): ray.get(futures[self._cut_number(ι, stage, ω)])
+                for stage in self._range(self.n_stages)
+                for ω in self._range(self.n_admm_simulations)
+            }
+            for (ω, stage), result in future_results.items():
+                print(result)
+                print(f"ADMM Result (ω={ω}, stage={stage}): {result.admm_results}")
+                print(f"Bender Cut (ω={ω}, stage={stage}): {result.bender_cut}")
             bender_cuts = BenderCuts(
                 cuts={
-                    self._cut_number(ι, stage, ω): ray.get(futures[(stage, ω)])
+                    self._cut_number(ι, stage, ω): future_results[(ω, stage)].bender_cut
                     for stage in self._range(self.n_stages)
                     for ω in self._range(self.n_admm_simulations)
                 }
             )
+            admm_results = {
+                self._cut_number(ι, stage, ω): future_results[(ω, stage)].admm_results
+                for stage in self._range(self.n_stages)
+                for ω in self._range(self.n_admm_simulations)
+            }
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
+            admm_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
                     self._range(self.n_admm_simulations), desc="scenarios"
                 ):
-                    bender_cut = heavy_task(
-                        n_simulations=self.n_admm_simulations,
-                        sddp_response=sddp_response,
+                    rand_ω = random.randint(0, self.n_admm_simulations - 1)
+                    sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
+                    heavy_task_output = heavy_task(
+                        sddp_simulation=sddp_simulation,
                         admm=admm,
-                        stage=stage,
                         node_ids=self.node_ids,
                         edge_ids=self.edge_ids,
                     )
-                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = bender_cut
+                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
+                        heavy_task_output.bender_cut
+                    )
+                    admm_results[self._cut_number(ι, stage, ω)] = (
+                        heavy_task_output.admm_results
+                    )
+
+        for stage in self._range(self.n_stages):
+            for ω in self._range(self.n_admm_simulations):
+                save_obj_to_json(
+                    obj=admm_results[self._cut_number(ι, stage, ω)],
+                    path_filename=self.cache_dir_run
+                    / "admm"
+                    / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
+                )
+
         return bender_cuts
 
     def _cut_number(self, ι: int, stage: int, ω: int) -> str:
@@ -358,6 +425,7 @@ class ExpansionAlgorithm:
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
         self.create_expansion_request()
+        ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
             admm_response = self.run_admm(sddp_response=sddp_response, ι=ι)
@@ -377,17 +445,42 @@ def _calculate_cuts(
     df = (
         admm_result.duals.filter(c("name").is_in(constraint_names))[["id", "value"]]
         .group_by("id")
-        .agg(c("value").sum().alias("value"))
+        .agg(c("value").abs().sum().alias("value"))
     )
     return {row["id"]: row["value"] for row in df.to_dicts()}
 
 
-def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCut:
+def _calculate_ftrs(
+    λ_load: Dict[str, float],
+    λ_pv: Dict[str, float],
+    edges: pt.DataFrame[EdgeData],
+) -> Dict[str, float]:
+    return {
+        str(row["edge_id"]): -(
+            abs(
+                λ_load.get(str(row["u_of_edge"]), 0)
+                - λ_load.get(str(row["v_of_edge"]), 0)
+            )
+            + abs(
+                λ_pv.get(str(row["v_of_edge"]), 0) - λ_pv.get(str(row["u_of_edge"]), 0)
+            )
+        )
+        / 2
+        for row in edges.iter_rows(named=True)
+    }
+
+
+def _transform_admm_result_into_bender_cuts(
+    admm_result: ADMMResult, edges: pt.DataFrame[EdgeData]
+) -> BenderCut:
     """Transform ADMM results into Bender cuts."""
+    λ_load = _calculate_cuts(admm_result, ["installed_cons"])
+    λ_pv = _calculate_cuts(admm_result, ["installed_prod"])
+    λ_cap = _calculate_ftrs(λ_load, λ_pv, edges)
     return BenderCut(
-        λ_load=_calculate_cuts(admm_result, ["installed_cons"]),
-        λ_pv=_calculate_cuts(admm_result, ["installed_prod"]),
-        λ_cap=_calculate_cuts(admm_result, ["current_limit", "current_limit_tr"]),
+        λ_load=λ_load,
+        λ_pv=λ_pv,
+        λ_cap=λ_cap,
         load0={
             str(row["node_id"]): row["cons_installed"]
             for row in admm_result.load0.to_dicts()
@@ -403,26 +496,31 @@ def _transform_admm_result_into_bender_cuts(admm_result: ADMMResult) -> BenderCu
     )
 
 
+class HeavyTaskOutput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    bender_cut: BenderCut
+    admm_results: Dict
+
+
 def heavy_task(
-    n_simulations: int,
-    sddp_response: ExpansionResponse,
+    sddp_simulation: Simulation,
     admm: ADMM,
-    stage: int,
     node_ids: List[int],
     edge_ids: List[int],
-):
+) -> HeavyTaskOutput:
     import os
 
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
-
-    rand_ω = random.randint(0, n_simulations - 1)
     admm.update_grid_data(
-        δ_load=sddp_response.simulations[rand_ω][stage - 1].δ_load,
-        δ_pv=sddp_response.simulations[rand_ω][stage - 1].δ_pv,
+        δ_load=sddp_simulation.δ_load,
+        δ_pv=sddp_simulation.δ_pv,
         node_ids=node_ids,
-        δ_cap=sddp_response.simulations[rand_ω][stage - 1].δ_cap,
+        δ_cap=sddp_simulation.δ_cap,
         edge_ids=edge_ids,
     )
     admm_results = admm.solve()
-    bender_cut = _transform_admm_result_into_bender_cuts(admm_results)
-    return bender_cut
+    edges = admm.grid_data.edge_data
+    bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
+
+    return HeavyTaskOutput(bender_cut=bender_cut, admm_results=admm_results.results)

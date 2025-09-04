@@ -186,12 +186,16 @@ class PipelineResultManager:
             raise NotImplementedError("ADMM dual extraction is not implemented")
         duals = []
         for scenario, ω in enumerate(self.model_manager.Ω):
-            duals.append(
-                self.extract_dual_variables(scenario=scenario).with_columns(
+            dual = (
+                self.extract_dual_variables(scenario=scenario)
+                .with_columns(
                     c("name").map_elements(lambda x: x.name, return_dtype=pl.Utf8),
                     (pl.lit(ω).alias("ω")),
                 )
+                .drop_nulls(subset="value")
             )
+            if not dual.is_empty():
+                duals.append(dual)
         duals_df: pl.DataFrame = pl.concat(duals, how="vertical")
         duals_df = (
             duals_df.with_columns(
@@ -213,7 +217,7 @@ class PipelineResultManager:
                 ]
             )
             .group_by(["name", "id", "ω"])
-            .agg(c("value").sum().alias("value"))
+            .agg(c("value").abs().sum().alias("value"))
         ).sort(["name", "id", "ω"])
         return duals_df
 
