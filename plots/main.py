@@ -2,10 +2,11 @@
 import os
 
 os.chdir(os.getcwd().replace("/src", ""))
-# %%
+
 from plots import *
 
-config = Config(
+
+my_config = MongoConfig(
     start_collection="run_20250903_114427",
     end_collection="run_20250903_142621",
     mongodb_port=27017,
@@ -17,30 +18,19 @@ config = Config(
 )
 
 
-my_client = MyMongoClient(config)
+client = MyMongoClient(my_config)
+client.connect()
+client.load_collections()
 
-# %% Plot objectives
-df = my_client.get_dataframe("objectives")
+objectives_df = client.extract_objectives()
 
-viz = MyObjectivePlotter(df, config, "objectives")
+# %%
 
+viz = MyObjectivePlotter(objectives_df, my_config, "objective_value")
 fig_hist = viz.create_histogram_plot()
 fig_box = viz.create_box_plot()
 fig_scatter = viz.create_scatter_plot()
 fig_hist.show()
 fig_box.show()
 fig_scatter.show()
-
-# %% Plot Investment
-df = my_client.get_dataframe("investment_cost")
-
-viz = MyObjectivePlotter(df, config, "investment_cost")
-
-fig_hist = viz.create_histogram_plot()
-fig_box = viz.create_box_plot()
-fig_scatter = viz.create_scatter_plot()
-fig_hist.show()
-fig_box.show()
-fig_scatter.show()
-
 # %%

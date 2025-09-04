@@ -1,10 +1,12 @@
-from plots.mongo_client import Config, MyMongoClient
-from plots.objectives import MyObjectivePlotter
+from .mongo_client import MongoConfig, MyMongoClient, CursorConfig, FieldExtractor
+from .objectives import MyObjectivePlotter
 
 
 __version__ = "1.0.0"
 __all__ = [
-    "Config",
+    "MongoConfig",
     "MyMongoClient",
+    "CursorConfig",
+    "FieldExtractor",
     "MyObjectivePlotter",
 ]

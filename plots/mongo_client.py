@@ -2,61 +2,59 @@ from dataclasses import dataclass
 import re
 import json
 import base64
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional, Callable, Union
 import pandas as pd
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.collection import Collection
+from pymongo.cursor import Cursor
 
 
 @dataclass
-class Config:
-    start_collection: str = "run_20250902_110438"
-    end_collection: str = "run_20250902_130518"
+class MongoConfig:
     mongodb_port: int = 27017
     mongodb_host: str = "localhost"
     database_name: str = "optimization"
+    histogram_bins: int = 50
     plot_width: int = 1000
     plot_height: int = 600
-    histogram_bins: int = 50
+    start_collection: str = ""
+    end_collection: str = ""
 
 
-def get_collections_in_range(
-    db: Database,
-    start_collection: str,
-    end_collection: str,
-) -> List[str]:
-    all_collections = db.list_collection_names()
-    run_collections = []
-    run_pattern = re.compile(r"^run_(\d{8})_(\d{6})$")
+@dataclass
+class FieldExtractor:
+    field_path: str
+    output_name: Optional[str] = None
+    transform_func: Optional[Callable[[Any], Any]] = None
 
-    for collection_name in all_collections:
-        match = run_pattern.match(collection_name)
-        if match:
-            run_collections.append(collection_name)
-
-    run_collections.sort()
-    matching_collections = []
-
-    for collection_name in run_collections:
-        include = True
-        if collection_name < start_collection:
-            include = False
-        elif collection_name > end_collection:
-            include = False
-
-        if include:
-            matching_collections.append(collection_name)
-
-    return matching_collections
+    def __post_init__(self):
+        if self.output_name is None:
+            self.output_name = self.field_path.replace(".", "_")
 
 
-def connect_to_database(host: str, port: int, database_name: str) -> Database:
-    client = MongoClient(host, int(port))
-    return client[database_name]
+@dataclass
+class CursorConfig:
+    filter_query: Dict[str, Any]
+    projection: Optional[Dict[str, int]] = None
+    sort: Optional[List[Tuple[str, int]]] = None
+    limit: Optional[int] = None
 
 
-def decode_document_data(data: bytes | str | dict) -> dict:
+def extract_nested_field(doc: Dict[str, Any], field_path: str) -> Any:
+    keys = field_path.split(".")
+    value = doc
+
+    for key in keys:
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            return None
+
+    return value
+
+
+def decode_document_data(data: Union[bytes, str, dict]) -> dict:
     if isinstance(data, bytes):
         try:
             decoded_data = data.decode("utf-8")
@@ -77,105 +75,43 @@ def decode_document_data(data: bytes | str | dict) -> dict:
     raise ValueError("Unsupported data type")
 
 
-def extract_risk_parameters(config: Any) -> Tuple[str | None, str | None]:
-    risk_method = None
-    risk_parameter = None
-
-    if "expansion" in config and "sddp_params" in config["expansion"]:
-        sddp_params = config["expansion"]["sddp_params"]
-        risk_method = sddp_params.get("risk_measure_type")
-        risk_parameter = sddp_params.get("risk_measure_param")
-
-    if risk_method is None or risk_parameter is None:
-        if "sddp_params" in config:
-            sddp_params = config["sddp_params"]
-            risk_method = risk_method or sddp_params.get("risk_measure_type")
-            risk_parameter = risk_parameter or sddp_params.get("risk_measure_param")
-
-        for field in ["risk_method", "risk_type", "method", "approach"]:
-            if field in config and risk_method is None:
-                risk_method = config[field]
-                break
-
-        for field in [
-            "risk_parameter",
-            "risk_param",
-            "epsilon",
-            "alpha",
-            "beta",
-            "parameter",
-        ]:
-            if field in config and risk_parameter is None:
-                risk_parameter = config[field]
-                break
-
-    return risk_method, risk_parameter
+def connect_to_database(host: str, port: int, database_name: str) -> Database:
+    client = MongoClient(host, int(port))
+    return client[database_name]
 
 
-def find_risk_config_in_collection(
-    collection: Collection,
-) -> Tuple[str | None, str | None, dict]:
-    try:
-        input_doc = collection.find_one({"_source_file": "input.json"})
-        if input_doc is None:
-            input_doc = collection.find_one({"filename": "input.json"})
-        if input_doc is None:
-            input_doc = collection.find_one({"name": "input.json"})
-        if input_doc is None:
-            input_doc = collection.find_one(
-                {
-                    "$or": [
-                        {"_source_file": {"$regex": "input"}},
-                        {"filename": {"$regex": "input"}},
-                        {"name": {"$regex": "input"}},
-                    ]
-                }
-            )
+def extract_file_metadata(filename: str) -> Dict[str, Any]:
+    metadata: Dict[str, Any] = {"filename": filename}
 
-        if input_doc is None:
-            return "Unknown", None, {}
+    # Extract iteration number from sddp_response pattern
+    iteration_match = re.search(r"sddp_response_(\d+)", filename)
+    if iteration_match:
+        metadata["iteration"] = int(iteration_match.group(1))
+        metadata["file_type"] = "sddp_response"
 
-        config = input_doc
-        if "data" in input_doc:
-            config = decode_document_data(input_doc["data"])
+    # Extract ADMM iteration, stage, scenario
+    admm_match = re.search(r"admm_result_iter(\d+)_stage(\d+)_scen(\d+)", filename)
+    if admm_match:
+        metadata["iteration"] = int(admm_match.group(1))
+        metadata["stage"] = int(admm_match.group(2))
+        metadata["scenario"] = int(admm_match.group(3))
+        metadata["file_type"] = "admm_result"
 
-        risk_method, risk_parameter = extract_risk_parameters(config)
-        return risk_method or "Unknown", risk_parameter, config
+    # Extract timestamp patterns
+    timestamp_match = re.search(r"(\d{8}_\d{6})", filename)
+    if timestamp_match:
+        metadata["timestamp"] = timestamp_match.group(1)
 
-    except Exception as e:
-        print(f"Error extracting risk info: {e}")
-        return "Error", None, {}
+    return metadata
 
 
-@dataclass
-class RiskInfo:
-    method: str
-    parameter: str | None
-    config: dict
-    collection_name: str
-
-
-def build_risk_info_from_collection(db: Database, collection_name: str) -> RiskInfo:
-    collection = db[collection_name]
-    risk_method, risk_parameter, config = find_risk_config_in_collection(collection)
-
-    return RiskInfo(
-        method=risk_method or "Unknown",
-        parameter=risk_parameter,
-        config=config,
-        collection_name=collection_name,
-    )
-
-
-class MyMongoClient:
-    def __init__(self, config: Config):
+class GeneralMongoClient:
+    def __init__(self, config: MongoConfig):
         self.config = config
-        self.db: Database | None = None
+        self.db: Optional[Database] = None
         self.collections: List[str] = []
-        self.risk_info: List[RiskInfo] = []
-        self.df: pd.DataFrame | None = None
 
-    def connect(self):
+    def connect(self) -> "GeneralMongoClient":
         self.db = connect_to_database(
             self.config.mongodb_host,
             self.config.mongodb_port,
@@ -183,154 +119,266 @@ class MyMongoClient:
         )
         return self
 
-    def load_collections(self):
+    def load_collections(self) -> "GeneralMongoClient":
         if self.db is None:
             raise ValueError(
                 "Database connection not established. Run connect() first."
             )
-        self.collections = get_collections_in_range(
-            self.db,
-            self.config.start_collection,
-            self.config.end_collection,
-        )
+
+        all_collections = self.db.list_collection_names()
+
+        all_collections.sort()
+        self.collections = [
+            name
+            for name in all_collections
+            if self.config.start_collection <= name <= self.config.end_collection
+        ]
+
         return self
 
-    def extract_risk_info(self):
-        if self.db is None:
-            raise ValueError(
-                "Database connection not established. Run connect() first."
-            )
-        self.risk_info = []
-        for collection_name in self.collections:
-            risk_info = build_risk_info_from_collection(self.db, collection_name)
-            self.risk_info.append(risk_info)
-        return self
-
-    def create_data(
+    def extract_data_with_cursors(
         self,
-        collections_dict: Dict[str, Collection],
-        risk_info_dict: Dict[str, Dict[str, Any]],
-        field: str,
+        cursor_configs: Dict[str, CursorConfig],
+        field_extractors: List[FieldExtractor],
+        collection_subset: Optional[List[str]] = None,
+        include_metadata: bool = True,
     ) -> pd.DataFrame:
-        if field == "investment_cost":
-            cursors = {
-                name: collection.find(
-                    {}, {"simulations": 1, "_source_file": 1, "_id": 0}
-                )
-                for name, collection in collections_dict.items()
-            }
-        else:
-            cursors = {
-                name: collection.find({}, {field: 1, "_source_file": 1, "_id": 0})
-                for name, collection in collections_dict.items()
-            }
+        if self.db is None:
+            raise ValueError(
+                "Database connection not established. Run connect() first."
+            )
 
-        data = {}
-        dfs = {}
+        target_collections = collection_subset or self.collections
+        all_data = []
 
-        for name, cursor in cursors.items():
-            data[name] = []
-            risk_method = risk_info_dict[name]["method"]
-            risk_param = risk_info_dict[name]["parameter"]
+        for collection_name in target_collections:
+            collection = self.db[collection_name]
+
+            cursor_config = cursor_configs.get(
+                collection_name, CursorConfig(filter_query={})
+            )
+
+            cursor = collection.find(
+                cursor_config.filter_query, cursor_config.projection
+            )
+
+            if cursor_config.sort:
+                cursor = cursor.sort(cursor_config.sort)
+            if cursor_config.limit:
+                cursor = cursor.limit(cursor_config.limit)
 
             for doc in cursor:
-                file_name = doc.get("_source_file", "unknown")
+                base_row: Dict[str, Any] = {"collection": collection_name}
 
-                if field == "investment_cost":
-                    # Handle nested simulations data
-                    simulations = doc.get("simulations", [])
-                    for sim_idx, simulation in enumerate(simulations):
-                        if isinstance(simulation, list):
-                            for stage_idx, stage in enumerate(simulation):
-                                if isinstance(stage, dict):
-                                    # Extract iteration number from sddp_response_ pattern
-                                    iteration_match = re.search(
-                                        r"sddp_response_(\d+)", file_name
-                                    )
-                                    iteration = (
-                                        int(iteration_match.group(1))
-                                        if iteration_match
-                                        else 0
-                                    )
+                if include_metadata:
+                    source_file = doc.get(
+                        "_source_file", doc.get("filename", "unknown")
+                    )
+                    file_metadata = extract_file_metadata(source_file)
+                    base_row.update(file_metadata)
 
-                                    # Create a row with all stage data
-                                    row_data = {
-                                        "simulation": sim_idx,
-                                        "stage": stage_idx,
-                                        "iteration": iteration,
-                                        "risk_method": risk_method,
-                                        "risk_parameter": risk_param,
-                                        "risk_label": f"{risk_method}"
-                                        + (
-                                            f" ({risk_param})"
-                                            if risk_method == "Wasserstein"
-                                            else ""
-                                        ),
-                                    }
+                # Extract requested fields
+                extracted_data = {}
+                for extractor in field_extractors:
+                    value = extract_nested_field(doc, extractor.field_path)
 
-                                    # Add all fields from the stage
-                                    for key, value in stage.items():
-                                        row_data[key] = value
+                    if extractor.transform_func and value is not None:
+                        value = extractor.transform_func(value)
 
-                                    data[name].append(row_data)
+                    extracted_data[extractor.output_name] = value
+
+                if any(isinstance(extracted_data[key], list) for key in extracted_data):
+                    # If any field is a list, create multiple rows
+                    max_length = max(
+                        len(val) if isinstance(val, list) else 1
+                        for val in extracted_data.values()
+                    )
+
+                    for i in range(max_length):
+                        row: Dict[str, Any] = base_row.copy()
+                        for key, value in extracted_data.items():
+                            if isinstance(value, list) and i < len(value):
+                                row[key] = value[i]
+                            elif not isinstance(value, list):
+                                row[key] = value
+                            else:
+                                row[key] = None
+                        row["list_index"] = i
+                        all_data.append(row)
                 else:
-                    # Handle regular field data (existing logic)
-                    for obj in doc.get(field, []):
-                        # Extract iteration number from sddp_response_ pattern
-                        iteration_match = re.search(r"sddp_response_(\d+)", file_name)
-                        iteration = (
-                            int(iteration_match.group(1)) if iteration_match else 0
-                        )
+                    # Single row
+                    row: Dict[str, Any] = base_row.copy()
+                    row.update(extracted_data)
+                    all_data.append(row)
 
-                        data[name].append(
-                            {
-                                field: obj,
-                                "iteration": iteration,
-                                "risk_method": risk_method,
-                                "risk_parameter": risk_param,
-                                "risk_label": f"{risk_method}"
-                                + (
-                                    f" ({risk_param})"
-                                    if risk_method == "Wasserstein"
-                                    else ""
-                                ),
-                            }
-                        )
+        return pd.DataFrame(all_data)
 
-            dfs[name] = pd.DataFrame(data[name])
-            dfs[name]["source"] = name
-
-        df_all = pd.concat(dfs.values(), ignore_index=True)
-
-        return df_all
-
-    def process_data(self, field: str):
-        if not self.risk_info:
-            raise ValueError(
-                "No risk information available. Run extract_risk_info() first."
-            )
-
+    def extract_simulations_data(
+        self,
+        cursor_configs: Dict[str, CursorConfig],
+        collection_subset: Optional[List[str]] = None,
+        include_metadata: bool = True,
+    ) -> pd.DataFrame:
         if self.db is None:
             raise ValueError(
                 "Database connection not established. Run connect() first."
             )
 
-        collections_dict = {}
-        risk_info_dict = {}
+        target_collections = collection_subset or self.collections
+        all_data = []
 
-        for info in self.risk_info:
-            collection_name = info.collection_name
-            collections_dict[collection_name] = self.db[collection_name]
-            risk_info_dict[collection_name] = {
-                "method": info.method,
-                "parameter": info.parameter,
-            }
+        for collection_name in target_collections:
+            collection = self.db[collection_name]
 
-        self.df = self.create_data(collections_dict, risk_info_dict, field)
+            cursor_config = cursor_configs.get(
+                collection_name, CursorConfig(filter_query={})
+            )
+            cursor = collection.find(
+                cursor_config.filter_query, cursor_config.projection
+            )
+
+            if cursor_config.sort:
+                cursor = cursor.sort(cursor_config.sort)
+            if cursor_config.limit:
+                cursor = cursor.limit(cursor_config.limit)
+
+            for doc in cursor:
+                base_row: Dict[str, Any] = {"collection": collection_name}
+
+                if include_metadata:
+                    source_file = doc.get(
+                        "_source_file", doc.get("filename", "unknown")
+                    )
+                    file_metadata = extract_file_metadata(source_file)
+                    base_row.update(file_metadata)
+
+                # Handle simulations data structure
+                simulations = doc.get("simulations", [])
+                for sim_idx, simulation in enumerate(simulations):
+                    if isinstance(simulation, list):
+                        for stage_idx, stage in enumerate(simulation):
+                            if isinstance(stage, dict):
+                                row: Dict[str, Any] = base_row.copy()
+                                row.update(
+                                    {
+                                        "simulation": sim_idx,
+                                        "stage": stage_idx,
+                                        **stage,
+                                    }
+                                )
+                                all_data.append(row)
+
+        return pd.DataFrame(all_data)
+
+    def get_sample_document(self, collection_name: str, limit: int = 1) -> List[Dict]:
+        if self.db is None:
+            raise ValueError(
+                "Database connection not established. Run connect() first."
+            )
+
+        collection = self.db[collection_name]
+        return list(collection.find({}).limit(limit))
+
+
+class MyMongoClient(GeneralMongoClient):
+    def __init__(self, config: MongoConfig):
+        super().__init__(config)
+        self.risk_info: List[Any] = []
+        self.df: Optional[pd.DataFrame] = None
+
+    def extract_risk_info(self) -> "MyMongoClient":
+        if self.db is None:
+            raise ValueError(
+                "Database connection not established. Run connect() first."
+            )
+
+        self.risk_info = []
+
+        for collection_name in self.collections:
+            collection = self.db[collection_name]
+
+            for doc in collection.find(
+                {
+                    "$or": [
+                        {"additional_params": {"$exists": True}},
+                        {"planning_params": {"$exists": True}},
+                        {"_source_file": {"$regex": "input|config|request"}},
+                    ]
+                }
+            ):
+                risk_data: Dict[str, Any] = {"collection": collection_name}
+
+                if "additional_params" in doc:
+                    params = doc["additional_params"]
+                    if isinstance(params, dict):
+                        risk_data["risk_measure_type"] = params.get("risk_measure_type")
+                        risk_data["risk_measure_param"] = params.get(
+                            "risk_measure_param"
+                        )
+                        risk_data["n_simulations"] = params.get("n_simulations")
+                        risk_data["iteration_limit"] = params.get("iteration_limit")
+                        risk_data["seed"] = params.get("seed")
+
+                if "planning_params" in doc:
+                    params = doc["planning_params"]
+                    if isinstance(params, dict):
+                        risk_data["planning_risk_type"] = params.get(
+                            "risk_measure_type"
+                        )
+                        risk_data["planning_risk_param"] = params.get(
+                            "risk_measure_param"
+                        )
+
+                risk_data["source_file"] = doc.get("_source_file", "unknown")
+
+                if any(key.startswith("risk_") for key in risk_data.keys()):
+                    self.risk_info.append(risk_data)
+
         return self
 
-    def get_dataframe(self, field: str) -> pd.DataFrame:
-        self.connect().load_collections().extract_risk_info().process_data(field)
-        if self.df is None:
-            raise ValueError("DataFrame is not available. Run process_data() first.")
-        return self.df
+    def _extract_objectives(self) -> pd.DataFrame:
+        cursor_configs = {
+            collection_name: CursorConfig(
+                filter_query={"_source_file": {"$regex": "sddp_response"}},
+                projection={"objectives": 1, "_source_file": 1, "_id": 0},
+            )
+            for collection_name in self.collections
+        }
+
+        field_extractors = [
+            FieldExtractor(field_path="objectives", output_name="objective_value")
+        ]
+
+        return self.extract_data_with_cursors(
+            cursor_configs=cursor_configs,
+            field_extractors=field_extractors,
+            include_metadata=True,
+        )
+
+    def extract_objectives(self) -> pd.DataFrame:
+
+        objectives_df = self._extract_objectives()
+        self.extract_risk_info()
+        risk_df = pd.DataFrame(self.risk_info)
+
+        risk_mapping = risk_df.set_index("collection")[
+            ["risk_measure_type", "risk_measure_param"]
+        ].to_dict("index")
+
+        objectives_df = objectives_df.copy()
+        objectives_df["risk_method"] = objectives_df["collection"].map(
+            lambda x: risk_mapping.get(x, {}).get("risk_measure_type", "Unknown")
+        )
+        objectives_df["risk_param"] = objectives_df["collection"].map(
+            lambda x: risk_mapping.get(x, {}).get("risk_measure_param", None)
+        )
+        objectives_df["risk_label"] = objectives_df.apply(
+            lambda row: (
+                f"{row['risk_method']} (α={row['risk_param']})"
+                if row["risk_param"] is not None
+                else row["risk_method"]
+            ),
+            axis=1,
+        )
+
+        return objectives_df

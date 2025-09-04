@@ -1,10 +1,10 @@
 import pandas as pd
 import plotly.express as px
-from plots.mongo_client import Config
+from .mongo_client import MongoConfig
 
 
 class MyObjectivePlotter:
-    def __init__(self, df: pd.DataFrame, config: Config, field: str):
+    def __init__(self, df: pd.DataFrame, config: MongoConfig, field: str):
         self.df = df
         self.config = config
         self.field = field
