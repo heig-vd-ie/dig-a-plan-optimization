@@ -53,12 +53,12 @@ else:
 # %%
 
 viz = MyPlotter(objectives_df, "objective_value")
-fig_hist = viz.create_histogram_plot(field_name="CAPEX ($)")
-fig_box = viz.create_box_plot()
-fig_scatter = viz.create_scatter_plot()
+fig_hist = viz.create_histogram_plot(
+    field_name="CAPEX ($)", save_name="objective_histogram", nbins=50
+)
 fig_hist.show()
-# fig_box.show()
-# fig_scatter.show()
+fig_box = viz.create_box_plot(field_name="CAPEX ($)", save_name="objective_boxplot")
+fig_box.show()
 
 # %%
 
