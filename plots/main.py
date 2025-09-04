@@ -40,7 +40,7 @@ if to_extract := False:
     s_norm_data.to_parquet(".cache/final_results/s_norm.parquet")
 else:
     objectives_df = pd.read_parquet(".cache/final_results/objectives.parquet")
-    # simulations_df = pd.read_parquet(".cache/final_results/simulations.parquet")
+    simulations_df = pd.read_parquet(".cache/final_results/simulations.parquet")
     # voltage_data = pd.read_parquet(".cache/final_results/voltage.parquet")
     # current_data = pd.read_parquet(".cache/final_results/current.parquet")
     # real_power_data = pd.read_parquet(".cache/final_results/real_power.parquet")
@@ -52,14 +52,38 @@ else:
 
 # %%
 
-viz = MyPlotter(objectives_df, "objective_value")
+viz = MyPlotter()
 fig_hist = viz.create_histogram_plot(
-    field_name="CAPEX ($)", save_name="objective_histogram", nbins=50
+    objectives_df,
+    field="objective_value",
+    field_name="CAPEX ($)",
+    save_name="objective_histogram",
+    nbins=50,
 )
 fig_hist.show()
-fig_box = viz.create_box_plot(field_name="CAPEX ($)", save_name="objective_boxplot")
+fig_box = viz.create_box_plot(
+    objectives_df,
+    field="objective_value",
+    field_name="CAPEX ($)",
+    save_name="objective_boxplot",
+)
 fig_box.show()
 
+# %%
+simulations_df["final_cap"] = simulations_df["cap"].apply(
+    lambda x: sum([i["out"] for i in x])
+)
+
+for risk_label in ["Expectation (α=0.1)", "WorstCase (α=0.1)", "Wasserstein (α=0.1)"]:
+    fig_cap = viz.create_parallel_coordinates_plot(
+        simulations_df,
+        field="Capacity (MW)",
+        stage_col="stage",
+        risk_label=risk_label,
+        value_col="final_cap",
+        save_name=f"Capacity_Evolution_{risk_label.replace(' ', '_')}",
+    )
+    fig_cap.show()
 # %%
 
 
