@@ -382,3 +382,44 @@ class MyMongoClient(GeneralMongoClient):
         )
 
         return objectives_df
+
+    def _extract_simulations(self) -> pd.DataFrame:
+        cursor_configs = {
+            collection_name: CursorConfig(
+                filter_query={"_source_file": {"$regex": "sddp_response"}},
+                projection={"simulations": 1, "_source_file": 1, "_id": 0},
+            )
+            for collection_name in self.collections
+        }
+
+        return self.extract_simulations_data(
+            cursor_configs=cursor_configs,
+            include_metadata=True,
+        )
+
+    def extract_simulations(self) -> pd.DataFrame:
+        simulations_df = self._extract_simulations()
+        self.extract_risk_info()
+        risk_df = pd.DataFrame(self.risk_info)
+
+        risk_mapping = risk_df.set_index("collection")[
+            ["risk_measure_type", "risk_measure_param"]
+        ].to_dict("index")
+
+        simulations_df = simulations_df.copy()
+        simulations_df["risk_method"] = simulations_df["collection"].map(
+            lambda x: risk_mapping.get(x, {}).get("risk_measure_type", "Unknown")
+        )
+        simulations_df["risk_param"] = simulations_df["collection"].map(
+            lambda x: risk_mapping.get(x, {}).get("risk_measure_param", None)
+        )
+        simulations_df["risk_label"] = simulations_df.apply(
+            lambda row: (
+                f"{row['risk_method']} (α={row['risk_param']})"
+                if row["risk_param"] is not None
+                else row["risk_method"]
+            ),
+            axis=1,
+        )
+
+        return simulations_df

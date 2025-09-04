@@ -24,6 +24,8 @@ client.load_collections()
 
 objectives_df = client.extract_objectives()
 
+simulations_df = client.extract_simulations()
+
 # %%
 
 viz = MyObjectivePlotter(objectives_df, my_config, "objective_value")
