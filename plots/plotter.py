@@ -1,7 +1,7 @@
+from typing import Dict, List
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import os
 
 
@@ -198,11 +198,16 @@ class MyPlotter:
         field_name: str,
         save_name: str | None = None,
     ):
+        filtered_df = df[
+            (df["risk_method"] != "Expectation")
+            | (df["iteration"] == df["iteration"].max())
+        ]
+        filtered_df = filtered_df[
+            (filtered_df["risk_method"] != "Wasserstein")
+            | (filtered_df["risk_param"] == 0.1)
+        ]
         fig = px.box(
-            df[
-                (df["risk_method"] != "Expectation")
-                | (df["iteration"] == df["iteration"].max())
-            ],
+            filtered_df,
             x="risk_label",
             color="risk_label",
             y=field,
@@ -233,162 +238,140 @@ class MyPlotter:
     def create_parallel_coordinates_plot(
         self,
         df: pd.DataFrame,
-        field: str,
-        risk_label: str,
-        value_col: str,
+        risk_labels: list[str],
+        value_col: str = "",
+        field_name: str = "",
         stage_col: str = "stage",
+        risk_label_col: str = "risk_label",
+        simulation_col: str = "simulation",
         save_name: str | None = None,
-        title: str = "",
-    ):
-        """
-        Create a parallel coordinates plot for evolution over stages.
+        title_prefix: str = "",
+    ) -> Dict[str, go.Figure]:
+        """Create parallel coordinates plots for different risk labels."""
 
-        Each line represents one simulation (risk_label) showing the average
-        values across all stages. Perfect for visualizing how different
-        simulations evolve over time periods.
-
-        Parameters:
-        -----------
-        risk_label : str
-            Specific risk label to filter and plot
-        stage_col : str, optional (default: "stage")
-            Column name for stages/time periods
-        value_col : str, optional (default: None)
-            Column name for values to plot. If None, uses self.field
-        save_name : str, optional (default: None)
-            Name for saving the figure
-        title : str, optional (default: "")
-            Title for the plot
-        show_target_increase : bool, optional (default: False)
-            Whether to show a target percentage increase line
-        target_increase_percent : float, optional (default: 2.0)
-            Target percentage increase per stage (e.g., 2.0 for 2% increase)
-        """
-
-        filtered_df = df[(df["risk_label"] == risk_label)]
+        # Filter by risk labels
+        filtered_df = df[df[risk_label_col].isin(risk_labels)]
 
         # Check if required columns exist
-        required_cols = [stage_col, value_col]
+        required_cols = [stage_col, value_col, risk_label_col, simulation_col]
         missing_cols = [col for col in required_cols if col not in filtered_df.columns]
         if missing_cols:
             raise ValueError(f"Missing columns: {missing_cols}")
 
-        # Handle duplicates by aggregating (taking mean) - this ensures each
-        # simulation has one average value per stage
-        df_agg = (
-            filtered_df.groupby([stage_col, "simulation"])[value_col]
-            .mean()
-            .reset_index()
-        )
+        figures = {}
 
-        # Pivot the data to have stages as columns
-        # Each row = one simulation, each column = one stage
-        df_pivot = df_agg.pivot(index="simulation", columns=stage_col, values=value_col)
+        for risk_label in risk_labels:
+            # Filter data for this specific risk label
+            risk_df = filtered_df[filtered_df[risk_label_col] == risk_label]
 
-        # Reset index to make risk_label a column
-        df_pivot = df_pivot.reset_index()
-
-        # Get stage columns (assuming they are numeric or can be sorted)
-        stage_columns = [col for col in df_pivot.columns if col != "simulation"]
-        try:
-            stage_columns = sorted(stage_columns, key=lambda x: float(x) + 1)
-        except (ValueError, TypeError):
-            stage_columns = sorted(stage_columns)
-
-        # Handle missing stage columns gracefully
-        if not stage_columns:
-            raise ValueError(
-                f"No stage columns found. Available columns: {df_pivot.columns.tolist()}"
+            # Handle duplicates by aggregating (taking mean)
+            df_agg = (
+                risk_df.groupby([stage_col, simulation_col])[value_col]
+                .mean()
+                .reset_index()
             )
 
-        # Create dimension list for parallel coordinates
-        # Each dimension = one vertical axis in the plot
+            # Pivot the data to have stages as columns
+            df_pivot = df_agg.pivot_table(
+                index=simulation_col,
+                columns=stage_col,
+                values=value_col,
+                aggfunc="mean",
+            )
 
-        # Calculate global min and max across all stages for consistent scaling
-        all_values = []
-        valid_stage_columns = []
-        for col in stage_columns:
-            # Skip columns with all NaN values
-            if df_pivot[col].notna().sum() == 0:
+            # Reset index to make simulation a regular column
+            df_pivot = df_pivot.reset_index()
+
+            # Get stage columns (assuming they are numeric)
+            stage_columns = [col for col in df_pivot.columns if col != simulation_col]
+            stage_columns = sorted(stage_columns, key=lambda x: float(x))
+
+            # Create dimension list for parallel coordinates
+            all_values = []
+            valid_stage_columns = []
+            for col in stage_columns:
+                if df_pivot[col].notna().sum() == 0:
+                    continue
+                valid_stage_columns.append(col)
+                all_values.extend(df_pivot[col].dropna().tolist())
+
+            if not all_values:
                 continue
-            valid_stage_columns.append(col)
-            all_values.extend(df_pivot[col].dropna().tolist())
 
-        if not all_values:
-            raise ValueError("No valid values found for parallel coordinates plot")
+            # Calculate global range
+            global_min = min(all_values)
+            global_max = max(all_values)
+            value_range = global_max - global_min
+            padding = value_range * 0.05
+            global_min -= padding
+            global_max += padding
 
-        # Use the same range for all stages
-        global_min = min(all_values)
-        global_max = max(all_values)
+            dimensions = []
+            for col in valid_stage_columns:
+                dimensions.append(
+                    dict(
+                        label=f"Year {col * 5}",
+                        values=df_pivot[col],
+                        range=[global_min, global_max],
+                    )
+                )
 
-        # Add some padding to make the plot look better (optional)
-        value_range = global_max - global_min
-        padding = value_range * 0.05  # 5% padding
-        global_min -= padding
-        global_max += padding
+            # Create simulation number mapping for Viridis coloring
+            unique_simulations = sorted(df_pivot[simulation_col].unique())
+            simulation_number_map = {sim: i for i, sim in enumerate(unique_simulations)}
+            df_pivot["simulation_numeric"] = df_pivot[simulation_col].map(
+                simulation_number_map
+            )
 
-        dimensions = []
-        for col in valid_stage_columns:
-            dimensions.append(
-                dict(
-                    label=f"Year {col * 5}",
-                    values=df_pivot[col],
-                    range=[global_min, global_max],  # Same range for all stages
+            # Create the parallel coordinates plot for this risk label
+            fig = go.Figure(
+                data=go.Parcoords(
+                    line=dict(
+                        color=df_pivot["simulation_numeric"],
+                        colorscale="Viridis",
+                        showscale=False,
+                        colorbar=dict(
+                            title="Simulation #",
+                            title_font=dict(
+                                size=self.font_size, family=self.font_family
+                            ),
+                            tickfont=dict(size=self.font_size, family=self.font_family),
+                        ),
+                    ),
+                    dimensions=dimensions,
+                    labelangle=45,
+                    labelside="bottom",
                 )
             )
 
-        if not dimensions:
-            raise ValueError("No valid dimensions found for parallel coordinates plot")
-
-        # Create risk_label mapping for coloring - each simulation gets a different color
-        if df_pivot["simulation"].dtype == "object":
-            risk_label_map = {
-                label: i for i, label in enumerate(df_pivot["simulation"].unique())
-            }
-            df_pivot["risk_label_numeric"] = df_pivot["simulation"].map(risk_label_map)
-            color_col = "risk_label_numeric"
-        else:
-            color_col = "simulation"
-
-        # Create the parallel coordinates plot
-        # Each line connects the values for one simulation across all stages
-        fig = go.Figure(
-            data=go.Parcoords(
-                line=dict(
-                    color=df_pivot[color_col],
-                    colorscale="Viridis",
-                    showscale=True,
-                    colorbar=dict(
-                        title="Simulation",
-                        title_font=dict(size=self.font_size, family=self.font_family),
-                        tickfont=dict(size=self.font_size, family=self.font_family),
-                    ),
+            # Apply scientific formatting
+            plot_title = f"{title_prefix}{risk_label} - {field_name}"
+            fig.update_layout(
+                template=self.template,
+                width=self.width + 100,  # Extra width for colorbar
+                height=self.height,
+                title=dict(
+                    text=plot_title,
+                    font=dict(size=self.font_size + 2, family=self.font_family),
+                    x=0.5,
+                    xanchor="center",
                 ),
-                dimensions=dimensions,
-                labelangle=45,
-                labelside="bottom",
+                font=dict(size=self.font_size, family=self.font_family),
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                margin=dict(l=60, r=120, t=60, b=60),
             )
-        )
 
-        # Apply scientific formatting (adapted for parallel coordinates)
-        fig.update_layout(
-            template=self.template,
-            width=self.width,
-            height=self.height,
-            title=dict(
-                text=title,
-                font=dict(size=self.font_size + 2, family=self.font_family),
-                x=0.5,
-                xanchor="center",
-            ),
-            font=dict(size=self.font_size, family=self.font_family),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=60, r=60, t=60, b=60),  # More margin for parallel coords
-        )
+            figures[risk_label] = fig
 
-        # Save if name provided
-        if save_name:
-            self.save_figure(fig, save_name)
+            # Save if name provided
+            if save_name:
+                safe_risk_label = (
+                    risk_label.replace(" ", "_")
+                    .replace("(", "")
+                    .replace(")", "")
+                    .replace("α=", "alpha")
+                )
+                self.save_figure(fig, f"{save_name}_{safe_risk_label}")
 
-        return fig
+        return figures

@@ -53,10 +53,13 @@ else:
 # %%
 
 viz = MyPlotter()
+objectives_df["objective_value"] = (
+    objectives_df["objective_value"] / 1e3
+)  # Convert to M$
 fig_hist = viz.create_histogram_plot(
     objectives_df,
     field="objective_value",
-    field_name="CAPEX ($)",
+    field_name="CAPEX (M$)",
     save_name="objective_histogram",
     nbins=50,
 )
@@ -64,7 +67,7 @@ fig_hist.show()
 fig_box = viz.create_box_plot(
     objectives_df,
     field="objective_value",
-    field_name="CAPEX ($)",
+    field_name="CAPEX (M$)",
     save_name="objective_boxplot",
 )
 fig_box.show()
@@ -74,18 +77,21 @@ simulations_df["final_cap"] = simulations_df["cap"].apply(
     lambda x: sum([i["out"] for i in x])
 )
 
-for risk_label in ["Expectation (α=0.1)", "WorstCase (α=0.1)", "Wasserstein (α=0.1)"]:
-    fig_cap = viz.create_parallel_coordinates_plot(
-        simulations_df,
-        field="Capacity (MW)",
-        stage_col="stage",
-        risk_label=risk_label,
-        value_col="final_cap",
-        save_name=f"Capacity_Evolution_{risk_label.replace(' ', '_')}",
-    )
-    fig_cap.show()
-# %%
+risk_labels = ["Expectation (α=0.1)", "WorstCase (α=0.1)", "Wasserstein (α=0.1)"]
+separate_figs = viz.create_parallel_coordinates_plot(
+    simulations_df,
+    risk_labels=risk_labels,
+    value_col="final_cap",
+    field_name="Capacity (MW)",
+    stage_col="stage",
+    save_name="Capacity_Evolution",
+    title_prefix="",
+)
 
+# Show each plot
+for risk_label, fig in separate_figs.items():
+    print(f"Showing plot for: {risk_label}")
+    fig.show()
 
 # %%
 # Simulations data visualization
