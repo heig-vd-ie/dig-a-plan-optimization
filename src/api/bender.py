@@ -67,8 +67,8 @@ def run_bender(input: BenderInput) -> BenderOutput:
         xaxis_title="Iteration",
         yaxis_title="Objective Value",
     )
-    os.makedirs(".cache/output", exist_ok=True)
-    fig.write_html(".cache/output/bender-convergence.html")
+    os.makedirs(".cache/figs", exist_ok=True)
+    fig.write_html(".cache/figs/bender-convergence.html")
     plot_grid_from_pandapower(net=net, dap=dig_a_plan)
     plot_grid_from_pandapower(net=net, dap=dig_a_plan, color_by_results=True)
     print(

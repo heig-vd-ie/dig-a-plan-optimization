@@ -125,29 +125,33 @@ class MyPlotter:
         df: pd.DataFrame,
         field: str,
         field_name: str,
+        with_respect_to: str = "risk_label",
         save_name: str | None = None,
         nbins: int = 50,
     ):
         # Create high-resolution histogram
-        filtered_df = df[
-            (df["risk_method"] != "Expectation")
-            | (df["iteration"] == df["iteration"].max())
-        ]
-        filtered_df = filtered_df[
-            (filtered_df["risk_method"] != "Wasserstein")
-            | (filtered_df["risk_param"] == 0.1)
-        ]
+        if with_respect_to == "risk_label":
+            filtered_df = df[
+                (df["risk_method"] != "Expectation")
+                | (df["iteration"] == df["iteration"].max())
+            ]
+            filtered_df = filtered_df[
+                (filtered_df["risk_method"] != "Wasserstein")
+                | (filtered_df["risk_param"] == 0.1)
+            ]
+        else:
+            filtered_df = df.copy()
         fig = px.histogram(
             filtered_df,
             x=field,
-            color="risk_label",
+            color=with_respect_to,
             nbins=nbins,  # Reduced from 100 to make bars bigger
             histnorm="probability density",
             title="",
             labels={
                 field: field_name,
                 "count": "Density",
-                "risk_label": "",
+                with_respect_to: "",
             },
             opacity=0.8,  # Slightly higher opacity since they're side by side
             barmode="group",  # Side by side bars for clear comparison
@@ -196,25 +200,29 @@ class MyPlotter:
         df: pd.DataFrame,
         field: str,
         field_name: str,
+        with_respect_to: str = "risk_label",
         save_name: str | None = None,
     ):
-        filtered_df = df[
-            (df["risk_method"] != "Expectation")
-            | (df["iteration"] == df["iteration"].max())
-        ]
-        filtered_df = filtered_df[
-            (filtered_df["risk_method"] != "Wasserstein")
-            | (filtered_df["risk_param"] == 0.1)
-        ]
+        if with_respect_to == "risk_label":
+            filtered_df = df[
+                (df["risk_method"] != "Expectation")
+                | (df["iteration"] == df["iteration"].max())
+            ]
+            filtered_df = filtered_df[
+                (filtered_df["risk_method"] != "Wasserstein")
+                | (filtered_df["risk_param"] == 0.1)
+            ]
+        else:
+            filtered_df = df.copy()
         fig = px.box(
             filtered_df,
-            x="risk_label",
-            color="risk_label",
+            x=with_respect_to,
+            color=with_respect_to,
             y=field,
             title="",
             labels={
                 field: field_name,
-                "risk_label": "Risk Method",
+                with_respect_to: with_respect_to.replace("_", " ").title(),
             },
             color_discrete_sequence=self.colors,  # Use colorblind-friendly palette
         )

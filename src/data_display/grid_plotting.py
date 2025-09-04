@@ -756,8 +756,12 @@ def plot_grid_from_pandapower(
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
-    os.makedirs(".cache/output", exist_ok=True)
+    os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(
-        f".cache/output/grid_plot{'_colored' if color_by_results else '_default'}.html",
+        f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.html",
         include_plotlyjs="cdn",
+    )
+    fig.write_image(
+        f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.svg",
+        format="svg",
     )

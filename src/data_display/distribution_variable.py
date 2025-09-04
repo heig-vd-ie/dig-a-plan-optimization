@@ -125,8 +125,8 @@ class DistributionVariable:
             hovermode="x unified",
         )
         fig.update_xaxes(categoryorder="category ascending")
-        os.makedirs(".cache/output", exist_ok=True)
-        fig.write_html(f".cache/output/distribution_{self.variable_name}.html")
+        os.makedirs(".cache/figs", exist_ok=True)
+        fig.write_html(f".cache/figs/distribution_{self.variable_name}.html")
 
 
 def plot_distribution_variable(
