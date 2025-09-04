@@ -22,9 +22,22 @@ client = MyMongoClient(my_config)
 client.connect()
 client.load_collections()
 
+# %%
 objectives_df = client.extract_objectives()
 
+# %%
 simulations_df = client.extract_simulations()
+
+
+# %%
+voltage_data = client.extract_voltage_data()
+current_data = client.extract_current_data()
+real_power_data = client.extract_real_power_data()
+reactive_power_data = client.extract_reactive_power_data()
+switches_data = client.extract_switches_data()
+taps_data = client.extract_taps_data()
+r_norm_data = client.extract_r_norm_data()
+s_norm_data = client.extract_s_norm_data()
 
 # %%
 
