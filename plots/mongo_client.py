@@ -15,9 +15,6 @@ class MongoConfig:
     mongodb_port: int = 27017
     mongodb_host: str = "localhost"
     database_name: str = "optimization"
-    histogram_bins: int = 50
-    plot_width: int = 1000
-    plot_height: int = 600
     start_collection: str = ""
     end_collection: str = ""
 
@@ -465,7 +462,7 @@ class MyMongoClient(GeneralMongoClient):
         objectives_df["risk_label"] = objectives_df.apply(
             lambda row: (
                 f"{row['risk_method']} (α={row['risk_param']})"
-                if row["risk_param"] is not None
+                if row["risk_method"] == "Wasserstein"
                 else row["risk_method"]
             ),
             axis=1,

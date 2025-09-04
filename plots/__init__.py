@@ -1,5 +1,5 @@
 from .mongo_client import MongoConfig, MyMongoClient, CursorConfig, FieldExtractor
-from .objectives import MyObjectivePlotter
+from .plotter import MyPlotter
 
 
 __version__ = "1.0.0"
@@ -8,5 +8,5 @@ __all__ = [
     "MyMongoClient",
     "CursorConfig",
     "FieldExtractor",
-    "MyObjectivePlotter",
+    "MyPlotter",
 ]
