@@ -126,6 +126,23 @@ for kase in ["final_Capacity", "investment_cost"]:
     for risk_label, fig in separate_figs.items():
         print(f"Showing plot for: {risk_label}")
         fig.show()
+        
+    if kase == "investment_cost":
+        normalized_labels = ["Wasserstein (α=0.1)", "WorstCase (α=0.1)"]
+        separate_figs_ratio = viz.create_parallel_coordinates_plot(
+            simulations_df,
+            risk_labels=normalized_labels,
+            value_col="investment_cost",
+            field_name="Investment Cost (M$)",
+            stage_col="stage",
+            save_name="investment_cost_Evolution",   # function adds "_ratio" in filename
+            normalize_to_label="Expectation (α=0.1)",
+        )
+        for lbl, fig in separate_figs_ratio.items():
+            print(f"Showing NORMALIZED plot for: {lbl} / mean(Expectation α=0.1)")
+            fig.show()
+            
+
 # %%
 fig_box = viz.create_box_plot(
     voltage_data,

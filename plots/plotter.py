@@ -10,12 +10,12 @@ class MyPlotter:
 
         # Scientific paper formatting attributes
         self.template = "plotly_white"
-        self.font_size = 12  # ≥ 10–12 pt for journals
-        self.marker_size = 7  # 6–8 px for clarity
-        self.colors = px.colors.qualitative.Dark24  # Colorblind-friendly palette
-        self.width = 600  # Single column width
-        self.height = 400  # Maintain good aspect ratio
-        self.grid_color = "lightgray"  # Light gray gridlines
+        self.font_size = 12  
+        self.marker_size = 7  
+        self.colors = px.colors.qualitative.Dark24  
+        self.width = 600  
+        self.height = 400  
+        self.grid_color = "lightgray"  
         self.font_family = "Arial, sans-serif"
         self.cache_dir = ".cache/figs"
 
@@ -90,7 +90,7 @@ class MyPlotter:
                 tickfont=dict(size=self.font_size, family=self.font_family),
                 title=dict(
                     font=dict(size=self.font_size + 1, family=self.font_family),
-                    standoff=10,  # Move y-axis label closer
+                    standoff=10,  
                 ),
             ),
             legend=dict(
@@ -99,7 +99,7 @@ class MyPlotter:
                 bordercolor="rgba(0,0,0,0.2)",
                 borderwidth=1,
             ),
-            margin=dict(l=40, r=15, t=40, b=40),  # Reduced margins significantly
+            margin=dict(l=40, r=15, t=40, b=40),  
         )
 
         return fig
@@ -145,7 +145,7 @@ class MyPlotter:
             filtered_df,
             x=field,
             color=with_respect_to,
-            nbins=nbins,  # Reduced from 100 to make bars bigger
+            nbins=nbins,  
             histnorm="probability density",
             title="",
             labels={
@@ -153,9 +153,9 @@ class MyPlotter:
                 "count": "Density",
                 with_respect_to: "",
             },
-            opacity=0.8,  # Slightly higher opacity since they're side by side
-            barmode="group",  # Side by side bars for clear comparison
-            color_discrete_sequence=self.colors,  # Use colorblind-friendly palette
+            opacity=0.8,  
+            barmode="group",  
+            color_discrete_sequence=self.colors,  
         )
 
         # Make bars look clean with minimal gaps
@@ -242,7 +242,7 @@ class MyPlotter:
             self.save_figure(fig, save_name)
 
         return fig
-
+    
     def create_parallel_coordinates_plot(
         self,
         df: pd.DataFrame,
@@ -254,32 +254,55 @@ class MyPlotter:
         simulation_col: str = "simulation",
         save_name: str | None = None,
         title_prefix: str = "",
+        # NEW: divide each series by the per-stage mean of this label (e.g., "Expectation (α=0.1)")
+        normalize_to_label: str | None = None,
     ) -> Dict[str, go.Figure]:
-        """Create parallel coordinates plots for different risk labels."""
+        """
+        Build one parallel-coordinates plot per risk label.
 
-        # Filter by risk labels
-        filtered_df = df[df[risk_label_col].isin(risk_labels)]
-
-        # Check if required columns exist
+        If `normalize_to_label` is provided, each stage value is divided by the
+        per-stage mean of that baseline label (computed over all simulations of that label).
+        """
+        # --- Basic checks
         required_cols = [stage_col, value_col, risk_label_col, simulation_col]
-        missing_cols = [col for col in required_cols if col not in filtered_df.columns]
-        if missing_cols:
-            raise ValueError(f"Missing columns: {missing_cols}")
+        missing = [c for c in required_cols if c not in df.columns]
+        if missing:
+            raise ValueError(f"Missing columns: {missing}")
 
-        figures = {}
+        # Filter to the labels we care about
+        filtered_df = df[df[risk_label_col].isin(risk_labels + ([normalize_to_label] if normalize_to_label else []))].copy()
+
+        # --- Compute baseline per-stage means if normalization requested
+        baseline_means = None
+        if normalize_to_label is not None:
+            base_df = filtered_df[filtered_df[risk_label_col] == normalize_to_label]
+            if base_df.empty:
+                print(f"Warning: no rows for baseline '{normalize_to_label}'. Skipping normalization.")
+                normalize_to_label = None
+            else:
+                base_agg = (
+                    base_df.groupby(stage_col, dropna=False)[value_col]
+                    .mean()
+                    .reset_index()
+                )
+                baseline_means = dict(zip(base_agg[stage_col], base_agg[value_col]))
+
+        figures: Dict[str, go.Figure] = {}
 
         for risk_label in risk_labels:
-            # Filter data for this specific risk label
+            # Slice this label
             risk_df = filtered_df[filtered_df[risk_label_col] == risk_label]
+            if risk_df.empty:
+                continue
 
-            # Handle duplicates by aggregating (taking mean)
+            # Aggregate duplicates by mean across (stage, simulation)
             df_agg = (
-                risk_df.groupby([stage_col, simulation_col])[value_col]
+                risk_df.groupby([stage_col, simulation_col], dropna=False)[value_col]
                 .mean()
                 .reset_index()
             )
 
-            # Pivot the data to have stages as columns
+            # Pivot so stages become columns
             df_pivot = df_agg.pivot_table(
                 index=simulation_col,
                 columns=stage_col,
@@ -287,64 +310,80 @@ class MyPlotter:
                 aggfunc="mean",
             )
 
-            # Reset index to make simulation a regular column
-            df_pivot = df_pivot.reset_index()
+            # Sort stage columns numerically when possible
+            stage_columns = list(df_pivot.columns)
+            def _to_float(x):
+                try:
+                    return float(x)
+                except Exception:
+                    return None
 
-            # Get stage columns (assuming they are numeric)
-            stage_columns = [col for col in df_pivot.columns if col != simulation_col]
-            stage_columns = sorted(stage_columns, key=lambda x: float(x))
+            sortable = [(_to_float(c), c) for c in stage_columns]
+            # Keep numeric stages sorted, then any non-numeric at the end in original order
+            numeric_sorted = [c for f, c in sorted((p for p in sortable if p[0] is not None), key=lambda t: t[0])] #type: ignore
+            non_numeric = [c for f, c in sortable if f is None]
+            stage_columns = numeric_sorted + non_numeric
 
-            # Create dimension list for parallel coordinates
-            all_values = []
-            valid_stage_columns = []
-            for col in stage_columns:
-                if df_pivot[col].notna().sum() == 0:
-                    continue
-                valid_stage_columns.append(col)
-                all_values.extend(df_pivot[col].dropna().tolist())
+            # Reorder columns and flatten index
+            df_pivot = df_pivot[stage_columns].reset_index()
 
-            if not all_values:
+            # --- Apply normalization (divide by baseline per-stage mean)
+            if normalize_to_label is not None and baseline_means is not None:
+                for col in stage_columns:
+                    base = baseline_means.get(col, None)
+                    if base is not None and base != 0:
+                        df_pivot[col] = df_pivot[col] / base
+                    else:
+                        # If no baseline for this stage, leave as NaN so it won't plot
+                        df_pivot[col] = float("nan")
+
+            # Keep only stages that have at least one non-NaN value
+            valid_stage_cols = [c for c in stage_columns if df_pivot[c].notna().any()]
+            if not valid_stage_cols:
                 continue
 
-            # Calculate global range
-            global_min = min(all_values)
-            global_max = max(all_values)
-            value_range = global_max - global_min
-            padding = value_range * 0.05
-            global_min -= padding
-            global_max += padding
+            # Compute global range with padding; handle constant case
+            values_series = pd.concat([df_pivot[c].dropna() for c in valid_stage_cols])
+            if values_series.empty:
+                continue
+            global_min = float(values_series.min()) #type: ignore
+            global_max = float(values_series.max()) #type: ignore
+            if global_max == global_min:
+                pad = abs(global_min) * 0.05 if global_min != 0 else 0.05
+                global_min -= pad
+                global_max += pad
+            else:
+                pad = (global_max - global_min) * 0.05
+                global_min -= pad
+                global_max += pad
 
+            # Build dimensions
             dimensions = []
-            for col in valid_stage_columns:
+            for col in valid_stage_cols:
+                # If stage is numeric, label as Year {5 * stage}; else use raw label
+                try:
+                    lbl = f"Year {int(round(float(col) * 5))}"
+                except Exception:
+                    lbl = str(col)
                 dimensions.append(
                     dict(
-                        label=f"Year {col * 5}",
+                        label=lbl,
                         values=df_pivot[col],
                         range=[global_min, global_max],
                     )
                 )
 
-            # Create simulation number mapping for Viridis coloring
-            unique_simulations = sorted(df_pivot[simulation_col].unique())
-            simulation_number_map = {sim: i for i, sim in enumerate(unique_simulations)}
-            df_pivot["simulation_numeric"] = df_pivot[simulation_col].map(
-                simulation_number_map
-            )
+            # Color lines by (encoded) simulation id
+            unique_sims = sorted(df_pivot[simulation_col].astype(str).unique())
+            sim_map = {sim: i for i, sim in enumerate(unique_sims)}
+            color_vals = df_pivot[simulation_col].astype(str).map(sim_map)
 
-            # Create the parallel coordinates plot for this risk label
             fig = go.Figure(
                 data=go.Parcoords(
                     line=dict(
-                        color=df_pivot["simulation_numeric"],
+                        color=color_vals,
                         colorscale="Viridis",
                         showscale=False,
-                        colorbar=dict(
-                            title="Simulation #",
-                            title_font=dict(
-                                size=self.font_size, family=self.font_family
-                            ),
-                            tickfont=dict(size=self.font_size, family=self.font_family),
-                        ),
                     ),
                     dimensions=dimensions,
                     labelangle=45,
@@ -352,11 +391,13 @@ class MyPlotter:
                 )
             )
 
-            # Apply scientific formatting
+            # Layout and title
             plot_title = f"{title_prefix}{risk_label} - {field_name}"
+            if normalize_to_label:
+                plot_title += f" / mean({normalize_to_label})"
             fig.update_layout(
                 template=self.template,
-                width=self.width + 100,  # Extra width for colorbar
+                width=self.width + 100,  # room for labels
                 height=self.height,
                 title=dict(
                     text=plot_title,
@@ -372,7 +413,7 @@ class MyPlotter:
 
             figures[risk_label] = fig
 
-            # Save if name provided
+            # Save each figure if requested
             if save_name:
                 safe_risk_label = (
                     risk_label.replace(" ", "_")
@@ -380,6 +421,10 @@ class MyPlotter:
                     .replace(")", "")
                     .replace("α=", "alpha")
                 )
-                self.save_figure(fig, f"{save_name}_{safe_risk_label}")
+                suffix = "_ratio" if normalize_to_label else ""
+                self.save_figure(fig, f"{save_name}{suffix}_{safe_risk_label}")
 
         return figures
+
+
+

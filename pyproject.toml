@@ -45,6 +45,7 @@ ipywidgets = "^8.1.7"
 black = "^25.1.0"
 mypy = "^1.16.1"
 pytest = "^8.4.1"
+kaleido = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core"]
