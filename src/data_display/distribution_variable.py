@@ -117,12 +117,45 @@ class DistributionVariable:
         fig.update_layout(
             width=1200,
             height=600,
+            font=dict(family="Times New Roman, Serif", size=20),
             xaxis_title="Bus ID" if self.variable_type == "nodal" else "Edge ID",
             yaxis_title=f"{self.variable_name.capitalize()} ({'%' if self.variable_name == 'current' else 'p.u.'})",
             legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                title_text="",
+                font=dict(family="Times New Roman, Serif", size=18),
+                bgcolor="rgba(0,0,0,0)",
+                bordercolor="black",
+                borderwidth=1,
             ),
             hovermode="x unified",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            margin=dict(l=80, r=40, t=60, b=80),
+        )
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor="lightgray",
+            zeroline=False,
+            linecolor="black",
+            linewidth=2,
+            ticks="outside",
+            tickfont=dict(family="Times New Roman, Serif", size=18),
+            title_font=dict(family="Times New Roman, Serif", size=20),
+        )
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor="lightgray",
+            zeroline=False,
+            linecolor="black",
+            linewidth=2,
+            ticks="outside",
+            tickfont=dict(family="Times New Roman, Serif", size=18),
+            title_font=dict(family="Times New Roman, Serif", size=20),
         )
         fig.update_xaxes(categoryorder="category ascending")
         os.makedirs(".cache/figs", exist_ok=True)
