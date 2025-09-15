@@ -4,8 +4,9 @@ import pandas as pd
 
 os.chdir(os.getcwd().replace("/src", ""))
 
-from plots import *
+from plots import *  # assumes MyPlotter is defined in plots.py
 
+# Toggle extraction vs cached files
 if to_extract := False:
     my_config = MongoConfig(
         start_collection="run_20250916_081629",
@@ -60,9 +61,9 @@ else:
 # %%
 
 viz = MyPlotter()
-objectives_df["objective_value"] = (
-    objectives_df["objective_value"] / 1e3
-)  # Convert to M$
+# Keep your original scaling (k$) -> label M$ in your codebase; not changing behavior here
+objectives_df["objective_value"] = objectives_df["objective_value"] / 1e3  # as in your code
+
 fig_hist = viz.create_histogram_plot(
     objectives_df,
     field="objective_value",
@@ -71,12 +72,14 @@ fig_hist = viz.create_histogram_plot(
     nbins=50,
 )
 fig_hist.show()
+
 fig_box = viz.create_box_plot(
     objectives_df,
     field="objective_value",
     field_name="CAPEX (M$)",
     save_name="objective_boxplot",
 )
+fig_box.update_layout(xaxis=dict(showticklabels=False))
 fig_box.show()
 
 # %%
@@ -103,7 +106,7 @@ fig_box_oo.show()
 simulations_df["final_Capacity"] = simulations_df["cap"].apply(
     lambda x: sum([i["out"] for i in x])
 )
-simulations_df["investment_cost"] = simulations_df["investment_cost"] / 1e3
+simulations_df["investment_cost"] = simulations_df["investment_cost"] / 1e3  # as in your code
 
 risk_labels = ["Expectation (α=0.1)", "WorstCase (α=0.1)", "Wasserstein (α=0.1)"]
 
@@ -122,26 +125,50 @@ for kase in ["final_Capacity", "investment_cost"]:
         title_prefix="",
     )
 
-    # Show each plot
     for risk_label, fig in separate_figs.items():
         print(f"Showing plot for: {risk_label}")
         fig.show()
-        
+
     if kase == "investment_cost":
         normalized_labels = ["Wasserstein (α=0.1)", "WorstCase (α=0.1)"]
+        # Regular-height normalized plots (your existing outputs)
         separate_figs_ratio = viz.create_parallel_coordinates_plot(
             simulations_df,
             risk_labels=normalized_labels,
             value_col="investment_cost",
             field_name="Investment Cost (M$)",
             stage_col="stage",
-            save_name="investment_cost_Evolution",   # function adds "_ratio" in filename
+            save_name="investment_cost_evolution",   
             normalize_to_label="Expectation (α=0.1)",
         )
         for lbl, fig in separate_figs_ratio.items():
             print(f"Showing NORMALIZED plot for: {lbl} / mean(Expectation α=0.1)")
             fig.show()
-            
+
+        # Narrower plots for presentations
+        prev_height = viz.height  
+        try:
+            viz.set_formatting(height=250)  # or 200 for even narrower
+
+            separate_figs_ratio_narrow = viz.create_parallel_coordinates_plot(
+                simulations_df,
+                risk_labels=normalized_labels,
+                value_col="investment_cost",
+                field_name="Expansion Expenses (M$)",
+                stage_col="stage",
+                save_name="investment_cost_evolution_narrow",  
+                normalize_to_label="Expectation (α=0.1)",
+            )
+
+            # (optional) show the narrow versions too
+            for lbl, fig in separate_figs_ratio_narrow.items():
+                print(f"Showing NARROW normalized plot for: {lbl} / mean(Expectation α=0.1)")
+                fig.show()
+
+           
+        finally:
+            # Restore original formatting so later figures are unaffected
+            viz.set_formatting(height=prev_height)
 
 # %%
 fig_box = viz.create_box_plot(
@@ -154,7 +181,6 @@ fig_box = viz.create_box_plot(
 fig_box.show()
 
 # %%
-
 fig_box = viz.create_box_plot(
     current_data,
     field="i_pct",
@@ -163,5 +189,3 @@ fig_box = viz.create_box_plot(
     save_name="current_boxplot",
 )
 fig_box.show()
-
-# %%
