@@ -11,6 +11,8 @@ UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
 
+IMAGES := dap-py-api custom-grafana mongo:latest
+
 clean: ## Clean ignored files
 	@echo "Cleaning up ignored files..."
 	@echo "This will remove all ignored files except .cache. Are you sure? (y/n)"
@@ -183,12 +185,9 @@ kill-port: ## Kill process running on specified port (PORT)
 	fi
 
 kill-ports-all: ## Kill all processes running on specified ports
-	@$(MAKE) kill-port PORT=$(SERVER_JL_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_RAY_DASHBOARD_PORT)
-	@$(MAKE) kill-port PORT=$(GRAFANA_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_MONGODB_PORT)
+	for port in $(SERVER_JL_PORT) $(SERVER_PY_PORT) $(SERVER_RAY_PORT) $(SERVER_RAY_DASHBOARD_PORT) $(GRAFANA_PORT) $(SERVER_MONGODB_PORT); do \
+		$(MAKE) kill-port PORT=$$port; \
+	done
 
 clean-ray:  ## Clean up Ray processes and files
 	@echo "Stopping all Ray processes..."
@@ -200,16 +199,30 @@ clean-ray:  ## Clean up Ray processes and files
 stop: ## Kill all Ray processes and clean Docker
 	@echo "Killing all Ray processes..."
 	@$(MAKE) clean-ray  || true
-	@echo "Stopping all Docker containers..."
-	@if [ -n "$$(docker ps -aq)" ]; then docker stop $$(docker ps -aq); else echo "No Docker containers to stop."; fi
-	@echo "Removing all Docker containers..."
-	@if [ -n "$$(docker ps -aq)" ]; then docker rm $$(docker ps -aq); else echo "No Docker containers to remove."; fi
+	@$(MAKE) docker-stop
+	@$(MAKE) docker-remove
 	@$(MAKE) kill-ports-all
-	@echo "Shutting down Prometheus metrics..."
+	@$(MAKE) shutdown-prometheus || true
+	@$(MAKE) fix-cache-permissions || true
+
+shutdown-prometheus: ## Shutdown Prometheus and clean up files
+	@echo "Shutting down Prometheus..."
 	@ray metrics shutdown-prometheus || true
-	@echo "Cleaning up local Prometheus files..."
 	@sudo rm -rf prometheus-* || true
-	@$(MAKE) fix-cache-permissions
+
+docker-stop:  ## Stop Docker containers from specific images
+	@echo "Stopping Docker containers for: $(IMAGES)"
+	@for img in $(IMAGES); do \
+		echo "Stopping containers from $$img..."; \
+		docker ps -q --filter "ancestor=$$img" | xargs -r docker stop; \
+	done
+
+docker-remove:  ## Remove Docker containers from specific images
+	@echo "Removing Docker containers for: $(IMAGES)"
+	@for img in $(IMAGES); do \
+		echo "Removing containers from $$img..."; \
+		docker ps -aq --filter "ancestor=$$img" | xargs -r docker rm; \
+	done
 
 fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
 	@echo "Fixing permissions for .cache/algorithm..."
