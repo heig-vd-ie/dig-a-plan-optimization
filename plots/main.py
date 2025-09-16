@@ -6,10 +6,10 @@ os.chdir(os.getcwd().replace("/src", ""))
 
 from plots import *
 
-if to_extract := False:
+if to_extract := True:
     my_config = MongoConfig(
-        start_collection="run_20250915_145349",
-        end_collection="run_20250915_155400",
+        start_collection="run_20250916_081629",
+        end_collection="run_20250916_091726",
         mongodb_port=27017,
         mongodb_host="localhost",
         database_name="optimization",
