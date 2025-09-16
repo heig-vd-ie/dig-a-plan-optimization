@@ -20,8 +20,8 @@
         "δ_b_var": 100000
     },
     "admm_config": {
-        "iterations": 10,
-        "n_simulations": 20,
+        "iterations": 5,
+        "n_simulations": 10,
         "solver_non_convex": true,
         "time_limit": 1,
         "groups": {

@@ -8,8 +8,8 @@ from plots import *
 
 if to_extract := False:
     my_config = MongoConfig(
-        start_collection="run_20250903_114427",
-        end_collection="run_20250903_142621",
+        start_collection="run_20250915_145349",
+        end_collection="run_20250915_155400",
         mongodb_port=27017,
         mongodb_host="localhost",
         database_name="optimization",

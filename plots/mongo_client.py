@@ -427,13 +427,15 @@ class MyMongoClient(GeneralMongoClient):
         cursor_configs = {
             collection_name: CursorConfig(
                 filter_query={"_source_file": {"$regex": "sddp_response"}},
-                projection={"objectives": 1, "_source_file": 1, "_id": 0},
+                projection={"out_of_sample_objectives": 1, "_source_file": 1, "_id": 0},
             )
             for collection_name in self.collections
         }
 
         field_extractors = [
-            FieldExtractor(field_path="objectives", output_name="objective_value")
+            FieldExtractor(
+                field_path="out_of_sample_objectives", output_name="objective_value"
+            )
         ]
 
         return self.extract_data_with_cursors(
