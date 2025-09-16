@@ -107,17 +107,11 @@ function out_of_sample_analysis(
             stage = node  # For LinearPolicyGraph, node is just the stage number
 
             if stage <= length(out_of_sample_scenarios.Ω)
-                # Get scenarios and their probabilities for this stage
                 stage_scenarios = out_of_sample_scenarios.Ω[stage]
-                stage_probabilities = out_of_sample_scenarios.P[stage]
-
-                # Create SDDP.Noise objects with your probabilities
-                noise_terms = [
-                    SDDP.Noise(scenario, prob) for
-                    (scenario, prob) in zip(stage_scenarios, stage_probabilities)
+                return [
+                    SDDP.Noise(scenario, 1.0 / length(stage_scenarios)) for
+                    scenario in stage_scenarios
                 ]
-
-                return noise_terms
             else
                 return SDDP.Noise[]
             end
