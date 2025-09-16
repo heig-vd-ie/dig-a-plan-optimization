@@ -70,6 +70,10 @@ cd .. && make run-extraction
 5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
 
+### Power Profile data
+
+To access the required environment variables for power profile data, ensure you have the `.secrets.toml` file. Then, run `power_profiles/__init__.py` to initialize the necessary settings.
+
 ## Development
 
 ### Unit tests

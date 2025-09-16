@@ -184,3 +184,5 @@ promtool
 prometheus-*
 
 mongo_backup
+
+.secrets.toml
