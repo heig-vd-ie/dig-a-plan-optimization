@@ -6,7 +6,7 @@ os.chdir(os.getcwd().replace("/src", ""))
 
 from plots import *
 
-if to_extract := True:
+if to_extract := False:
     my_config = MongoConfig(
         start_collection="run_20250916_081629",
         end_collection="run_20250916_091726",
@@ -18,6 +18,7 @@ if to_extract := True:
     client.connect()
     client.load_collections()
     objectives_df = client.extract_objectives()
+    out_of_sample_objectives_df = client.extract_objectives(out_of_sample=True)
     simulations_df = client.extract_simulations()
     voltage_data = client.extract_voltage_data()
     current_data = client.extract_current_data()
@@ -29,6 +30,9 @@ if to_extract := True:
     s_norm_data = client.extract_s_norm_data()
     os.makedirs(".cache/final_results", exist_ok=True)
     objectives_df.to_parquet(".cache/final_results/objectives.parquet")
+    out_of_sample_objectives_df.to_parquet(
+        ".cache/final_results/out_of_sample_objectives.parquet"
+    )
     simulations_df.to_parquet(".cache/final_results/simulations.parquet")
     voltage_data.to_parquet(".cache/final_results/voltage.parquet")
     current_data.to_parquet(".cache/final_results/current.parquet")
@@ -40,6 +44,9 @@ if to_extract := True:
     s_norm_data.to_parquet(".cache/final_results/s_norm.parquet")
 else:
     objectives_df = pd.read_parquet(".cache/final_results/objectives.parquet")
+    out_of_sample_objectives_df = pd.read_parquet(
+        ".cache/final_results/out_of_sample_objectives.parquet"
+    )
     simulations_df = pd.read_parquet(".cache/final_results/simulations.parquet")
     voltage_data = pd.read_parquet(".cache/final_results/voltage.parquet")
     current_data = pd.read_parquet(".cache/final_results/current.parquet")
@@ -71,6 +78,26 @@ fig_box = viz.create_box_plot(
     save_name="objective_boxplot",
 )
 fig_box.show()
+
+# %%
+out_of_sample_objectives_df["objective_value"] = (
+    out_of_sample_objectives_df["objective_value"] / 1e3
+)  # Convert to M$
+fig_hist_oo = viz.create_histogram_plot(
+    out_of_sample_objectives_df,
+    field="objective_value",
+    field_name="Out-of-sample CAPEX (M$)",
+    save_name="out_of_sample_objective_histogram",
+    nbins=50,
+)
+fig_hist_oo.show()
+fig_box_oo = viz.create_box_plot(
+    out_of_sample_objectives_df,
+    field="objective_value",
+    field_name="Out-of-sample CAPEX (M$)",
+    save_name="out_of_sample_objective_boxplot",
+)
+fig_box_oo.show()
 
 # %%
 simulations_df["final_Capacity"] = simulations_df["cap"].apply(
