@@ -2,7 +2,7 @@
 
 julia_version = "1.11.0"
 manifest_format = "2.0"
-project_hash = "7e27b86f5050a2b52945e1cda84754a8bdc0e9c5"
+project_hash = "91ab4f6dd586e841f408425a27952f7cf7842e62"
 
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
@@ -905,6 +905,12 @@ version = "1.11.0"
 
 [[deps.Profile]]
 uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+version = "1.11.0"
+
+[[deps.ProgressMeter]]
+deps = ["Distributed", "Printf"]
+git-tree-sha1 = "fbb92c6c56b34e1a2c4c36058f68f332bec840e7"
+uuid = "92933f4c-e287-5a05-a399-4b506db050ca"
 version = "1.11.0"
 
 [[deps.PtrArrays]]
