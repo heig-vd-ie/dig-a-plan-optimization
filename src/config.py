@@ -7,8 +7,8 @@ from dynaconf import Dynaconf
 
 @dataclass
 class Settings:
-    LOAD_ALLOCATION_LINK: str
-    LOAD_ALLOCATION_PASS: str
+    SWITCH_LINK: str
+    SWITCH_PASS: str
     LOAD_ALLOCATION_LOCAL_FOLDER: str
 
 
