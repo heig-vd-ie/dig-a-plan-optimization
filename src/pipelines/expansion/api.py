@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class ExpansionModel:
     def __init__(self):
         """Initialize the ExpansionModel."""
-        SERVER_HOST = "localhost"
+        SERVER_HOST = "host.docker.internal"
 
         if "SERVER_PORT" in os.environ:
             SERVER_PORT = int(os.environ["SERVER_PORT"])
