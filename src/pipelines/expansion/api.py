@@ -16,23 +16,16 @@ logger = logging.getLogger(__name__)
 class ExpansionModel:
     def __init__(self):
         """Initialize the ExpansionModel."""
-        SERVER_HOST = str(os.environ.get("LOCAL_HOST", "0.0.0.0"))
 
-        SERVER_PORT = int(os.environ.get("SERVER_PY_PORT", 8081))
-
-        SERVER_BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
-        self.server_host = SERVER_HOST
-        self.server_port = SERVER_PORT
+        SERVER_BASE_URL = (
+            f"http://{os.environ.get("LOCAL_HOST")}:{os.environ.get("SERVER_JL_PORT")}"
+        )
         self.base_url = SERVER_BASE_URL
         logger.info(f"Expansion API server at: {SERVER_BASE_URL}")
 
     def get_server_config(self):
         """Get the server configuration."""
-        return {
-            "host": self.server_host,
-            "port": self.server_port,
-            "base_url": self.base_url,
-        }
+        return {"base_url": self.base_url}
 
     def run_sddp_native(
         self,

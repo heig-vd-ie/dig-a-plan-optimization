@@ -5,6 +5,8 @@ ENV POETRY_VERSION=2.1.3 \
     POETRY_NO_INTERACTION=1 \
     SERVER_PY_PORT=8001 \
     PYTHONPATH=/app/src \
+    LOCAL_HOST=0.0.0.0 \
+    SERVER_JL_PORT=8081 \
     PYTHONWARNINGS="ignore::SyntaxWarning"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

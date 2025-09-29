@@ -8,21 +8,9 @@ struct ServerConfig
     base_url::String
 end
 
-function get_server_config(
-    default_host = ENV["LOCAL_HOST"],
-    default_port = ENV["SERVER_JL_PORT"],
-    ;
-    verbose = true,
-)
-    host = default_host
-
-    port = if length(ARGS) >= 1
-        parse(Int, ARGS[1])
-    elseif haskey(ENV, "SERVER_JL_PORT")
-        parse(Int, ENV["SERVER_JL_PORT"])
-    else
-        default_port
-    end
+function get_server_config(verbose = true)
+    host = ENV["LOCAL_HOST"]
+    port = parse(Int, ENV["SERVER_JL_PORT"])
 
     base_url = "http://$host:$port"
 

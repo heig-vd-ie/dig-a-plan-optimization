@@ -92,6 +92,7 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
 	@docker build -t dap-py-api -f Dockerfile .
 	@docker run -it \
+	  --network host \
 	  -e SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT} \
 	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
