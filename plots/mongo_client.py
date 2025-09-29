@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import re
+import os
 import json
 import base64
 from typing import Any, Dict, List, Tuple, Optional, Callable, Union
@@ -12,8 +13,8 @@ from pymongo.cursor import Cursor
 
 @dataclass
 class MongoConfig:
-    mongodb_port: int = 27017
-    mongodb_host: str = "localhost"
+    mongodb_port: int = int(os.getenv("SERVER_MONGODB_PORT"))  # type: ignore
+    mongodb_host: str = os.getenv("LOCAL_HOST")  # type: ignore
     database_name: str = "optimization"
     start_collection: str = ""
     end_collection: str = ""

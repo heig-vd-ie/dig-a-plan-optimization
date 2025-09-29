@@ -42,21 +42,18 @@ install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
 run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to specify port)
 	@echo "Building custom Grafana image..."
 	@docker buildx build -t custom-grafana -f grafana/Dockerfile grafana
-	@echo "Starting Grafana server on port $${GRAFANA_PORT:-4000}..."
+	@echo "Starting Grafana server on port $${GRAFANA_PORT}..."
 	@docker rm -f ray-grafana >/dev/null 2>&1 || true
 	@docker run -d --network host \
-	    -e GF_SERVER_HTTP_PORT=$${GRAFANA_PORT:-4000} \
+	    -e GF_SERVER_HTTP_PORT=$${GRAFANA_PORT} \
 		--name ray-grafana \
 		custom-grafana
-	@echo "Grafana running → http://localhost:$${GRAFANA_PORT:-4000}"
+	@echo "Grafana running → http://$$(LOCAL_HOST):$${GRAFANA_PORT}"
 	@docker logs -f ray-grafana
 
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
-
-show-host-ip: ## Show current IP value
-	@echo "HEAD_HOST: $(HEAD_HOST)"
 
 show-current-specs: ## Show current host IP value
 	@echo "CURRENT_HOST: $(CURRENT_HOST)"
@@ -83,20 +80,19 @@ format-jl:  ## Format Julia code in the src directory
 format: format-jl format-py ## Format all code (Julia and Python)
 
 run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Julia API server on localhost:$(SERVER_JL_PORT)..."
+	@echo "Starting Julia API server on $(LOCAL_HOST):$(SERVER_JL_PORT)..."
 	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_JL_PORT)
 
 run-server-py-native: ## Start Python API server natively (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Python API server on localhost:$(SERVER_PY_PORT)..."
-	PYTHONPATH=src uvicorn main:app --host 0.0.0.0 --port $(SERVER_PY_PORT) --reload
+	@echo "Starting Python API server on $(LOCAL_HOST):$(SERVER_PY_PORT)..."
+	PYTHONPATH=src uvicorn main:app --host $(LOCAL_HOST) --port $(SERVER_PY_PORT) --reload
 
 run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to specify port)
 	@echo "Building Docker image..."
 	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
 	@docker build -t dap-py-api -f Dockerfile .
 	@docker run -it \
-	  -e SERVER_RAY_ADDRESS=$(SERVER_RAY_ADDRESS) \
-	   --add-host=host.docker.internal:host-gateway \
+	  -e SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT} \
 	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
 	  -v $(PWD)/spill:/tmp/spill \
@@ -107,7 +103,7 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	@docker logs -f dap-py-api
 
 run-server-ray-native: ## Start Ray server natively
-	@echo "Starting Ray head node natively on $(SERVER_RAY_ADDRESS)"
+	@echo "Starting Ray head node natively on ${HEAD_HOST}:${SERVER_RAY_PORT}"
 	@./scripts/start-ray-head.sh \
 		$(SERVER_RAY_PORT) \
 		$(SERVER_RAY_DASHBOARD_PORT) \
@@ -120,7 +116,7 @@ run-server-ray-native: ## Start Ray server natively
 	@ray status
 
 run-server-ray: ## Start Ray server
-	@echo "Starting Ray head node on $(SERVER_RAY_ADDRESS)"
+	@echo "Starting Ray head node on ${HEAD_HOST}:${SERVER_RAY_PORT}"
 	@./scripts/start-ray-head.sh \
 		$(SERVER_RAY_PORT) \
 		$(SERVER_RAY_DASHBOARD_PORT) \
@@ -147,7 +143,7 @@ run-server-mongodb: ## Start MongoDB server
 		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
 		-v $(PWD)/mongo-data:/data/db \
 		mongo:latest
-	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
+	@echo "MongoDB running → http://$(LOCAL_HOST):$(SERVER_MONGODB_PORT)"
 	@docker logs -f mongo-db
 
 start-dev: ## Start all servers
@@ -239,14 +235,14 @@ run-expansion: ## Curl expansion for a payload
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
 		-d @$(PAYLOAD) \
-		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)"
+		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)"
 
 run-expansion-with-cut: ## Curl expansion for a payload with cut_file
 	@echo "Triggering expansion..."
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
 		--data-binary @$(PAYLOAD) \
-		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
+		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
 
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB

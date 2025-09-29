@@ -10,8 +10,8 @@ if to_extract := False:
     my_config = MongoConfig(
         start_collection="run_20250916_081629",
         end_collection="run_20250916_091726",
-        mongodb_port=27017,
-        mongodb_host="localhost",
+        mongodb_port=os.getenv("SERVER_MONGODB_PORT"),
+        mongodb_host=os.getenv("LOCAL_HOST"),
         database_name="optimization",
     )
     client = MyMongoClient(my_config)

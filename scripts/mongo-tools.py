@@ -116,8 +116,9 @@ def main() -> None:
     force, to_delete = args.force, args.delete
     db_name = args.db
 
-    port = int(os.getenv("SERVER_MONGODB_PORT", 27017))
-    client = MongoClient(f"mongodb://localhost:{port}")
+    client = MongoClient(
+        f"mongodb://{os.getenv('LOCAL_HOST')}:{os.getenv('SERVER_MONGODB_PORT')}"
+    )
     db = client[db_name]
 
     if args.backup:

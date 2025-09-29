@@ -19,7 +19,7 @@ class TestExpansionApi(ExpansionApiTestBase):
     def test_expansion_api(self):
         """Test the expansion API with the provided payload."""
         response = requests.patch(
-            f"http://localhost:{os.getenv('SERVER_PY_PORT', 8001)}/expansion",
+            f"http://{os.getenv('LOCAL_HOST')}:{os.getenv('SERVER_PY_PORT', os.getenv('SERVER_PY_PORT'))}/expansion",
             params={"with_ray": "true"},
             json=self.payload,
         )

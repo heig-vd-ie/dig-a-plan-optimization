@@ -1,4 +1,5 @@
 import os
+from matplotlib.pylab import f
 from pydantic import BaseModel, ConfigDict
 import patito as pt
 import ray
@@ -29,7 +30,7 @@ from pipelines.expansion.models.request import (
 from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
-SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
+SERVER_RAY_ADDRESS = f"{os.getenv('HEAD_HOST')}:{os.getenv('SERVER_RAY_PORT')}"
 
 
 def init_ray():

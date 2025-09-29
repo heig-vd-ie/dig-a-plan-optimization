@@ -17,10 +17,10 @@ RUN_NATIVE=${8}
 ray metrics launch-prometheus
 
 # Set environment variables for Grafana/Prometheus
-export RAY_GRAFANA_HOST="http://localhost:${GRAFANA_PORT}"
-export RAY_GRAFANA_IFRAME_HOST="http://localhost:${GRAFANA_PORT}"
+export RAY_GRAFANA_HOST="http://${LOCAL_HOST}:${GRAFANA_PORT}"
+export RAY_GRAFANA_IFRAME_HOST="http://${LOCAL_HOST}:${GRAFANA_PORT}"
 export RAY_GRAFANA_ORG_ID=1
-export RAY_PROMETHEUS_HOST="http://localhost:9090"
+export RAY_PROMETHEUS_HOST="http://${LOCAL_HOST}:9090"
 export RAY_PROMETHEUS_NAME="Prometheus"
 
 mkdir -p /tmp/ray
@@ -37,7 +37,7 @@ ray start --head \
     --num-cpus=${ALLOC_CPUS} \
     --num-gpus=${ALLOC_GPUS} \
     --memory=${ALLOC_RAMS} \
-    --dashboard-host=0.0.0.0 \
+    --dashboard-host=${LOCAL_HOST} \
     --dashboard-port=${SERVER_RAY_DASHBOARD_PORT} \
     --metrics-export-port=${SERVER_RAY_METRICS_EXPORT_PORT} \
     --disable-usage-stats \
