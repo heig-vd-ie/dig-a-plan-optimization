@@ -99,8 +99,8 @@ run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to spe
 	  -e SERVER_RAY_ADDRESS=$(SERVER_RAY_ADDRESS) \
 	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
 	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
-	  -v /tmp/spill:/tmp/spill \
-	  -v /tmp/ray:/tmp/ray \
+	  -v $(PWD)/spill:/tmp/spill \
+	  -v $(PWD)/ray:/tmp/ray \
 	  -v .cache:/app/.cache:rw \
 	  --name dap-py-api \
 	  dap-py-api
@@ -145,7 +145,7 @@ run-server-mongodb: ## Start MongoDB server
 	@docker run -d \
 		--name mongo-db \
 		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
-		-v /path/on/host/mongo-data:/data/db \
+		-v $(PWD)/mongo-data:/data/db \
 		mongo:latest
 	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
 	@docker logs -f mongo-db

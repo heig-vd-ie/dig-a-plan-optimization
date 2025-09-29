@@ -14,11 +14,6 @@ help: ## Show this help message
 		sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-42s\033[0m %s\n", $$1, $$2}'
 
-setup-project: ## Setup the project
-	@echo "Setting up the project..."
-	@bash scripts/setup.sh
-	@$(MAKE) install-all
-
 detect-env: ## Detect whether running in WSL or native Linux
 	@if grep -qEi "(Microsoft|WSL)" /proc/version; then \
 		echo "Detected: WSL environment"; \
