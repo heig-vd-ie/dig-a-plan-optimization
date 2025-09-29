@@ -19,6 +19,6 @@ POLARS_SKIP_CPU_CHECK=1 ray start \
     --num-cpus=${ALLOC_CPUS} \
     --num-gpus=${ALLOC_GPUS} \
     --memory=${ALLOC_RAMS} \
-    --object-spilling-directory=/tmp/spill
+    --object-spilling-directory=spill
 
 watch -n 5 ray status

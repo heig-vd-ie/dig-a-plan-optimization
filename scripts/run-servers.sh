@@ -25,7 +25,7 @@ if [[ "$BE_NATIVE" == "true" ]]; then
 else
     commands+=("make run-server-ray; sleep 3")
 fi
-commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p /tmp/spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
+commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
 commands+=("./scripts/run-interactive.sh; sleep 3")
 
 tmux new-session -d -s $SESSION

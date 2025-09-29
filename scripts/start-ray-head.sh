@@ -23,12 +23,12 @@ export RAY_GRAFANA_ORG_ID=1
 export RAY_PROMETHEUS_HOST="http://${LOCAL_HOST}:9090"
 export RAY_PROMETHEUS_NAME="Prometheus"
 
-mkdir -p /tmp/ray
-mkdir -p /tmp/spill
-sudo chown -R $(id -u):$(id -g) /tmp/ray
-chmod -R 777 /tmp/ray
-sudo chown -R $(id -u):$(id -g) /tmp/spill
-chmod -R 777 /tmp/spill
+mkdir -p ray
+mkdir -p spill
+sudo chown -R $(id -u):$(id -g) ray
+chmod -R 777 ray
+sudo chown -R $(id -u):$(id -g) spill
+chmod -R 777 spill
 
 # Start Ray head
 ray stop
@@ -41,5 +41,5 @@ ray start --head \
     --dashboard-port=${SERVER_RAY_DASHBOARD_PORT} \
     --metrics-export-port=${SERVER_RAY_METRICS_EXPORT_PORT} \
     --disable-usage-stats \
-    --object-spilling-directory=/tmp/spill
+    --object-spilling-directory=spill
 watch -n 5 ray status
