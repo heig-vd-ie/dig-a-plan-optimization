@@ -21,7 +21,7 @@ class ExpansionModel:
         if "SERVER_PORT" in os.environ:
             SERVER_PORT = int(os.environ["SERVER_PORT"])
         else:
-            SERVER_PORT = 8080
+            SERVER_PORT = 8081
 
         SERVER_BASE_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
         self.server_host = SERVER_HOST

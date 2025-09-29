@@ -8,7 +8,7 @@ struct ServerConfig
     base_url::String
 end
 
-function get_server_config(default_host = "localhost", default_port = 8080; verbose = true)
+function get_server_config(default_host = "localhost", default_port = 8081; verbose = true)
     host = default_host
 
     port = if length(ARGS) >= 1

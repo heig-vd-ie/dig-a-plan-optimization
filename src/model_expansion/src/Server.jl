@@ -350,7 +350,7 @@ function handle_request(req::HTTP.Request)
 end
 
 # Parse command line arguments or environment variables
-server_config = get_server_config("0.0.0.0", 8080, verbose = false)
+server_config = get_server_config("0.0.0.0", 8081, verbose = false)
 
 println("[$(log_datetime())] Starting server on $(server_config.host):$(server_config.port)...")
 HTTP.serve(handle_request, server_config.host, server_config.port)
