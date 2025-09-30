@@ -3,7 +3,7 @@ FROM python:3.12.3-slim
 WORKDIR /app
 
 # Install Ray and dependencies
-RUN pip install ray[default]
+RUN pip install ray[default]==2.48.0
 
 # Copy your application code
 COPY . /app

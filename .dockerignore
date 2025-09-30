@@ -1,9 +1,5 @@
 # Data directories
 mongo-data/
-data/
-spill/
-ray/
-.cache/
 
 # Git
 .git/

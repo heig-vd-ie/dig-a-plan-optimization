@@ -67,36 +67,6 @@ format-jl:  ## Format Julia code in the src directory
 
 format: format-jl format-py ## Format all code (Julia and Python)
 
-run-server-py-native: ## Start Python API server natively (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Python API server on $(LOCAL_HOST):$(SERVER_PY_PORT)..."
-	PYTHONPATH=src uvicorn main:app --host $(LOCAL_HOST) --port $(SERVER_PY_PORT) --reload
-
-run-server-ray-native: ## Start Ray server natively
-	@echo "Starting Ray head node natively on ${HEAD_HOST}:${SERVER_RAY_PORT}"
-	@./scripts/start-ray-head.sh \
-		$(SERVER_RAY_PORT) \
-		$(SERVER_RAY_DASHBOARD_PORT) \
-		$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		$(ALLOC_CPUS) \
-		$(ALLOC_GPUS) \
-		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT) \
-		true
-	@ray status
-
-run-server-ray: ## Start Ray server
-	@echo "Starting Ray head node on ${HEAD_HOST}:${SERVER_RAY_PORT}"
-	@./scripts/start-ray-head.sh \
-		$(SERVER_RAY_PORT) \
-		$(SERVER_RAY_DASHBOARD_PORT) \
-		$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		$(ALLOC_CPUS) \
-		$(ALLOC_GPUS) \
-		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT) \
-		false
-	@docker exec -it dap-py-api ray status
-
 run-ray-worker:  ## Start Ray worker
 	@echo -n "Run Worker?..."
 	@read dummy
@@ -104,15 +74,13 @@ run-ray-worker:  ## Start Ray worker
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
 
-start-dev: ## Start all servers
-	@echo "Starting Julia, Python API, and Ray servers..."
-	@$(MAKE) stop
-	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
-
 start: ## Start all servers
 	@echo "Starting all servers..."
-	@$(MAKE) stop
-	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
+	@bash ./scripts/run-servers.sh
+
+docker-build: ## Build Docker images
+	@echo "Building Docker images..."
+	@docker compose build
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel \
@@ -150,15 +118,6 @@ clean-ray:  ## Clean up Ray processes and files
 	@rm -rf /tmp/ray/session_* || true
 	@echo "Cleaned Ray."
 
-stop: ## Kill all Ray processes and clean Docker
-	@echo "Killing all Ray processes..."
-	@$(MAKE) clean-ray  || true
-	@$(MAKE) docker-stop
-	@$(MAKE) docker-remove
-	@$(MAKE) kill-ports-all
-	@$(MAKE) shutdown-prometheus || true
-	@$(MAKE) fix-cache-permissions || true
-
 shutdown-prometheus: ## Shutdown Prometheus and clean up files
 	@echo "Shutting down Prometheus..."
 	@ray metrics shutdown-prometheus || true
@@ -166,17 +125,11 @@ shutdown-prometheus: ## Shutdown Prometheus and clean up files
 
 docker-stop:  ## Stop Docker containers from specific images
 	@echo "Stopping Docker containers for: $(IMAGES)"
-	@for img in $(IMAGES); do \
-		echo "Stopping containers from $$img..."; \
-		docker ps -q --filter "ancestor=$$img" | xargs -r docker stop; \
-	done
+	@docker compose down || true
 
 docker-remove:  ## Remove Docker containers from specific images
 	@echo "Removing Docker containers for: $(IMAGES)"
-	@for img in $(IMAGES); do \
-		echo "Removing containers from $$img..."; \
-		docker ps -aq --filter "ancestor=$$img" | xargs -r docker rm; \
-	done
+	@docker compose rm -f || true
 
 fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
 	@echo "Fixing permissions for .cache/algorithm..."
