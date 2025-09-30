@@ -1,1 +1,4 @@
-LOAD_ALLOCATION_LOCAL_FOLDER = '.cache/input/estavayer/load_allocation'
+[cases.estavayer_centre_ville]
+pandapower_file=".cache/input/estavayer/feeders/feeder_centre_ville.p"
+load_allocation_folder=".cache/input/estavayer/load_allocation/centre_ville"
+geojson_file=".cache/input/estavayer/estavayer.geojson"

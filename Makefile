@@ -10,6 +10,9 @@ TWINDIGRID_VERSION := 0.5.0
 UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
+SWISS_TOPO_REPO := swiss-topo-api
+SWISS_TOPO_BRANCH := main
+SWISS_TOPO_VERSION := 0.1.0
 
 IMAGES := dap-py-api custom-grafana mongo:latest
 
@@ -95,6 +98,10 @@ fetch-all:  ## Fetch all dependencies
 		REPO=$(UTILITY_FUNCTIONS_REPO) \
 		BRANCH=$(UTILITY_FUNCTIONS_BRANCH) \
 		VERSION=$(UTILITY_FUNCTIONS_VERSION)
+	@$(MAKE) fetch-wheel \
+		REPO=$(SWISS_TOPO_REPO) \
+		BRANCH=$(SWISS_TOPO_BRANCH) \
+		VERSION=$(SWISS_TOPO_VERSION)
 
 kill-port: ## Kill process running on specified port (PORT)
 	@echo "Killing process on port $(PORT)..."
