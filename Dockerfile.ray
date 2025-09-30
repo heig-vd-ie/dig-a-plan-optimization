@@ -1,0 +1,13 @@
+FROM python:3.12.3-slim
+
+WORKDIR /app
+
+# Install Ray and dependencies
+RUN pip install ray[default]
+
+# Copy your application code
+COPY . /app
+
+# Copy and make the Ray start script executable
+COPY scripts/start-ray-head.sh /app/start-ray-head.sh
+RUN chmod +x /app/start-ray-head.sh
