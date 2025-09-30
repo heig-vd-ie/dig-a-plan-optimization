@@ -9,12 +9,8 @@ class Kace:
     pandapower_file: str
     geojson_file: str
     load_allocation_folder: str
-
-
-@dataclass
-class OutputsClass:
-    gpkg_file: str
-    duckdb_file: str
+    load_gpkg_file: str
+    load_duckdb_file: str
 
 
 @dataclass
@@ -22,7 +18,6 @@ class Settings:
     SWITCH_LINK: str
     SWITCH_PASS: str
     cases: Dict[str, Kace]
-    outputs: Dict[str, OutputsClass]
 
 
 settings_not_casted = Dynaconf(
