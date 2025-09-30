@@ -27,10 +27,10 @@ pydantic = "^2.11.7"
 seaborn = "^0.13.2"
 igraph = "^0.11.9"
 joblib = "^1.5.1"
-data-exporter = {path = "external-dist/data_exporter-0.1.0-py3-none-any.whl", optional = true}
-twindigrid-schema = {path = "external-dist/twindigrid_schema-0.5.0-py3-none-any.whl", optional = true}
-utility-functions = {path = "external-dist/utility_functions-0.1.0-py3-none-any.whl", optional = true}
-swiss-topo-api = {path = "external-dist/swiss_topo_api-0.1.0-py3-none-any.whl", optional = true}
+data-exporter = {git="https://github.com/heig-vd-ie/data-exporter.git", tag="v0.2.0"}
+twindigrid-schema = {git="https://github.com/heig-vd-ie/digrid-schema.git", tag="v0.5.0"}
+utility-functions = {git="https://github.com/heig-vd-ie/utility-functions.git", tag="v0.1.0"}
+swiss-topo-api = {git="https://github.com/heig-vd-ie/swiss-topo-api.git", tag="v0.2.0"}
 fastapi = "^0.116.1"
 uvicorn = "^0.35.0"
 ray = {extras = ["default"], version = "2.48.0"}
@@ -51,4 +51,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
-internal = ["data-exporter", "twindigrid-schema", "utility-functions", "swiss-topo-api"]
+internal = []
