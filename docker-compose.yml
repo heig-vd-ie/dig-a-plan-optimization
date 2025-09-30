@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongo-db
+    network_mode: host
+    ports:
+      - "${SERVER_MONGODB_PORT}:${SERVER_MONGODB_PORT}"
+    volumes:
+      - ./mongo-data:/data/db
+    command: --port ${SERVER_MONGODB_PORT}
+    restart: unless-stopped
+
+  grafana:
+    build:
+      context: ./grafana
+      dockerfile: Dockerfile
+    container_name: ray-grafana
+    network_mode: host
+    environment:
+      - GF_SERVER_HTTP_PORT=${GRAFANA_PORT}
+    restart: unless-stopped
+
+  python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dap-py-api
+    network_mode: host
+    environment:
+      - SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT}
+    ports:
+      - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
+    volumes:
+      - ${GRB_LICENSE_FILE}:/licenses/GRB_LICENCE_FILE:ro
+      - ./spill:/tmp/spill
+      - ./ray:/tmp/ray
+      - ./.cache:/app/.cache:rw
+      - ./data:/app/data:rw
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  julia-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.julia
+    container_name: dap-jl-api
+    network_mode: host
+    environment:
+      - SERVER_JL_PORT=${SERVER_JL_PORT}
+      - LOCAL_HOST=${LOCAL_HOST}
+    ports:
+      - "${SERVER_JL_PORT}:${SERVER_JL_PORT}"
+    volumes:
+      - ./src/model_expansion:/app/src/model_expansion
+      - ./data:/app/data
+      - ./.cache:/app/.cache:rw
+    command: julia --project=/app/src/model_expansion/. /app/src/model_expansion/src/Server.jl ${SERVER_JL_PORT}
+    restart: unless-stopped

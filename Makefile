@@ -39,18 +39,6 @@ install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
 	@sudo apt-get install -f
 	@rm mongodb-compass_1.46.8_amd64.deb
 
-run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to specify port)
-	@echo "Building custom Grafana image..."
-	@docker buildx build -t custom-grafana -f grafana/Dockerfile grafana
-	@echo "Starting Grafana server on port $${GRAFANA_PORT}..."
-	@docker rm -f ray-grafana >/dev/null 2>&1 || true
-	@docker run -d --network host \
-	    -e GF_SERVER_HTTP_PORT=$${GRAFANA_PORT} \
-		--name ray-grafana \
-		custom-grafana
-	@echo "Grafana running → http://$$(LOCAL_HOST):$${GRAFANA_PORT}"
-	@docker logs -f ray-grafana
-
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
@@ -79,29 +67,9 @@ format-jl:  ## Format Julia code in the src directory
 
 format: format-jl format-py ## Format all code (Julia and Python)
 
-run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Julia API server on $(LOCAL_HOST):$(SERVER_JL_PORT)..."
-	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_JL_PORT)
-
 run-server-py-native: ## Start Python API server natively (use SERVER_PORT=xxxx to specify port)
 	@echo "Starting Python API server on $(LOCAL_HOST):$(SERVER_PY_PORT)..."
 	PYTHONPATH=src uvicorn main:app --host $(LOCAL_HOST) --port $(SERVER_PY_PORT) --reload
-
-run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to specify port)
-	@echo "Building Docker image..."
-	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
-	@docker build -t dap-py-api -f Dockerfile .
-	@docker run -it \
-	  --network host \
-	  -e SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT} \
-	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
-	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
-	  -v $(PWD)/spill:/tmp/spill \
-	  -v $(PWD)/ray:/tmp/ray \
-	  -v .cache:/app/.cache:rw \
-	  --name dap-py-api \
-	  dap-py-api
-	@docker logs -f dap-py-api
 
 run-server-ray-native: ## Start Ray server natively
 	@echo "Starting Ray head node natively on ${HEAD_HOST}:${SERVER_RAY_PORT}"
@@ -135,17 +103,6 @@ run-ray-worker:  ## Start Ray worker
 	@direnv allow && \
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
-
-run-server-mongodb: ## Start MongoDB server
-	@echo "Starting MongoDB server..."
-	@docker pull mongo:latest
-	@docker run -d \
-		--name mongo-db \
-		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
-		-v $(PWD)/mongo-data:/data/db \
-		mongo:latest
-	@echo "MongoDB running → http://$(LOCAL_HOST):$(SERVER_MONGODB_PORT)"
-	@docker logs -f mongo-db
 
 start-dev: ## Start all servers
 	@echo "Starting Julia, Python API, and Ray servers..."
