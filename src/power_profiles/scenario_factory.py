@@ -1,42 +1,34 @@
 import polars as pl
 import pandapower as pp
+from config import settings
 from general_function import duckdb_to_dict
 from power_profiles.download_from_swisstopo import download_estavayer_power_profiles
-from config import settings
-from enum import Enum
-
-
-class LoadType(Enum):
-    PV = "PV"
-    EV = "EV"
-    HP = "HP"
-    DHW = "DHW"
-    TOTAL = "TOTAL"
+from power_profiles.models import LoadType
 
 
 class ScenarioFactory:
 
     def __init__(self, kace: str):
-        download_estavayer_power_profiles(kace=kace, force=False)
         self.kace = kace
+        self.dfs: dict[str, pl.DataFrame] = {}
+        self.load_duckdb: dict[str, pl.DataFrame] = {}
+        self.net: pp.pandapowerNet | None = None
 
-    def _read_parquet(self, file_path: str) -> pl.DataFrame:
-        return pl.read_parquet(
-            f"{settings.cases[self.kace].load_allocation_folder}/{file_path}.parquet"
-        )
-
-    def get_scenario(self):
-        dfs = {k.value: self._read_parquet(k.value) for k in LoadType}
-        load_duckdb = duckdb_to_dict(settings.cases[self.kace].load_duckdb_file)
-        net = pp.from_pickle(settings.cases[self.kace].pandapower_file)
-        return (
-            dfs,
-            load_duckdb,
-            net,
-        )
+    def initialize(self):
+        download_estavayer_power_profiles(kace=self.kace, force=False)
+        self.dfs = {
+            k.value: pl.read_parquet(
+                f"{settings.cases[self.kace].load_allocation_folder}/{k.value}.parquet"
+            )
+            for k in LoadType
+        }
+        self.load_duckdb = duckdb_to_dict(settings.cases[self.kace].load_duckdb_file)
+        self.net = pp.from_pickle(settings.cases[self.kace].pandapower_file)
+        return self
 
 
 if __name__ == "__main__":
-    df, load_duckdb, net = ScenarioFactory(kace="estavayer_centre_ville").get_scenario()
-    print(df)
-    print(load_duckdb)
+    scenario = ScenarioFactory(kace="estavayer_centre_ville").initialize()
+    print(scenario.dfs)
+    print(scenario.load_duckdb)
+    print(scenario.net)
