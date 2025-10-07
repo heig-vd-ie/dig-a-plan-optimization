@@ -83,7 +83,7 @@ start: ## Start all servers
 
 docker-build: ## Build Docker images
 	@echo "Building Docker images..."
-	@docker compose build
+	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && docker compose build --ssh default
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel \

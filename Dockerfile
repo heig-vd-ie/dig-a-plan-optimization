@@ -15,9 +15,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     build-essential \
     direnv \
+    git openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
+
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
 WORKDIR /app
 
@@ -25,7 +28,11 @@ COPY pyproject.toml poetry.lock /app/
 COPY external-dist/ /app/external-dist/
 COPY scripts/ /app/scripts/
 
-RUN poetry install --extras "internal"
+RUN --mount=type=ssh ls -la /run/ssh-agent || echo "No ssh agent mounted"
+RUN --mount=type=ssh ssh -T git@github.com || echo "SSH connection failed"
+
+RUN --mount=type=ssh \
+    poetry install --no-root --extras "internal"
 
 COPY src/ /app/src/
 COPY examples/ /app/examples/

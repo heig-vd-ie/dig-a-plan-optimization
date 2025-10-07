@@ -12,6 +12,8 @@ eval "$(direnv export bash)"  # makes .envrc variables available
 : "${ALLOC_GPUS:?Need to set ALLOC_GPUS}"
 : "${ALLOC_RAMS:?Need to set ALLOC_RAMS}"
 
+mkdir -p spill || true
+
 # Start Ray worker
 POLARS_SKIP_CPU_CHECK=1 ray start \
     --address=${HEAD_HOST}:${SERVER_RAY_PORT} \

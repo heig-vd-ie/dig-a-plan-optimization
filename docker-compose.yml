@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 services:
   mongodb:
     image: mongo:latest
@@ -24,6 +25,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      ssh:
+        - default
     container_name: dap-py-api
     network_mode: host
     environment:
@@ -62,6 +65,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ray
+      ssh:
+        - default
     container_name: ray-head
     network_mode: host
     environment:
@@ -82,7 +87,7 @@ services:
       - "${SERVER_RAY_PORT}:${SERVER_RAY_PORT}"
       - "${SERVER_RAY_DASHBOARD_PORT}:${SERVER_RAY_DASHBOARD_PORT}"
       - "${SERVER_RAY_METRICS_EXPORT_PORT}:${SERVER_RAY_METRICS_EXPORT_PORT}"
-      - "9090:9090"  # Prometheus
+      - "9090:9090" # Prometheus
     volumes:
       - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:ro
       - ./ray:/tmp/ray
