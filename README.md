@@ -25,6 +25,7 @@ make venv-activate
 
 You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
 ```sh
+make docker-build
 make start
 ```
 
