@@ -11,6 +11,9 @@ class Kace:
     load_allocation_folder: str
     load_gpkg_file: str
     load_duckdb_file: str
+    dap_state_file: str
+    dap_state_fixed_file: str
+    dump_net_file: str
 
 
 @dataclass
