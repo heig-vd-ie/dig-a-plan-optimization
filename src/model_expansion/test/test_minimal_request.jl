@@ -7,7 +7,7 @@ include("../src/ServerUtils.jl")
 using .ServerUtils
 
 # Server configuration from environment variables or command line arguments
-server_config = get_server_config("localhost", 8080, verbose = true)
+server_config = get_server_config()
 SERVER_BASE_URL = server_config.base_url
 
 # Minimal request example - all parameters will use defaults

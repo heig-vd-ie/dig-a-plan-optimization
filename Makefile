@@ -10,6 +10,11 @@ TWINDIGRID_VERSION := 0.5.0
 UTILITY_FUNCTIONS_REPO := utility-functions
 UTILITY_FUNCTIONS_BRANCH := main
 UTILITY_FUNCTIONS_VERSION := 0.1.0
+SWISS_TOPO_REPO := swiss-topo-api
+SWISS_TOPO_BRANCH := main
+SWISS_TOPO_VERSION := 0.1.0
+
+IMAGES := dap-py-api custom-grafana mongo:latest
 
 clean: ## Clean ignored files
 	@echo "Cleaning up ignored files..."
@@ -37,24 +42,9 @@ install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
 	@sudo apt-get install -f
 	@rm mongodb-compass_1.46.8_amd64.deb
 
-run-server-grafana: ## Build & start Grafana server (use GRAFANA_PORT=xxxx to specify port)
-	@echo "Building custom Grafana image..."
-	@docker buildx build -t custom-grafana -f grafana/Dockerfile grafana
-	@echo "Starting Grafana server on port $${GRAFANA_PORT:-4000}..."
-	@docker rm -f ray-grafana >/dev/null 2>&1 || true
-	@docker run -d --network host \
-	    -e GF_SERVER_HTTP_PORT=$${GRAFANA_PORT:-4000} \
-		--name ray-grafana \
-		custom-grafana
-	@echo "Grafana running → http://localhost:$${GRAFANA_PORT:-4000}"
-	@docker logs -f ray-grafana
-
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
 	@bash scripts/install-julia.sh
-
-show-host-ip: ## Show current IP value
-	@echo "HEAD_HOST: $(HEAD_HOST)"
 
 show-current-specs: ## Show current host IP value
 	@echo "CURRENT_HOST: $(CURRENT_HOST)"
@@ -80,56 +70,6 @@ format-jl:  ## Format Julia code in the src directory
 
 format: format-jl format-py ## Format all code (Julia and Python)
 
-run-server-jl: ## Start Julia API server (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Julia API server on localhost:$(SERVER_JL_PORT)..."
-	julia --project=src/model_expansion/. src/model_expansion/src/Server.jl $(SERVER_JL_PORT)
-
-run-server-py-native: ## Start Python API server natively (use SERVER_PORT=xxxx to specify port)
-	@echo "Starting Python API server on localhost:$(SERVER_PY_PORT)..."
-	PYTHONPATH=src uvicorn main:app --host 0.0.0.0 --port $(SERVER_PY_PORT) --reload
-
-run-server-py: ## Start Python API server in Docker (use SERVER_PORT=xxxx to specify port)
-	@echo "Building Docker image..."
-	@docker rm -f dap-py-api >/dev/null 2>&1 ||	true
-	@docker build -t dap-py-api -f Dockerfile .
-	@docker run -it \
-		--network host \
-	  -e SERVER_RAY_ADDRESS=$(SERVER_RAY_ADDRESS) \
-	  -p $(SERVER_PY_PORT):$(SERVER_PY_PORT) \
-	  -v $(GRB_LICENSE_FILE):/licenses/GRB_LICENCE_FILE:ro \
-	  -v /tmp/spill:/tmp/spill \
-	  -v /tmp/ray:/tmp/ray \
-	  -v .cache:/app/.cache:rw \
-	  --name dap-py-api \
-	  dap-py-api
-	@docker logs -f dap-py-api
-
-run-server-ray-native: ## Start Ray server natively
-	@echo "Starting Ray head node natively on $(SERVER_RAY_ADDRESS)"
-	@./scripts/start-ray-head.sh \
-		$(SERVER_RAY_PORT) \
-		$(SERVER_RAY_DASHBOARD_PORT) \
-		$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		$(ALLOC_CPUS) \
-		$(ALLOC_GPUS) \
-		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT) \
-		true
-	@ray status
-
-run-server-ray: ## Start Ray server
-	@echo "Starting Ray head node on $(SERVER_RAY_ADDRESS)"
-	@./scripts/start-ray-head.sh \
-		$(SERVER_RAY_PORT) \
-		$(SERVER_RAY_DASHBOARD_PORT) \
-		$(SERVER_RAY_METRICS_EXPORT_PORT) \
-		$(ALLOC_CPUS) \
-		$(ALLOC_GPUS) \
-		$(ALLOC_RAMS) \
-		$(GRAFANA_PORT) \
-		false
-	@docker exec -it dap-py-api ray status
-
 run-ray-worker:  ## Start Ray worker
 	@echo -n "Run Worker?..."
 	@read dummy
@@ -137,26 +77,13 @@ run-ray-worker:  ## Start Ray worker
 	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
 
-run-server-mongodb: ## Start MongoDB server
-	@echo "Starting MongoDB server..."
-	@docker pull mongo:latest
-	@docker run -d \
-		--name mongo-db \
-		-p $(SERVER_MONGODB_PORT):$(SERVER_MONGODB_PORT) \
-		-v /path/on/host/mongo-data:/data/db \
-		mongo:latest
-	@echo "MongoDB running → http://localhost:$(SERVER_MONGODB_PORT)"
-	@docker logs -f mongo-db
-
-start-dev: ## Start all servers
-	@echo "Starting Julia, Python API, and Ray servers..."
-	@$(MAKE) stop
-	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) true
-
 start: ## Start all servers
 	@echo "Starting all servers..."
-	@$(MAKE) stop
-	@bash ./scripts/run-servers.sh $(SERVER_JL_PORT) $(SERVER_PY_PORT) false
+	@bash ./scripts/run-servers.sh
+
+docker-build: ## Build Docker images
+	@echo "Building Docker images..."
+	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && docker compose build --ssh default
 
 fetch-all:  ## Fetch all dependencies
 	@$(MAKE) fetch-wheel \
@@ -171,6 +98,10 @@ fetch-all:  ## Fetch all dependencies
 		REPO=$(UTILITY_FUNCTIONS_REPO) \
 		BRANCH=$(UTILITY_FUNCTIONS_BRANCH) \
 		VERSION=$(UTILITY_FUNCTIONS_VERSION)
+	@$(MAKE) fetch-wheel \
+		REPO=$(SWISS_TOPO_REPO) \
+		BRANCH=$(SWISS_TOPO_BRANCH) \
+		VERSION=$(SWISS_TOPO_VERSION)
 
 kill-port: ## Kill process running on specified port (PORT)
 	@echo "Killing process on port $(PORT)..."
@@ -183,12 +114,9 @@ kill-port: ## Kill process running on specified port (PORT)
 	fi
 
 kill-ports-all: ## Kill all processes running on specified ports
-	@$(MAKE) kill-port PORT=$(SERVER_JL_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_PY_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_RAY_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_RAY_DASHBOARD_PORT)
-	@$(MAKE) kill-port PORT=$(GRAFANA_PORT)
-	@$(MAKE) kill-port PORT=$(SERVER_MONGODB_PORT)
+	for port in $(SERVER_JL_PORT) $(SERVER_PY_PORT) $(SERVER_RAY_PORT) $(SERVER_RAY_DASHBOARD_PORT) $(GRAFANA_PORT) $(SERVER_MONGODB_PORT); do \
+		$(MAKE) kill-port PORT=$$port; \
+	done
 
 clean-ray:  ## Clean up Ray processes and files
 	@echo "Stopping all Ray processes..."
@@ -197,19 +125,18 @@ clean-ray:  ## Clean up Ray processes and files
 	@rm -rf /tmp/ray/session_* || true
 	@echo "Cleaned Ray."
 
-stop: ## Kill all Ray processes and clean Docker
-	@echo "Killing all Ray processes..."
-	@$(MAKE) clean-ray  || true
-	@echo "Stopping all Docker containers..."
-	@if [ -n "$$(docker ps -aq)" ]; then docker stop $$(docker ps -aq); else echo "No Docker containers to stop."; fi
-	@echo "Removing all Docker containers..."
-	@if [ -n "$$(docker ps -aq)" ]; then docker rm $$(docker ps -aq); else echo "No Docker containers to remove."; fi
-	@$(MAKE) kill-ports-all
-	@echo "Shutting down Prometheus metrics..."
+shutdown-prometheus: ## Shutdown Prometheus and clean up files
+	@echo "Shutting down Prometheus..."
 	@ray metrics shutdown-prometheus || true
-	@echo "Cleaning up local Prometheus files..."
 	@sudo rm -rf prometheus-* || true
-	@$(MAKE) fix-cache-permissions
+
+docker-stop:  ## Stop Docker containers from specific images
+	@echo "Stopping Docker containers for: $(IMAGES)"
+	@docker compose down || true
+
+docker-remove:  ## Remove Docker containers from specific images
+	@echo "Removing Docker containers for: $(IMAGES)"
+	@docker compose rm -f || true
 
 fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
 	@echo "Fixing permissions for .cache/algorithm..."
@@ -226,14 +153,14 @@ run-expansion: ## Curl expansion for a payload
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
 		-d @$(PAYLOAD) \
-		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)"
+		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)"
 
 run-expansion-with-cut: ## Curl expansion for a payload with cut_file
 	@echo "Triggering expansion..."
 	@curl -X PATCH \
 		-H "Content-Type: application/json" \
 		--data-binary @$(PAYLOAD) \
-		"http://localhost:$(SERVER_PY_PORT)/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
+		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
 
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB

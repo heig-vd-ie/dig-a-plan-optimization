@@ -1,0 +1,16 @@
+FROM julia:latest
+
+WORKDIR /app
+
+# Copy your Julia project files
+COPY src/model_expansion /app/src/model_expansion
+
+# Install dependencies
+RUN julia --project=/app/src/model_expansion/. -e 'using Pkg; Pkg.instantiate()'
+
+# Expose the port (documentation purposes)
+ARG SERVER_JL_PORT=8000
+EXPOSE ${SERVER_JL_PORT}
+
+# The command will be overridden by docker-compose
+CMD ["julia", "--project=/app/src/model_expansion/.", "/app/src/model_expansion/src/Server.jl", "${SERVER_JL_PORT}"]

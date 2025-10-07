@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import re
+import os
 import json
 import base64
 from typing import Any, Dict, List, Tuple, Optional, Callable, Union
@@ -12,8 +13,8 @@ from pymongo.cursor import Cursor
 
 @dataclass
 class MongoConfig:
-    mongodb_port: int = 27017
-    mongodb_host: str = "localhost"
+    mongodb_port: int = int(os.getenv("SERVER_MONGODB_PORT"))  # type: ignore
+    mongodb_host: str = os.getenv("LOCAL_HOST")  # type: ignore
     database_name: str = "optimization"
     start_collection: str = ""
     end_collection: str = ""
@@ -423,17 +424,26 @@ class MyMongoClient(GeneralMongoClient):
 
         return self
 
-    def _extract_objectives(self) -> pd.DataFrame:
+    def _extract_objectives(self, out_of_sample: bool = False) -> pd.DataFrame:
         cursor_configs = {
             collection_name: CursorConfig(
                 filter_query={"_source_file": {"$regex": "sddp_response"}},
-                projection={"objectives": 1, "_source_file": 1, "_id": 0},
+                projection=(
+                    {"out_of_sample_objectives": 1, "_source_file": 1, "_id": 0}
+                    if out_of_sample
+                    else {"objectives": 1, "_source_file": 1, "_id": 0}
+                ),
             )
             for collection_name in self.collections
         }
 
         field_extractors = [
-            FieldExtractor(field_path="objectives", output_name="objective_value")
+            FieldExtractor(
+                field_path=(
+                    "out_of_sample_objectives" if out_of_sample else "objectives"
+                ),
+                output_name="objective_value",
+            )
         ]
 
         return self.extract_data_with_cursors(
@@ -442,9 +452,9 @@ class MyMongoClient(GeneralMongoClient):
             include_metadata=True,
         )
 
-    def extract_objectives(self) -> pd.DataFrame:
+    def extract_objectives(self, out_of_sample: bool = False) -> pd.DataFrame:
 
-        objectives_df = self._extract_objectives()
+        objectives_df = self._extract_objectives(out_of_sample=out_of_sample)
         self.extract_risk_info()
         risk_df = pd.DataFrame(self.risk_info)
 

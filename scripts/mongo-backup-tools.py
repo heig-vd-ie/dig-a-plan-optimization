@@ -41,7 +41,9 @@ def deserialize_doc(doc):
 
 
 def backup_db(db_name: str, backup_dir: str) -> None:
-    client = MongoClient("mongodb://localhost:27017")
+    client = MongoClient(
+        f"mongodb://{os.getenv('LOCAL_HOST')}:{os.getenv('MONGODB_PORT')}"
+    )
     db = client[db_name]
 
     os.makedirs(backup_dir, exist_ok=True)
@@ -77,7 +79,9 @@ def restore_db(db_name: str, backup_file: Union[str, Path], backup_dir: str) -> 
         # pick latest backup
         backup_file = get_latest_backup(backup_dir, db_name)
 
-    client = MongoClient("mongodb://localhost:27017")
+    client = MongoClient(
+        f"mongodb://{os.getenv('LOCAL_HOST')}:{os.getenv('MONGODB_PORT')}"
+    )
     db = client[db_name]
 
     backup_file = Path(backup_file)

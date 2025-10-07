@@ -13,6 +13,7 @@ expansion_cases=(
     "Simple Grid"
     "Simplified Boisy Grid"
     "Boisy Grid"
+    "Simplified Estavayer Grid"
     "Back"
 )
 
@@ -49,7 +50,9 @@ while true; do
                             2) payload="data/payloads/simple_grid.json";;
                             3) payload="data/payloads/simplified_boisy_grid.json";;
                             4) payload="data/payloads/boisy_grid.json";;
-                            5) break 2;;  # back to main menu
+                            5) payload="data/payloads/simplified_estavayer_grid.json";;
+                            6) payload="data/payloads/estavayer_grid.json";;
+                            7) break 2;;  # back to main menu
                             *) echo "Invalid option"; continue;;
                         esac
 

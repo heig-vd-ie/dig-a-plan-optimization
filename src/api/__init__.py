@@ -50,8 +50,8 @@ def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel
         case GridCase.ESTAVAYER_GRID:
             net = pp.from_pickle(".cache/input/estavayer/estavayer_grid.p")
         case GridCase.ESTAVAYER_SIMPLIFIED:
-            net = pp.from_pickle(".cache/input/estavayer/estavayer_simplified.p")
-    base_grid_data = pandapower_to_dig_a_plan_schema(
+            net = pp.from_pickle(".cache/input/estavayer/estavayer_grid_simplified.p")
+    base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net=net,
         s_base=input.s_base,
         taps=input.taps,

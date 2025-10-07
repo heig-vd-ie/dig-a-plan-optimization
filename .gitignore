@@ -184,3 +184,10 @@ promtool
 prometheus-*
 
 mongo_backup
+
+.secrets.toml
+
+poetry.lock
+spill
+ray
+mongo-data

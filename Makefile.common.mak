@@ -1,6 +1,6 @@
 # Common Makefile
 
-PYTHON_VERSION := 3.12.3
+PYTHON_VERSION := 3.12
 POETRY_VERSION := 2.1.3
 VENV_DIR := .venv
 ORG := heig-vd-ie
@@ -13,11 +13,6 @@ help: ## Show this help message
 	@grep -hE '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | \
 		sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-42s\033[0m %s\n", $$1, $$2}'
-
-setup-project: ## Setup the project
-	@echo "Setting up the project..."
-	@bash scripts/setup.sh
-	@$(MAKE) install-all
 
 detect-env: ## Detect whether running in WSL or native Linux
 	@if grep -qEi "(Microsoft|WSL)" /proc/version; then \

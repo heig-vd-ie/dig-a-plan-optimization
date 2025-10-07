@@ -9,7 +9,7 @@ from examples import *
 
 if USE_SIMPLIFIED_GRID := True:
     net = pp.from_pickle(".cache/boisy_grid_simplified.p")
-    grid_data = pandapower_to_dig_a_plan_schema(
+    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net,
         number_of_random_scenarios=10,
         v_bounds=(-0.07, 0.07),
@@ -19,7 +19,7 @@ if USE_SIMPLIFIED_GRID := True:
     )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
-    grid_data = pandapower_to_dig_a_plan_schema(
+    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net,
         number_of_random_scenarios=10,
         taps=[95, 98, 99, 100, 101, 102, 105],

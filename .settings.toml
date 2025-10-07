@@ -1,0 +1,10 @@
+[cases.estavayer_centre_ville]
+pandapower_file=".cache/input/estavayer/feeders/feeder_centre_ville.p"
+load_allocation_folder=".cache/input/estavayer/load_allocation/centre_ville"
+load_gpkg_file=".cache/input/estavayer/estavayer_loads.gpkg"
+load_duckdb_file=".cache/input/estavayer/estavayer_loads.db"
+geojson_file=".cache/input/estavayer/estavayer.geojson"
+dap_state_file=".cache/figs/estavayer_centre_ville"
+dap_state_fixed_file=".cache/figs/estavayer_centre_ville_fixed"
+dump_net_file=".cache/figs/estavayer_centre_ville.joblib"
+

@@ -25,6 +25,7 @@ make venv-activate
 
 You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
 ```sh
+make docker-build
 make start
 ```
 
@@ -69,6 +70,10 @@ cd .. && make run-extraction
 4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
 5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
+
+### Power Profile data
+
+To access the required environment variables for power profile data, ensure you have the `.secrets.toml` file. Then, run `power_profiles/__init__.py` to initialize the necessary settings.
 
 ## Development
 
