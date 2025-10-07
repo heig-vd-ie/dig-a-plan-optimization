@@ -1,7 +1,9 @@
 import pytest
 import polars as pl
 import math
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import (
+    pandapower_to_dig_a_plan_schema_with_scenarios,
+)
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipelines.reconfiguration import DigAPlanCombined
 
@@ -21,7 +23,9 @@ class TestCombinedModel:
 class TestCombinedModelSimpleExample(TestCombinedModel):
     def test_combined_model_simple_example(self):
 
-        base_grid_data = pandapower_to_dig_a_plan_schema(self.net, taps=self.taps)
+        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+            self.net, taps=self.taps
+        )
 
         dig_a_plan = DigAPlanCombined(config=self.combined_config)
 

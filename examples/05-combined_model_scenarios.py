@@ -7,7 +7,9 @@ from examples import *
 
 # %% set parameters
 net = pp.from_pickle("data/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema(net, number_of_random_scenarios=10)
+base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+    net, number_of_random_scenarios=10
+)
 
 # %% initialize DigAPlan
 

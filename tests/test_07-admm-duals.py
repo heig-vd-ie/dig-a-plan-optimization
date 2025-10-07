@@ -1,5 +1,7 @@
 import pytest
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import (
+    pandapower_to_dig_a_plan_schema_with_scenarios,
+)
 from pipelines.reconfiguration import DigAPlanADMM
 from pipelines.reconfiguration.configs import ADMMConfig
 
@@ -13,7 +15,7 @@ class ExpansionTestBase:
     ):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.grid_data = pandapower_to_dig_a_plan_schema(self.net)
+        self.grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
         self.admm_config: ADMMConfig = test_admm_config
         self.simple_grid_groups = test_simple_grid_groups
 

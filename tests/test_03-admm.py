@@ -1,7 +1,9 @@
 import pytest
 import polars as pl
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import (
+    pandapower_to_dig_a_plan_schema_with_scenarios,
+)
 from pipelines.reconfiguration import DigAPlanADMM, DigAPlanCombined
 from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
 
@@ -22,7 +24,7 @@ class TestADMMModel:
 class TestADMMModelSimpleExample(TestADMMModel):
     def test_admm_model_simple_example(self):
 
-        grid_data = pandapower_to_dig_a_plan_schema(self.net, taps=[100])
+        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net, taps=[100])
 
         dap = DigAPlanADMM(config=self.admm_config)
 

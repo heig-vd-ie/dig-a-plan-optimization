@@ -10,7 +10,9 @@ import plotly.graph_objs as go
 import polars as pl
 from polars import col as c
 from datetime import datetime
-from data_exporter.pandapower_to_dig_a_plan import pandapower_to_dig_a_plan_schema
+from data_exporter.pandapower_to_dig_a_plan import (
+    pandapower_to_dig_a_plan_schema_with_scenarios,
+)
 from data_schema import NodeEdgeModel
 from data_display.grid_plotting import plot_grid_from_pandapower
 from data_display.grid_plotting_legacy import (

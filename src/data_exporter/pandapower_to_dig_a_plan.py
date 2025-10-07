@@ -19,16 +19,16 @@ from data_exporter import validate_data
 def pandapower_to_dig_a_plan_schema(
     net: pp.pandapowerNet,
     s_base: float = 1e6,
-    number_of_random_scenarios: int = 10,
-    taps: List[int] | None = None,
-    p_bounds: Tuple[float, float] | None = None,
-    q_bounds: Tuple[float, float] | None = None,
-    v_bounds: Tuple[float, float] | None = None,
     v_min: float = 0.9,
     v_max: float = 1.1,
-    seed: int = 42,
-) -> NodeEdgeModel:
-
+) -> Tuple[pt.DataFrame[NodeData], pt.DataFrame[EdgeData], float, pl.DataFrame]:
+    """
+    Convert a pandapower network to DigAPlan schema.
+    This function extracts static node and edge data from the pandapower network
+    and validates them against the `data_schema` models.
+    It also identifies the slack bus and prepares load data.
+    """
+    # ------------------------
     bus = net["bus"]
     bus.index.name = "node_id"
 
@@ -226,6 +226,30 @@ def pandapower_to_dig_a_plan_schema(
 
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
+
+    return node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data
+
+
+def pandapower_to_dig_a_plan_schema_with_scenarios(
+    net: pp.pandapowerNet,
+    number_of_random_scenarios: int = 10,
+    taps: List[int] | None = None,
+    p_bounds: Tuple[float, float] | None = None,
+    q_bounds: Tuple[float, float] | None = None,
+    v_bounds: Tuple[float, float] | None = None,
+    v_min: float = 0.9,
+    v_max: float = 1.1,
+    s_base: float = 1e6,
+    seed: int = 42,
+) -> NodeEdgeModel:
+    """
+    Convert a pandapower network to DigAPlan schema with random load scenarios.
+    This function generates random load scenarios based on the provided node data
+    and edge data.
+    """
+    node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
+        pandapower_to_dig_a_plan_schema(net, v_min=v_min, v_max=v_max, s_base=s_base)
+    )
 
     rand_scenarios = generate_random_load_scenarios(
         node_data=node_data_validated,

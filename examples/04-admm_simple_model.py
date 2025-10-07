@@ -8,7 +8,7 @@ from examples import *
 # %% set parameters
 
 net = pp.from_pickle("data/simple_grid.p")
-grid_data = pandapower_to_dig_a_plan_schema(
+grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net,
     number_of_random_scenarios=100,
     p_bounds=(-0.6, 1.5),
