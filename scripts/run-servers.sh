@@ -7,7 +7,7 @@ source .venv/bin/activate
 direnv allow
 
 commands=(
-  "docker compose up -d; sleep 3; docker compose logs -f"
+  "source .envrc && docker compose up -d; sleep 3; docker compose logs -f"
 )
 commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
 commands+=("./scripts/run-interactive.sh; sleep 3")
