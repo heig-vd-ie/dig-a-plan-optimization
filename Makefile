@@ -174,3 +174,8 @@ clean-mongodb:  ## Clean up MongoDB data
 chunk-mongodb: ## Chunk large files for MongoDB
 	@echo "Chunking large files..."
 	@.venv/bin/python ./scripts/mongo-tools.py --chunk
+
+rename-host-ip: ## Rename the host ip in /etc/hosts
+	@echo "Renaming host node to $(HOST_IP)..."
+	@echo "Discovering host node IP address..."
+	@bash ./scripts/rename-host-ip.sh $(HOST_IP)
