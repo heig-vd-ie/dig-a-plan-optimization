@@ -3,8 +3,6 @@ set -e
 
 echo "Starting Ray Head node..."
 
-make rename-host-ip HOST_IP=${HEAD_HOST}
-
 # Launch Prometheus metrics for Ray
 ray metrics launch-prometheus
 

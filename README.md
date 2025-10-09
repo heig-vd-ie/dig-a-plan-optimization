@@ -105,3 +105,17 @@ poetry update
 
 ### Julia
 For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+
+
+### Add local network
+On linux:
+```sh
+# Add Tailscale repo
+curl -fsSL https://tailscale.com/install.sh | sh
+# Start Tailscale
+sudo tailscale up
+```
+
+```sh
+tailscale ip
+```

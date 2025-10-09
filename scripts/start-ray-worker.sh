@@ -3,8 +3,6 @@ set -e
 
 source .venv/bin/activate
 
-make rename-host-ip HOST_IP=${WORKER_HOST}
-
 eval "$(direnv export bash)"  # makes .envrc variables available
 
 # Make sure Makefile-exported env vars are present
