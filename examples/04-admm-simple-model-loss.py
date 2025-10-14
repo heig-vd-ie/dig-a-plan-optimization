@@ -140,8 +140,8 @@ def collect_objectives_via_discovery(dap):
             if obj is None:
                 continue
             try:
-                val = pe.value(obj)
-                rows.append({"scenario": int(s), "objective": float(val), "path": tag})
+                val = pe.value(obj) #type:ignore
+                rows.append({"scenario": int(s), "objective": float(val), "path": tag}) #type:ignore
                 ok = True
             except Exception:
                 continue
@@ -161,8 +161,8 @@ def collect_objectives_via_discovery(dap):
                 if obj is None:
                     continue
                 try:
-                    val = pe.value(obj)
-                    rows.append({"scenario": int(s), "objective": float(val), "path": "model_manager.models(list)"})
+                    val = pe.value(obj) #type:ignore
+                    rows.append({"scenario": int(s), "objective": float(val), "path": "model_manager.models(list)"}) #type:ignore
                 except Exception:
                     continue
             if rows:
@@ -188,8 +188,8 @@ def collect_objectives_via_discovery(dap):
         if obj is None:
             continue
         try:
-            val = pe.value(obj)
-            rows.append({"scenario": s, "objective": float(val), "path": pth})
+            val = pe.value(obj) #type:ignore
+            rows.append({"scenario": s, "objective": float(val), "path": pth}) #type:ignore
         except Exception:
             continue
 
