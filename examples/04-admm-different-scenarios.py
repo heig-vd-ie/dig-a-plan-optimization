@@ -247,7 +247,7 @@ def try_fix_taps_on_models(dap, tap_choice: dict[int, int]):
         pass
 
 
-# %% ------------------ Stage A: ADMM on 10 scenarios -> y* ------------------
+# %% ------------------ Stage A: ADMM on 100 scenarios -> y* ------------------
 net = pp.from_pickle("data/simple_grid.p")
 
 groups = {
@@ -258,26 +258,26 @@ groups = {
     4: [34, 26, 25, 24, 31],
 }
 
-grid10 = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net, number_of_random_scenarios=10,       # <-- 10 for design stage
+grid100 = pandapower_to_dig_a_plan_schema_with_scenarios(
+    net, number_of_random_scenarios=100,       # <-- 100 for design stage
     p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
     v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05,
 )
 
-config10 = ADMMConfig(
+config100 = ADMMConfig(
     verbose=False, pipeline_type=PipelineType.ADMM, solver_name="gurobi",
     solver_non_convex=2, big_m=1e3, ε=1, ρ=2.0,
     γ_infeasibility=10, γ_admm_penalty=1.0, γ_trafo_loss=1e2,
     groups=groups, max_iters=20, μ=10.0, τ_incr=2.0, τ_decr=2.0,
 )
 
-dap10 = DigAPlanADMM(config=config10)
-dap10.add_grid_data(grid10)
-dap10.solve_model()
+dap100 = DigAPlanADMM(config=config100)
+dap100.add_grid_data(grid100)
+dap100.solve_model()
 
-# design y* from 10-scenario run
-zδ_df = dap10.model_manager.zδ_variable     # switches
-zζ_df = dap10.model_manager.zζ_variable     # taps (consensus)
+# design y* from 100-scenario run
+zδ_df = dap100.model_manager.zδ_variable     # switches
+zζ_df = dap100.model_manager.zζ_variable     # taps (consensus)
 z_switch_y = harmonize_by_groups(_switch_df_to_dict(zδ_df), groups, rule="majority")
 tap_choice_y = _taps_df_to_choice(zζ_df)
 
@@ -326,7 +326,7 @@ df_ADMM100 = collect_objectives_from_admm_instances(dap100_full).rename(
 )
 
 # (D) ADMM(10) objectives — just to show its distribution (10 scenarios)
-df_10 = collect_objectives_from_admm_instances(dap10).rename(
+df_100 = collect_objectives_from_admm_instances(dap100).rename(
     columns={"objective": "objective_ADMM_10"}
 )
 
@@ -336,7 +336,7 @@ df_plot = (df_ADMM100.merge(df_fixed, on="scenario")
                      .merge(df_NO, on="scenario")
                      .sort_values("scenario").reset_index(drop=True))
 df_plot.to_csv(".cache/figs/objectives_100_ADMM_vs_FixedY_vs_NormalOpen.csv", index=False)
-df_10.to_csv(".cache/figs/objectives_ADMM_10.csv", index=False)
+df_100.to_csv(".cache/figs/objectives_ADMM_10.csv", index=False)
 
 # %% ------------------ Plots: boxplot & overlay -------------------------------
 plt.figure(figsize=(9, 5))
