@@ -1,0 +1,12 @@
+{
+    "nodes": [{ "id": 1 }, { "id": 2 }, { "id": 3 }, { "id": 4 }],
+    "n_stages": 5,
+    "n_scenarios": 100,
+    "load_potential": { "1": 6000, "2": 6000, "3": 6000, "4": 6000 },
+    "pv_potential": { "1": 6000, "2": 6000, "3": 6000, "4": 6000 },
+    "min_load": 1,
+    "min_pv": 5,
+    "yearly_budget": 1000,
+    "N_years_per_stage": 2,
+    "seed_number": 1234
+}

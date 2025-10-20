@@ -23,6 +23,57 @@ function log_datetime()
     return Dates.format(now(), "yyyy-mm-dd HH:MM:SS")
 end
 
+function handle_generate_scenarios(req::HTTP.Request)
+    println("[$(log_datetime())] Processing generate scenario request...")
+
+    body = String(req.body)
+    # Handle empty body case
+    if isempty(body)
+        println("[$(log_datetime())] Empty request body, using all defaults")
+        body = Dict()
+    else
+        body = JSON3.read(body)
+    end
+
+    n_scenarios = get(body, "n_scenarios", 1)
+    n_stages = get(body, "n_stages", 1)
+    _nodes = get(body, "nodes", 1)
+    _load_potential = get(body, "load_potential", 1)
+    _pv_potential = get(body, "pv_potential", 1)
+    nodes = Vector{ExpansionModel.Types.Node}()
+    load_potential, pv_potential =
+        Dict{ExpansionModel.Types.Node, Float64}(), Dict{ExpansionModel.Types.Node, Float64}()
+    @showprogress 1 "Processing nodes..." for node_data in _nodes
+        node = ExpansionModel.Types.Node(node_data["id"])
+        node_id_str = string(node_data["id"])
+        push!(nodes, node)
+        load_potential[node] = Float64(_load_potential[node_id_str])
+        pv_potential[node] = Float64(_pv_potential[node_id_str])
+    end
+
+    min_load = Float64(get(body, "min_load", 1.0))
+    min_pv = Float64(get(body, "min_pv", 5.0))
+    yearly_budget = Float64(get(body, "yearly_budget", 1))
+    N_years_per_stage = get(body, "N_years_per_stage", 1)
+    seed_number = get(body, "seed_number", 1234)
+
+    scenarios = ExpansionModel.ScenariosGeneration.generate_scenarios(
+        n_scenarios,
+        n_stages,
+        nodes,
+        load_potential,
+        pv_potential,
+        min_load,
+        min_pv,
+        yearly_budget,
+        N_years_per_stage,
+        seed_number,
+    )
+    probabilities = fill(1.0 / n_scenarios, n_scenarios)
+    response = JSON3.write(Dict("Ω" => scenarios, "P" => probabilities))
+    return HTTP.Response(200, response)
+end
+
 function handle_stochastic_planning(req::HTTP.Request)
     println("[$(log_datetime())] Processing stochastic planning request...")
 
@@ -333,6 +384,10 @@ function handle_request(req::HTTP.Request)
         elseif req.method == "PATCH" && req.target == "/compare-plot"
             # Handle plot request
             response = compare_plot(req)
+            log_request(req, 200, (time() - start_time) * 1000)
+            return response
+        elseif req.method == "PATCH" && req.target == "/generate-scenarios"
+            response = handle_generate_scenarios(req)
             log_request(req, 200, (time() - start_time) * 1000)
             return response
         elseif req.method == "GET" && req.target == "/health"

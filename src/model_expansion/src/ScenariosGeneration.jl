@@ -2,6 +2,7 @@
 module ScenariosGeneration
 
 using Random, Distributions
+export generate_scenarios
 
 using ..Types
 
@@ -42,13 +43,13 @@ end
 function generate_scenarios(
     n_scenarios::Int,
     n_stages::Int,
-    nodes::Vector{Types.Node};
+    nodes::Vector{Types.Node},
     load_potential::Dict{Types.Node, Float64},
     pv_potential::Dict{Types.Node, Float64},
     min_load::Float64 = 1.0,
     min_pv::Float64 = 5.0,
-    yearly_budget::Float64,
-    N_years_per_stage::Int64,
+    yearly_budget::Float64 = 1000.0,
+    N_years_per_stage::Int64 = 1,
     seed_number::Int = 1234,
 )
     Random.seed!(seed_number)

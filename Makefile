@@ -66,7 +66,11 @@ run-tests: ## Run all tests
 
 format-jl:  ## Format Julia code in the src directory
 	@echo "Formatting Julia code with JuliaFormatter..."
-	julia -e 'using JuliaFormatter; format("src/")'
+	julia --project=src/model_expansion/. -e 'using JuliaFormatter; format("src/")'
+
+format-py: ## Format Python code using black
+	@echo "Formatting Python code with black..."
+	@poetry run black .
 
 format: format-jl format-py ## Format all code (Julia and Python)
 

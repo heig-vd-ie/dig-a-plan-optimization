@@ -15,14 +15,15 @@ from data_exporter.dig_a_plan_to_expansion import (
 from data_schema import NodeEdgeModel
 from data_schema.edge_data import EdgeData
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
-from pipelines.expansion.api import run_sddp
-from pipelines.expansion.ltscenarios import generate_long_term_scenarios
+from pipelines.expansion.api import run_sddp, generate_scenarios
 from pipelines.expansion.models.request import (
     AdditionalParams,
     BenderCut,
     BenderCuts,
     Cut,
+    Node,
     ExpansionRequest,
+    LongTermScenarioRequest,
     OptimizationConfig,
     PlanningParams,
     RiskMeasureType,
@@ -80,9 +81,9 @@ class ExpansionAlgorithm:
         just_test: bool = False,
         risk_measure_type: RiskMeasureType = RiskMeasureType.EXPECTATION,
         risk_measure_param: float = 0.1,
-        δ_load_var: float = 0.1,
-        δ_pv_var: float = 0.1,
-        δ_b_var: float = 0.1,
+        δ_load_var: float = 5.0,
+        δ_pv_var: float = 1.0,
+        δ_b_var: float = 1000,
         number_of_sddp_scenarios: int = 100,
         expansion_transformer_cost_per_kw: float = 1e3,
         expansion_line_cost_per_km_kw: float = 1e3,
@@ -145,22 +146,31 @@ class ExpansionAlgorithm:
             risk_measure_type=risk_measure_type,
             risk_measure_param=risk_measure_param,
         )
+        nodes = [
+            Node(id=node["node_id"])
+            for node in grid_data.node_data.iter_rows(named=True)
+        ]
         self.create_scenario_data(
+            nodes=nodes,
             δ_load_var=δ_load_var,
             δ_pv_var=δ_pv_var,
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
             seed_number=self.seed_number,
+            n_years_per_stage=self.planning_params.years_per_stage,
         )
         self.create_out_of_sample_scenario_data(
+            nodes=nodes,
             δ_load_var=δ_load_var,
             δ_pv_var=δ_pv_var,
             δ_b_var=δ_b_var,
             number_of_scenarios=number_of_sddp_scenarios,
             number_of_stages=n_stages,
             seed_number=self.seed_number + 1000,
+            n_years_per_stage=self.planning_params.years_per_stage,
         )
+
         self.create_bender_cuts(bender_cuts=bender_cuts)
         self.cache_dir_run = self.cache_dir / "algorithm" / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
@@ -188,43 +198,59 @@ class ExpansionAlgorithm:
 
     def create_scenario_data(
         self,
-        δ_load_var=0.1,
-        δ_pv_var=0.1,
-        δ_b_var=0.1,
+        nodes: List[Node],
+        δ_load_var=10.0,
+        δ_pv_var=5.0,
+        δ_b_var=10000.0,
+        min_load=5.0,
+        min_pv=1.0,
         number_of_scenarios=10,
         number_of_stages=3,
         seed_number=1000,
+        n_years_per_stage=1,
     ):
         """Generate long-term scenarios with configurable parameters."""
-        self.scenario_data = generate_long_term_scenarios(
-            nodes=self.grid_data_rm.node_data,
-            δ_load_var=δ_load_var,
-            δ_pv_var=δ_pv_var,
-            δ_b_var=δ_b_var,
-            number_of_scenarios=number_of_scenarios,
-            number_of_stages=number_of_stages,
+        ltm_scenarios = LongTermScenarioRequest(
+            n_scenarios=number_of_scenarios,
+            n_stages=number_of_stages,
+            nodes=nodes,
+            load_potential={node.id: δ_load_var for node in nodes},
+            pv_potential={node.id: δ_pv_var for node in nodes},
+            min_load=min_load,
+            min_pv=min_pv,
+            yearly_budget=δ_b_var,
+            N_years_per_stage=n_years_per_stage,
             seed_number=seed_number,
         )
+        self.scenario_data = generate_scenarios(ltm_scenarios)
 
     def create_out_of_sample_scenario_data(
         self,
-        δ_load_var=0.1,
-        δ_pv_var=0.1,
-        δ_b_var=0.1,
+        nodes: List[Node],
+        δ_load_var=10.0,
+        δ_pv_var=5.0,
+        δ_b_var=10000.0,
+        min_load=5.0,
+        min_pv=1.0,
         number_of_scenarios=10,
         number_of_stages=3,
         seed_number=1000,
+        n_years_per_stage=1,
     ):
         """Generate long-term scenarios with configurable parameters."""
-        self.out_of_sample_scenarios = generate_long_term_scenarios(
-            nodes=self.grid_data_rm.node_data,
-            δ_load_var=δ_load_var,
-            δ_pv_var=δ_pv_var,
-            δ_b_var=δ_b_var,
-            number_of_scenarios=number_of_scenarios,
-            number_of_stages=number_of_stages,
+        ltm_scenarios = LongTermScenarioRequest(
+            n_scenarios=number_of_scenarios,
+            n_stages=number_of_stages,
+            nodes=nodes,
+            load_potential={node.id: δ_load_var for node in nodes},
+            pv_potential={node.id: δ_pv_var for node in nodes},
+            min_load=min_load,
+            min_pv=min_pv,
+            yearly_budget=δ_b_var,
+            N_years_per_stage=n_years_per_stage,
             seed_number=seed_number,
         )
+        self.out_of_sample_scenarios = generate_scenarios(ltm_scenarios)
 
     def create_additional_params(
         self,

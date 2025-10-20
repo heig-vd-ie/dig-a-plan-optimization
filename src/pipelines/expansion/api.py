@@ -4,7 +4,11 @@ import os
 import requests
 from pathlib import Path
 from pipelines.expansion.models.response import ExpansionResponse
-from pipelines.expansion.models.request import ExpansionRequest
+from pipelines.expansion.models.request import (
+    Scenarios,
+    ExpansionRequest,
+    LongTermScenarioRequest,
+)
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 logging.basicConfig(
@@ -63,6 +67,30 @@ class ExpansionModel:
         except Exception as e:
             raise RuntimeError(f"✗ Unexpected error: {e}")
 
+    def run_generate_scenarios_native(
+        self,
+        request_data: dict,
+    ) -> requests.Response:
+        """Run the SDDP algorithm (native implementation)."""
+        try:
+            response = requests.patch(
+                f"{self.base_url}/generate-scenarios",
+                headers={"Content-Type": "application/json"},
+                json=request_data,
+            )
+            if response.status_code != 200:
+                logger.error(f"✗ Request failed with status {response.status_code}")
+                logger.error(f"Response: {response.text}")
+            else:
+                logger.info(f"🎉 Response status: {response.status_code}")
+            return response
+        except json.JSONDecodeError as e:
+            raise ValueError(f"✗ Error parsing JSON: {e}")
+        except requests.RequestException as e:
+            raise ConnectionError(f"✗ Request error: {e}")
+        except Exception as e:
+            raise RuntimeError(f"✗ Unexpected error: {e}")
+
     def handle_expansion_request(
         self,
         expansion_request: ExpansionRequest,
@@ -100,6 +128,15 @@ class ExpansionModel:
             response = self.run_sddp_native()
         return ExpansionResponse(**response.json())
 
+    def run_generate_scenarios(
+        self,
+        long_term_scenario_request: LongTermScenarioRequest,
+    ) -> Scenarios:
+        response = self.run_generate_scenarios_native(
+            request_data=long_term_scenario_request.model_dump(by_alias=True)
+        )
+        return Scenarios(**response.json())
+
 
 def run_sddp_native(data_path: Path | None = None) -> requests.Response:
     expansion_model = ExpansionModel()
@@ -114,3 +151,10 @@ def run_sddp(
         expansion_request=expansion_request,
         cache_path=cache_path,
     )
+
+
+def generate_scenarios(
+    long_term_scenario_request: LongTermScenarioRequest,
+) -> Scenarios:
+    expansion_model = ExpansionModel()
+    return expansion_model.run_generate_scenarios(long_term_scenario_request)

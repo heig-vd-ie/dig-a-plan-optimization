@@ -47,11 +47,13 @@ grid = Types.Grid(nodes, edges, cuts, Types.Node(1), initial_cap, load, pv)
     n_scenarios,
     n_stages,
     nodes,
-    load_potential = Dict(n => 10.0 for n in nodes),
-    pv_potential = Dict(n => 5.0 for n in nodes),
-    yearly_budget = 1000.0,
-    N_years_per_stage = 5,
-    seed_number = 1234,
+    Dict(n => 10.0 for n in nodes),
+    Dict(n => 5.0 for n in nodes),
+    1.0,
+    5.0,
+    1000.0,
+    5,
+    1234,
 )
 P = fill(1.0 / n_scenarios, n_scenarios)
 
@@ -62,11 +64,13 @@ scenarios_data_raw = Dict("Ω" => Ω, "P" => P)
     n_scenarios,
     n_stages,
     nodes,
-    load_potential = Dict(n => 10.0 for n in nodes),
-    pv_potential = Dict(n => 5.0 for n in nodes),
-    yearly_budget = 1000.0,
-    N_years_per_stage = 5,
-    seed_number = 1234 + 1000,
+    Dict(n => 10.0 for n in nodes),
+    Dict(n => 5.0 for n in nodes),
+    1000.0,
+    1.0,
+    5.0,
+    5,
+    1234 + 1000,
 )
 Po = fill(1.0 / n_scenarios, n_scenarios)
 
