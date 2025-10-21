@@ -35,9 +35,9 @@ def download_estavayer_power_profiles(kace: str, force: bool) -> None:
         return None
 
     layer_list: Optional[list[str]] = [
-        "electrical_power_plant",
-        "roof_pv_poterntial",
-        "non_industrial_heat_demand",
+        "regbl",
+        "ev_planned",
+        "roof_pv_potential",
     ]
 
     shape_file_path: str = settings.cases[kace].geojson_file
