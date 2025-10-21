@@ -31,7 +31,8 @@ function random_partition(
     adoption_years = rand(dist, n_units)
 
     # Compute cumulative installed capacity by stage
-    adopted = [min_unit * sum(a <= s * N_years for a in adoption_years) for s in 1:n]
+    adopted =
+        [min_unit * sum((a <= s * N_years for a in adoption_years); init = 0) for s in 1:n]
 
     # Clip to total potential (for numeric safety)
     adopted = [min(v, total) for v in adopted]

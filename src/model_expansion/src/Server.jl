@@ -71,6 +71,8 @@ function handle_generate_scenarios(req::HTTP.Request)
     )
     probabilities = fill(1.0 / n_scenarios, n_scenarios)
     response = JSON3.write(Dict("Ω" => scenarios, "P" => probabilities))
+    response = replace(response, r"ExpansionModel\.Types\.Node\((\d+)\)" => s"\1")
+    response = replace(response, r"Node\((\d+)\)" => s"\1")
     return HTTP.Response(200, response)
 end
 
