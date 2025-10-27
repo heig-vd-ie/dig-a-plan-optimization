@@ -12,22 +12,17 @@ import polars as pl
 from polars import col as c
 
 # -------------------- configuration --------------------
-SAVE_DIR = ".cache/admm_insample"
-os.makedirs(SAVE_DIR, exist_ok=True)
-
-NUM_SCEN_TRAIN = 50    # train scenarios for ADMM (to learn y*)
-NUM_SCEN_TEST  = 50    # new scenarios for OOS evaluation
-S_BASE_W       = 1e6   # s_base used in scenario generator
+SCEN_COUNTS = [50, 100, 150]   # training sizes
+S_BASE_W    = 1e6
+TRAIN_SEED  = 42
+OOS_SEED    = 777
+OOS_N       = 500              # ### NEW: fixed OOS size
+USE_CACHE   = False
 
 # δ polarity:
 # True  => δ=1 means CLOSED; δ=0 means OPEN
 # False => δ=1 means OPEN;   δ=0 means CLOSED
 POLARITY_DELTA_1_IS_CLOSED = True
-
-# -------------------- file paths -----------------------
-fp_switch = os.path.join(SAVE_DIR, "consensus_switch.json")
-fp_taps   = os.path.join(SAVE_DIR, "consensus_taps.json")
-fp_map    = os.path.join(SAVE_DIR, "edge_to_pp_switch.json")
 
 # ================= helpers: parse consensus (δ, ζ) =================
 def _switch_df_to_dict(df: pl.DataFrame) -> dict[int, float]:
@@ -36,7 +31,6 @@ def _switch_df_to_dict(df: pl.DataFrame) -> dict[int, float]:
         if key_col is None:
             raise RuntimeError(f"Cannot find edge_id column in zδ_variable; columns={df.columns}")
         df = df.rename({key_col: "edge_id"})
-
     candidate_cols = [col for col in df.columns if col != "edge_id"]
     numeric_col = None
     for col in candidate_cols:
@@ -47,7 +41,6 @@ def _switch_df_to_dict(df: pl.DataFrame) -> dict[int, float]:
                 break
         except Exception:
             continue
-
     if numeric_col is not None:
         vals = df.select(["edge_id", pl.col(numeric_col).cast(pl.Float64)]).to_dicts()
         mapping = {int(r["edge_id"]): float(r[numeric_col]) for r in vals}
@@ -64,7 +57,6 @@ def _switch_df_to_dict(df: pl.DataFrame) -> dict[int, float]:
                     try: return float(m.group(1))
                     except Exception: pass
             return None
-
         mapping = {}
         for row in df.to_dicts():
             edge = int(row["edge_id"])
@@ -78,7 +70,6 @@ def _switch_df_to_dict(df: pl.DataFrame) -> dict[int, float]:
             if val is None:
                 raise RuntimeError(f"Cannot parse switch value for edge_id={edge} from row={row}")
             mapping[edge] = float(val)
-
     # clip & snap to {0,1}
     for k, v in list(mapping.items()):
         vv = max(0.0, min(1.0, v))
@@ -101,7 +92,6 @@ def _taps_df_to_choice(df: pl.DataFrame) -> dict[int, int]:
             arg = int(np.argmax(gnp[:, 1])); tap = int(gnp[arg, 0])
             best[int(eid)] = tap  # type: ignore
         return best
-    # wide format fallback
     value_cols = [c for c in df.columns if c != "edge_id"]
     best = {}
     for row in df.to_dicts():
@@ -138,7 +128,7 @@ def harmonize_by_groups(z_map: dict[int, float], groups: dict[int, list[int]], r
             if e in z: z[e] = rep
     return z
 
-# =============== NEW: robust mapping using eq_fk ('switch i') ==================
+# =============== robust mapping using eq_fk ('switch i') ==================
 def _pp_switch_index_by_name(net: pp.pandapowerNet) -> dict[str, int]:
     """Build {'switch 0': row_index, ...} from net.switch['name'] (case-insensitive)."""
     if not hasattr(net, "switch") or net.switch is None or net.switch.empty:
@@ -152,9 +142,7 @@ def _pp_switch_index_by_name(net: pp.pandapowerNet) -> dict[str, int]:
     return name_to_idx
 
 def build_edge_to_pp_switch_index_from_dap_and_net(dap, net: pp.pandapowerNet) -> dict[int, int]:
-    """
-    Use ADMM zδ_variable (eq_fk, edge_id) + PP net.switch['name'] to build: edge_id -> net.switch index
-    """
+    """Use ADMM zδ_variable (eq_fk, edge_id) + PP net.switch['name'] to build: edge_id -> net.switch index."""
     zdelta: pl.DataFrame = dap.model_manager.zδ_variable
     if "eq_fk" not in zdelta.columns or "edge_id" not in zdelta.columns:
         raise RuntimeError("zδ_variable must have 'eq_fk' and 'edge_id' columns.")
@@ -199,15 +187,9 @@ def apply_y_to_pandapower_switches(net: pp.pandapowerNet, z_switch_map: dict[int
         changed += int((before.values != desired).sum())
     return changed
 
-# --- NEW: apply ADMM "Normal-Open" (from fixed-switch run) to PP net -----------
 def apply_normal_open_to_pp_switches(net: pp.pandapowerNet,
                                      normal_open_map: dict[int, bool]) -> int:
-    """
-    Force PP net.switch.closed to the ADMM 'normal_open' state:
-        closed = not normal_open
-    Returns the number of switches that changed.
-    Requires net.switch['edge_id'] to exist (call annotate_pp_switch_with_edge_ids_from_mapping first).
-    """
+    """Force PP net.switch.closed to the ADMM 'normal_open' state: closed = not normal_open."""
     if not hasattr(net, "switch") or net.switch is None or net.switch.empty:
         return 0
     if "edge_id" not in net.switch.columns:
@@ -217,7 +199,7 @@ def apply_normal_open_to_pp_switches(net: pp.pandapowerNet,
         mask = (net.switch["edge_id"] == int(eid))
         if not mask.any():
             continue
-        desired_closed = not bool(no)  # closed = not normal_open
+        desired_closed = not bool(no)
         before = net.switch.loc[mask, "closed"].astype(bool)
         net.switch.loc[mask, "closed"] = desired_closed
         changed += int((before.values != desired_closed).sum())
@@ -302,8 +284,8 @@ def pp_losses_MW(net: pp.pandapowerNet) -> float:
         losses += float(net.res_trafo["pl_mw"].sum())
     return losses
 
-# %% ------------------ Stage A: ADMM on train scenarios -> learn y* ------------
-net = pp.from_pickle("data/simple_grid.p")
+# %%# -------------------- run for N in {50,100,150} --------------------
+net_base = pp.from_pickle("data/simple_grid.p")
 
 groups = {
     0: [19, 20, 21, 29, 32, 35],
@@ -313,203 +295,193 @@ groups = {
     4: [34, 26, 25, 24, 31],
 }
 
-need_train = not (os.path.exists(fp_switch) and os.path.exists(fp_map))
+# containers for plotting
+dist_train_fixedY = {}   # N -> np.array (size N)
+dist_oos_fixedY   = {}   # N -> np.array (size OOS_N)
+dist_train_NO     = {}   # N -> np.array (size N)
+dist_oos_NO       = {}   # ### NEW: N -> np.array (size OOS_N)
 
-if need_train:
-    print("[ADMM][TRAIN] Build train scenarios & solve ADMM to learn y* ...")
-    np.random.seed(42)
-    grid_train = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net, number_of_random_scenarios=NUM_SCEN_TRAIN,
+for N in SCEN_COUNTS:
+    SAVE_DIR = f".cache/admm_insample_{N}"
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    fp_switch = os.path.join(SAVE_DIR, "consensus_switch.json")
+    fp_taps   = os.path.join(SAVE_DIR, "consensus_taps.json")
+    fp_map    = os.path.join(SAVE_DIR, "edge_to_pp_switch.json")
+
+    net = _copy.deepcopy(net_base)
+
+    need_train = True
+    if USE_CACHE and all(os.path.exists(p) for p in [fp_switch, fp_taps, fp_map]):
+        need_train = False
+
+    if need_train:
+        print(f"\n[ADMM][TRAIN][N={N}] Building {N} train scenarios & solving...")
+        np.random.seed(TRAIN_SEED)
+        grid_train = pandapower_to_dig_a_plan_schema_with_scenarios(
+            net, number_of_random_scenarios=N,
+            p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
+            v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
+            seed=TRAIN_SEED,
+        )
+        config_train = ADMMConfig(
+            verbose=False, pipeline_type=PipelineType.ADMM, solver_name="gurobi",
+            solver_non_convex=2, big_m=1e3, ε=1, ρ=2.0,
+            γ_infeasibility=10, γ_admm_penalty=1.0, γ_trafo_loss=1e2,
+            groups=groups, max_iters=20, μ=10.0, τ_incr=2.0, τ_decr=2.0,
+        )
+        dap_train = DigAPlanADMM(config=config_train)
+        dap_train.add_grid_data(grid_train)
+        dap_train.solve_model()
+
+        zδ_df = dap_train.model_manager.zδ_variable
+        zζ_df = dap_train.model_manager.zζ_variable
+        z_switch_y = harmonize_by_groups(_switch_df_to_dict(zδ_df), groups, rule="majority")
+        tap_choice_y = _taps_df_to_choice(zζ_df)
+
+        edge_to_pp_switch = build_edge_to_pp_switch_index_from_dap_and_net(dap_train, net)
+        with open(fp_map, "w") as f: json.dump({int(k): int(v) for k, v in edge_to_pp_switch.items()}, f)
+        with open(fp_switch, "w") as f: json.dump({int(k): float(v) for k, v in z_switch_y.items()}, f)
+        with open(fp_taps,   "w") as f: json.dump({int(k): int(v)   for k, v in tap_choice_y.items()}, f)
+    else:
+        print(f"\n[CACHE][N={N}] Loading cached y* and mapping ...")
+        with open(fp_switch, "r") as f: z_switch_y = {int(k): float(v) for k, v in json.load(f).items()}
+        with open(fp_taps,   "r") as f: tap_choice_y = {int(k): int(v) for k, v in json.load(f).items()}
+        with open(fp_map,    "r") as f: edge_to_pp_switch = {int(k): int(v) for k, v in json.load(f).items()}
+
+    # Build Normal-Open by re-solving with fixed switches (uses same TRAIN scenarios)
+    if not (USE_CACHE and os.path.exists(os.path.join(SAVE_DIR, "normal_open_map.json"))):
+        # need dap_train + grid_train; rebuild minimal grid_train for consistency
+        grid_train_for_NO = pandapower_to_dig_a_plan_schema_with_scenarios(
+            net, number_of_random_scenarios=N,
+            p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
+            v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
+            seed=TRAIN_SEED,
+        )
+        config_train_NO = ADMMConfig(
+            verbose=False, pipeline_type=PipelineType.ADMM, solver_name="gurobi",
+            solver_non_convex=2, big_m=1e3, ε=1, ρ=2.0,
+            γ_infeasibility=10, γ_admm_penalty=1.0, γ_trafo_loss=1e2,
+            groups=groups, max_iters=20, μ=10.0, τ_incr=2.0, τ_decr=2.0,
+        )
+        dap_train_for_NO = DigAPlanADMM(config=config_train_NO)
+        dap_train_for_NO.add_grid_data(grid_train_for_NO)
+        dap_train_for_NO.solve_model(fixed_switches=True)
+        zδ_df_fixed = dap_train_for_NO.model_manager.zδ_variable
+        use_col = "normal_open" if ("normal_open" in zδ_df_fixed.columns and
+                                    bool(zδ_df_fixed.select(pl.col("normal_open").cast(pl.Int8).sum()).item())) else "open"
+        normal_open_map = {int(r["edge_id"]): bool(r[use_col]) for r in zδ_df_fixed.select(["edge_id", use_col]).to_dicts()}
+        with open(os.path.join(SAVE_DIR, "normal_open_map.json"), "w") as f:
+            json.dump({int(k): bool(v) for k, v in normal_open_map.items()}, f)
+    else:
+        with open(os.path.join(SAVE_DIR, "normal_open_map.json"), "r") as f:
+            normal_open_map = {int(k): bool(v) for k, v in json.load(f).items()}
+
+    # Prepare PP nets and annotate edge_id
+    net_yfixed = _copy.deepcopy(net)
+    net_NO     = _copy.deepcopy(net)
+    annotate_pp_switch_with_edge_ids_from_mapping(net_yfixed, edge_to_pp_switch)
+    annotate_pp_switch_with_edge_ids_from_mapping(net_NO,     edge_to_pp_switch)
+
+    _ = apply_y_to_pandapower_switches(net_yfixed, z_switch_y)
+    _ = apply_normal_open_to_pp_switches(net_NO, normal_open_map)
+
+    # TRAIN scenarios (N of them) -> evaluate PP losses
+    grid_train_pp = pandapower_to_dig_a_plan_schema_with_scenarios(
+        net, number_of_random_scenarios=N,
         p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
         v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
-        seed=42,
+        seed=TRAIN_SEED,
     )
-    config_train = ADMMConfig(
-        verbose=False, pipeline_type=PipelineType.ADMM, solver_name="gurobi",
-        solver_non_convex=2, big_m=1e3, ε=1, ρ=2.0,
-        γ_infeasibility=10, γ_admm_penalty=1.0, γ_trafo_loss=1e2,
-        groups=groups, max_iters=20, μ=10.0, τ_incr=2.0, τ_decr=2.0,
+
+    tr_fixed_losses, tr_no_losses = [], []
+    for s in range(N):
+        # Fixed y*
+        net_s_fixed = apply_scenario_injections_to_pp_from_nodeedge(net_yfixed, grid_train_pp, scenario=s, s_base_w=S_BASE_W)
+        try:
+            pp.runpp(net_s_fixed, algorithm="nr")
+            tr_fixed_losses.append(pp_losses_MW(net_s_fixed))
+        except Exception:
+            tr_fixed_losses.append(float("inf"))
+
+        # Normal-Open
+        net_s_no = apply_scenario_injections_to_pp_from_nodeedge(net_NO, grid_train_pp, scenario=s, s_base_w=S_BASE_W)
+        try:
+            pp.runpp(net_s_no, algorithm="nr")
+            tr_no_losses.append(pp_losses_MW(net_s_no))
+        except Exception:
+            tr_no_losses.append(float("inf"))
+
+    dist_train_fixedY[N] = np.asarray(tr_fixed_losses, dtype=float)
+    dist_train_NO[N]     = np.asarray(tr_no_losses,    dtype=float)
+
+    # OOS scenarios (N of them) -> evaluate PP losses for Fixed y*
+    grid_test = pandapower_to_dig_a_plan_schema_with_scenarios(
+        net, number_of_random_scenarios=OOS_N,
+        p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
+        v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
+        seed=OOS_SEED,
     )
-    dap_train = DigAPlanADMM(config=config_train)
-    dap_train.add_grid_data(grid_train)
-    dap_train.solve_model()
 
-    # consensus y*
-    zδ_df = dap_train.model_manager.zδ_variable
-    zζ_df = dap_train.model_manager.zζ_variable
-    z_switch_y = harmonize_by_groups(_switch_df_to_dict(zδ_df), groups, rule="majority")
-    tap_choice_y = _taps_df_to_choice(zζ_df)
+    oos_fixed_losses = []
+    oos_no_losses    = []   
+    for s in range(N):
+        net_s_fixed = apply_scenario_injections_to_pp_from_nodeedge(net_yfixed, grid_test, scenario=s, s_base_w=S_BASE_W)
+        try:
+            pp.runpp(net_s_fixed, algorithm="nr")
+            oos_fixed_losses.append(pp_losses_MW(net_s_fixed))
+        except Exception:
+            oos_fixed_losses.append(float("inf"))
+            
+        net_s_no = apply_scenario_injections_to_pp_from_nodeedge(net_NO, grid_test, scenario=s, s_base_w=S_BASE_W)
+        try:
+            pp.runpp(net_s_no, algorithm="nr")
+            oos_no_losses.append(pp_losses_MW(net_s_no))
+        except Exception:
+            oos_no_losses.append(float("inf"))
 
-    # Build mapping from ADMM eq_fk -> PP row using names, then save
-    edge_to_pp_switch = build_edge_to_pp_switch_index_from_dap_and_net(dap_train, net)
-    with open(fp_map, "w") as f: json.dump({int(k): int(v) for k, v in edge_to_pp_switch.items()}, f)
+    dist_oos_fixedY[N] = np.asarray(oos_fixed_losses, dtype=float)
+    dist_oos_NO[N]     = np.asarray(oos_no_losses,    dtype=float)
 
-    # Save consensus
-    with open(fp_switch, "w") as f: json.dump({int(k): float(v) for k, v in z_switch_y.items()}, f)
-    with open(fp_taps,   "w") as f: json.dump({int(k): int(v)   for k, v in tap_choice_y.items()}, f)
+# %% # -------------------- Plotting --------------------
 
-else:
-    print("[CACHE] Loading cached y* and mapping ...")
-    with open(fp_switch, "r") as f: z_switch_y = {int(k): float(v) for k, v in json.load(f).items()}
-    with open(fp_taps,   "r") as f: tap_choice_y = {int(k): int(v) for k, v in json.load(f).items()}
-    with open(fp_map,    "r") as f: edge_to_pp_switch = {int(k): int(v) for k, v in json.load(f).items()}
-
-print("Sample y* (δ):", list(z_switch_y.items())[:5])
-
-# --- build ADMM "Normal-Open" topology by re-solving with fixed switches -------
-dap_fixed = _copy.deepcopy(dap_train)
-dap_fixed.solve_model(fixed_switches=True)
-zδ_df_fixed = dap_fixed.model_manager.zδ_variable  # edge_id, normal_open, closed, open...
-
-# prefer 'normal_open' if it has any True; else fallback to 'open'
-use_col = "normal_open" if ("normal_open" in zδ_df_fixed.columns and
-                            bool(zδ_df_fixed.select(pl.col("normal_open").cast(pl.Int8).sum()).item())) else "open"
-normal_open_map = {int(r["edge_id"]): bool(r[use_col]) for r in zδ_df_fixed.select(["edge_id", use_col]).to_dicts()}
-
-# Prepare PP nets (y*-fixed and Normal-Open), annotate with edge_id FROM MAPPING
-net_yfixed = _copy.deepcopy(net)
-net_NO     = _copy.deepcopy(net)
-annotate_pp_switch_with_edge_ids_from_mapping(net_yfixed, edge_to_pp_switch)
-annotate_pp_switch_with_edge_ids_from_mapping(net_NO,     edge_to_pp_switch)
-
-chg_y  = apply_y_to_pandapower_switches(net_yfixed, z_switch_y)
-chg_no = apply_normal_open_to_pp_switches(net_NO, normal_open_map)
-print(f"[MAP] mapped ADMM switches: {len(edge_to_pp_switch)}")
-print(f"[DIAG] applied y*: changed {chg_y} PP switches (δ=1->closed: {POLARITY_DELTA_1_IS_CLOSED})")
-print(f"[DIAG] applied ADMM Normal-Open (column='{use_col}'): changed {chg_no} PP switches")
-
-# quick sanity diff (also saved to CSV)
-diag = (
-    net_yfixed.switch[["name","edge_id","closed"]]
-    .merge(net_NO.switch[["name","edge_id","closed"]].rename(columns={"closed":"closed_NO"}),
-           on=["name","edge_id"], how="outer")
-    .rename(columns={"closed":"closed_y"})
-)
-diag["diff"] = (diag["closed_y"].astype(object) != diag["closed_NO"].astype(object))
-print(f"[CHECK] Switch state differences between y* and Normal-Open: {int(diag['diff'].sum())}")
+# -------------------- Single figure: TRAIN vs OOS=500 + one Normal-Open=500 ---
 os.makedirs(".cache/figs", exist_ok=True)
-diag.to_csv(".cache/figs/pp_switch_states__ystar_vs_normalopen.csv", index=False)
 
-# Re-create the **same** train scenarios (without re-solving ADMM) for PP evaluation
-grid_train_pp = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net, number_of_random_scenarios=NUM_SCEN_TRAIN,
-    p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
-    v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
-    seed=42,   # must match the ADMM train seed
-)
+# pick ONE Normal-Open@500 series (here: from the last training N)
+no_key = SCEN_COUNTS[-1]
+no_500 = dist_oos_NO[no_key]  # uses OOS_N=500, seed 777
 
-# %% --------- PP on TRAIN set: losses for Fixed y* vs Normal-Open --------------
-rows_pp_train_fixed, rows_pp_train_no = [], []
-for s in range(NUM_SCEN_TRAIN):
-    # Fixed y*
-    net_s_fixed = apply_scenario_injections_to_pp_from_nodeedge(net_yfixed, grid_train_pp, scenario=s, s_base_w=S_BASE_W)
-    try:
-        pp.runpp(net_s_fixed, algorithm="nr")
-        loss_fixed = pp_losses_MW(net_s_fixed)
-    except Exception:
-        loss_fixed = float("inf")
-    rows_pp_train_fixed.append({"scenario": s, "loss_MW_PP_FixedY_train": loss_fixed})
+plt.figure(figsize=(12,6))
+positions, data, labels = [], [], []
 
-    # ADMM Normal-Open (from fixed-switch run)
-    net_s_no = apply_scenario_injections_to_pp_from_nodeedge(net_NO, grid_train_pp, scenario=s, s_base_w=S_BASE_W)
-    try:
-        pp.runpp(net_s_no, algorithm="nr")
-        loss_no = pp_losses_MW(net_s_no)
-    except Exception:
-        loss_no = float("inf")
-    rows_pp_train_no.append({"scenario": s, "loss_MW_PP_NormalOpen_train": loss_no})
+# layout params
+group_gap = 0.9     # gap between N groups
+box_w     = 0.28    # width of each box
+base      = 1.0
 
-df_PP_train_fixed = pd.DataFrame(rows_pp_train_fixed)
-df_PP_train_no    = pd.DataFrame(rows_pp_train_no)
-df_PP_train_fixed.to_csv(".cache/figs/pp_losses_train_fixedY.csv", index=False)
-df_PP_train_no.to_csv(".cache/figs/pp_losses_train_normalopen.csv", index=False)
+# add 2 boxes (TRAIN N, OOS 500) for each N
+for i, N in enumerate(SCEN_COUNTS):
+    pos_train = base + i*(2*box_w + group_gap)
+    pos_oos   = pos_train + box_w
 
-# %% ------------------ Stage B: build OOS scenarios ----------------------------
-print("[OOS] Building OOS scenarios ...")
-grid_test = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net, number_of_random_scenarios=NUM_SCEN_TEST,
-    p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1),
-    v_bounds=(-0.1, 0.1), v_min=0.95, v_max=1.05, s_base=S_BASE_W,
-    seed=777,  # different seed -> different scenarios
-)
+    positions.extend([pos_train, pos_oos])
+    data.extend([dist_train_fixedY[N], dist_oos_fixedY[N]])
+    labels.extend([f"In-Sample\nN={N}", f"OOS\nN=500"])
 
-# %% --------- PP on OOS set: losses for Fixed y* (you can add NO similarly) ---
-rows_pp_oos_fixed = []
-for s in range(NUM_SCEN_TEST):
-    net_s_fixed = apply_scenario_injections_to_pp_from_nodeedge(net_yfixed, grid_test, scenario=s, s_base_w=S_BASE_W)
-    try:
-        pp.runpp(net_s_fixed, algorithm="nr")
-        loss_fixed = pp_losses_MW(net_s_fixed)
-    except Exception:
-        loss_fixed = float("inf")
-    rows_pp_oos_fixed.append({"scenario": s, "loss_MW_PP_FixedY_oos": loss_fixed})
+# add ONE Normal-Open (OOS=500) box at the end
+pos_no = (base + len(SCEN_COUNTS)*(2*box_w + group_gap))
+positions.append(pos_no)
+data.append(no_500)
+labels.append("Normal-Open\nN=500")
 
-df_PP_oos_fixed = pd.DataFrame(rows_pp_oos_fixed)
-df_PP_oos_fixed.to_csv(".cache/figs/pp_losses_oos_fixedY.csv", index=False)
-
-# %% ------------------ Plots (losses only) -------------------------------------
-# Train set comparison
-df_train = (df_PP_train_fixed.merge(df_PP_train_no, on="scenario"))
-plt.figure(figsize=(9,5))
-plt.boxplot(
-    [df_train["loss_MW_PP_FixedY_train"].to_numpy(float),
-     df_train["loss_MW_PP_NormalOpen_train"].to_numpy(float)],
-    labels=["PP: Fixed y* (train)", "PP: Normal-Open (train)"], patch_artist=True, showmeans=True # type: ignore
-)
+plt.boxplot(data, positions=positions, widths=box_w, patch_artist=True, showmeans=True)
 plt.yscale("symlog", linthresh=0.01)
 plt.grid(True, axis="y", alpha=0.3)
-plt.ylabel("Losses (MW)")
-plt.title(f"TRAIN losses across {NUM_SCEN_TRAIN} scenarios")
+plt.xticks(positions, labels)
+plt.ylabel("Losses (p.u.)")
+#plt.title("PP losses — Fixed y* (TRAIN vs OOS=500) and one Normal-Open (OOS=500, seed=777)")
 plt.tight_layout()
-plt.savefig(".cache/figs/boxplot_PP_losses_train.svg", bbox_inches="tight")
+plt.savefig(".cache/figs/fig_single_box_train_vs_oos500_plus_normalopen.svg", bbox_inches="tight")
 plt.show()
 
-# OOS comparison (fixed y* only here)
-plt.figure(figsize=(9,5))
-plt.boxplot(
-    [df_PP_oos_fixed["loss_MW_PP_FixedY_oos"].to_numpy(float)],
-    labels=["PP: Fixed y* (OOS)"], patch_artist=True, showmeans=True #type: ignore
-)
-plt.yscale("symlog", linthresh=0.01)
-plt.grid(True, axis="y", alpha=0.3)
-plt.ylabel("Losses (MW)")
-plt.title(f"OOS losses across {NUM_SCEN_TEST} scenarios")
-plt.tight_layout()
-plt.savefig(".cache/figs/boxplot_PP_losses_oos_fixedY.svg", bbox_inches="tight")
-plt.show()
-
-# Optional: combined tidy table for reporting
-df_all = (
-    df_train.rename(columns={
-        "loss_MW_PP_FixedY_train":"loss_train_fixedY",
-        "loss_MW_PP_NormalOpen_train":"loss_train_NO"})
-    .merge(df_PP_oos_fixed.rename(columns={
-        "loss_MW_PP_FixedY_oos":"loss_oos_fixedY"}), on="scenario", how="outer")
-    .sort_values("scenario").reset_index(drop=True)
-)
-df_all.to_csv(".cache/figs/pp_losses_train_and_oos.csv", index=False)
-
-# %% ------------------ ONE combined figure (losses, MW) ------------------------
-loss_train_fixedY = df_PP_train_fixed["loss_MW_PP_FixedY_train"].to_numpy(float)
-loss_oos_fixedY   = df_PP_oos_fixed["loss_MW_PP_FixedY_oos"].to_numpy(float)
-loss_train_NO     = df_PP_train_no["loss_MW_PP_NormalOpen_train"].to_numpy(float)
-
-plt.figure(figsize=(10,5))
-plt.boxplot(
-    [loss_train_fixedY, loss_oos_fixedY, loss_train_NO],
-    labels=["PP: Fixed y* (TRAIN)", "PP: Fixed y* (OOS)", "PP: Normal-Open (TRAIN)"], #type: ignore
-    patch_artist=True,
-    showmeans=True
-)
-plt.yscale("symlog", linthresh=0.01)
-plt.grid(True, axis="y", alpha=0.3)
-plt.ylabel("Losses (MW)")
-plt.title(
-    f"Pandapower losses: TRAIN Fixed y* vs OOS Fixed y* vs TRAIN Normal-Open\n"
-    f"(train N={len(loss_train_fixedY)}, oos N={len(loss_oos_fixedY)})"
-)
-plt.tight_layout()
-os.makedirs(".cache/figs", exist_ok=True)
-plt.savefig(".cache/figs/boxplot_PP_losses_train_fixedY__oos_fixedY__train_NO.svg",
-            bbox_inches="tight")
-plt.show()
+# %%
