@@ -2,8 +2,7 @@
 import os, json, copy as _copy, re, math
 os.chdir(os.getcwd().replace("/src", ""))
 
-from examples import *   # pp, ADMMConfig, PipelineType, DigAPlanADMM,
-                         # pandapower_to_dig_a_plan_schema_with_scenarios, etc.
+from examples import *   
 
 import numpy as np
 import pandas as pd
@@ -138,7 +137,7 @@ def harmonize_by_groups(z_map: dict[int, float], groups: dict[int, list[int]], r
             if e in z: z[e] = rep
     return z
 
-# =============== NEW: robust mapping using eq_fk ('switch i') ==================
+# =============== Robust mapping using eq_fk ('switch i') ==================
 def _pp_switch_index_by_name(net: pp.pandapowerNet) -> dict[str, int]:
     """Build {'switch 0': row_index, ...} from net.switch['name'] (case-insensitive)."""
     if not hasattr(net, "switch") or net.switch is None or net.switch.empty:
@@ -199,7 +198,7 @@ def apply_y_to_pandapower_switches(net: pp.pandapowerNet, z_switch_map: dict[int
         changed += int((before.values != desired).sum())
     return changed
 
-# --- NEW: apply ADMM "Normal-Open" (from fixed-switch run) to PP net -----------
+# --- Apply ADMM "Normal-Open" (from fixed-switch run) to PP net -----------
 def apply_normal_open_to_pp_switches(net: pp.pandapowerNet,
                                      normal_open_map: dict[int, bool]) -> int:
     """
@@ -433,7 +432,7 @@ grid_test = pandapower_to_dig_a_plan_schema_with_scenarios(
     seed=777,  # different seed -> different scenarios
 )
 
-# %% --------- PP on OOS set: losses for Fixed y* (you can add NO similarly) ---
+# %% --------- PP on OOS set: losses for Fixed y*  ---
 rows_pp_oos_fixed = []
 for s in range(NUM_SCEN_TEST):
     net_s_fixed = apply_scenario_injections_to_pp_from_nodeedge(net_yfixed, grid_test, scenario=s, s_base_w=S_BASE_W)
@@ -464,7 +463,7 @@ plt.tight_layout()
 plt.savefig(".cache/figs/boxplot_PP_losses_train.svg", bbox_inches="tight")
 plt.show()
 
-# OOS comparison (fixed y* only here)
+# OOS comparison (fixed y* )
 plt.figure(figsize=(9,5))
 plt.boxplot(
     [df_PP_oos_fixed["loss_MW_PP_FixedY_oos"].to_numpy(float)],
@@ -478,7 +477,7 @@ plt.tight_layout()
 plt.savefig(".cache/figs/boxplot_PP_losses_oos_fixedY.svg", bbox_inches="tight")
 plt.show()
 
-# Optional: combined tidy table for reporting
+
 df_all = (
     df_train.rename(columns={
         "loss_MW_PP_FixedY_train":"loss_train_fixedY",

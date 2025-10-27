@@ -2,8 +2,7 @@
 import os, json, copy as _copy, re, math
 os.chdir(os.getcwd().replace("/src", ""))
 
-from examples import *   # pp, ADMMConfig, PipelineType, DigAPlanADMM,
-                         # pandapower_to_dig_a_plan_schema_with_scenarios, etc.
+from examples import *   
 
 import numpy as np
 import pandas as pd
@@ -16,7 +15,7 @@ SCEN_COUNTS = [50, 100, 150]   # training sizes
 S_BASE_W    = 1e6
 TRAIN_SEED  = 42
 OOS_SEED    = 777
-OOS_N       = 500              # ### NEW: fixed OOS size
+OOS_N       = 500              # out-of-sample scenarios
 USE_CACHE   = False
 
 # δ polarity:
@@ -149,8 +148,8 @@ def build_edge_to_pp_switch_index_from_dap_and_net(dap, net: pp.pandapowerNet) -
     name_to_idx = _pp_switch_index_by_name(net)
     mapping: dict[int, int] = {}
     for r in zdelta.select(["eq_fk", "edge_id"]).to_dicts():
-        eq_fk = str(r["eq_fk"]).strip().lower()  # e.g. "switch 7"
-        eid   = int(r["edge_id"])                # e.g. 35
+        eq_fk = str(r["eq_fk"]).strip().lower()  
+        eid   = int(r["edge_id"])                
         if eq_fk in name_to_idx:
             mapping[eid] = name_to_idx[eq_fk]
     if not mapping:
@@ -299,7 +298,7 @@ groups = {
 dist_train_fixedY = {}   # N -> np.array (size N)
 dist_oos_fixedY   = {}   # N -> np.array (size OOS_N)
 dist_train_NO     = {}   # N -> np.array (size N)
-dist_oos_NO       = {}   # ### NEW: N -> np.array (size OOS_N)
+dist_oos_NO       = {}   # N -> np.array (size OOS_N)
 
 for N in SCEN_COUNTS:
     SAVE_DIR = f".cache/admm_insample_{N}"
