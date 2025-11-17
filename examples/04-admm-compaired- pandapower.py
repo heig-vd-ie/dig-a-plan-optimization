@@ -598,7 +598,6 @@ plt.boxplot(
         df_train["loss_MW_PP_FixedY_train"].to_numpy(float),
         df_train["loss_MW_PP_NormalOpen_train"].to_numpy(float),
     ],
-    labels=["PP: Fixed y* (train)", "PP: Normal-Open (train)"],
     patch_artist=True,
     showmeans=True,  # type: ignore
 )
@@ -614,7 +613,6 @@ plt.show()
 plt.figure(figsize=(9, 5))
 plt.boxplot(
     [df_PP_oos_fixed["loss_MW_PP_FixedY_oos"].to_numpy(float)],
-    labels=["PP: Fixed y* (OOS)"],
     patch_artist=True,
     showmeans=True,  # type: ignore
 )
