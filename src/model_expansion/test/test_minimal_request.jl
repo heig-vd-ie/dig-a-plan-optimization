@@ -86,10 +86,34 @@ function test_plot()
     end
 end
 
+function test_generate_scenarios_request()
+    @testset "Test generate scenarios" begin
+        custom_request =
+            JSON3.read(read(joinpath(@__DIR__, "../../../data/scenarios_request.json"), String))
+        custom_request = Dict(custom_request)
+        response = HTTP.patch(
+            "$SERVER_BASE_URL/generate-scenarios",
+            ["Content-Type" => "application/json"],
+            JSON3.write(custom_request),
+        )
+
+        @test response.status == 200
+
+        if response.status == 200
+            result = JSON3.read(String(response.body))
+            @test haskey(result, "Ω")
+            @test haskey(result, "P")
+            @test length(result["Ω"]) > 0
+            @test length(result["P"]) > 0
+        end
+    end
+end
+
 @testset "API Tests" begin
     # Run tests (make sure server is running first)
     test_api_request(minimal_request, "Minimal Request")
     test_api_request(simple_request, "Simple Request")
     test_api_request(custom_request, "Custom Request")
     test_plot()
+    test_generate_scenarios_request()
 end
