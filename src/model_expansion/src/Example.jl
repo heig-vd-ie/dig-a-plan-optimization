@@ -43,7 +43,18 @@ initial_cap = Dict(e => 1.0 for e in edges)
 load = Dict(n => 1.0 for n in nodes)
 pv = Dict(n => 0.1 for n in nodes)
 grid = Types.Grid(nodes, edges, cuts, Types.Node(1), initial_cap, load, pv)
-Ω = ScenariosGeneration.generate_scenarios(n_scenarios, n_stages, nodes, seed_number = 1234)
+Ω = ScenariosGeneration.generate_scenarios(
+    n_scenarios,
+    n_stages,
+    nodes,
+    Dict(n => 10.0 for n in nodes),
+    Dict(n => 5.0 for n in nodes),
+    1.0,
+    5.0,
+    1000.0,
+    5,
+    1234,
+)
 P = fill(1.0 / n_scenarios, n_scenarios)
 
 # Export scenarios to JSON
@@ -53,7 +64,13 @@ scenarios_data_raw = Dict("Ω" => Ω, "P" => P)
     n_scenarios,
     n_stages,
     nodes,
-    seed_number = 1234 + 1000,
+    Dict(n => 10.0 for n in nodes),
+    Dict(n => 5.0 for n in nodes),
+    1000.0,
+    1.0,
+    5.0,
+    5,
+    1234 + 1000,
 )
 Po = fill(1.0 / n_scenarios, n_scenarios)
 

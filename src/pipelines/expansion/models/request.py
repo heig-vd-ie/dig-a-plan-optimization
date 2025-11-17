@@ -107,3 +107,18 @@ class ExpansionRequest(BaseModel):
     scenarios: Scenarios
     out_of_sample_scenarios: Scenarios
     bender_cuts: BenderCuts
+
+
+class LongTermScenarioRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    n_scenarios: int
+    n_stages: int
+    nodes: List[Node]
+    load_potential: Dict[int, float]
+    pv_potential: Dict[int, float]
+    min_load: float
+    min_pv: float
+    yearly_budget: float
+    N_years_per_stage: int
+    seed_number: int

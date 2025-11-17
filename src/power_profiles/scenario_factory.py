@@ -3,6 +3,7 @@ import numpy as np
 from typing import Dict
 import patito as pt
 import polars as pl
+import pandas as pd
 import pandapower as pp
 import logging
 import tqdm
@@ -11,6 +12,9 @@ from data_schema import LoadData
 from general_function import duckdb_to_dict
 from power_profiles.download_from_swisstopo import download_estavayer_power_profiles
 from power_profiles.models import LoadType
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -43,6 +47,38 @@ class ScenarioFactory:
         self.net = pp.from_pickle(settings.cases[self.kace].pandapower_file)
         return self
 
+    def _scale_features(self):
+        if not self.dfs:
+            raise ValueError("DataFrames not loaded. Call initialize() first.")
+        load_features = self.dfs[LoadType.TOTAL.value].drop(["timestamp"]).to_numpy()
+        pv_features = self.dfs[LoadType.PV.value].drop(["timestamp"]).to_numpy()
+        scaler = StandardScaler()
+        self.x_scaled_load = scaler.fit_transform(load_features)
+        self.x_scaled_pv = scaler.fit_transform(pv_features)
+        return self
+
+    def _apply_clustering(self, number_of_clusters: int = 10, seed: int = 42):
+        if not hasattr(self, "x_scaled_load") or not hasattr(self, "x_scaled_pv"):
+            raise ValueError("Features not scaled. Call _scale_features() first.")
+
+        kmeans = KMeans(n_clusters=number_of_clusters, random_state=seed, n_init="auto")
+        self.clusters_loads = kmeans.fit_predict(self.x_scaled_load)
+        self.clusters_pv = kmeans.fit_predict(self.x_scaled_pv)
+        return self
+
+    def _apply_dimensionality_reduction(
+        self,
+        number_of_random_scenarios: int,
+        total_load_df: pd.DataFrame,
+    ):
+        representative_timestamps = []
+        for cluster in range(number_of_random_scenarios):
+            cluster_indices = np.where(self.clusters_loads == cluster)[0]
+            # pick one timestamp from cluster randomly
+            idx = np.random.choice(cluster_indices)
+            representative_timestamps.append(total_load_df.iloc[idx]["timestamp"])
+        return representative_timestamps
+
     def generate_operational_scenarios(
         self,
         number_of_random_scenarios: int = 10,
@@ -56,15 +92,26 @@ class ScenarioFactory:
             )
         if v_bounds is None:
             v_bounds = (-0.1, 0.1)
+        self._scale_features()._apply_clustering(
+            number_of_clusters=number_of_random_scenarios, seed=seed
+        )
         random.seed(seed)
         rng = np.random.default_rng(seed)
-        total_load = (
-            self.dfs[LoadType.TOTAL.value]
-            .select(pl.all().shuffle(seed=seed))
-            .head(number_of_random_scenarios)
+
+        representative_timestamps_loads = self._apply_dimensionality_reduction(
+            number_of_random_scenarios,
+            self.dfs[LoadType.TOTAL.value].to_pandas(),
+        )
+        representative_timestamps_pv = self._apply_dimensionality_reduction(
+            number_of_random_scenarios,
+            self.dfs[LoadType.PV.value].to_pandas(),
+        )
+
+        total_load = self.dfs[LoadType.TOTAL.value].filter(
+            pl.col("timestamp").is_in(representative_timestamps_loads)
         )
         pv_load = self.dfs[LoadType.PV.value].filter(
-            pl.col("timestamp").is_in(total_load.get_column("timestamp").to_list())
+            pl.col("timestamp").is_in(representative_timestamps_pv)
         )
         egid_columns = list(
             set(
@@ -79,7 +126,8 @@ class ScenarioFactory:
             desc="Generating scenarios",
             total=number_of_random_scenarios,
         ):
-            timestamp = row["timestamp"]
+            timestamp_load = row["timestamp"]
+            timestamp_pv = representative_timestamps_pv[idx]
             load_data_list = []
             for node_id in self.net.bus.index:
                 load_data_list.append(
@@ -105,7 +153,7 @@ class ScenarioFactory:
                     continue
                 node_id = node_id[0]
                 p_prod_pu = abs(
-                    pv_load.filter(pl.col("timestamp") == timestamp)
+                    pv_load.filter(pl.col("timestamp") == timestamp_pv)
                     .get_column(egid)
                     .to_list()[0]
                     / s_base

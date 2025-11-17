@@ -10,12 +10,12 @@ class MyPlotter:
 
         # Scientific paper formatting attributes
         self.template = "plotly_white"
-        self.font_size = 12  
-        self.marker_size = 7  
-        self.colors = px.colors.qualitative.Dark24  
-        self.width = 600  
-        self.height = 400  
-        self.grid_color = "lightgray"  
+        self.font_size = 12
+        self.marker_size = 7
+        self.colors = px.colors.qualitative.Dark24
+        self.width = 600
+        self.height = 400
+        self.grid_color = "lightgray"
         self.font_family = "Arial, sans-serif"
         self.cache_dir = ".cache/figs"
 
@@ -90,7 +90,7 @@ class MyPlotter:
                 tickfont=dict(size=self.font_size, family=self.font_family),
                 title=dict(
                     font=dict(size=self.font_size + 1, family=self.font_family),
-                    standoff=10,  
+                    standoff=10,
                 ),
             ),
             legend=dict(
@@ -99,7 +99,7 @@ class MyPlotter:
                 bordercolor="rgba(0,0,0,0.2)",
                 borderwidth=1,
             ),
-            margin=dict(l=40, r=15, t=40, b=40),  
+            margin=dict(l=40, r=15, t=40, b=40),
         )
 
         return fig
@@ -145,7 +145,7 @@ class MyPlotter:
             filtered_df,
             x=field,
             color=with_respect_to,
-            nbins=nbins,  
+            nbins=nbins,
             histnorm="probability density",
             title="",
             labels={
@@ -153,9 +153,9 @@ class MyPlotter:
                 "count": "Density",
                 with_respect_to: "",
             },
-            opacity=0.8,  
-            barmode="group",  
-            color_discrete_sequence=self.colors,  
+            opacity=0.8,
+            barmode="group",
+            color_discrete_sequence=self.colors,
         )
 
         # Make bars look clean with minimal gaps
@@ -242,7 +242,7 @@ class MyPlotter:
             self.save_figure(fig, save_name)
 
         return fig
-    
+
     def create_parallel_coordinates_plot(
         self,
         df: pd.DataFrame,
@@ -270,14 +270,20 @@ class MyPlotter:
             raise ValueError(f"Missing columns: {missing}")
 
         # Filter to the labels we care about
-        filtered_df = df[df[risk_label_col].isin(risk_labels + ([normalize_to_label] if normalize_to_label else []))].copy()
+        filtered_df = df[
+            df[risk_label_col].isin(
+                risk_labels + ([normalize_to_label] if normalize_to_label else [])
+            )
+        ].copy()
 
         # --- Compute baseline per-stage means if normalization requested
         baseline_means = None
         if normalize_to_label is not None:
             base_df = filtered_df[filtered_df[risk_label_col] == normalize_to_label]
             if base_df.empty:
-                print(f"Warning: no rows for baseline '{normalize_to_label}'. Skipping normalization.")
+                print(
+                    f"Warning: no rows for baseline '{normalize_to_label}'. Skipping normalization."
+                )
                 normalize_to_label = None
             else:
                 base_agg = (
@@ -312,6 +318,7 @@ class MyPlotter:
 
             # Sort stage columns numerically when possible
             stage_columns = list(df_pivot.columns)
+
             def _to_float(x):
                 try:
                     return float(x)
@@ -320,7 +327,7 @@ class MyPlotter:
 
             sortable = [(_to_float(c), c) for c in stage_columns]
             # Keep numeric stages sorted, then any non-numeric at the end in original order
-            numeric_sorted = [c for f, c in sorted((p for p in sortable if p[0] is not None), key=lambda t: t[0])] #type: ignore
+            numeric_sorted = [c for f, c in sorted((p for p in sortable if p[0] is not None), key=lambda t: t[0])]  # type: ignore
             non_numeric = [c for f, c in sortable if f is None]
             stage_columns = numeric_sorted + non_numeric
 
@@ -346,8 +353,8 @@ class MyPlotter:
             values_series = pd.concat([df_pivot[c].dropna() for c in valid_stage_cols])
             if values_series.empty:
                 continue
-            global_min = float(values_series.min()) #type: ignore
-            global_max = float(values_series.max()) #type: ignore
+            global_min = float(values_series.min())  # type: ignore
+            global_max = float(values_series.max())  # type: ignore
             if global_max == global_min:
                 pad = abs(global_min) * 0.05 if global_min != 0 else 0.05
                 global_min -= pad
@@ -425,6 +432,3 @@ class MyPlotter:
                 self.save_figure(fig, f"{save_name}{suffix}_{safe_risk_label}")
 
         return figures
-
-
-

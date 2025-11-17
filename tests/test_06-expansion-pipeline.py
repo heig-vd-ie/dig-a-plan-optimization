@@ -6,7 +6,7 @@ from data_exporter.pandapower_to_dig_a_plan import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from pipelines.expansion.algorithm import ExpansionAlgorithm
-from pipelines.expansion.models.request import RiskMeasureType
+from pipelines.expansion.models.request import Node, RiskMeasureType
 
 
 class ExpansionTestBase:
@@ -39,7 +39,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None
-        assert np.mean(results.objectives) == 0.0
+        assert np.abs(np.mean(results.objectives) - 8817.65442176871) <= 1e-3
         assert math.isclose(
             np.mean(
                 [
@@ -47,15 +47,32 @@ class TestExpansionDataExporter(ExpansionTestBase):
                     for ω in range(len(results.simulations))
                 ]
             ),
-            0.049133186516891136,
+            0.3333333333333333,
             rel_tol=1e-1,
         )
 
     def test_expansion_with_different_stages(self):
         """Test expansion with different number of stages."""
+        δ_load_var: float = 5.0
+        δ_pv_var: float = 1.0
+        nodes = [
+            Node(id=node["node_id"])
+            for node in self.grid_data.node_data.iter_rows(named=True)
+        ]
+        self.expansion_algorithm.create_expansion_request()
         self.expansion_algorithm.create_planning_params(n_stages=5)
-        self.expansion_algorithm.create_scenario_data(number_of_stages=5)
-        self.expansion_algorithm.create_out_of_sample_scenario_data(number_of_stages=5)
+        self.expansion_algorithm.create_scenario_data(
+            nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
+            number_of_stages=5,
+            load_potential={node.id: δ_load_var for node in nodes},
+            pv_potential={node.id: δ_pv_var for node in nodes},
+        )
+        self.expansion_algorithm.create_out_of_sample_scenario_data(
+            nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
+            number_of_stages=5,
+            load_potential={node.id: δ_load_var for node in nodes},
+            pv_potential={node.id: δ_pv_var for node in nodes},
+        )
         self.expansion_algorithm.create_expansion_request()
         results = self.expansion_algorithm.run_sddp()
 
@@ -69,7 +86,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None
-        assert np.mean(results.objectives) == 0.0
+        assert np.abs(np.mean(results.objectives) - 8817.65442176871) <= 1e-3
 
     def test_expansion_with_cvar_risk_measure(self):
         """Test expansion with CVaR risk measure."""
