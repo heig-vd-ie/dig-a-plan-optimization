@@ -37,7 +37,7 @@ jobs:
 
       - name: Install dependencies with Poetry
         run: |
-          poetry install --extras "internal"
+          poetry install
 
       - name: Build HTML
         run: |
