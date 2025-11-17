@@ -62,7 +62,9 @@ else:
 
 viz = MyPlotter()
 # Keep your original scaling (k$) -> label M$ in your codebase; not changing behavior here
-objectives_df["objective_value"] = objectives_df["objective_value"] / 1e3  # as in your code
+objectives_df["objective_value"] = (
+    objectives_df["objective_value"] / 1e3
+)  # as in your code
 
 fig_hist = viz.create_histogram_plot(
     objectives_df,
@@ -106,7 +108,9 @@ fig_box_oo.show()
 simulations_df["final_Capacity"] = simulations_df["cap"].apply(
     lambda x: sum([i["out"] for i in x])
 )
-simulations_df["investment_cost"] = simulations_df["investment_cost"] / 1e3  # as in your code
+simulations_df["investment_cost"] = (
+    simulations_df["investment_cost"] / 1e3
+)  # as in your code
 
 risk_labels = ["Expectation (α=0.1)", "WorstCase (α=0.1)", "Wasserstein (α=0.1)"]
 
@@ -138,7 +142,7 @@ for kase in ["final_Capacity", "investment_cost"]:
             value_col="investment_cost",
             field_name="Investment Cost (M$)",
             stage_col="stage",
-            save_name="investment_cost_evolution",   
+            save_name="investment_cost_evolution",
             normalize_to_label="Expectation (α=0.1)",
         )
         for lbl, fig in separate_figs_ratio.items():
@@ -146,7 +150,7 @@ for kase in ["final_Capacity", "investment_cost"]:
             fig.show()
 
         # Narrower plots for presentations
-        prev_height = viz.height  
+        prev_height = viz.height
         try:
             viz.set_formatting(height=250)  # or 200 for even narrower
 
@@ -156,16 +160,17 @@ for kase in ["final_Capacity", "investment_cost"]:
                 value_col="investment_cost",
                 field_name="Expansion Expenses (M$)",
                 stage_col="stage",
-                save_name="investment_cost_evolution_narrow",  
+                save_name="investment_cost_evolution_narrow",
                 normalize_to_label="Expectation (α=0.1)",
             )
 
             # (optional) show the narrow versions too
             for lbl, fig in separate_figs_ratio_narrow.items():
-                print(f"Showing NARROW normalized plot for: {lbl} / mean(Expectation α=0.1)")
+                print(
+                    f"Showing NARROW normalized plot for: {lbl} / mean(Expectation α=0.1)"
+                )
                 fig.show()
 
-           
         finally:
             # Restore original formatting so later figures are unaffected
             viz.set_formatting(height=prev_height)
