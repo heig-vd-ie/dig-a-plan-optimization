@@ -1,4 +1,4 @@
-### How to create julia projects
+# How to create julia projects
 
 Create a Julia Project (with its own environment)
 From your project folder (in WSL or anywhere):
