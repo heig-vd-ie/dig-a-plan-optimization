@@ -10,34 +10,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: $(pwd)/src
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-          poetry --version
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies with Poetry
+      - name: Install dependencies
         run: |
           poetry install
 
-      - name: Build HTML
+      - name: Build HTML docs
         run: |
           cd docs
           make html
 
-      - name: Upload artifact
+      - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v2
         with:
           path: docs/_build/html
@@ -45,11 +40,16 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     permissions:
       pages: write
       id-token: write
+
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - uses: actions/deploy-pages@v2
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
