@@ -1,13 +1,6 @@
 # Makefile for Dig-A-Plan setup (supports Linux and WSL)
 include Makefile.common.mak
 
-DATA_EXPORTER_REPO := data-exporter
-DATA_EXPORTER_BRANCH := main
-DATA_EXPORTER_VERSION := 0.1.0
-TWINDIGRID_REPO := digrid-schema
-TWINDIGRID_BRANCH := main
-TWINDIGRID_VERSION := 0.5.0
-
 
 IMAGES := dap-py-api custom-grafana mongo:latest
 
@@ -83,16 +76,6 @@ start: ## Start all servers
 docker-build: ## Build Docker images
 	@echo "Building Docker images..."
 	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && docker compose build --ssh default
-
-fetch-all:  ## Fetch all dependencies
-	@$(MAKE) fetch-wheel \
-		REPO=$(DATA_EXPORTER_REPO) \
-		BRANCH=$(DATA_EXPORTER_BRANCH) \
-		VERSION=$(DATA_EXPORTER_VERSION)
-	@$(MAKE) fetch-wheel \
-		REPO=$(TWINDIGRID_REPO) \
-		BRANCH=$(TWINDIGRID_BRANCH) \
-		VERSION=$(TWINDIGRID_VERSION)
 
 kill-port: ## Kill process running on specified port (PORT)
 	@echo "Killing process on port $(PORT)..."
