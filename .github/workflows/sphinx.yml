@@ -1,55 +1,49 @@
 name: Build-sphinx-docs
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    env:
+      PYTHONPATH: $(pwd)/src # Define the environment variable here
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v2
         with:
           python-version: "3.12"
 
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry --version
 
-      - name: Install dependencies
+      - name: Install dependencies with Poetry
         run: |
-          poetry install
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry install --no-root
 
-      - name: Build HTML docs
+      - name: Build HTML
         run: |
-          cd docs
-          make html
+          export PYTHONPATH=$(pwd)/src
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry run sphinx-build -b html docs/ docs/_build/html
 
-      - name: Upload documentation artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: docs/_build/html
+      - name: Run ghp-import
+        run: |
+          export PYTHONPATH=$(pwd)/src
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry run ghp-import -n -p -f docs/_build/html
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
