@@ -25,7 +25,6 @@ RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 WORKDIR /app
 
 COPY pyproject.toml poetry.lock /app/
-COPY external-dist/ /app/external-dist/
 COPY scripts/ /app/scripts/
 
 RUN --mount=type=ssh ls -la /run/ssh-agent || echo "No ssh agent mounted"

@@ -43,8 +43,6 @@
     ".pytest_cache": true,
     "ray": true,
     "spill": true,
-    "data": true,
-    ".venv": true,
   },
   "julia.editor.formatOnSave": true,
   "julia.editor.formatOnType": true,
