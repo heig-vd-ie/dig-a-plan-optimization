@@ -16,14 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # Load BOTH private SSH keys in one agent
-      - name: Set up SSH for private repos
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: |
-            ${{ secrets.SSH_PRIVATE_KEY_UTILIY_FUNCTIONS }}
-            ${{ secrets.SSH_PRIVATE_KEY_DATASCHEMA }}
-
       - name: Set up Python 3.12
         uses: actions/setup-python@v2
         with:
