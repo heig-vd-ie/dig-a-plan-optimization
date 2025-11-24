@@ -4,26 +4,20 @@ import os
 os.chdir(os.getcwd().replace("/src", ""))
 
 # %%
-from examples import *
+from experiments import *
 
+kace = "estavayer_centre_ville"
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid_simplified.p")
-    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net,
-        number_of_random_scenarios=10,
-        v_bounds=(-0.07, 0.07),
-        p_bounds=(-0.5, 1.0),
-        q_bounds=(-0.5, 0.5),
-        taps=[95, 98, 99, 100, 101, 102, 105],
-    )
-else:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
-    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net,
-        number_of_random_scenarios=10,
-        taps=[95, 98, 99, 100, 101, 102, 105],
-    )
+net = pp.from_pickle(settings.cases[kace].pandapower_file)
+grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+    net,
+    number_of_random_scenarios=10,
+    v_bounds=(-0.07, 0.07),
+    taps=[95, 98, 99, 100, 101, 102, 105],
+    use_random_scenarios=False,
+    kace=kace,
+)
+
 
 # %% convert pandapower grid to DigAPlan grid data
 
@@ -39,19 +33,19 @@ config = ADMMConfig(
     verbose=False,
     pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
-    solver_non_convex=0,  # Set non-convex parameters to 2 for Boisy grid
+    solver_non_convex=2,
     big_m=1e3,
     ε=1e-4,
     ρ=2.0,
     γ_infeasibility=100.0,
     γ_admm_penalty=1.0,
-    time_limit=1,  # TODO: set time limit to 10 seconds for actual boisy grid
+    time_limit=10,
     max_iters=10,
     μ=10.0,
     τ_incr=2.0,
     τ_decr=2.0,
     mutation_factor=2,
-    groups=10,  # TODO: set number of groups for actual boisy grid to 40
+    groups=50,
 )
 
 dap = DigAPlanADMM(config=config)
@@ -74,9 +68,9 @@ print(dap.model_manager.zδ_variable)
 print(dap.model_manager.zζ_variable)
 
 # %%
-save_dap_state(dap, ".cache/figs/boisy_dap")
-save_dap_state(dap_fixed, ".cache/figs/boisy_dap_fixed")
-joblib.dump(net, ".cache/figs/boisy_net.joblib")
+save_dap_state(dap, settings.cases[kace].dap_state_file)
+save_dap_state(dap_fixed, settings.cases[kace].dap_state_fixed_file)
+joblib.dump(net, settings.cases[kace].dump_net_file)
 
 # %% Plot Distribution
 nodal_variables = [

@@ -35,7 +35,7 @@ RUN --mount=type=ssh \
     poetry install --no-root --extras "internal"
 
 COPY src/ /app/src/
-COPY examples/ /app/examples/
+COPY experiments/ /app/experiments/
 COPY data/ /app/data/
 
 ENV GRB_LICENCE_FILE=/licenses/GRB_LICENCE_FILE

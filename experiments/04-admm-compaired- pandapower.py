@@ -3,7 +3,7 @@ import os, json, copy as _copy, re, math
 
 os.chdir(os.getcwd().replace("/src", ""))
 
-from examples import *
+from experiments import *
 
 import numpy as np
 import pandas as pd
