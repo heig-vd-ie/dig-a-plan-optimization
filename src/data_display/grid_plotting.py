@@ -4,7 +4,7 @@ from typing import List, Tuple
 import pandapower as pp
 import polars as pl
 from polars import col as c
-from general_function import pl_to_dict
+from helper_functions import pl_to_dict
 import plotly.graph_objects as go
 import numpy as np
 import plotly.colors as pc

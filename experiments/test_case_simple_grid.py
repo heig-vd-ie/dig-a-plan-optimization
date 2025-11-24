@@ -3,7 +3,7 @@ import os
 
 os.chdir(os.getcwd().replace("/src", ""))
 # %%
-from examples import *
+from experiments import *
 
 
 # %%

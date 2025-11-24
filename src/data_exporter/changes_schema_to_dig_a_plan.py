@@ -4,7 +4,7 @@ from polars import col as c
 from data_schema import NodeEdgeModel
 from data_schema import NodeData, EdgeData, LoadData
 from twindigrid_changes.schema import ChangesSchema
-from general_function import pl_to_dict
+from helper_functions import pl_to_dict
 from data_exporter import validate_data
 
 

@@ -8,7 +8,7 @@ from data_schema import NodeData
 import numpy as np
 import pandapower as pp
 from typing import Tuple
-from polars_function import (
+from helper_functions import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
 )

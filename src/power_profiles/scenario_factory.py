@@ -9,8 +9,7 @@ import logging
 import tqdm
 from config import settings
 from data_schema import LoadData
-from general_function import duckdb_to_dict
-from power_profiles.download_from_swisstopo import download_estavayer_power_profiles
+from helper_functions import duckdb_to_dict
 from power_profiles.models import LoadType
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -36,7 +35,6 @@ class ScenarioFactory:
     def initialize(self):
         if self.kace not in settings.cases:
             raise ValueError(f"Unknown kace: {self.kace}")
-        download_estavayer_power_profiles(kace=self.kace, force=False)
         self.dfs = {
             k.value: pl.read_parquet(
                 f"{settings.cases[self.kace].load_allocation_folder}/{k.value}.parquet"

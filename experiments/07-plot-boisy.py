@@ -4,7 +4,7 @@ import os
 os.chdir(os.getcwd().replace("/src", ""))
 
 # %%
-from examples import *
+from experiments import *
 
 # %%
 dap = load_dap_state(".cache/figs/boisy_dap")

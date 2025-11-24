@@ -5,10 +5,10 @@ import polars as pl
 import numpy as np
 import logging
 import networkx as nx
-from general_function import pl_to_dict_with_tuple, generate_log
+from helper_functions import pl_to_dict_with_tuple, generate_log
 from polars import col as c
-from polars_function import modify_string_col
-from networkx_function import (
+from helper_functions import modify_string_col
+from helper_functions import (
     generate_nx_edge,
     generate_bfs_tree_with_edge_data,
     get_all_edge_data,
