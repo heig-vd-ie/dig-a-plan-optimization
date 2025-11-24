@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.12,<3.14"
 pyocclient = "^0.6"
-pyomo = "^6.9.1"
+pyomo = "<6.9.1"
 gurobipy = ">=12.0.1,<13.0.0"
 pandapower = "^3.0.0"
 sphinx = "^8.1.3"
