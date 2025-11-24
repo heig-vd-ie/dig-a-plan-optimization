@@ -7,7 +7,7 @@ services:
     ports:
       - "${SERVER_MONGODB_PORT}:${SERVER_MONGODB_PORT}"
     volumes:
-      - ./mongo-data:/data/db
+      - ./mongo-data:/examples/db
     command: --port ${SERVER_MONGODB_PORT}
     restart: unless-stopped
 
@@ -38,7 +38,7 @@ services:
       - ./spill:/tmp/spill
       - ./ray:/tmp/ray
       - ./.cache:/app/.cache:rw
-      - ./data:/app/data:rw
+      - ./examples:/app/examples:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -56,7 +56,7 @@ services:
       - "${SERVER_JL_PORT}:${SERVER_JL_PORT}"
     volumes:
       - ./src/model_expansion:/app/src/model_expansion
-      - ./data:/app/data
+      - ./examples:/app/examples
       - ./.cache:/app/.cache:rw
     command: julia --project=/app/src/model_expansion/. /app/src/model_expansion/src/Server.jl ${SERVER_JL_PORT}
     restart: unless-stopped
@@ -93,7 +93,7 @@ services:
       - ./ray:/tmp/ray
       - ./spill:/tmp/spill
       - ./.cache:/app/.cache:rw
-      - ./data:/app/data:rw
+      - ./examples:/app/examples:rw
     command: /app/start-ray-head.sh
     restart: unless-stopped
     depends_on:

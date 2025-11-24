@@ -173,11 +173,7 @@ cython_debug/
 *.cuts.json
 *.mof.json
 *.tar.gz
-data/lock
-data/01K*
-data/queries.active
-data/chunks_head/*
-data/wal/*
+data
 NOTICE
 prometheus
 promtool

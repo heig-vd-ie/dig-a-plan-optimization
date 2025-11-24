@@ -50,7 +50,7 @@ Contact Mohammad for getting `user@access`.
 You can run the following target to run the expansion problem:
 
 ```sh
-make run-expansion PAYLOAD=data/payloads/simple_grid.json
+make run-expansion PAYLOAD=examples/payloads/simple_grid.json
 ```
 
 The results will be saved in the folder of `.cache`.

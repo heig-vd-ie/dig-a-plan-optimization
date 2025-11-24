@@ -36,7 +36,7 @@ RUN --mount=type=ssh \
 
 COPY src/ /app/src/
 COPY experiments/ /app/experiments/
-COPY data/ /app/data/
+COPY examples/ /app/examples/
 
 ENV GRB_LICENCE_FILE=/licenses/GRB_LICENCE_FILE
 

@@ -385,7 +385,7 @@ def pp_losses_MW(net: pp.pandapowerNet) -> float:
 
 
 # %% ------------------ Stage A: ADMM on train scenarios -> learn y* ------------
-net = pp.from_pickle("data/simple_grid.p")
+net = pp.from_pickle("examples/simple_grid.p")
 
 groups = {
     0: [19, 20, 21, 29, 32, 35],

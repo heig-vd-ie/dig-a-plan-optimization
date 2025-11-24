@@ -46,12 +46,12 @@ while true; do
                     echo "Choose Expansion Case:"
                     select case_opt in "${expansion_cases[@]}"; do
                         case "$REPLY" in
-                            1) payload="data/payloads/simple_grid_quick_test.json";;
-                            2) payload="data/payloads/simple_grid.json";;
-                            3) payload="data/payloads/simplified_boisy_grid.json";;
-                            4) payload="data/payloads/boisy_grid.json";;
-                            5) payload="data/payloads/simplified_estavayer_grid.json";;
-                            6) payload="data/payloads/estavayer_grid.json";;
+                            1) payload="examples/payloads/simple_grid_quick_test.json";;
+                            2) payload="examples/payloads/simple_grid.json";;
+                            3) payload="examples/payloads/simplified_boisy_grid.json";;
+                            4) payload="examples/payloads/boisy_grid.json";;
+                            5) payload="examples/payloads/simplified_estavayer_grid.json";;
+                            6) payload="examples/payloads/estavayer_grid.json";;
                             7) break 2;;  # back to main menu
                             *) echo "Invalid option"; continue;;
                         esac
