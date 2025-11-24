@@ -2,8 +2,8 @@ import os
 from typing import Optional
 from shapely import Geometry
 from swiss_topo_api import get_all_layers_from_polygon
-from general_function import dict_to_gpkg, dict_to_duckdb
-from shapely_function import load_shape_from_geo_json
+from helper_functions import dict_to_gpkg, dict_to_duckdb
+from helper_functions import load_shape_from_geo_json
 from swiss_topo_utility.constant import SWISS_SRID, GPS_SRID
 from config import settings
 
@@ -22,8 +22,7 @@ def download_estavayer_power_profiles(kace: str, force: bool) -> None:
     Requires:
         - swiss_topo_api
         - shapely
-        - general_function (dict_to_gpkg, dict_to_duckdb)
-        - shapely_function (load_shape_from_geo_json)
+        - helper_functions (dict_to_gpkg, dict_to_duckdb, load_shape_from_geo_json)
         - swiss_topo_utility.constant (SWISS_SRID, GPS_SRID)
         - config (settings)
     """

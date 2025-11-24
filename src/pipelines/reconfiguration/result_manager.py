@@ -7,9 +7,8 @@ from pipelines.reconfiguration.model_managers.combined import (
 )
 from pipelines.reconfiguration.model_managers.bender import PipelineModelManagerBender
 from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
-from polars_function import cast_boolean
+from helper_functions import cast_boolean, modify_string_col
 from pipelines.helpers.pyomo_utility import extract_optimization_results
-from polars_function import modify_string_col
 
 
 class PipelineResultManager:

@@ -3,7 +3,7 @@ from data_schema import NodeEdgeModel
 import patito as pt
 import polars as pl
 from polars import col as c
-from general_function import pl_to_dict
+from helper_functions import pl_to_dict
 
 
 class PipelineDataManager:

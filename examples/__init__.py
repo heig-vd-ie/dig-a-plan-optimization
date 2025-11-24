@@ -43,12 +43,11 @@ from pipelines.reconfiguration.model_managers.combined import (
 from pipelines.helpers.pyomo_utility import extract_optimization_results
 from pipelines.expansion.algorithm import ExpansionAlgorithm
 from plotly.subplots import make_subplots
-from general_function import pl_to_dict
+from helper_functions import pl_to_dict, build_non_existing_dirs
 
 from pandapower.networks import create_cigre_network_mv
 
 from shapely import from_geojson
-from general_function import pl_to_dict, build_non_existing_dirs
 import joblib
 from data_exporter.mock_dap import save_dap_state, load_dap_state
 

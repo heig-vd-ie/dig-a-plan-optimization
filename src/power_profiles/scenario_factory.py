@@ -9,7 +9,7 @@ import logging
 import tqdm
 from config import settings
 from data_schema import LoadData
-from general_function import duckdb_to_dict
+from helper_functions import duckdb_to_dict
 from power_profiles.download_from_swisstopo import download_estavayer_power_profiles
 from power_profiles.models import LoadType
 import numpy as np

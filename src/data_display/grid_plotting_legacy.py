@@ -2,7 +2,7 @@ from typing import Optional
 import pandapower as pp
 import polars as pl
 from polars import col as c
-from general_function import pl_to_dict
+from helper_functions import pl_to_dict
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import igraph as ig
@@ -13,7 +13,7 @@ import plotly.colors
 from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
 
-from networkx_function import generate_tree_graph_from_edge_data
+from helper_functions import generate_tree_graph_from_edge_data
 from data_schema import NodeEdgeModel
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
 
