@@ -40,7 +40,11 @@
   "files.autoSaveDelay": 1000,
   "files.exclude": {
     "**/__pycache__": true,
-    ".pytest_cache": true
+    ".pytest_cache": true,
+    "ray": true,
+    "spill": true,
+    "data": true,
+    ".venv": true,
   },
   "julia.editor.formatOnSave": true,
   "julia.editor.formatOnType": true,

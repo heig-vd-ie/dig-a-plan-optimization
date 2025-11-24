@@ -173,7 +173,6 @@ cython_debug/
 *.cuts.json
 *.mof.json
 *.tar.gz
-data
 NOTICE
 prometheus
 promtool
@@ -186,4 +185,4 @@ mongo_backup
 poetry.lock
 spill
 ray
-mongo-data
+data
