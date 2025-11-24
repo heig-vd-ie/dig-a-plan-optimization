@@ -7,7 +7,7 @@ services:
     ports:
       - "${SERVER_MONGODB_PORT}:${SERVER_MONGODB_PORT}"
     volumes:
-      - ./data/mongo:/examples/db
+      - ./data/mongo:/data/mongo
     command: --port ${SERVER_MONGODB_PORT}
     restart: unless-stopped
 

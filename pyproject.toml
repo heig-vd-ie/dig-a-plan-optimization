@@ -42,6 +42,8 @@ patito = "^0.8.5"
 coloredlogs = "^15.0.1"
 duckdb = "^1.4.2"
 geopandas = "^1.1.1"
+pyarrow = "^22.0.0"
+numba = "^0.62.1"
 
 
 [tool.poetry.group.dev.dependencies]
