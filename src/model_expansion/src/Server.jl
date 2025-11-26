@@ -93,7 +93,7 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Extract input parameters with default values
     # Read defaults from file if present
     default =
-        JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", "data", "default.json"), String))
+        JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", "examples", "default.json"), String))
     # Grid structure with defaults
     grid_data = get(body, "grid", default["grid"])
     scenarios_folder = get(body, "scenarios", default["scenarios"])

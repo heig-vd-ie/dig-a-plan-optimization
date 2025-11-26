@@ -25,13 +25,13 @@ def test_cache_dir():
 @pytest.fixture(scope="session")
 def test_data_dir():
     """Provide path to test data directory."""
-    return Path("data")
+    return Path("examples")
 
 
 @pytest.fixture(scope="session")
 def test_simple_grid():
     """Provide a simple grid test case."""
-    return pp.from_pickle("data/simple_grid.p")
+    return pp.from_pickle("examples/simple_grid.p")
 
 
 @pytest.fixture(scope="session")
@@ -104,4 +104,4 @@ def test_admm_config() -> ADMMConfig:
 
 @pytest.fixture(scope="session")
 def test_basic_grid_quick_expansion() -> Path:
-    return Path("data/payloads/simple_grid_quick_test.json")
+    return Path("examples/payloads/simple_grid_quick_test.json")

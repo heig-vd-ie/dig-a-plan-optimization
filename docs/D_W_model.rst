@@ -34,5 +34,6 @@
 3.4. Constraints and Objective
 -----------------------------------
 
-.. automodule:: D_W_model.constraints
-   :no-index:
+s
+.. .. automodule:: docs.constraints_slave
+..    :no-index:

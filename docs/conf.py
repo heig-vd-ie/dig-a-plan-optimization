@@ -7,9 +7,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "Dig-A-Plan-Optimization"
-copyright = (
-    "2025, Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
-)
+copyright = "2025, HEIG-VD (Institute of Energies)"
 author = "Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
 
 # -- General configuration ---------------------------------------------------
@@ -26,7 +24,7 @@ extensions = [
     "nbsphinx",
     "myst_parser",
     "sphinx_copybutton",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
 ]
 
 
@@ -40,7 +38,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 html_css_files = [

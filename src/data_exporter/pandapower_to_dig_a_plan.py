@@ -1,4 +1,3 @@
-from ast import Not
 from typing import List
 import polars as pl
 import patito as pt
@@ -13,7 +12,6 @@ from helper_functions import (
     get_transfo_imaginary_component,
 )
 from data_schema.edge_data import EdgeData
-from pipelines.expansion.models.request import Scenario
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
 from power_profiles.scenario_factory import ScenarioFactory

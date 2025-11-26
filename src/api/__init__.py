@@ -42,7 +42,7 @@ class ReconfigurationOutput(BaseModel):
 def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel]:
     match input.grid_case:
         case GridCase.SIMPLE_GRID:
-            net = pp.from_pickle("data/simple_grid.p")
+            net = pp.from_pickle("examples/simple_grid.p")
         case GridCase.BOISY_GRID:
             net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
         case GridCase.BOISY_SIMPLIFIED:

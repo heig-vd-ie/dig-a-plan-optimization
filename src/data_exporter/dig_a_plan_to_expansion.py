@@ -1,8 +1,6 @@
 import networkx as nx
 import copy
-from numpy import s_
 import polars as pl
-from typing import Dict
 from pathlib import Path
 from networkx import connected_components
 from polars import col as c

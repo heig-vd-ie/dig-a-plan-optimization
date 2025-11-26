@@ -1,1 +1,0 @@
-from duckdb_to_change_schema.duckdb_to_change_schema import duckdb_to_changes_schema

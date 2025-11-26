@@ -41,7 +41,7 @@ class ExpansionModel:
                     data_path
                     if data_path
                     else Path(__file__).parent.parent.parent.parent
-                    / "data"
+                    / "examples"
                     / "default.json"
                 )
                 logger.info(f"Using data path: {data_path}")
