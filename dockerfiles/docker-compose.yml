@@ -13,7 +13,7 @@ services:
 
   grafana:
     build:
-      context: ./grafana
+      context: grafana
       dockerfile: Dockerfile
     container_name: ray-grafana
     network_mode: host
@@ -23,8 +23,8 @@ services:
 
   python-api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: dockerfiles/Dockerfile
       ssh:
         - default
     container_name: dap-py-api
@@ -45,8 +45,8 @@ services:
 
   julia-api:
     build:
-      context: .
-      dockerfile: Dockerfile.julia
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.julia
     container_name: dap-jl-api
     network_mode: host
     environment:
@@ -63,8 +63,8 @@ services:
 
   ray-head:
     build:
-      context: .
-      dockerfile: Dockerfile.ray
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.ray
       ssh:
         - default
     container_name: ray-head
