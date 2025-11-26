@@ -7,7 +7,7 @@ services:
     ports:
       - "${SERVER_MONGODB_PORT}:${SERVER_MONGODB_PORT}"
     volumes:
-      - ./data/mongo:/data/mongo
+      - ../data/mongo:/data/mongo
     command: --port ${SERVER_MONGODB_PORT}
     restart: unless-stopped
 
@@ -23,8 +23,8 @@ services:
 
   python-api:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.py
       ssh:
         - default
     container_name: dap-py-api
@@ -35,18 +35,18 @@ services:
       - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
     volumes:
       - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:ro
-      - ./spill:/tmp/spill
-      - ./ray:/tmp/ray
-      - ./.cache:/app/.cache:rw
-      - ./examples:/app/examples:rw
+      - ../spill:/tmp/spill
+      - ../ray:/tmp/ray
+      - ../.cache:/app/.cache:rw
+      - ../examples:/app/examples:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
 
   julia-api:
     build:
-      context: .
-      dockerfile: Dockerfile.julia
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.julia
     container_name: dap-jl-api
     network_mode: host
     environment:
@@ -55,16 +55,16 @@ services:
     ports:
       - "${SERVER_JL_PORT}:${SERVER_JL_PORT}"
     volumes:
-      - ./src/model_expansion:/app/src/model_expansion
-      - ./examples:/app/examples
-      - ./.cache:/app/.cache:rw
+      - ../src/model_expansion:/app/src/model_expansion
+      - ../examples:/app/examples
+      - ../.cache:/app/.cache:rw
     command: julia --project=/app/src/model_expansion/. /app/src/model_expansion/src/Server.jl ${SERVER_JL_PORT}
     restart: unless-stopped
 
   ray-head:
     build:
-      context: .
-      dockerfile: Dockerfile.ray
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.ray
       ssh:
         - default
     container_name: ray-head
@@ -90,10 +90,10 @@ services:
       - "9090:9090" # Prometheus
     volumes:
       - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:ro
-      - ./ray:/tmp/ray
-      - ./spill:/tmp/spill
-      - ./.cache:/app/.cache:rw
-      - ./examples:/app/examples:rw
+      - ../ray:/tmp/ray
+      - ../spill:/tmp/spill
+      - ../.cache:/app/.cache:rw
+      - ../examples:/app/examples:rw
     command: /app/start-ray-head.sh
     restart: unless-stopped
     depends_on:

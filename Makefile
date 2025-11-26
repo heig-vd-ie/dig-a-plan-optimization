@@ -73,9 +73,17 @@ start: ## Start all servers
 	@echo "Starting all servers..."
 	@bash ./scripts/run-servers.sh
 
-docker-build: ## Build Docker images
+build: ## Build Docker images
 	@echo "Building Docker images..."
-	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && docker compose build --ssh default
+	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && cd dockerfiles && docker compose -p optimization build --ssh default
+
+stop:  ## Stop Docker containers from specific images
+	@echo "Stopping Docker containers for: $(IMAGES)"
+	@cd dockerfiles && docker compose -p optimization down || true
+
+remove:  ## Remove Docker containers from specific images
+	@echo "Removing Docker containers for: $(IMAGES)"
+	@cd dockerfiles && docker compose -p optimization rm -f || true
 
 kill-port: ## Kill process running on specified port (PORT)
 	@echo "Killing process on port $(PORT)..."
@@ -103,14 +111,6 @@ shutdown-prometheus: ## Shutdown Prometheus and clean up files
 	@echo "Shutting down Prometheus..."
 	@ray metrics shutdown-prometheus || true
 	@sudo rm -rf prometheus-* || true
-
-docker-stop:  ## Stop Docker containers from specific images
-	@echo "Stopping Docker containers for: $(IMAGES)"
-	@docker compose down || true
-
-docker-remove:  ## Remove Docker containers from specific images
-	@echo "Removing Docker containers for: $(IMAGES)"
-	@docker compose rm -f || true
 
 fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
 	@echo "Fixing permissions for .cache/algorithm..."
