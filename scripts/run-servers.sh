@@ -6,9 +6,7 @@ tmux kill-session -t $SESSION 2>/dev/null
 source .venv/bin/activate
 direnv allow
 
-commands=(
-  "source .envrc && cd dockerfiles && docker compose  -p optimization up -d; sleep 3; docker compose logs -f"
-)
+commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization logs -f")
 commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
 commands+=("./scripts/run-interactive.sh; sleep 3")
 
