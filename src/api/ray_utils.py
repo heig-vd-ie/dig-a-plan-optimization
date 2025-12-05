@@ -1,5 +1,3 @@
-# api/ray_utils.py
-
 import os
 import socket
 from typing import Any, Dict
