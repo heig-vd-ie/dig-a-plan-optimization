@@ -1,5 +1,3 @@
-# api/grid_cases.py
-
 from typing import Tuple
 
 import pandapower as pp
