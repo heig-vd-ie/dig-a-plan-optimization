@@ -75,7 +75,7 @@ start: ## Start all servers
 
 build: ## Build Docker images
 	@echo "Building Docker images..."
-	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && cd dockerfiles && docker compose -p optimization build --ssh default
+	@export DOCKER_BUILDKIT=1 && export COMPOSE_DOCKER_CLI_BUILD=1 && cd dockerfiles && docker compose -p optimization build
 
 stop:  ## Stop Docker containers from specific images
 	@echo "Stopping Docker containers for: $(IMAGES)"
