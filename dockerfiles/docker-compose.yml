@@ -28,7 +28,7 @@ services:
     container_name: dap-py-api
     network_mode: host
     environment:
-      - SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT}
+      - SERVER_RAY_ADDRESS=${LOCAL_HOST}:${SERVER_RAY_PORT}
     ports:
       - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
     volumes:
