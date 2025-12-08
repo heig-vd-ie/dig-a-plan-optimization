@@ -2,8 +2,8 @@ from api import (
     GridCase,
     GridCaseModel,
     ReconfigurationOutput,
-    get_grid_case,
 )
+from api.grid_cases import get_grid_case
 from experiments import *
 
 

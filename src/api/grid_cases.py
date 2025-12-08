@@ -9,7 +9,7 @@ from experiments import (
     NodeEdgeModel,
 )
 
-from .models import GridCase, GridCaseModel
+from api.models import GridCase, GridCaseModel
 
 
 def get_grid_case(input: GridCaseModel) -> Tuple[pp.pandapowerNet, NodeEdgeModel]:

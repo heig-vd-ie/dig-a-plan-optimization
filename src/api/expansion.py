@@ -1,4 +1,5 @@
-from api import GridCase, GridCaseModel, get_grid_case
+from api import GridCase, GridCaseModel
+from api.grid_cases import get_grid_case
 from experiments import *
 from datetime import datetime
 from pydantic import BaseModel, Field

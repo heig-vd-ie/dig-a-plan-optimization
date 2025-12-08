@@ -1,6 +1,6 @@
-from api import GridCaseModel, ReconfigurationOutput, get_grid_case
+from api import GridCaseModel, ReconfigurationOutput
 from experiments import *
-
+from api.grid_cases import get_grid_case
 
 
 class BenderInput(GridCaseModel):
