@@ -1,6 +1,14 @@
 # Dig-A-Plan Optimization
 
+Dig-A-Plan is a scalable optimization framework for distribution grid planning and operational reconfiguration under uncertainty.  
+It combines:
+- a **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
+- a **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
+
+The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 1000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
+
 Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
+
 
 ## Initial Setup
 
