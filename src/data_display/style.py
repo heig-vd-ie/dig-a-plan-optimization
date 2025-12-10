@@ -6,7 +6,14 @@ def apply_plot_style(fig: Figure, x_title: str, y_title: str, title: str) -> Non
     Apply a consistent styling to Plotly figures used in the project.
     """
     fig.update_layout(
-        title=title,
+        title=dict(
+            text=title,
+            x=0.55,
+            xanchor="center",
+            y=0.98,        
+            yanchor="top",
+            font=dict(family="Times New Roman, Serif", size=22)
+        ),
         xaxis_title=x_title,
         yaxis_title=y_title,
         width=1200,
@@ -27,7 +34,7 @@ def apply_plot_style(fig: Figure, x_title: str, y_title: str, title: str) -> Non
         hovermode="x unified",
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=80, r=40, t=60, b=80),
+        margin=dict(l=80, r=40, t=80, b=60),
     )
 
     fig.update_xaxes(
