@@ -456,6 +456,6 @@ def plot_power_flow_results(
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
 
-    os.makedirs(".cache", exist_ok=True)  
-    fig.write_html(".cache/boisy_grid_plot.html", include_plotlyjs="cdn")
+    os.makedirs(".cache/figs", exist_ok=True)  
+    fig.write_html(".cache/figs/boisy_grid_plot.html", include_plotlyjs="cdn")
     return fig

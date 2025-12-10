@@ -11,6 +11,7 @@ import plotly.colors as pc
 import networkx as nx
 import igraph as ig
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
+from data_display.style import apply_plot_style
 
 
 @dataclass
@@ -746,16 +747,25 @@ def plot_grid_from_pandapower(
         )
 
     _plot_loads(fig, net=net, grid_dfs=grid_dfs, node_size=node_size)
+    
+    title = (
+        "Grid Topology (Colored Flows)" if color_by_results else "Grid Topology"
+    )
+    apply_plot_style(
+        fig,
+        x_title="",
+        y_title="",
+        title=title,
+    )
 
     fig.update_layout(
         margin=dict(t=5, l=65, r=120, b=5),  # Increased right margin for colorbars
         width=width,
         height=height,
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
+    fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
+    fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
+    
     os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(
         f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.html",
