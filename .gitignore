@@ -181,7 +181,6 @@ mongo_backup
 
 .secrets.toml
 
-poetry.lock
 spill
 ray
 data

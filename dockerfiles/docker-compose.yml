@@ -25,12 +25,10 @@ services:
     build:
       context: ..
       dockerfile: dockerfiles/Dockerfile.py
-      ssh:
-        - default
     container_name: dap-py-api
     network_mode: host
     environment:
-      - SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT}
+      - SERVER_RAY_ADDRESS=${LOCAL_HOST}:${SERVER_RAY_PORT}
     ports:
       - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
     volumes:
@@ -65,8 +63,6 @@ services:
     build:
       context: ..
       dockerfile: dockerfiles/Dockerfile.ray
-      ssh:
-        - default
     container_name: ray-head
     network_mode: host
     environment:

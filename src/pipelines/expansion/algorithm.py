@@ -8,6 +8,7 @@ from typing import Dict, List
 from pathlib import Path
 from polars import col as c
 import tqdm
+from api.ray_utils import init_ray, shutdown_ray, check_ray
 from data_exporter.dig_a_plan_to_expansion import (
     dig_a_plan_to_expansion,
     remove_switches_from_grid_data,
@@ -31,27 +32,6 @@ from pipelines.expansion.models.request import (
 from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
-SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
-
-
-def init_ray():
-    ray.init(
-        address=SERVER_RAY_ADDRESS,
-        runtime_env={
-            "working_dir": os.path.dirname(os.path.abspath(__file__)),
-        },
-    )
-    return {
-        "message": "Ray initialized",
-        "nodes": ray.nodes(),
-        "available_resources": ray.cluster_resources(),
-        "used_resources": ray.available_resources(),
-    }
-
-
-def shutdown_ray():
-    ray.shutdown()
-    return {"message": "Ray shutdown"}
 
 
 class ExpansionAlgorithm:
@@ -359,7 +339,7 @@ class ExpansionAlgorithm:
         (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
-            self.check_ray()
+            check_ray(self.with_ray)
             heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
@@ -435,19 +415,6 @@ class ExpansionAlgorithm:
         """Generate a cut number based on the iteration, stage, and scenario."""
         return f"{(ι - 1) * self.n_admm_simulations * self.n_stages + (stage - 1) * self.n_admm_simulations + ω}"
 
-    def check_ray(self):
-        """Check if Ray is available and initialized."""
-        try:
-            import ray
-
-            RAY_AVAILABLE = True
-        except ImportError:
-            RAY_AVAILABLE = False
-
-        if RAY_AVAILABLE and self.with_ray and ray.is_initialized():
-            print("Running Pipeline with Ray")
-        else:
-            print("Running Pipeline without Ray")
 
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
