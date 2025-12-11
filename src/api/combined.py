@@ -1,4 +1,4 @@
-from api import (
+from api.models import (
     GridCase,
     GridCaseModel,
     ReconfigurationOutput,

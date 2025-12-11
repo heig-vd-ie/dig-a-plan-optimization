@@ -1,4 +1,4 @@
-from api import GridCaseModel, ReconfigurationOutput
+from api.models import GridCaseModel, ReconfigurationOutput
 from experiments import *
 from api.grid_cases import get_grid_case
 
