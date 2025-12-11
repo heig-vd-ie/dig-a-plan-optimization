@@ -24,9 +24,7 @@ def init_ray() -> Dict[str, Any]:
     """
     ray.init(
         address=SERVER_RAY_ADDRESS,
-        runtime_env={
-            "working_dir": os.getcwd(),
-        },
+        runtime_env={"working_dir": os.getcwd(), "excludes": ["**/*.parquet"]},
     )
     return {
         "message": "Ray initialized",
