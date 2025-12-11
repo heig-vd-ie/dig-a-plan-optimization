@@ -25,7 +25,6 @@ def init_ray() -> Dict[str, Any]:
     ray.init(
         address=SERVER_RAY_ADDRESS,
         runtime_env={
-
             "working_dir": os.getcwd(),
         },
     )
@@ -51,12 +50,11 @@ def check_ray(with_ray: bool) -> None:
     This is intentionally side-effecty (prints), matching the original behavior.
     """
     try:
-        import ray 
+        import ray
 
         ray_available = True
     except ImportError:
         ray_available = False
-        
 
     if ray_available and with_ray and ray.is_initialized():
         print("Running Pipeline with Ray")
@@ -65,4 +63,3 @@ def check_ray(with_ray: bool) -> None:
 
 
 __all__ = ["where_am_i", "init_ray", "shutdown_ray", "check_ray", "SERVER_RAY_ADDRESS"]
-
