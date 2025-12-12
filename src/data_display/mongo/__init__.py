@@ -1,4 +1,4 @@
-from .mongo_client import MongoConfig, MyMongoClient, CursorConfig, FieldExtractor
+from .client import MongoConfig, MyMongoClient, CursorConfig, FieldExtractor
 from .plotter import MyPlotter
 
 
