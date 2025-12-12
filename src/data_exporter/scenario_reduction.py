@@ -1,0 +1,144 @@
+from abc import ABC, abstractmethod
+from enum import Enum
+from pathlib import Path
+import numpy as np
+import polars as pl
+from pydantic import BaseModel, ConfigDict
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import pairwise_distances_argmin_min
+
+
+class ReductionStrategy(ABC):
+    """
+    Returns INDICES of the representative scenarios, not the values.
+    This allows us to map back to the original Polars DataFrame.
+    """
+
+    @abstractmethod
+    def get_representative_indices(
+        self, feature_matrix: np.ndarray, n_scenarios: int, seed: int = 42
+    ) -> np.ndarray:
+        """
+        Returns:
+            indices: Array of integer indices pointing to the representative rows.
+        """
+        pass
+
+
+class KMeansMedoidReducer(ReductionStrategy):
+    def get_representative_indices(
+        self, feature_matrix: np.ndarray, n_scenarios: int, seed: int = 42
+    ) -> np.ndarray:
+        # Fit KMeans
+        scaler = StandardScaler()
+        feature_matrix_scaled = scaler.fit_transform(feature_matrix)
+        kmeans = KMeans(n_clusters=n_scenarios, random_state=seed, n_init=10)
+        kmeans.fit(feature_matrix_scaled)
+        # Find the ACTUAL data point closest to each cluster center
+        # 'closest_row_indices' maps cluster_id -> row_index in feature_matrix
+        closest_row_indices, _ = pairwise_distances_argmin_min(
+            kmeans.cluster_centers_, feature_matrix_scaled
+        )
+        return closest_row_indices
+
+
+class DiscreteScenario(Enum):
+    BASIC = "Basic"
+    SUSTAINABLE = "Sustainable"
+    FULL = "Full"
+
+
+class KnownScenariosOptions(BaseModel):
+    load_profiles: list[Path]
+    pv_profile: Path
+    target_year: int
+    scenario_name: DiscreteScenario
+    n_scenarios: int
+
+
+class KnownScenariosOutputs(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    reduced_load_df: pl.DataFrame
+    reduced_pv_df: pl.DataFrame
+
+
+class ScenarioPipeline:
+    def __init__(self, reduction_strategy: ReductionStrategy):
+        self.reducer = reduction_strategy
+
+    def process(self, ksop: KnownScenariosOptions) -> KnownScenariosOutputs:
+        """
+        1. Filters Polars DF by Year/Scenario
+        2. Extracts features
+        3. Gets representative indices
+        4. Returns reduced Polars DF with weights
+        """
+        # A. Filter Data (Polars Operation)
+        # Assuming input has columns like 'year', 'scenario_type'
+        try:
+            load_dfs = []
+            for load_profile_path in ksop.load_profiles:
+                df = pl.read_parquet(
+                    load_profile_path
+                    / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+                )
+                load_dfs.append(df)
+            pv_df = pl.read_parquet(
+                ksop.pv_profile
+                / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+            )
+        except Exception as e:
+            raise ValueError(f"Error reading profile data: {e}")
+
+        # B. Feature Extraction (Polars -> Numpy)
+        load_df: pl.DataFrame = pl.concat(load_dfs, how="vertical")
+        df = pl.concat([load_df, pv_df], how="vertical").drop("egid")
+
+        X = df.to_numpy().T  # Transpose to get scenarios as rows
+
+        # C. Run Strategy (Numpy -> Indices)
+        indices = self.reducer.get_representative_indices(X, ksop.n_scenarios)
+
+        print(f"Selected scenario indices: {indices}")
+        # D. Reconstruction (Indices -> Polars)
+        # We select the rows matching the indices
+        col_names = list(df.columns)
+        desired_cols = ["egid"] + [col_names[i] for i in indices]
+
+        reduced_load_df = load_df.select(desired_cols)
+        reduced_pv_df = pv_df.select(desired_cols)
+
+        ksou = KnownScenariosOutputs(
+            reduced_load_df=reduced_load_df, reduced_pv_df=reduced_pv_df
+        )
+        return ksou
+
+
+# --- 4. USAGE EXAMPLE ---
+if __name__ == "__main__":
+    # --- INPUT DATA ---
+    ksop = KnownScenariosOptions(
+        load_profiles=[
+            Path(".cache/input/boisy/load_profiles/feeder_1"),
+            Path(".cache/input/boisy/load_profiles/feeder_2"),
+        ],
+        pv_profile=Path(".cache/input/boisy/pv_profiles"),
+        target_year=2030,
+        scenario_name=DiscreteScenario.BASIC,
+        n_scenarios=10,
+    )
+
+    # --- EXECUTION ---
+
+    # 1. Configure the strategy (Nearest to Center)
+    strategy = KMeansMedoidReducer()
+
+    # 2. Initialize Pipeline
+    pipeline = ScenarioPipeline(strategy)
+
+    # 3. Run Pipeline
+    final_scenarios = pipeline.process(ksop=ksop)
+
+    print(final_scenarios)

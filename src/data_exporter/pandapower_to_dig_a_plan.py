@@ -14,7 +14,7 @@ from helper_functions import (
 from data_schema.edge_data import EdgeData
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
-from power_profiles.scenario_factory import ScenarioFactory
+from data_exporter.scenario_reduction import ScenarioFactory
 
 
 def pandapower_to_dig_a_plan_schema(
