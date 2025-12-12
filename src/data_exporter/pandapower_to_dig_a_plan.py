@@ -61,10 +61,10 @@ def pandapower_to_dig_a_plan_schema(
             c("name"),
             c("vn_kv"),
             (c("min_vm_pu") if "min_vm_pu" in node_data.columns else pl.lit(0.9)).alias(
-                "v_min_pu"
+                "min_vm_pu"
             ),
             (c("max_vm_pu") if "max_vm_pu" in node_data.columns else pl.lit(1.1)).alias(
-                "v_max_pu"
+                "max_vm_pu"
             ),
         )
         .join(load, on="node_id", how="left")
@@ -72,8 +72,8 @@ def pandapower_to_dig_a_plan_schema(
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
-            c("v_min_pu").alias("v_min_pu"),
-            c("v_max_pu").alias("v_max_pu"),
+            c("min_vm_pu").alias("min_vm_pu"),
+            c("max_vm_pu").alias("max_vm_pu"),
             c("p_cons_pu").abs().alias("cons_installed").fill_null(0.001),
             c("p_prod_pu").abs().alias("prod_installed").fill_null(0.001),
             c("p_cons_pu").fill_null(0.001),

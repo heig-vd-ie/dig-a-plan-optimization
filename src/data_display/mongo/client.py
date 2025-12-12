@@ -686,7 +686,7 @@ class MyMongoClient(GeneralMongoClient):
         return df
 
     def extract_voltage_data(self) -> pd.DataFrame:
-        """Extract voltage data with all fields: v_sq, node_id, cn_fk, v_base, v_min_pu, v_max_pu, v_pu, etc."""
+        """Extract voltage data with all fields: v_sq, node_id, cn_fk, v_base, min_vm_pu, max_vm_pu, v_pu, etc."""
         voltage_df = self._extract_admm_field_data("voltage")
         return self._add_risk_info_to_df(voltage_df)
 

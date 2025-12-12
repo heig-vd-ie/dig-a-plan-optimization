@@ -6,7 +6,6 @@ from pipelines.reconfiguration import DigAPlanADMM
 from data_display.style import apply_plot_style
 
 
-
 class DistributionVariable:
     def __init__(
         self,
@@ -59,12 +58,12 @@ class DistributionVariable:
 
     def voltage_min_limit(self):
         return (
-            self.daps[next(iter(self.daps))].data_manager.node_data["v_min_pu"].mean()
+            self.daps[next(iter(self.daps))].data_manager.node_data["min_vm_pu"].mean()
         )
 
     def voltage_max_limit(self):
         return (
-            self.daps[next(iter(self.daps))].data_manager.node_data["v_max_pu"].mean()
+            self.daps[next(iter(self.daps))].data_manager.node_data["max_vm_pu"].mean()
         )
 
     def plot(self) -> None:
@@ -115,13 +114,13 @@ class DistributionVariable:
                 line_color="red",
                 annotation_text="Max Current limit",
             )
-        
+
         # === Apply shared style helper ===
         x_title = "Bus ID" if self.variable_type == "nodal" else "Edge ID"
         y_unit = "%" if self.variable_name == "current" else "p.u."
         y_title = f"{self.variable_name.capitalize()} ({y_unit})"
         title = f"{self.variable_name.capitalize()} Distribution by Bus"
-        
+
         apply_plot_style(
             fig,
             x_title=x_title,

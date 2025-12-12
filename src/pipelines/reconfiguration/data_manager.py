@@ -189,8 +189,8 @@ class PipelineDataManager:
                     "number_of_lines": {None: number_of_lines},
                     "i_max": pl_to_dict(self.edge_data["edge_id", "i_max_pu"]),
                     # static node params
-                    "v_min": pl_to_dict(self.node_data["node_id", "v_min_pu"]),
-                    "v_max": pl_to_dict(self.node_data["node_id", "v_max_pu"]),
+                    "v_min": pl_to_dict(self.node_data["node_id", "min_vm_pu"]),
+                    "v_max": pl_to_dict(self.node_data["node_id", "max_vm_pu"]),
                     # slack‑bus
                     "slack_node": {None: [self.__slack_node]},
                     "slack_node_v_sq": {

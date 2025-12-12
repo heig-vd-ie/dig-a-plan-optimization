@@ -750,8 +750,8 @@ def plot_grid_from_pandapower(
         current_range = (min(all_currents), max(all_currents))
 
     voltage_range = (
-        dap.data_manager.node_data["v_min_pu"].min(),
-        dap.data_manager.node_data["v_max_pu"].max(),
+        dap.data_manager.node_data["min_vm_pu"].min(),
+        dap.data_manager.node_data["max_vm_pu"].max(),
     )
 
     if color_by_results:
@@ -808,10 +808,8 @@ def plot_grid_from_pandapower(
         )
 
     _plot_loads(fig, net=net, grid_dfs=grid_dfs, node_size=node_size)
-    
-    title = (
-        "Grid Topology (Colored Flows)" if color_by_results else "Grid Topology"
-    )
+
+    title = "Grid Topology (Colored Flows)" if color_by_results else "Grid Topology"
     apply_plot_style(
         fig,
         x_title="",
@@ -826,7 +824,7 @@ def plot_grid_from_pandapower(
     )
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
-    
+
     os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(
         f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.html",
