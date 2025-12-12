@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 from pathlib import Path
 import numpy as np
-from patito import col
 import polars as pl
-from pydantic import BaseModel, ConfigDict, Field
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
+from data_exporter.models import (
+    KnownScenariosOptions,
+    KnownScenariosOutputs,
+    DiscreteScenario,
+)
 
 
 class ReductionStrategy(ABC):
@@ -43,27 +45,6 @@ class KMeansMedoidReducer(ReductionStrategy):
             kmeans.cluster_centers_, feature_matrix_scaled
         )
         return closest_row_indices
-
-
-class DiscreteScenario(Enum):
-    BASIC = "Basic"
-    SUSTAINABLE = "Sustainable"
-    FULL = "Full"
-
-
-class KnownScenariosOptions(BaseModel):
-    load_profiles: list[Path]
-    pv_profile: Path
-    target_year: int
-    quarter: int = Field(ge=1, le=4)
-    scenario_name: DiscreteScenario
-    n_scenarios: int
-
-
-class KnownScenariosOutputs(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    reduced_load_df: pl.DataFrame
-    reduced_pv_df: pl.DataFrame
 
 
 class ScenarioPipeline:
