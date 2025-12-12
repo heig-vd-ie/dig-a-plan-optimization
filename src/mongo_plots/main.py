@@ -4,7 +4,9 @@ import pandas as pd
 
 os.chdir(os.getcwd().replace("/src", ""))
 
-from plots import *  # assumes MyPlotter is defined in plots.py
+# from plots import *  # assumes MyPlotter is defined in plots.py
+from mongo_plots import MongoConfig, MyMongoClient, MyPlotter
+
 
 # Toggle extraction vs cached files
 if to_extract := False:
