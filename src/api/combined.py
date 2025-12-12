@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-from api.models import CombinedInput, CombinedOutput
+from api.models import CombinedInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 
 
-def run_combined(input: CombinedInput) -> CombinedOutput:
+def run_combined(input: CombinedInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=input.grid, seed=input.seed, stu=input.scenarios
     )
@@ -33,7 +33,7 @@ def run_combined(input: CombinedInput) -> CombinedOutput:
         node_data, edge_data = compare_dig_a_plan_with_pandapower(
             dig_a_plan=dig_a_plan, net=net
         )
-    return CombinedOutput(
+    return ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),

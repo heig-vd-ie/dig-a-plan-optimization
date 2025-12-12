@@ -14,13 +14,6 @@ class GridCaseModel(BaseModel):
     s_base: float = Field(default=1e6, description="Rated power in Watts")
 
 
-class ReconfigurationOutput(BaseModel):
-    switches: list[dict]
-    voltages: list[dict]
-    currents: list[dict]
-    taps: list[dict]
-
-
 class ShortTermUncertainty(BaseModel):
     number_of_scenarios: int = Field(
         default=10, description="Number of short term scenarios"
@@ -136,19 +129,11 @@ class ADMMInput(BaseModel):
     seed: int
 
 
-class ADMMOutput(ReconfigurationOutput):
-    pass
-
-
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
     max_iters: int = 100
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
     seed: int = 42
-
-
-class BenderOutput(ReconfigurationOutput):
-    pass
 
 
 class CombinedInput(BaseModel):
@@ -158,5 +143,8 @@ class CombinedInput(BaseModel):
     seed: int = 42
 
 
-class CombinedOutput(ReconfigurationOutput):
-    pass
+class ReconfigurationOutput(BaseModel):
+    switches: list[dict]
+    voltages: list[dict]
+    currents: list[dict]
+    taps: list[dict]

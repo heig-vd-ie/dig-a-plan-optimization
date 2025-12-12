@@ -1,9 +1,9 @@
-from api.models import ADMMInput, ADMMOutput
+from api.models import ADMMInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 
 
-def run_admm(input: ADMMInput) -> ADMMOutput:
+def run_admm(input: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=input.grid, seed=input.seed, stu=input.scenarios
     )
@@ -99,7 +99,7 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
     save_dap_state(dap_fixed, ".cache/figs/boisy_dap_fixed")
     joblib.dump(net, ".cache/figs/boisy_net.joblib")
 
-    return ADMMOutput(
+    return ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),

@@ -28,17 +28,17 @@ def read_root():
 
 
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
-def reconfiguration_bender(input: BenderInput) -> BenderOutput:
+def reconfiguration_bender(input: BenderInput) -> ReconfigurationOutput:
     return run_bender(input)
 
 
 @app.patch("/reconfiguration/combined", tags=["Reconfiguration"])
-def reconfiguration_combined(input: CombinedInput) -> CombinedOutput:
+def reconfiguration_combined(input: CombinedInput) -> ReconfigurationOutput:
     return run_combined(input)
 
 
 @app.patch("/reconfiguration/admm", tags=["Reconfiguration"])
-def reconfiguration_admm(input: ADMMInput) -> ADMMOutput:
+def reconfiguration_admm(input: ADMMInput) -> ReconfigurationOutput:
     return run_admm(input)
 
 
