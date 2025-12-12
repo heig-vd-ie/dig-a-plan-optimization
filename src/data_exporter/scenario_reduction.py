@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 import numpy as np
+from patito import col
 import polars as pl
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
@@ -54,6 +55,7 @@ class KnownScenariosOptions(BaseModel):
     load_profiles: list[Path]
     pv_profile: Path
     target_year: int
+    quarter: int = Field(ge=1, le=4)
     scenario_name: DiscreteScenario
     n_scenarios: int
 
@@ -76,7 +78,7 @@ class ScenarioPipeline:
         4. Returns reduced Polars DF with weights
         """
         # A. Filter Data (Polars Operation)
-        # Assuming input has columns like 'year', 'scenario_type'
+        # Assuming input has columns like 'year', 'scenario_type', 'quarter'
         try:
             load_dfs = []
             for load_profile_path in ksop.load_profiles:
@@ -96,6 +98,12 @@ class ScenarioPipeline:
         load_df: pl.DataFrame = pl.concat(load_dfs, how="vertical")
         df = pl.concat([load_df, pv_df], how="vertical").drop("egid")
 
+        col_names = list(df.columns)
+        from_idx = len(col_names) // 4 * (ksop.quarter - 1)
+        to_idx = len(col_names) // 4 * ksop.quarter
+        filter_cols = col_names[from_idx:to_idx]
+        df = df.select(filter_cols)
+
         X = df.to_numpy().T  # Transpose to get scenarios as rows
 
         # C. Run Strategy (Numpy -> Indices)
@@ -104,7 +112,6 @@ class ScenarioPipeline:
         print(f"Selected scenario indices: {indices}")
         # D. Reconstruction (Indices -> Polars)
         # We select the rows matching the indices
-        col_names = list(df.columns)
         desired_cols = ["egid"] + [col_names[i] for i in indices]
 
         reduced_load_df = load_df.select(desired_cols)
@@ -126,6 +133,7 @@ if __name__ == "__main__":
         ],
         pv_profile=Path(".cache/input/boisy/pv_profiles"),
         target_year=2030,
+        quarter=1,
         scenario_name=DiscreteScenario.BASIC,
         n_scenarios=10,
     )
