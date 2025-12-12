@@ -1,18 +1,7 @@
 from pydantic import BaseModel
-from api.models import GridCaseModel, ReconfigurationOutput, ShortTermUncertainty
+from api.models import CombinedInput, CombinedOutput
 from api.grid_cases import get_grid_case
 from experiments import *
-
-
-class CombinedInput(BaseModel):
-    grid: GridCaseModel = GridCaseModel()
-    groups: int | None = None
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int = 42
-
-
-class CombinedOutput(ReconfigurationOutput):
-    pass
 
 
 def run_combined(input: CombinedInput) -> CombinedOutput:

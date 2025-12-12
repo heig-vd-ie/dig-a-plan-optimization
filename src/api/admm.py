@@ -1,23 +1,6 @@
-from pydantic import BaseModel
-from api.models import (
-    GridCaseModel,
-    ReconfigurationOutput,
-    ShortTermUncertainty,
-)
+from api.models import ADMMInput, ADMMOutput
 from api.grid_cases import get_grid_case
 from experiments import *
-
-
-class ADMMInput(BaseModel):
-    grid: GridCaseModel = GridCaseModel()
-    groups: int | dict[int, list[int]] = 10
-    max_iters: int = 10
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int
-
-
-class ADMMOutput(ReconfigurationOutput):
-    pass
 
 
 def run_admm(input: ADMMInput) -> ADMMOutput:

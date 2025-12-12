@@ -130,3 +130,37 @@ class InputObject(BaseModel):
 
 class ExpansionOutput(BaseModel):
     sddp_response: ExpansionResponse
+
+
+class ADMMInput(BaseModel):
+    grid: GridCaseModel = GridCaseModel()
+    groups: int | dict[int, list[int]] = 10
+    max_iters: int = 10
+    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    seed: int
+
+
+class ADMMOutput(ReconfigurationOutput):
+    pass
+
+
+class BenderInput(BaseModel):
+    grid: GridCaseModel = GridCaseModel()
+    max_iters: int = 100
+    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    seed: int = 42
+
+
+class BenderOutput(ReconfigurationOutput):
+    pass
+
+
+class CombinedInput(BaseModel):
+    grid: GridCaseModel = GridCaseModel()
+    groups: int | None = None
+    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    seed: int = 42
+
+
+class CombinedOutput(ReconfigurationOutput):
+    pass

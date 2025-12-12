@@ -1,18 +1,6 @@
-from pydantic import BaseModel
-from api.models import GridCaseModel, ReconfigurationOutput, ShortTermUncertainty
+from api.models import BenderInput, BenderOutput
 from experiments import *
 from api.grid_cases import get_grid_case
-
-
-class BenderInput(BaseModel):
-    grid: GridCaseModel = GridCaseModel()
-    max_iters: int = 100
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int = 42
-
-
-class BenderOutput(ReconfigurationOutput):
-    pass
 
 
 def run_bender(input: BenderInput) -> BenderOutput:
