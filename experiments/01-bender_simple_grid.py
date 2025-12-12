@@ -104,5 +104,3 @@ voltages = dig_a_plan.result_manager.extract_node_voltage()
 currents = dig_a_plan.result_manager.extract_edge_current()
 # tap positions
 taps = dig_a_plan.result_manager.extract_transformer_tap_position()
-
-print(taps)

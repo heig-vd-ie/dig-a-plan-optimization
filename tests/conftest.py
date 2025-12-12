@@ -47,12 +47,6 @@ def test_simple_grid_groups():
 
 
 @pytest.fixture(scope="session")
-def test_taps():
-    """Provide taps for the simple grid test case."""
-    return [95, 98, 99, 100, 101, 102, 105]
-
-
-@pytest.fixture(scope="session")
 def test_bender_config() -> BenderConfig:
     """Provide Bender configuration for the test case."""
     return BenderConfig(

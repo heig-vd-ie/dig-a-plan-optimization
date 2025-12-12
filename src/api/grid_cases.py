@@ -30,7 +30,6 @@ def get_grid_case(
     base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net=net,
         s_base=grid.s_base,
-        taps=grid.taps,
         v_bounds=stu.v_bounds,
         p_bounds=stu.p_bounds,
         q_bounds=stu.q_bounds,

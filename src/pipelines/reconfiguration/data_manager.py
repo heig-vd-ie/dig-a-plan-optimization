@@ -49,7 +49,6 @@ class PipelineDataManager:
         self.__load_data: dict[int, pt.DataFrame[LoadData]] = {}
         # final data dict for Pyomo
         self.grid_data_parameters_dict: dict | None = None
-        self.taps: list[int]
 
     @property
     def node_data(self) -> pt.DataFrame[NodeData]:
@@ -68,7 +67,6 @@ class PipelineDataManager:
         # 1) static node + edge
         self.__set_node_data(node_data=grid_data.node_data)
         self.__set_edge_data(edge_data=grid_data.edge_data)
-        self.taps = grid_data.taps
         self.__validate_slack_node()
 
         # 2) scenario loads
@@ -170,6 +168,20 @@ class PipelineDataManager:
 
         number_of_lines = len([e for e in edge_ids if e not in switch_ids])
 
+        tr_taps = (
+            self.edge_data.filter(c("type") == "transformer")
+            .select(
+                pl.struct("edge_id", "taps")
+                .map_elements(
+                    lambda x: [(x["edge_id"], y) for y in x["taps"]],
+                    return_dtype=pl.Object,
+                )
+                .alias("taps")
+            )["taps"]
+            .to_list()
+        )
+        tr_taps_flat = [item for sublist in tr_taps for item in sublist]
+
         self.grid_data_parameters_dict = {
             scen_id: {
                 None: {
@@ -181,7 +193,7 @@ class PipelineDataManager:
                     "S": {None: switch_ids},
                     "C": {None: c_tuples},
                     "Tr": {None: transformer_ids},
-                    "Taps": {None: self.taps},
+                    "TrTaps": {None: tr_taps_flat},
                     # static line params
                     "r": pl_to_dict(self.edge_data["edge_id", "r_pu"]),
                     "x": pl_to_dict(self.edge_data["edge_id", "x_pu"]),

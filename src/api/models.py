@@ -9,13 +9,9 @@ from typing import Dict, List, Tuple
 
 class GridCaseModel(BaseModel):
     pp_file: str = Field(
-        default="examples/simple_grid.p",
-        description="Path to pandapower .p file",
+        default="examples/simple_grid.p", description="Path to pandapower .p file"
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
-    taps: list[int] = Field(
-        default=list(range(95, 105, 1)), description="Tap positions"
-    )
 
 
 class ReconfigurationOutput(BaseModel):

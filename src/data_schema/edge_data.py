@@ -21,6 +21,7 @@ class EdgeData(pt.Model):
     i_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
     p_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=10.0)
     normal_open: bool = pt.Field(dtype=pl.Boolean, default=False)
+    taps: list[int] = pt.Field(dtype=pl.List(pl.Int32), default=[100])
     type: TYPES = pt.Field(
         dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
     )

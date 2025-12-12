@@ -6,10 +6,10 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.Ω = pyo.Set()
     model.N = pyo.Set()  # Nodes indices.
     model.E = pyo.Set()  # Edges indices.
+    model.TrTaps = pyo.Set()
     model.S = pyo.Set(within=model.E)  # Switch indices
     model.L = pyo.Set(within=model.E)  # Line indices
     model.Tr = pyo.Set(within=model.E)  # Transformer indices
-    model.Taps = pyo.Set()  # Transformer tap positions
     model.C = pyo.Set(dimen=3, within=model.E * model.N * model.N)  # type: ignore
 
     model.Cs = pyo.Set(initialize=lambda m: [(l, i, j) for l, i, j in m.C if l in m.S])
@@ -39,16 +39,14 @@ def model_sets(model: pyo.AbstractModel) -> pyo.AbstractModel:
     model.CtΩ = pyo.Set(
         initialize=lambda m: [(l, i, j, ω) for l, i, j in m.Ct for ω in m.Ω]
     )
-    model.TrTaps = pyo.Set(
-        initialize=lambda m: [(tr, tap) for tr in m.Tr for tap in m.Taps]
-    )
     model.CttapΩ = pyo.Set(
         initialize=lambda m: [
             (l, i, tap, ω)
             for l, i, j in m.C
             if (l in m.Tr) and (i > j)
             for ω in m.Ω
-            for tap in m.Taps
+            for tr, tap in m.TrTaps
+            if tr == l
         ]
     )
     model.NtrΩ = pyo.Set(

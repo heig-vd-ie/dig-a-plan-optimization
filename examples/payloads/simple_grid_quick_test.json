@@ -1,9 +1,5 @@
 {
-    "grid": {
-        "pp_file": "examples/simple_grid.p",
-        "s_base": 1000000,
-        "taps": [ 95, 100, 104 ]
-    },
+    "grid": { "pp_file": "examples/simple_grid.p", "s_base": 1000000 },
     "short_term_uncertainty": {
         "number_of_scenarios": 3,
         "p_bounds": [ -0.2, 0.2 ],

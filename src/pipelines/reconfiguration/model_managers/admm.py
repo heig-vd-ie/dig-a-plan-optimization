@@ -67,8 +67,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         # Sets
         self.switch_list = list(self.admm_model_instances[self.Ω[0]].S)  # type: ignore
-        self.transformer_list = list(self.admm_model_instances[self.Ω[0]].Tr)  # type: ignore
-        self.tap_list = list(self.admm_model_instances[self.Ω[0]].Taps)  # type: ignore
+        self.tr_taps = list(self.admm_model_instances[self.Ω[0]].TrTaps)  # type: ignore
 
         # Initialize consensus and duals
         self.zδ = {s: 0.5 for s in self.switch_list}  # consensus per switch
@@ -76,15 +75,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
             (ω, s): 0.0 for ω in self.Ω for s in self.switch_list
         }  # scaled duals
 
-        self.zζ = {
-            (tr, tap): 1.0 for tr in self.transformer_list for tap in self.tap_list
-        }
-        self.λζ = {
-            (ω, tr, tap): 0.0
-            for ω in self.Ω
-            for tr in self.transformer_list
-            for tap in self.tap_list
-        }
+        self.zζ = {(tr, tap): 1.0 for tr, tap in self.tr_taps}
+        self.λζ = {(ω, tr, tap): 0.0 for ω in self.Ω for tr, tap in self.tr_taps}
 
         δ_map, ζ_map = self.__solve_model(self.admm_linear_model_instance)
 

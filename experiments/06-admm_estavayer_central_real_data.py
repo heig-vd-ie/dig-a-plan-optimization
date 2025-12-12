@@ -13,7 +13,6 @@ grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net,
     number_of_random_scenarios=10,
     v_bounds=(-0.07, 0.07),
-    taps=[95, 98, 99, 100, 101, 102, 105],
     use_random_scenarios=False,
     kace=kace,
 )

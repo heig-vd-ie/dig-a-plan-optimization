@@ -154,12 +154,36 @@ def pandapower_to_dig_a_plan_schema(
             c("length_km"),
             c("i_base"),
             (np.sqrt(3) * c("max_i_ka") * 1e3 * c("v_base") / s_base).alias("p_max_pu"),
+            pl.lit([100]).alias("taps"),
         )
     )
 
     trafo: pl.DataFrame = pl.from_pandas(net.trafo)
     if "name" in trafo.columns and "eq_fk" not in trafo.columns:
         trafo = trafo.rename({"name": "eq_fk"})
+
+    trafo = trafo.with_columns(
+        (
+            c("tap_min").fill_null(0)
+            if "tap_min" in trafo.columns
+            else pl.lit(0).alias("tap_min")
+        ),
+        (
+            c("tap_max").fill_null(0)
+            if "tap_max" in trafo.columns
+            else pl.lit(0).alias("tap_max")
+        ),
+        (
+            c("tap_step_percent").fill_null(0)
+            if "tap_step_percent" in trafo.columns
+            else pl.lit(0).alias("tap_step_percent")
+        ),
+        (
+            c("tap_neutral").fill_null(0)
+            if "tap_neutral" in trafo.columns
+            else pl.lit(0).alias("tap_neutral")
+        ),
+    )
     trafo = (
         trafo.with_columns(
             c("hv_bus").cast(pl.Int32).alias("u_of_edge"),
@@ -209,8 +233,24 @@ def pandapower_to_dig_a_plan_schema(
             ),
             c("i_base"),
             (c("sn_mva") * 1e6 / s_base).alias("p_max_pu"),
+            pl.struct(["tap_min", "tap_max", "tap_step_percent", "tap_neutral"]).alias(
+                "tap_info"
+            ),
         )
     )
+
+    trafo = trafo.with_columns(
+        pl.col("tap_info")
+        .map_elements(
+            lambda tap: [
+                100
+                + i * tap["tap_step_percent"] / 100
+                - tap["tap_neutral"] * tap["tap_step_percent"] / 100
+                for i in range(int(tap["tap_min"]), int(tap["tap_max"]) + 1)
+            ],
+        )
+        .alias("taps")
+    ).drop("tap_info")
 
     switch: pl.DataFrame = pl.from_pandas(net.switch)
     if "name" in switch.columns and "eq_fk" not in switch.columns:
@@ -222,6 +262,7 @@ def pandapower_to_dig_a_plan_schema(
         c("element").cast(pl.Int32).alias("v_of_edge"),
         (~c("closed").cast(pl.Boolean)).alias("normal_open"),
         pl.lit("switch").alias("type"),
+        pl.lit([100]).alias("taps"),
     )
 
     edge_data = (
@@ -243,7 +284,6 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     net: pp.pandapowerNet,
     number_of_random_scenarios: int = 10,
     use_random_scenarios: bool = True,
-    taps: List[int] | None = None,
     p_bounds: Tuple[float, float] | None = None,
     q_bounds: Tuple[float, float] | None = None,
     v_bounds: Tuple[float, float] | None = None,
@@ -284,5 +324,4 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
         node_data=node_data_validated,
         edge_data=edge_data_validated,
         load_data=rand_scenarios,
-        taps=taps if taps is not None else list(range(95, 105, 1)),
     )

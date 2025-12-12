@@ -1,9 +1,5 @@
 {
-    "grid": {
-        "kace": "estavayer_simplified",
-        "s_base": 1000000,
-        "taps": [ 95, 98, 99, 100, 101, 102, 105 ]
-    },
+    "grid": { "pp_file": ".cache/input/estavayer/estavayer_simplified_grid.p", "s_base": 1000000 },
     "short_term_uncertainty": {
         "number_of_scenarios": 10,
         "p_bounds": [ -0.5, 1 ],
