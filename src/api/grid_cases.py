@@ -35,8 +35,6 @@ def get_grid_case(
         p_bounds=stu.p_bounds,
         q_bounds=stu.q_bounds,
         number_of_random_scenarios=stu.number_of_scenarios,
-        v_min=grid.v_min,
-        v_max=grid.v_max,
         seed=seed,
     )
 

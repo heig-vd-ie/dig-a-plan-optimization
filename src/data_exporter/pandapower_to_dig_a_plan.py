@@ -18,10 +18,7 @@ from power_profiles.scenario_factory import ScenarioFactory
 
 
 def pandapower_to_dig_a_plan_schema(
-    net: pp.pandapowerNet,
-    s_base: float = 1e6,
-    v_min: float = 0.9,
-    v_max: float = 1.1,
+    net: pp.pandapowerNet, s_base: float = 1e6
 ) -> Tuple[pt.DataFrame[NodeData], pt.DataFrame[EdgeData], float, pl.DataFrame]:
     """
     Convert a pandapower network to DigAPlan schema.
@@ -57,15 +54,26 @@ def pandapower_to_dig_a_plan_schema(
         -c("q_pv").fill_null(0.0).alias("q_prod_pu"),
     )
 
+    # [["node_id", "vn_kv", "name"]]
     node_data = (
-        node_data[["node_id", "vn_kv", "name"]]
+        node_data.select(
+            c("node_id"),
+            c("name"),
+            c("vn_kv"),
+            (c("min_vm_pu") if "min_vm_pu" in node_data.columns else pl.lit(0.9)).alias(
+                "v_min_pu"
+            ),
+            (c("max_vm_pu") if "max_vm_pu" in node_data.columns else pl.lit(1.1)).alias(
+                "v_max_pu"
+            ),
+        )
         .join(load, on="node_id", how="left")
         .select(
             c("name").alias("cn_fk"),
             c("node_id").cast(pl.Int32),
             (c("vn_kv") * 1e3).alias("v_base"),
-            pl.lit(v_min).alias("v_min_pu"),
-            pl.lit(v_max).alias("v_max_pu"),
+            c("v_min_pu").alias("v_min_pu"),
+            c("v_max_pu").alias("v_max_pu"),
             c("p_cons_pu").abs().alias("cons_installed").fill_null(0.001),
             c("p_prod_pu").abs().alias("prod_installed").fill_null(0.001),
             c("p_cons_pu").fill_null(0.001),
@@ -239,8 +247,6 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     p_bounds: Tuple[float, float] | None = None,
     q_bounds: Tuple[float, float] | None = None,
     v_bounds: Tuple[float, float] | None = None,
-    v_min: float = 0.9,
-    v_max: float = 1.1,
     s_base: float = 1e6,
     seed: int = 42,
     kace: str = "cigre_mv",
@@ -251,7 +257,7 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     and edge data.
     """
     node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
-        pandapower_to_dig_a_plan_schema(net, v_min=v_min, v_max=v_max, s_base=s_base)
+        pandapower_to_dig_a_plan_schema(net, s_base=s_base)
     )
     if not use_random_scenarios:
         scenario_factory = ScenarioFactory(kace=kace)

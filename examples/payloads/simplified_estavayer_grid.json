@@ -2,9 +2,7 @@
     "grid": {
         "kace": "estavayer_simplified",
         "s_base": 1000000,
-        "taps": [ 95, 98, 99, 100, 101, 102, 105 ],
-        "v_min": 0.9,
-        "v_max": 1.1
+        "taps": [ 95, 98, 99, 100, 101, 102, 105 ]
     },
     "short_term_uncertainty": {
         "number_of_scenarios": 10,

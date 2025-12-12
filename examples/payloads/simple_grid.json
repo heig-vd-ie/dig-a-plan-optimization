@@ -2,9 +2,7 @@
     "grid": {
         "pp_file": "examples/simple_grid.p",
         "s_base": 1000000,
-        "taps": [ 95, 96, 97, 98, 99, 100, 101, 102, 103, 104 ],
-        "v_min": 0.95,
-        "v_max": 1.05
+        "taps": [ 95, 96, 97, 98, 99, 100, 101, 102, 103, 104 ]
     },
     "short_term_uncertainty": {
         "number_of_scenarios": 10,

@@ -16,8 +16,6 @@ class GridCaseModel(BaseModel):
     taps: list[int] = Field(
         default=list(range(95, 105, 1)), description="Tap positions"
     )
-    v_min: float = Field(default=0.9, description="Minimum voltage in per unit")
-    v_max: float = Field(default=1.1, description="Maximum voltage in per unit")
 
 
 class ReconfigurationOutput(BaseModel):
