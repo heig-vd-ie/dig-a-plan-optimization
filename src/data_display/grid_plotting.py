@@ -690,7 +690,6 @@ def _add_color_legend(
             )
         )
 
-        # Add current colorbar
         min_curr, max_curr = current_range
         fig.add_trace(
             go.Scatter(
@@ -821,7 +820,7 @@ def plot_grid_from_pandapower(
     )
 
     fig.update_layout(
-        margin=dict(t=5, l=65, r=120, b=5),  # Increased right margin for colorbars
+        margin=dict(t=5, l=65, r=120, b=5),  
         width=width,
         height=height,
     )
@@ -879,7 +878,7 @@ def get_continuous_color(colorscale, intermed):
 
     hex_to_rgb = lambda cc: "rgb" + str(ImageColor.getcolor(cc, "RGB"))
 
-    # Initialize low/high to the first stop, so low_cutoff is always defined
+    
     low_cutoff, low_color = colorscale[0]
     high_cutoff, high_color = colorscale[-1]
 
@@ -890,7 +889,7 @@ def get_continuous_color(colorscale, intermed):
             high_cutoff, high_color = cutoff, color
             break
 
-    # Convert hex colors if needed
+    
     if low_color[0] == "#":
         low_color = hex_to_rgb(low_color)
     if high_color[0] == "#":
@@ -898,7 +897,6 @@ def get_continuous_color(colorscale, intermed):
 
     denom = (high_cutoff - low_cutoff)
     if denom == 0:
-        # Avoid division by zero: just return the low color
         return low_color
 
     t = (intermed - low_cutoff) / denom
@@ -928,7 +926,6 @@ def plot_power_flow_results(
     max_loading: Optional[float] = None,
 ):
     """
-    Ported from grid_plotting_legacy.py.
     Independent plot used for PF results using NodeEdgeModel + switches/currents/voltages tables.
     """
     fig: go.Figure = go.Figure()
