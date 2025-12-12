@@ -63,11 +63,11 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
         "q_flow",
     ]
     for variable in nodal_variables + edge_variables:
-        plot_distribution_variable(
+        DistributionVariable(
             daps={"ADMM": dap, "Normal Open": dap_fixed},
             variable_name=variable,
             variable_type=("nodal" if variable in nodal_variables else "edge"),
-        )
+        ).plot()
 
     os.makedirs(".cache/figs", exist_ok=True)
     x_vals = np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0]

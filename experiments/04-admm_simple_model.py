@@ -79,11 +79,11 @@ edge_variables = [
     "q_flow",
 ]
 for variable in nodal_variables + edge_variables:
-    plot_distribution_variable(
+    DistributionVariable(
         daps={"ADMM": dap, "Normal Open": dap_fixed},
         variable_name=variable,
         variable_type=("nodal" if variable in nodal_variables else "edge"),
-    )
+    ).plot()
 
 # %% Plot iteration of r_norm and s_norm
 import matplotlib.pyplot as plt

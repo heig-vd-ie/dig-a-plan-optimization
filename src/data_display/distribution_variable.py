@@ -67,7 +67,7 @@ class DistributionVariable:
             self.daps[next(iter(self.daps))].data_manager.node_data["v_max_pu"].mean()
         )
 
-    def plot_distribution_variable(self) -> None:
+    def plot(self) -> None:
         df = self.merge_variables()
         if self.variable_type == "edge":
             df = df.filter(pl.col("from_node_id") > pl.col("to_node_id"))
@@ -132,12 +132,3 @@ class DistributionVariable:
         fig.update_xaxes(categoryorder="category ascending")
         os.makedirs(".cache/figs", exist_ok=True)
         fig.write_html(f".cache/figs/distribution_{self.variable_name}.html")
-
-
-def plot_distribution_variable(
-    daps: Dict[str, DigAPlanADMM],
-    variable_name: str,
-    variable_type: Literal["nodal", "edge"] = "nodal",
-) -> None:
-    distribution = DistributionVariable(daps, variable_name, variable_type)
-    distribution.plot_distribution_variable()

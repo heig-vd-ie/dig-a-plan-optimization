@@ -21,7 +21,7 @@ from data_display.grid_plotting_legacy import (
 )
 from data_display.grid_plotting_legacy import plot_power_flow_results
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_display.distribution_variable import plot_distribution_variable
+from data_display.distribution_variable import DistributionVariable
 from pipelines.reconfiguration import (
     DigAPlan,
     DigAPlanADMM,
