@@ -1,15 +1,19 @@
+from pydantic import BaseModel
 from api.models import (
-    GridCase,
     GridCaseModel,
     ReconfigurationOutput,
+    ShortTermUncertainty,
 )
 from api.grid_cases import get_grid_case
 from experiments import *
 
 
-class ADMMInput(GridCaseModel):
+class ADMMInput(BaseModel):
+    grid: GridCaseModel = GridCaseModel()
     groups: int | dict[int, list[int]] = 10
     max_iters: int = 10
+    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    seed: int
 
 
 class ADMMOutput(ReconfigurationOutput):
@@ -17,19 +21,23 @@ class ADMMOutput(ReconfigurationOutput):
 
 
 def run_admm(input: ADMMInput) -> ADMMOutput:
-    net, base_grid_data = get_grid_case(input)
+    net, base_grid_data = get_grid_case(
+        grid=input.grid, seed=input.seed, stu=input.scenarios
+    )
     config = ADMMConfig(
         verbose=False,
         pipeline_type=PipelineType.ADMM,
         solver_name="gurobi",
         solver_non_convex=2,
         big_m=1e3,
-        ε=1 if input.grid_case != GridCase.SIMPLE_GRID else 1e-4,
+        ε=1 if input.grid.pp_file != "examples/simple_grid.p" else 1e-4,
         ρ=2.0,
-        γ_infeasibility=10 if input.grid_case == GridCase.SIMPLE_GRID else 100.0,
+        γ_infeasibility=(
+            10 if input.grid.pp_file == "examples/simple_grid.p" else 100.0
+        ),
         γ_admm_penalty=1.0,
-        γ_trafo_loss=1e2 if input.grid_case == GridCase.SIMPLE_GRID else 1.0,
-        time_limit=1 if input.grid_case == GridCase.BOISY_SIMPLIFIED else 10,
+        γ_trafo_loss=(1e2 if input.grid.pp_file == "examples/simple_grid.p" else 1.0),
+        time_limit=(1 if input.grid.pp_file == "examples/boisy_simplified.p" else 10),
         groups=input.groups,
         max_iters=input.max_iters,
         μ=10.0,
@@ -41,7 +49,7 @@ def run_admm(input: ADMMInput) -> ADMMOutput:
     dap.solve_model(groups=input.groups)
     print(dap.model_manager.zδ_variable)
     print(dap.model_manager.zζ_variable)
-    if input.grid_case == GridCase.SIMPLE_GRID:
+    if input.grid.pp_file == "examples/simple_grid.p":
         node_data, edge_data = compare_dig_a_plan_with_pandapower(
             dig_a_plan=dap, net=net, from_z=True
         )

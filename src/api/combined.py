@@ -1,15 +1,14 @@
-from api.models import (
-    GridCase,
-    GridCaseModel,
-    ReconfigurationOutput,
-)
+from pydantic import BaseModel
+from api.models import GridCaseModel, ReconfigurationOutput, ShortTermUncertainty
 from api.grid_cases import get_grid_case
 from experiments import *
 
 
-
-class CombinedInput(GridCaseModel):
+class CombinedInput(BaseModel):
+    grid: GridCaseModel = GridCaseModel()
     groups: int | None = None
+    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    seed: int = 42
 
 
 class CombinedOutput(ReconfigurationOutput):
@@ -17,7 +16,9 @@ class CombinedOutput(ReconfigurationOutput):
 
 
 def run_combined(input: CombinedInput) -> CombinedOutput:
-    net, base_grid_data = get_grid_case(input)
+    net, base_grid_data = get_grid_case(
+        grid=input.grid, seed=input.seed, stu=input.scenarios
+    )
     config = CombinedConfig(
         verbose=True,
         big_m=1e3,
@@ -39,7 +40,7 @@ def run_combined(input: CombinedInput) -> CombinedOutput:
     reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
     print(taps)
-    if input.grid_case == GridCase.SIMPLE_GRID:
+    if input.grid.pp_file == "examples/simple_grid.p":
         fig = plot_grid_from_pandapower(net=net, dap=dig_a_plan)
         node_data, edge_data = compare_dig_a_plan_with_pandapower(
             dig_a_plan=dig_a_plan, net=net

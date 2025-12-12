@@ -1,5 +1,11 @@
 {
-    "grid": { "kace": "simple_grid", "s_base": 1000000, "taps": [ 95, 100, 104 ], "v_min": 0.9, "v_max": 1.1 },
+    "grid": {
+        "pp_file": "examples/simple_grid.p",
+        "s_base": 1000000,
+        "taps": [ 95, 100, 104 ],
+        "v_min": 0.9,
+        "v_max": 1.1
+    },
     "short_term_uncertainty": {
         "number_of_scenarios": 3,
         "p_bounds": [ -0.2, 0.2 ],

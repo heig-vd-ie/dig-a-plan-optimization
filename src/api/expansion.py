@@ -1,4 +1,4 @@
-from api.models import GridCaseModel, ExpansionInput, ExpansionOutput, InputObject
+from api.models import ExpansionInput, ExpansionOutput, InputObject
 from api.grid_cases import get_grid_case
 from experiments import *
 from datetime import datetime
@@ -23,18 +23,7 @@ def run_expansion(
         Path(".cache/algorithm") / time_now / "input.json",
     )
     _, grid_data = get_grid_case(
-        GridCaseModel(
-            grid_case=input.grid.kace,
-            s_base=input.grid.s_base,
-            p_bounds=input.short_term_uncertainty.p_bounds,
-            q_bounds=input.short_term_uncertainty.q_bounds,
-            v_bounds=input.short_term_uncertainty.v_bounds,
-            number_of_random_scenarios=input.short_term_uncertainty.number_of_scenarios,
-            v_min=input.grid.v_min,
-            v_max=input.grid.v_max,
-            taps=input.grid.taps,
-            seed=input.seed,
-        )
+        input.grid, seed=input.seed, stu=input.short_term_uncertainty
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,

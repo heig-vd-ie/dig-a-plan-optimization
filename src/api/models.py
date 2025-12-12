@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Tuple
 
 from pydantic import BaseModel
@@ -8,25 +7,17 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Tuple
 
 
-class GridCase(Enum):
-    SIMPLE_GRID = "simple_grid"
-    BOISY_GRID = "boisy_grid"
-    BOISY_SIMPLIFIED = "boisy_simplified"
-    ESTAVAYER_GRID = "estavayer_grid"
-    ESTAVAYER_SIMPLIFIED = "estavayer_simplified"
-
-
 class GridCaseModel(BaseModel):
-    grid_case: GridCase
-    s_base: float = 1e6
-    taps: list[int] = list(range(95, 105, 1))
-    p_bounds: Tuple[float, float] = (-0.2, 0.2)
-    q_bounds: Tuple[float, float] = (-0.2, 0.2)
-    v_bounds: Tuple[float, float] = (-0.03, 0.03)
-    number_of_random_scenarios: int = 10
-    v_min: float = 0.9
-    v_max: float = 1.1
-    seed: int = 42
+    pp_file: str = Field(
+        default="examples/simple_grid.p",
+        description="Path to pandapower .p file",
+    )
+    s_base: float = Field(default=1e6, description="Rated power in Watts")
+    taps: list[int] = Field(
+        default=list(range(95, 105, 1)), description="Tap positions"
+    )
+    v_min: float = Field(default=0.9, description="Minimum voltage in per unit")
+    v_max: float = Field(default=1.1, description="Maximum voltage in per unit")
 
 
 class ReconfigurationOutput(BaseModel):
@@ -34,16 +25,6 @@ class ReconfigurationOutput(BaseModel):
     voltages: list[dict]
     currents: list[dict]
     taps: list[dict]
-
-
-class GridModel(BaseModel):
-    kace: GridCase = Field(default=GridCase.SIMPLE_GRID, description="Grid case to use")
-    s_base: float = Field(default=1e6, description="Rated power in Watts")
-    taps: List[int] = Field(
-        default=list(range(95, 105, 1)), description="Tap positions"
-    )
-    v_min: float = Field(default=0.9, description="Minimum voltage in per unit")
-    v_max: float = Field(default=1.1, description="Maximum voltage in per unit")
 
 
 class ShortTermUncertainty(BaseModel):
@@ -125,7 +106,7 @@ class SDDPParams(BaseModel):
 
 
 class ExpansionInput(BaseModel):
-    grid: GridModel = Field(description="Grid model")
+    grid: GridCaseModel = Field(description="Grid model")
     short_term_uncertainty: ShortTermUncertainty = Field(
         description="Short term uncertainty model"
     )
