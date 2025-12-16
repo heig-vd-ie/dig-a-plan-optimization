@@ -16,7 +16,6 @@ from data_schema.edge_data import EdgeData
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
 from data_exporter.scenario_reduction import (
-    GridCaseModel,
     KnownScenariosOptions,
     ScenarioPipeline,
 )
@@ -311,14 +310,12 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
         and egid_id_mapping_file is not None
     ):
         scenario_pipeline = ScenarioPipeline()
-        rand_scenarios = scenario_pipeline.process(
-            ksop=ksop,
+        rand_scenarios = scenario_pipeline.process(ksop=ksop).map2scens(
             egid_id_mapping_file=egid_id_mapping_file,
             id_node_mapping=net.load,
             cosφ=0.95,
             s_base=s_base,
-            v_bounds=(-0.07, 0.07),
-            seed=42,
+            seed=seed,
         )
     else:
         rand_scenarios = generate_random_load_scenarios(
