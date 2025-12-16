@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 import polars as pl
 import patito as pt
@@ -14,7 +15,11 @@ from helper_functions import (
 from data_schema.edge_data import EdgeData
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
-from data_exporter.scenario_reduction import ScenarioFactory
+from data_exporter.scenario_reduction import (
+    GridCaseModel,
+    KnownScenariosOptions,
+    ScenarioPipeline,
+)
 
 
 def pandapower_to_dig_a_plan_schema(
@@ -282,6 +287,7 @@ def pandapower_to_dig_a_plan_schema(
 
 def pandapower_to_dig_a_plan_schema_with_scenarios(
     net: pp.pandapowerNet,
+    egid_id_mapping_file: Path | None = None,
     number_of_random_scenarios: int = 10,
     use_random_scenarios: bool = True,
     p_bounds: Tuple[float, float] | None = None,
@@ -289,7 +295,7 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     v_bounds: Tuple[float, float] | None = None,
     s_base: float = 1e6,
     seed: int = 42,
-    kace: str = "cigre_mv",
+    ksop: KnownScenariosOptions | None = None,
 ) -> NodeEdgeModel:
     """
     Convert a pandapower network to DigAPlan schema with random load scenarios.
@@ -299,15 +305,21 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
         pandapower_to_dig_a_plan_schema(net, s_base=s_base)
     )
-    if not use_random_scenarios:
-        scenario_factory = ScenarioFactory(kace=kace)
-        scenario_factory.initialize().generate_operational_scenarios(
-            number_of_random_scenarios=number_of_random_scenarios,
+    if (
+        not use_random_scenarios
+        and ksop is not None
+        and egid_id_mapping_file is not None
+    ):
+        scenario_pipeline = ScenarioPipeline()
+        rand_scenarios = scenario_pipeline.process(
+            ksop=ksop,
+            egid_id_mapping_file=egid_id_mapping_file,
+            id_node_mapping=net.load,
+            cosφ=0.95,
             s_base=s_base,
-            seed=seed,
-            v_bounds=v_bounds,
+            v_bounds=(-0.07, 0.07),
+            seed=42,
         )
-        rand_scenarios = scenario_factory.rand_scenarios
     else:
         rand_scenarios = generate_random_load_scenarios(
             node_data=node_data_validated,

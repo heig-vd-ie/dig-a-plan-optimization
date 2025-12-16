@@ -1,10 +1,10 @@
 from typing import Tuple
-
 from pydantic import BaseModel
 from pipelines.expansion.models.response import ExpansionResponse
 from pipelines.expansion.models.request import RiskMeasureType
 from pydantic import BaseModel, Field
 from typing import Dict, List, Tuple
+import pandapower as pp
 
 
 class GridCaseModel(BaseModel):
@@ -12,6 +12,7 @@ class GridCaseModel(BaseModel):
         default="examples/simple_grid.p", description="Path to pandapower .p file"
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
+    cosφ: float = Field(default=0.95, description="Power factor")
 
 
 class ShortTermUncertainty(BaseModel):

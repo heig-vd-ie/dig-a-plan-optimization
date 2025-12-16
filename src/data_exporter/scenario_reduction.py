@@ -1,14 +1,20 @@
 from abc import ABC, abstractmethod
+from typing import Dict
 from pathlib import Path
+import random
 import numpy as np
 import polars as pl
 import numpy as np
+import pandapower as pp
+import patito as pt
+import pandas as pd
+from data_schema.load_data import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
+from api.models import GridCaseModel
 from data_exporter.models import (
     KnownScenariosOptions,
-    KnownScenariosOutputs,
     DiscreteScenario,
 )
 
@@ -48,10 +54,19 @@ class KMeansMedoidReducer(ReductionStrategy):
 
 
 class ScenarioPipeline:
-    def __init__(self, reduction_strategy: ReductionStrategy):
+    def __init__(self, reduction_strategy: ReductionStrategy = KMeansMedoidReducer()):
         self.reducer = reduction_strategy
 
-    def process(self, ksop: KnownScenariosOptions) -> KnownScenariosOutputs:
+    def process(
+        self,
+        ksop: KnownScenariosOptions,
+        egid_id_mapping_file: Path,
+        id_node_mapping: pd.DataFrame,
+        cosφ: float,
+        s_base: float,
+        v_bounds: tuple[float, float],
+        seed: int,
+    ) -> Dict[int, pt.DataFrame[LoadData]]:
         """
         1. Filters Polars DF by Year/Scenario
         2. Extracts features
@@ -98,10 +113,84 @@ class ScenarioPipeline:
         reduced_load_df = load_df.select(desired_cols)
         reduced_pv_df = pv_df.select(desired_cols)
 
-        ksou = KnownScenariosOutputs(
-            reduced_load_df=reduced_load_df, reduced_pv_df=reduced_pv_df
+        # E. Return Outputs
+        egid_id_mapping = pl.read_csv(egid_id_mapping_file).with_columns(
+            pl.col("egid").cast(pl.Utf8)
         )
-        return ksou
+        id_node_mapping["index"] = id_node_mapping.index
+        id_node_mapping_pl = pl.from_dataframe(id_node_mapping[["index", "bus"]])
+
+        reduced_load_df = reduced_load_df.join(
+            egid_id_mapping, on="egid", how="left"
+        ).join(id_node_mapping_pl, on="index", how="left")
+        reduced_pv_df = reduced_pv_df.join(egid_id_mapping, on="egid", how="left").join(
+            id_node_mapping_pl, on="index", how="left"
+        )
+
+        random.seed(seed)
+        rng = np.random.default_rng(seed)
+
+        scenarios: Dict[int, pt.DataFrame[LoadData]] = {}
+        for ω in range(len(desired_cols) - 1):
+            q_factor = (1 - cosφ**2) ** 0.5
+            df1 = reduced_load_df.select(
+                [
+                    pl.col("bus").alias("node_id"),
+                    (pl.col(desired_cols[ω + 1]) / s_base).alias("p_cons_pu"),
+                    (pl.col(desired_cols[ω + 1]) * q_factor / s_base).alias(
+                        "q_cons_pu"
+                    ),
+                ]
+            )
+            df2 = reduced_pv_df.select(
+                [
+                    pl.col("bus").alias("node_id"),
+                    (pl.col(desired_cols[ω + 1]) / s_base).alias("p_prod_pu"),
+                    (pl.col(desired_cols[ω + 1]) * q_factor / s_base).alias(
+                        "q_prod_pu"
+                    ),
+                ]
+            )
+            df = df1.join(df2, on="node_id", how="left")
+            random_voltage = (
+                rng.uniform(low=0, high=1, size=df.height) * (v_bounds[1] - v_bounds[0])
+                + v_bounds[0]
+            )
+            df = df.select(
+                [
+                    pl.col("node_id").alias("node_id"),
+                    pl.col("p_cons_pu").fill_null(0).alias("p_cons_pu"),
+                    pl.col("q_cons_pu").fill_null(0).alias("q_cons_pu"),
+                    pl.col("p_prod_pu").fill_null(0).alias("p_prod_pu"),
+                    pl.col("q_prod_pu").fill_null(0).alias("q_prod_pu"),
+                    pl.Series(random_voltage).alias("v_node_sqr_pu"),
+                ]
+            )
+
+            df = (
+                df.sort("node_id")
+                .drop_nulls(["node_id"])
+                .group_by("node_id")
+                .agg(
+                    pl.col("p_cons_pu").sum().alias("p_cons_pu"),
+                    pl.col("q_cons_pu").sum().alias("q_cons_pu"),
+                    pl.col("p_prod_pu").sum().alias("p_prod_pu"),
+                    pl.col("q_prod_pu").sum().alias("q_prod_pu"),
+                    pl.col("v_node_sqr_pu").mean().alias("v_node_sqr_pu"),
+                )
+            )
+
+            df_pt = (
+                pt.DataFrame(df)
+                .set_model(LoadData)
+                .fill_null(strategy="defaults")
+                .cast(strict=True)
+            )
+            df_pt.validate()
+
+            scenarios[ω] = df_pt
+
+        return scenarios
 
 
 # --- 4. USAGE EXAMPLE ---
@@ -127,7 +216,17 @@ if __name__ == "__main__":
     # 2. Initialize Pipeline
     pipeline = ScenarioPipeline(strategy)
 
+    net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
+
     # 3. Run Pipeline
-    final_scenarios = pipeline.process(ksop=ksop)
+    final_scenarios = pipeline.process(
+        ksop=ksop,
+        egid_id_mapping_file=Path(".cache/input/boisy/consumer_egid_idx_mapping.csv"),
+        id_node_mapping=net.load,
+        cosφ=0.95,
+        s_base=1,
+        v_bounds=(0.97, 1.07),
+        seed=42,
+    )
 
     print(final_scenarios)
