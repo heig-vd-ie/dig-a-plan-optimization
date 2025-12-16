@@ -12,8 +12,7 @@ from data_schema.load_data import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
-from api.models import GridCaseModel
-from data_exporter.models import (
+from api.models import (
     KnownScenariosOptions,
     DiscreteScenario,
 )

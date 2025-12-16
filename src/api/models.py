@@ -1,10 +1,10 @@
-from typing import Tuple
+from enum import Enum
+from pathlib import Path
 from pydantic import BaseModel
 from pipelines.expansion.models.response import ExpansionResponse
 from pipelines.expansion.models.request import RiskMeasureType
 from pydantic import BaseModel, Field
 from typing import Dict, List, Tuple
-import pandapower as pp
 
 
 class GridCaseModel(BaseModel):
@@ -14,6 +14,21 @@ class GridCaseModel(BaseModel):
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
     cosφ: float = Field(default=0.95, description="Power factor")
+
+
+class DiscreteScenario(Enum):
+    BASIC = "Basic"
+    SUSTAINABLE = "Sustainable"
+    FULL = "Full"
+
+
+class KnownScenariosOptions(BaseModel):
+    load_profiles: list[Path]
+    pv_profile: Path
+    target_year: int
+    quarter: int = Field(ge=1, le=4)
+    scenario_name: DiscreteScenario
+    n_scenarios: int
 
 
 class ShortTermUncertainty(BaseModel):
