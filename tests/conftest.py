@@ -31,7 +31,7 @@ def test_data_dir():
 @pytest.fixture(scope="session")
 def test_simple_grid():
     """Provide a simple grid test case."""
-    return pp.from_pickle("examples/simple_grid.p")
+    return pp.from_pickle("examples/ieee-33/simple_grid.p")
 
 
 @pytest.fixture(scope="session")

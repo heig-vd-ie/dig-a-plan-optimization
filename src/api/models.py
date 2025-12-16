@@ -9,7 +9,8 @@ import pandapower as pp
 
 class GridCaseModel(BaseModel):
     pp_file: str = Field(
-        default="examples/simple_grid.p", description="Path to pandapower .p file"
+        default="examples/ieee-33/simple_grid.p",
+        description="Path to pandapower .p file",
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
     cosφ: float = Field(default=0.95, description="Power factor")

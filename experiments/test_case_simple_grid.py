@@ -139,7 +139,7 @@ def create_simple_grid():
     net["line"].loc[TEST_CONFIG[NB_TEST]["line_list"], "max_i_ka"] = 1e-2
 
     build_non_existing_dirs("examples")
-    pp.to_pickle(net, "examples/simple_grid.p")
+    pp.to_pickle(net, "examples/ieee-33/simple_grid.p")
 
 
 # %%
