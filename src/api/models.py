@@ -7,6 +7,12 @@ from pydantic import BaseModel, Field
 from typing import Dict, List, Tuple
 
 
+class DiscreteScenario(Enum):
+    BASIC = "Basic"
+    SUSTAINABLE = "Sustainable"
+    FULL = "Full"
+
+
 class GridCaseModel(BaseModel):
     pp_file: str = Field(
         default="examples/ieee-33/simple_grid.p",
@@ -16,19 +22,24 @@ class GridCaseModel(BaseModel):
     cosφ: float = Field(default=0.95, description="Power factor")
 
 
-class DiscreteScenario(Enum):
-    BASIC = "Basic"
-    SUSTAINABLE = "Sustainable"
-    FULL = "Full"
-
-
 class KnownScenariosOptions(BaseModel):
-    load_profiles: list[Path]
-    pv_profile: Path
-    target_year: int
-    quarter: int = Field(ge=1, le=4)
-    scenario_name: DiscreteScenario
-    n_scenarios: int
+    load_profiles: list[Path] = Field(
+        default=[Path("examples/ieee-33/load_profiles")],
+        description="List of paths to load profile directories",
+    )
+    pv_profile: Path = Field(
+        default=Path("examples/ieee-33/pv_profiles"),
+        description="Path to PV profile directory",
+    )
+    target_year: int = Field(default=2030, description="Target year for scenarios")
+    quarter: int = Field(ge=1, le=4, default=1, description="Quarter of the year (1-4)")
+    scenario_name: DiscreteScenario = Field(
+        default=DiscreteScenario.BASIC, description="Type of discrete scenario"
+    )
+    v_bounds: Tuple[float, float] = Field(
+        default=(-0.03, 0.03), description="Voltage bounds in per unit"
+    )
+    n_scenarios: int = Field(default=10, description="Number of scenarios")
 
 
 class ShortTermUncertainty(BaseModel):
