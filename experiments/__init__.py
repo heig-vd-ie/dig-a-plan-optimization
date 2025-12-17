@@ -14,7 +14,7 @@ from config import settings
 from data_exporter.pandapower_to_dig_a_plan import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from data_schema import NodeEdgeModel
+from data_model import NodeEdgeModel
 
 from data_display.grid_plotting import plot_grid_from_pandapower, plot_power_flow_results
 from data_display.output_processing import compare_dig_a_plan_with_pandapower

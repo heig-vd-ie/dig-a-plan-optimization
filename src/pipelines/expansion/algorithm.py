@@ -13,8 +13,7 @@ from data_exporter.dig_a_plan_to_expansion import (
     dig_a_plan_to_expansion,
     remove_switches_from_grid_data,
 )
-from data_schema import NodeEdgeModel
-from data_schema.edge_data import EdgeData
+from data_model import NodeEdgeModel, EdgeData
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from pipelines.expansion.api import run_sddp, generate_scenarios
 from pipelines.expansion.models.request import (
@@ -31,7 +30,6 @@ from pipelines.expansion.models.request import (
 )
 from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
-
 
 
 class ExpansionAlgorithm:
@@ -414,7 +412,6 @@ class ExpansionAlgorithm:
     def _cut_number(self, ι: int, stage: int, ω: int) -> str:
         """Generate a cut number based on the iteration, stage, and scenario."""
         return f"{(ι - 1) * self.n_admm_simulations * self.n_stages + (stage - 1) * self.n_admm_simulations + ω}"
-
 
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""

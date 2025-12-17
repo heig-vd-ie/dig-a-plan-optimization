@@ -8,7 +8,7 @@ import numpy as np
 import pandapower as pp
 import patito as pt
 import pandas as pd
-from data_schema.load_data import LoadData
+from data_model import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min

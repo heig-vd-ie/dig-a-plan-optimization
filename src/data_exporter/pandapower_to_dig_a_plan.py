@@ -3,8 +3,7 @@ import polars as pl
 import patito as pt
 from polars import col as c
 from shapely import from_geojson
-from data_schema import NodeEdgeModel
-from data_schema import NodeData
+from data_model import NodeEdgeModel, NodeData, EdgeData
 import numpy as np
 import pandapower as pp
 from typing import Tuple
@@ -13,7 +12,6 @@ from helper_functions import (
     get_transfo_imaginary_component,
     pl_to_dict,
 )
-from data_schema.edge_data import EdgeData
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
 from data_exporter.scenario_reduction import (

@@ -15,7 +15,7 @@ from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
 
 from helper_functions import generate_tree_graph_from_edge_data
-from data_schema import NodeEdgeModel
+from data_model import NodeEdgeModel
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
 
 from data_display.style import apply_plot_style
@@ -154,7 +154,7 @@ def plot_grid_from_pandapower(
             marker=dict(size=node_size, color="blue", symbol=bus["symbol"].to_list()),
         )
     )
-    
+
     apply_plot_style(fig, x_title="", y_title="", title="Grid Topology")
 
     fig.update_layout(
@@ -164,7 +164,7 @@ def plot_grid_from_pandapower(
     )
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
-    
+
     fig.show()
 
 
@@ -456,6 +456,6 @@ def plot_power_flow_results(
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
 
-    os.makedirs(".cache/figs", exist_ok=True)  
+    os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(".cache/figs/boisy_grid_plot.html", include_plotlyjs="cdn")
     return fig
