@@ -72,6 +72,8 @@ def create_simple_grid():
 
     net["load"] = net["load"][net["load"]["p_mw"] < 2]
 
+    net["trafo"]["shift_degree"] = 0
+    net["line"].loc[:, "max_i_ka"] = 1
     pp.to_pickle(net, "examples/ieee-33/simple_grid.p")
 
 
