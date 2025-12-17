@@ -1,4 +1,3 @@
-from doctest import master
 from pyomo import environ as pyo
 from pyomo.environ import Suffix
 

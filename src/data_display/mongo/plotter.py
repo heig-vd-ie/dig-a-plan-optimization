@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -55,7 +55,7 @@ class MyPlotter:
         Apply scientific paper formatting to a plotly figure,
         starting from the shared project-wide style (apply_plot_style).
         """
-    
+
         # Apply the project-wide default plot style
         # We pass empty axis titles; each caller sets them afterwards.
         apply_plot_style(fig, x_title="", y_title="", title=title)
@@ -79,7 +79,7 @@ class MyPlotter:
             ),
             margin=dict(l=40, r=15, t=40, b=40),
         )
-        
+
         # Axis refinements on top of the shared style
         fig.update_xaxes(
             gridcolor=self.grid_color,
@@ -402,9 +402,9 @@ class MyPlotter:
             plot_title = f"{title_prefix}{risk_label} - {field_name}"
             if normalize_to_label:
                 plot_title += f" / mean({normalize_to_label})"
-                
+
             fig = self._apply_scientific_formatting(fig, title=plot_title)
-                
+
             fig.update_layout(
                 width=self.width + 100,  # room for labels
                 margin=dict(l=60, r=120, t=60, b=60),

@@ -3,11 +3,11 @@ import logging
 import os
 import requests
 from pathlib import Path
-from pipelines.expansion.models.response import ExpansionResponse
-from pipelines.expansion.models.request import (
+from data_model.sddp import (
+    SDDPResponse,
     Scenarios,
-    ExpansionRequest,
-    LongTermScenarioRequest,
+    SDDPRequest,
+    SDDPScenarioRequest,
 )
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
@@ -93,7 +93,7 @@ class ExpansionModel:
 
     def handle_expansion_request(
         self,
-        expansion_request: ExpansionRequest,
+        expansion_request: SDDPRequest,
         cache_path: Path | None = None,
     ) -> Path:
         """Handle the expansion request."""
@@ -115,9 +115,9 @@ class ExpansionModel:
 
     def run_sddp(
         self,
-        expansion_request: ExpansionRequest | None = None,
+        expansion_request: SDDPRequest | None = None,
         cache_path: Path | None = None,
-    ) -> ExpansionResponse:
+    ) -> SDDPResponse:
         """Run the SDDP algorithm."""
         if expansion_request is not None:
             cache_path = self.handle_expansion_request(expansion_request, cache_path)
@@ -126,11 +126,11 @@ class ExpansionModel:
             )
         else:
             response = self.run_sddp_native()
-        return ExpansionResponse(**response.json())
+        return SDDPResponse(**response.json())
 
     def run_generate_scenarios(
         self,
-        long_term_scenario_request: LongTermScenarioRequest,
+        long_term_scenario_request: SDDPRequest,
     ) -> Scenarios:
         response = self.run_generate_scenarios_native(
             request_data=long_term_scenario_request.model_dump(by_alias=True)
@@ -144,8 +144,8 @@ def run_sddp_native(data_path: Path | None = None) -> requests.Response:
 
 
 def run_sddp(
-    expansion_request: ExpansionRequest | None = None, cache_path: Path | None = None
-) -> ExpansionResponse:
+    expansion_request: SDDPRequest | None = None, cache_path: Path | None = None
+) -> SDDPResponse:
     expansion_model = ExpansionModel()
     return expansion_model.run_sddp(
         expansion_request=expansion_request,
@@ -154,7 +154,7 @@ def run_sddp(
 
 
 def generate_scenarios(
-    long_term_scenario_request: LongTermScenarioRequest,
+    long_term_scenario_request: SDDPRequest,
 ) -> Scenarios:
     expansion_model = ExpansionModel()
     return expansion_model.run_generate_scenarios(long_term_scenario_request)

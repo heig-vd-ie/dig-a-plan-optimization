@@ -2,7 +2,7 @@ import polars as pl
 import patito as pt
 from polars import col as c
 from shapely import from_geojson
-from data_model import NodeEdgeModel, NodeData, EdgeData
+from data_model import NodeEdgeModel4Reconfiguration, NodeData, EdgeData
 import numpy as np
 import pandapower as pp
 from helper_functions import (
@@ -13,7 +13,9 @@ from helper_functions import (
 from data_exporter import validate_data
 
 
-def pp_to_dap_schema(net: pp.pandapowerNet, s_base: float = 1e6) -> NodeEdgeModel:
+def pp_to_dap_schema(
+    net: pp.pandapowerNet, s_base: float = 1e6
+) -> NodeEdgeModel4Reconfiguration:
     """
     Convert a pandapower network to DigAPlan schema.
     This function extracts static node and edge data from the pandapower network
@@ -312,7 +314,7 @@ def pp_to_dap_schema(net: pp.pandapowerNet, s_base: float = 1e6) -> NodeEdgeMode
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
 
-    return NodeEdgeModel(
+    return NodeEdgeModel4Reconfiguration(
         node_data=node_data_validated, edge_data=edge_data_validated, load_data={}
     )
 

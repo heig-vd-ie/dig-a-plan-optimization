@@ -64,8 +64,14 @@ class LoadData(pt.Model):
     v_node_sqr_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=1.0)
 
 
+class GrowthData(pt.Model):
+    node_id: int = pt.Field(dtype=pl.Int32, unique=True)
+    δ_load_var: float = pt.Field(dtype=pl.Float64, default=0.0)
+    δ_pv_var: float = pt.Field(dtype=pl.Float64, default=0.0)
+
+
 @dataclass
-class NodeEdgeModel:
+class NodeEdgeModel4Reconfiguration:
     node_data: pt.DataFrame[NodeData] = field(
         default_factory=lambda: NodeData.DataFrame(schema=NodeData.columns).cast()
     )
@@ -73,3 +79,17 @@ class NodeEdgeModel:
         default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
     )
     load_data: Dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)
+
+
+@dataclass
+class NodeEdgeModel4Expansion:
+    node_data: pt.DataFrame[NodeData] = field(
+        default_factory=lambda: NodeData.DataFrame(schema=NodeData.columns).cast()
+    )
+    edge_data: pt.DataFrame[EdgeData] = field(
+        default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
+    )
+    load_data: Dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)
+    growth_data: pt.DataFrame[GrowthData] = field(
+        default_factory=lambda: GrowthData.DataFrame(schema=EdgeData.columns).cast()
+    )

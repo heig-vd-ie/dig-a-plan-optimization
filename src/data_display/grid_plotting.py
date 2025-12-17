@@ -12,7 +12,7 @@ from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
 import igraph as ig
 from helper_functions import pl_to_dict, generate_tree_graph_from_edge_data
-from data_model import NodeEdgeModel
+from data_model import NodeEdgeModel4Reconfiguration
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
 from data_display.style import apply_plot_style
 
@@ -831,7 +831,7 @@ def get_continuous_color(colorscale, intermed):
 
 
 def plot_power_flow_results(
-    base_grid_data: NodeEdgeModel,
+    base_grid_data: NodeEdgeModel4Reconfiguration,
     switches: pl.DataFrame,
     currents: pl.DataFrame,
     voltages: pl.DataFrame,
@@ -847,7 +847,7 @@ def plot_power_flow_results(
     max_loading: Optional[float] = None,
 ):
     """
-    Independent plot used for PF results using NodeEdgeModel + switches/currents/voltages tables.
+    Independent plot used for PF results using NodeEdgeModel4Reconfiguration + switches/currents/voltages tables.
     """
     fig: go.Figure = go.Figure()
 

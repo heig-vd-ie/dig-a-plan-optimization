@@ -1,5 +1,5 @@
 from data_model.reconfiguration import BenderInput, ReconfigurationOutput
-from data_exporter.gridcase_to_dap import kace4reconfiguration
+from data_exporter.kace_to_dap import kace4reconfiguration
 from pipelines.reconfiguration.configs import PipelineType, BenderConfig
 from pipelines.reconfiguration import DigAPlanBender
 

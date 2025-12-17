@@ -1,4 +1,4 @@
-from data_model import NodeEdgeModel
+from data_model import NodeEdgeModel4Reconfiguration
 from pipelines.reconfiguration.data_manager import PipelineDataManager
 from pipelines.reconfiguration.result_manager import PipelineResultManager
 from pipelines.reconfiguration.configs import (
@@ -46,7 +46,7 @@ class DigAPlan:
         )
         self.result_manager: PipelineResultManager
 
-    def add_grid_data(self, grid_data: NodeEdgeModel):
+    def add_grid_data(self, grid_data: NodeEdgeModel4Reconfiguration):
         """
         Add grid data to the model manager.
         """

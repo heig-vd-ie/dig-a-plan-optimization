@@ -4,7 +4,7 @@ import polars as pl
 from pathlib import Path
 from networkx import connected_components
 from polars import col as c
-from pipelines.expansion.models.request import (
+from data_model.sddp import (
     Node,
     Edge,
     Cut,
@@ -14,13 +14,15 @@ from pipelines.expansion.models.request import (
     PlanningParams,
     AdditionalParams,
     Scenarios,
-    ExpansionRequest,
+    SDDPRequest,
 )
-from data_model import NodeEdgeModel
+from data_model import NodeEdgeModel4Expansion
 from pipelines.helpers.json_rw import save_obj_to_json
 
 
-def remove_switches_from_grid_data(grid_data: NodeEdgeModel) -> NodeEdgeModel:
+def remove_switches_from_grid_data(
+    grid_data: NodeEdgeModel4Expansion,
+) -> NodeEdgeModel4Expansion:
     """Remove switches from the grid data."""
     graph = nx.Graph()
     for edge in grid_data.edge_data.filter(c("type") == "switch").iter_rows(named=True):
@@ -72,8 +74,8 @@ def remove_switches_from_grid_data(grid_data: NodeEdgeModel) -> NodeEdgeModel:
     return grid_data_rm
 
 
-def dig_a_plan_to_expansion(
-    grid_data: NodeEdgeModel,
+def dap_to_expansion(
+    grid_data: NodeEdgeModel4Expansion,
     planning_params: PlanningParams,
     additional_params: AdditionalParams,
     scenarios_data: Scenarios,
@@ -88,7 +90,7 @@ def dig_a_plan_to_expansion(
     out_of_sample_scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
     optimization_config_cache: Path | None = None,
-) -> ExpansionRequest:
+) -> SDDPRequest:
     """Convert Dig-A-Plan data model to expansion request."""
     nodes = [
         Node(id=node["node_id"]) for node in grid_data.node_data.iter_rows(named=True)
@@ -182,7 +184,7 @@ def dig_a_plan_to_expansion(
     if optimization_config_cache:
         save_obj_to_json(optimization_config, optimization_config_cache)
 
-    return ExpansionRequest(
+    return SDDPRequest(
         optimization=optimization_config,
         scenarios=scenarios_data,
         out_of_sample_scenarios=out_of_sample_scenarios,

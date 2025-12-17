@@ -8,11 +8,13 @@ from pathlib import Path
 from polars import col as c
 import tqdm
 from api.ray_utils import init_ray, shutdown_ray, check_ray
-from data_exporter.dig_a_plan_to_expansion import (
-    dig_a_plan_to_expansion,
+from data_exporter.dap_to_expansion import (
+    dap_to_expansion,
     remove_switches_from_grid_data,
 )
-from data_model import NodeEdgeModel, EdgeData
+from data_model import NodeEdgeModel4Reconfiguration, EdgeData
+from data_model.expansion import ExpansionInput
+from helper_functions import pl_to_dict
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from pipelines.expansion.api import run_sddp, generate_scenarios
 from data_model.sddp import (
@@ -29,6 +31,7 @@ from data_model.sddp import (
     SDDPResponse,
     SDDPSimulation,
 )
+from data_exporter.kace_to_dap import kace4expansion
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 
@@ -36,116 +39,67 @@ class ExpansionAlgorithm:
 
     def __init__(
         self,
-        grid_data: NodeEdgeModel,
-        each_task_memory: float,
+        request: ExpansionInput,
+        with_ray: bool,
+        bender_cuts: BenderCuts | None,
         time_now: str,
-        cache_dir: Path,
-        bender_cuts: BenderCuts | None = None,
-        admm_voll: float = 1.0,
-        admm_volp: float = 1.0,
-        admm_groups: int | Dict[int, List[int]] = 1,
-        iterations: int = 10,
-        n_admm_simulations: int = 10,
-        seed_number: int = 42,
-        time_limit: int = 10,
-        solver_non_convex: int = 2,
-        n_stages: int = 3,
-        initial_budget: float = 1e6,
-        discount_rate: float = 0.05,
-        γ_cuts: float = 0.0,
-        years_per_stage: int = 1,
-        sddp_iteration_limit: int = 10,
-        sddp_simulations: int = 100,
+        cache_dir: Path = Path(".cache"),
         just_test: bool = False,
-        risk_measure_type: RiskMeasureType = RiskMeasureType.EXPECTATION,
-        risk_measure_param: float = 0.1,
-        δ_load_var: float = 5.0,
-        δ_pv_var: float = 1.0,
-        δ_b_var: float = 1000,
-        number_of_sddp_scenarios: int = 100,
-        expansion_transformer_cost_per_kw: float = 1e3,
-        expansion_line_cost_per_km_kw: float = 1e3,
-        penalty_cost_per_consumption_kw: float = 1e3,
-        penalty_cost_per_production_kw: float = 1e3,
-        s_base: float = 1e6,
-        admm_big_m: float = 1e3,
-        admm_ε: float = 1e-4,
-        admm_ρ: float = 2.0,
-        admm_γ_infeasibility: float = 1.0,
-        admm_γ_admm_penalty: float = 1.0,
-        admm_γ_trafo_loss: float = 1e2,
-        admm_max_iters: int = 10,
-        admm_μ: float = 10.0,
-        admm_τ_incr: float = 2.0,
-        admm_τ_decr: float = 2.0,
-        with_ray: bool = False,
     ):
-        self.grid_data = grid_data
+        random.seed(request.seed)
+        self.request = request
         self.cache_dir = cache_dir
-        self.admm_voll = admm_voll
-        self.admm_volp = admm_volp
-        self.each_task_memory = each_task_memory
-        self.admm_groups = admm_groups
-        self.iterations = iterations
         self.just_test = just_test
-        self.n_admm_simulations = n_admm_simulations
-        self.seed_number = seed_number
-        self.time_limit = time_limit
-        self.solver_non_convex = solver_non_convex
         self.with_ray = with_ray
-        self.expansion_transformer_cost_per_kw = expansion_transformer_cost_per_kw
-        self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
-        self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
-        self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
-        self.s_base = s_base
-        self.admm_big_m = admm_big_m
-        self.admm_ε = admm_ε
-        self.admm_ρ = admm_ρ
-        self.admm_γ_infeasibility = admm_γ_infeasibility
-        self.admm_γ_admm_penalty = admm_γ_admm_penalty
-        self.admm_γ_trafo_loss = admm_γ_trafo_loss
-        self.admm_max_iters = admm_max_iters
-        self.admm_μ = admm_μ
-        self.admm_τ_incr = admm_τ_incr
-        self.admm_τ_decr = admm_τ_decr
 
-        random.seed(seed_number)
+        self.grid_data = kace4expansion(
+            grid=request.grid,
+            load_profiles=request.load_profiles,
+            long_term_scenarios=request.scenarios,
+            seed=request.seed,
+        )
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
+
         self.create_planning_params(
-            n_stages=n_stages,
-            initial_budget=initial_budget,
-            discount_rate=discount_rate,
-            γ_cuts=γ_cuts,
-            years_per_stage=years_per_stage,
+            n_stages=self.request.sddp_config.n_stages,
+            initial_budget=self.request.sddp_config.initial_budget,
+            discount_rate=self.request.sddp_config.discount_rate,
+            years_per_stage=self.request.sddp_config.years_per_stage,
         )
         self.create_additional_params(
-            iteration_limit=sddp_iteration_limit,
-            n_simulations=sddp_simulations,
-            risk_measure_type=risk_measure_type,
-            risk_measure_param=risk_measure_param,
+            iteration_limit=self.request.sddp_config.iterations,
+            n_simulations=self.request.sddp_config.n_simulations,
+            risk_measure_type=self.request.sddp_config.risk_measure_type,
+            risk_measure_param=self.request.sddp_config.risk_measure_param,
         )
         nodes = [
             Node(id=node["node_id"])
-            for node in grid_data.node_data.iter_rows(named=True)
+            for node in self.grid_data.node_data.iter_rows(named=True)
         ]
+        self.load_potential = pl_to_dict(
+            self.grid_data_rm.growth_data["node_id", "δ_load_var"]
+        )
+        self.pv_potential = pl_to_dict(
+            self.grid_data_rm.growth_data["node_id", "δ_pv_var"]
+        )
         self.create_scenario_data(
             nodes=nodes,
-            load_potential={node.id: δ_load_var for node in nodes},
-            pv_potential={node.id: δ_pv_var for node in nodes},
-            δ_b_var=δ_b_var,
-            number_of_scenarios=number_of_sddp_scenarios,
-            number_of_stages=n_stages,
-            seed_number=self.seed_number,
+            load_potential=self.load_potential,
+            pv_potential=self.pv_potential,
+            δ_b_var=self.request.scenarios.δ_b_var,
+            number_of_scenarios=self.request.scenarios.n_lt_scenarios,
+            number_of_stages=self.request.sddp_config.n_stages,
+            seed_number=self.request.seed,
             n_years_per_stage=self.planning_params.years_per_stage,
         )
         self.create_out_of_sample_scenario_data(
             nodes=nodes,
-            load_potential={node.id: δ_load_var for node in nodes},
-            pv_potential={node.id: δ_pv_var for node in nodes},
-            δ_b_var=δ_b_var,
-            number_of_scenarios=number_of_sddp_scenarios,
-            number_of_stages=n_stages,
-            seed_number=self.seed_number + 1000,
+            load_potential=self.load_potential,
+            pv_potential=self.pv_potential,
+            δ_b_var=self.request.scenarios.δ_b_var,
+            number_of_scenarios=self.request.scenarios.n_lt_scenarios,
+            number_of_stages=self.request.sddp_config.n_stages,
+            seed_number=self.request.seed + 1000,
             n_years_per_stage=self.planning_params.years_per_stage,
         )
 
@@ -161,7 +115,7 @@ class ExpansionAlgorithm:
         n_stages: int = 3,
         initial_budget: float = 1e6,
         discount_rate: float = 0.05,
-        γ_cuts: float = 0.0,
+        γ_cuts: float = 1.0,
         years_per_stage: int = 1,
     ):
         """Create planning parameters with default or custom values."""
@@ -243,7 +197,7 @@ class ExpansionAlgorithm:
             n_simulations=n_simulations,
             risk_measure_type=risk_measure_type,
             risk_measure_param=risk_measure_param,
-            seed=self.seed_number,
+            seed=self.request.seed,
         )
 
     def create_bender_cuts(self, bender_cuts: BenderCuts | None):
@@ -252,15 +206,15 @@ class ExpansionAlgorithm:
 
     def create_expansion_request(self):
         """Create expansion request with provided or default parameters."""
-        self.expansion_request = dig_a_plan_to_expansion(
+        self.expansion_request = dap_to_expansion(
             grid_data=self.grid_data_rm,
-            s_base=self.s_base,
+            s_base=self.request.grid.s_base,
             planning_params=self.planning_params,
             additional_params=self.additional_params,
-            expansion_line_cost_per_km_kw=self.expansion_line_cost_per_km_kw,
-            expansion_transformer_cost_per_kw=self.expansion_transformer_cost_per_kw,
-            penalty_cost_per_consumption_kw=self.penalty_cost_per_consumption_kw,
-            penalty_cost_per_production_kw=self.penalty_cost_per_production_kw,
+            expansion_line_cost_per_km_kw=self.request.sddp_config.expansion_line_cost_per_km_kw,
+            expansion_transformer_cost_per_kw=self.request.sddp_config.expansion_transformer_cost_per_kw,
+            penalty_cost_per_consumption_kw=self.request.sddp_config.penalty_cost_per_consumption_kw,
+            penalty_cost_per_production_kw=self.request.sddp_config.penalty_cost_per_production_kw,
             scenarios_data=self.scenario_data,
             out_of_sample_scenarios=self.out_of_sample_scenarios,
             bender_cuts=self.bender_cuts,
@@ -316,48 +270,38 @@ class ExpansionAlgorithm:
 
     def run_admm(self, sddp_response: SDDPResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
-        admm = ADMM(
-            volp=self.admm_volp,
-            voll=self.admm_voll,
-            groups=self.admm_groups,
-            grid_data=self.grid_data,
-            solver_non_convex=self.solver_non_convex,
-            time_limit=self.time_limit,
-            big_m=self.admm_big_m,
-            ε=self.admm_ε,
-            ρ=self.admm_ρ,
-            γ_infeasibility=self.admm_γ_infeasibility,
-            γ_admm_penalty=self.admm_γ_admm_penalty,
-            γ_trafo_loss=self.admm_γ_trafo_loss,
-            max_iters=self.admm_max_iters,
-            μ=self.admm_μ,
-            τ_incr=self.admm_τ_incr,
-            τ_decr=self.admm_τ_decr,
+        grid_data = NodeEdgeModel4Reconfiguration(
+            node_data=self.grid_data_rm.node_data,
+            edge_data=self.grid_data_rm.edge_data,
+            load_data=self.grid_data_rm.load_data,
         )
+        admm = ADMM(grid_data=grid_data, admm_params=self.request.admm_config)
         (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
             check_ray(self.with_ray)
-            heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
+            heavy_task_remote = ray.remote(memory=self.request.each_task_memory)(
+                heavy_task
+            )
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
                 self._cut_number(ι, stage, ω): heavy_task_remote.remote(
                     sddp_response.simulations[
-                        random.randint(0, self.n_admm_simulations - 1)
+                        random.randint(0, self.request.sddp_config.n_second_stage - 1)
                     ][stage - 1],
                     admm_ref,
                     node_ids_ref,
                     edge_ids_ref,
                 )
                 for stage in self._range(self.n_stages)
-                for ω in self._range(self.n_admm_simulations)
+                for ω in self._range(self.request.sddp_config.n_second_stage)
             }
             future_results = {
                 (ω, stage): ray.get(futures[self._cut_number(ι, stage, ω)])
                 for stage in self._range(self.n_stages)
-                for ω in self._range(self.n_admm_simulations)
+                for ω in self._range(self.request.sddp_config.n_second_stage)
             }
             for (ω, stage), result in future_results.items():
                 print(result)
@@ -367,13 +311,13 @@ class ExpansionAlgorithm:
                 cuts={
                     self._cut_number(ι, stage, ω): future_results[(ω, stage)].bender_cut
                     for stage in self._range(self.n_stages)
-                    for ω in self._range(self.n_admm_simulations)
+                    for ω in self._range(self.request.sddp_config.n_second_stage)
                 }
             )
             admm_results = {
                 self._cut_number(ι, stage, ω): future_results[(ω, stage)].admm_results
                 for stage in self._range(self.n_stages)
-                for ω in self._range(self.n_admm_simulations)
+                for ω in self._range(self.request.sddp_config.n_second_stage)
             }
             shutdown_ray()
         else:
@@ -381,9 +325,12 @@ class ExpansionAlgorithm:
             admm_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
-                    self._range(self.n_admm_simulations), desc="scenarios"
+                    self._range(self.request.sddp_config.n_second_stage),
+                    desc="scenarios",
                 ):
-                    rand_ω = random.randint(0, self.n_admm_simulations - 1)
+                    rand_ω = random.randint(
+                        0, self.request.sddp_config.n_second_stage - 1
+                    )
                     sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
                     heavy_task_output = heavy_task(
                         sddp_simulation=sddp_simulation,
@@ -399,7 +346,7 @@ class ExpansionAlgorithm:
                     )
 
         for stage in self._range(self.n_stages):
-            for ω in self._range(self.n_admm_simulations):
+            for ω in self._range(self.request.sddp_config.n_second_stage):
                 save_obj_to_json(
                     obj=admm_results[self._cut_number(ι, stage, ω)],
                     path_filename=self.cache_dir_run
@@ -411,13 +358,15 @@ class ExpansionAlgorithm:
 
     def _cut_number(self, ι: int, stage: int, ω: int) -> str:
         """Generate a cut number based on the iteration, stage, and scenario."""
-        return f"{(ι - 1) * self.n_admm_simulations * self.n_stages + (stage - 1) * self.n_admm_simulations + ω}"
+        return f"{(ι - 1) * self.request.sddp_config.n_second_stage * self.n_stages + (stage - 1) * self.request.sddp_config.n_second_stage+ ω}"
 
     def run_pipeline(self) -> SDDPResponse:
         """Run the entire expansion pipeline."""
         self.create_expansion_request()
         ι = 0
-        for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
+        for ι in tqdm.tqdm(
+            self._range(self.request.iterations), desc="Pipeline iteration"
+        ):
             sddp_response = self.run_sddp()
             admm_response = self.run_admm(sddp_response=sddp_response, ι=ι)
             self.record_update_cache(

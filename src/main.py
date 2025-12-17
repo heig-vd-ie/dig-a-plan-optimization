@@ -45,7 +45,7 @@ def reconfiguration_admm(input: ADMMInput) -> ReconfigurationOutput:
 @app.patch("/expansion", tags=["Expansion"])
 def expansion(
     input: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
-) -> ExpansionOutput:
+) -> SDDPResponse:
     results = run_expansion(input, with_ray=with_ray, cut_file=cut_file)
     return results
 

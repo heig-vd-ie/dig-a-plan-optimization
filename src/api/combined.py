@@ -1,4 +1,4 @@
-from data_exporter.gridcase_to_dap import kace4reconfiguration
+from data_exporter.kace_to_dap import kace4reconfiguration
 from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
 from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
 from pipelines.reconfiguration import DigAPlanCombined

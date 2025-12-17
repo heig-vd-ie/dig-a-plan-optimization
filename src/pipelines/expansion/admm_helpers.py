@@ -1,11 +1,10 @@
-import json
 from typing import Dict, List
-from pathlib import Path
 from dataclasses import dataclass
 import polars as pl
 from polars import col as c
 import patito as pt
-from data_model import NodeEdgeModel, NodeData
+from data_model import EdgeData, NodeEdgeModel4Reconfiguration, NodeData
+from data_model.reconfiguration import ADMMConfig as ADMMParams
 from pipelines.reconfiguration import DigAPlanADMM
 from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 
@@ -25,42 +24,28 @@ class ADMM:
 
     def __init__(
         self,
-        volp: float,
-        voll: float,
-        groups: Dict[int, List[int]] | int,
-        grid_data: NodeEdgeModel,
-        solver_non_convex: int,
-        time_limit: int,
-        big_m: float = 1e3,
-        ε: float = 1e-4,
-        ρ: float = 2.0,
-        γ_infeasibility: float = 1.0,
-        γ_admm_penalty: float = 1.0,
-        γ_trafo_loss: float = 1e2,
-        max_iters: int = 10,
-        μ: float = 10.0,
-        τ_incr: float = 2.0,
-        τ_decr: float = 2.0,
+        grid_data: NodeEdgeModel4Reconfiguration,
+        admm_params: ADMMParams,
     ):
         self.config = ADMMConfig(
-            voll=voll,
-            volp=volp,
+            voll=admm_params.voll,
+            volp=admm_params.volp,
             verbose=False,
             pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
-            solver_non_convex=solver_non_convex,
-            big_m=big_m,
-            ε=ε,
-            ρ=ρ,
-            γ_infeasibility=γ_infeasibility,
-            γ_admm_penalty=γ_admm_penalty,
-            γ_trafo_loss=γ_trafo_loss,
-            max_iters=max_iters,
-            μ=μ,
-            τ_incr=τ_incr,
-            τ_decr=τ_decr,
-            time_limit=time_limit,
-            groups=groups,
+            solver_non_convex=admm_params.solver_non_convex,
+            big_m=admm_params.big_m,
+            ε=admm_params.ε,
+            ρ=admm_params.ρ,
+            γ_infeasibility=admm_params.γ_infeasibility,
+            γ_admm_penalty=admm_params.γ_admm_penalty,
+            γ_trafo_loss=admm_params.γ_trafo_loss,
+            max_iters=admm_params.max_iters,
+            μ=admm_params.μ,
+            τ_incr=admm_params.τ_incr,
+            τ_decr=admm_params.τ_decr,
+            time_limit=admm_params.time_limit,
+            groups=admm_params.groups,
         )
         self.grid_data = grid_data
 
@@ -123,7 +108,7 @@ class ADMM:
         )
 
         self.grid_data.edge_data = (
-            pt.DataFrame(updated_edge_data).set_model(NodeData).cast(strict=True)
+            pt.DataFrame(updated_edge_data).set_model(EdgeData).cast(strict=True)
         )
 
     def update_grid_data(

@@ -1,4 +1,4 @@
-from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel
+from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel4Reconfiguration
 import patito as pt
 import polars as pl
 from polars import col as c
@@ -61,7 +61,7 @@ class PipelineDataManager:
     def slack_node(self) -> int:
         return self.__slack_node
 
-    def add_grid_data(self, grid_data: NodeEdgeModel) -> None:
+    def add_grid_data(self, grid_data: NodeEdgeModel4Reconfiguration) -> None:
         """Add and validate grid data"""
         # 1) static node + edge
         self.__set_node_data(node_data=grid_data.node_data)
