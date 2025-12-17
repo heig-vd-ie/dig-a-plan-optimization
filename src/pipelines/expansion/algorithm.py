@@ -1,5 +1,4 @@
 import os
-from matplotlib.pylab import f
 from pydantic import BaseModel, ConfigDict
 import patito as pt
 import ray
@@ -16,19 +15,20 @@ from data_exporter.dig_a_plan_to_expansion import (
 from data_model import NodeEdgeModel, EdgeData
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from pipelines.expansion.api import run_sddp, generate_scenarios
-from pipelines.expansion.models.request import (
+from data_model.sddp import (
     AdditionalParams,
     BenderCut,
     BenderCuts,
     Cut,
     Node,
-    ExpansionRequest,
-    LongTermScenarioRequest,
+    SDDPRequest,
+    SDDPScenarioRequest,
     OptimizationConfig,
     PlanningParams,
     RiskMeasureType,
+    SDDPResponse,
+    SDDPSimulation,
 )
-from pipelines.expansion.models.response import ExpansionResponse, Simulation
 from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
 
 
@@ -188,7 +188,7 @@ class ExpansionAlgorithm:
         n_years_per_stage=1,
     ):
         """Generate long-term scenarios with configurable parameters."""
-        ltm_scenarios = LongTermScenarioRequest(
+        ltm_scenarios = SDDPScenarioRequest(
             n_scenarios=number_of_scenarios,
             n_stages=number_of_stages,
             nodes=nodes,
@@ -216,7 +216,7 @@ class ExpansionAlgorithm:
         n_years_per_stage=1,
     ):
         """Generate long-term scenarios with configurable parameters."""
-        ltm_scenarios = LongTermScenarioRequest(
+        ltm_scenarios = SDDPScenarioRequest(
             n_scenarios=number_of_scenarios,
             n_stages=number_of_stages,
             nodes=nodes,
@@ -282,7 +282,7 @@ class ExpansionAlgorithm:
 
     def record_update_cache(
         self,
-        sddp_response: ExpansionResponse,
+        sddp_response: SDDPResponse,
         admm_response: BenderCuts,
         ι: int,
     ):
@@ -303,18 +303,18 @@ class ExpansionAlgorithm:
             Cut(id=int(cut_id)) for cut_id in admm_response.cuts.keys()
         ]
         save_obj_to_json(opt_config, self.cache_dir_run / "optimization_config.json")
-        self.expansion_request = ExpansionRequest(
+        self.expansion_request = SDDPRequest(
             optimization=opt_config,
             scenarios=self.expansion_request.scenarios,
             out_of_sample_scenarios=self.expansion_request.out_of_sample_scenarios,
             bender_cuts=final_cuts,
         )
 
-    def run_sddp(self) -> ExpansionResponse:
+    def run_sddp(self) -> SDDPResponse:
         """Run the SDDP algorithm with the given expansion request."""
         return run_sddp(self.expansion_request, self.cache_dir_run)
 
-    def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
+    def run_admm(self, sddp_response: SDDPResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(
             volp=self.admm_volp,
@@ -413,7 +413,7 @@ class ExpansionAlgorithm:
         """Generate a cut number based on the iteration, stage, and scenario."""
         return f"{(ι - 1) * self.n_admm_simulations * self.n_stages + (stage - 1) * self.n_admm_simulations + ω}"
 
-    def run_pipeline(self) -> ExpansionResponse:
+    def run_pipeline(self) -> SDDPResponse:
         """Run the entire expansion pipeline."""
         self.create_expansion_request()
         ι = 0
@@ -495,7 +495,7 @@ class HeavyTaskOutput(BaseModel):
 
 
 def heavy_task(
-    sddp_simulation: Simulation,
+    sddp_simulation: SDDPSimulation,
     admm: ADMM,
     node_ids: List[int],
     edge_ids: List[int],

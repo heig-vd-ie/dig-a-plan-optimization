@@ -4,9 +4,8 @@ from pathlib import Path
 from pipelines.helpers.json_rw import load_obj_from_json
 
 
-def save_dap_state(dap, base_path=".cache/boisy_dap"):
+def save_dap_state(dap, base_path: Path):
     """Save DAP state in a way that can be reconstructed for plotting"""
-    base_path = Path(base_path)
     base_path.mkdir(exist_ok=True)
 
     # Save grid data

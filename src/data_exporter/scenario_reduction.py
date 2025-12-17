@@ -12,8 +12,9 @@ from data_model import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
-from api.models import (
-    KnownScenariosOptions,
+from data_model.kace import LoadProfiles
+from data_model.reconfiguration import (
+    ShortTermScenarios,
     DiscreteScenario,
 )
 
@@ -53,10 +54,15 @@ class KMeansMedoidReducer(ReductionStrategy):
 
 
 class ScenarioPipeline:
-    def __init__(self, reduction_strategy: ReductionStrategy = KMeansMedoidReducer()):
+    def __init__(
+        self,
+        load_profiles: LoadProfiles,
+        reduction_strategy: ReductionStrategy = KMeansMedoidReducer(),
+    ):
+        self.load_profiles: LoadProfiles = self.load_profiles
         self.reducer = reduction_strategy
 
-    def process(self, ksop: KnownScenariosOptions):
+    def process(self, st_scenarios: ShortTermScenarios):
         """
         1. Filters Polars DF by Year/Scenario
         2. Extracts features
@@ -67,15 +73,15 @@ class ScenarioPipeline:
         # Assuming input has columns like 'year', 'scenario_type', 'quarter'
         try:
             load_dfs = []
-            for load_profile_path in ksop.load_profiles:
+            for load_profile_path in self.load_profiles.load_profiles:
                 df = pl.read_parquet(
                     load_profile_path
-                    / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+                    / f"{st_scenarios.scenario_name.value}_{st_scenarios.target_year}.parquet"
                 )
                 load_dfs.append(df)
             pv_df = pl.read_parquet(
-                ksop.pv_profile
-                / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+                self.load_profiles.pv_profile
+                / f"{st_scenarios.scenario_name.value}_{st_scenarios.target_year}.parquet"
             )
         except Exception as e:
             raise ValueError(f"Error reading profile data: {e}")
@@ -85,15 +91,15 @@ class ScenarioPipeline:
         df = pl.concat([load_df, pv_df], how="vertical").drop("egid")
 
         col_names = list(df.columns)
-        from_idx = len(col_names) // 4 * (ksop.quarter - 1)
-        to_idx = len(col_names) // 4 * ksop.quarter
+        from_idx = len(col_names) // 4 * (st_scenarios.quarter - 1)
+        to_idx = len(col_names) // 4 * st_scenarios.quarter
         filter_cols = col_names[from_idx:to_idx]
         df = df.select(filter_cols)
 
         X = df.to_numpy().T  # Transpose to get scenarios as rows
 
         # C. Run Strategy (Numpy -> Indices)
-        indices = self.reducer.get_representative_indices(X, ksop.n_scenarios)
+        indices = self.reducer.get_representative_indices(X, st_scenarios.n_scenarios)
 
         print(f"Selected scenario indices: {indices}")
         # D. Reconstruction (Indices -> Polars)
@@ -107,7 +113,6 @@ class ScenarioPipeline:
 
     def map2scens(
         self,
-        egid_id_mapping_file: Path,
         id_node_mapping: pd.DataFrame,
         cosφ: float,
         s_base: float,
@@ -115,9 +120,9 @@ class ScenarioPipeline:
     ):
 
         # E. Return Outputs
-        egid_id_mapping = pl.read_csv(egid_id_mapping_file).with_columns(
-            pl.col("egid").cast(pl.Utf8)
-        )
+        egid_id_mapping = pl.read_csv(
+            self.load_profiles.egid_id_mapping_file
+        ).with_columns(pl.col("egid").cast(pl.Utf8))
         id_node_mapping["index"] = id_node_mapping.index
         id_node_mapping_pl = pl.from_dataframe(id_node_mapping[["index", "bus"]])
 
@@ -155,8 +160,8 @@ class ScenarioPipeline:
             df = df1.join(df2, on="node_id", how="left")
             random_voltage = (
                 rng.uniform(low=0, high=1, size=df.height)
-                * (ksop.v_bounds[1] - ksop.v_bounds[0])
-                + ksop.v_bounds[0]
+                * (self.load_profiles.v_bounds[1] - self.load_profiles.v_bounds[0])
+                + self.load_profiles.v_bounds[0]
                 + 1.0
             )
             df = df.select(
@@ -199,13 +204,16 @@ class ScenarioPipeline:
 # --- 4. USAGE EXAMPLE ---
 if __name__ == "__main__":
     # --- INPUT DATA ---
-    ksop = KnownScenariosOptions(
-        load_profiles=[Path("examples/ieee-33/load_profiles")],
-        pv_profile=Path("examples/ieee-33/pv_profiles"),
+    st_scenario = ShortTermScenarios(
         target_year=2030,
         quarter=4,
         scenario_name=DiscreteScenario.BASIC,
         n_scenarios=10,
+    )
+    load_profiles = LoadProfiles(
+        load_profiles=[Path("examples/ieee-33/load_profiles")],
+        pv_profile=Path("examples/ieee-33/pv_profiles"),
+        egid_id_mapping_file=Path("examples/ieee-33/consumer_egid_idx_mapping.csv"),
     )
 
     # --- EXECUTION ---
@@ -214,13 +222,15 @@ if __name__ == "__main__":
     strategy = KMeansMedoidReducer()
 
     # 2. Initialize Pipeline
-    pipeline = ScenarioPipeline(strategy)
+    pipeline = ScenarioPipeline(
+        load_profiles=load_profiles,
+        reduction_strategy=strategy,
+    )
 
     net = pp.from_pickle("examples/ieee-33/simple_grid.p")
 
     # 3. Run Pipeline
-    final_scenarios = pipeline.process(ksop=ksop).map2scens(
-        egid_id_mapping_file=Path("examples/ieee-33/consumer_egid_idx_mapping.csv"),
+    final_scenarios = pipeline.process(st_scenarios=st_scenario).map2scens(
         id_node_mapping=net.load,
         cosφ=0.95,
         s_base=1,

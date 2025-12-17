@@ -1,4 +1,3 @@
-from pathlib import Path
 import polars as pl
 import patito as pt
 from polars import col as c
@@ -6,27 +5,19 @@ from shapely import from_geojson
 from data_model import NodeEdgeModel, NodeData, EdgeData
 import numpy as np
 import pandapower as pp
-from typing import Tuple
 from helper_functions import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
     pl_to_dict,
 )
-from pipelines.helpers.scenario_utility import generate_random_load_scenarios
 from data_exporter import validate_data
-from data_exporter.scenario_reduction import (
-    KnownScenariosOptions,
-    ScenarioPipeline,
-)
 
 
-def pandapower_to_dig_a_plan_schema(
-    net: pp.pandapowerNet, s_base: float = 1e6
-) -> Tuple[pt.DataFrame[NodeData], pt.DataFrame[EdgeData], float, pl.DataFrame]:
+def pp_to_dap_schema(net: pp.pandapowerNet, s_base: float = 1e6) -> NodeEdgeModel:
     """
     Convert a pandapower network to DigAPlan schema.
     This function extracts static node and edge data from the pandapower network
-    and validates them against the `data_schema` models.
+    and validates them against the `node_edge` models.
     It also identifies the slack bus and prepares load data.
     """
     # ------------------------
@@ -310,10 +301,20 @@ def pandapower_to_dig_a_plan_schema(
         )
     )
 
+    # Clean / normalize edge columns
+    edge_data = edge_data.with_columns(
+        pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
+        for col in ["b_pu", "r_pu", "x_pu"]
+    ).with_columns(
+        c("normal_open").fill_null(False),
+    )
+
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
 
-    return node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data
+    return NodeEdgeModel(
+        node_data=node_data_validated, edge_data=edge_data_validated, load_data={}
+    )
 
 
 def _handle_missing_coords(
@@ -382,56 +383,4 @@ def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict)
                 "y_coords"
             ),
         )
-    )
-
-
-def pandapower_to_dig_a_plan_schema_with_scenarios(
-    net: pp.pandapowerNet,
-    egid_id_mapping_file: Path | None = None,
-    number_of_random_scenarios: int = 10,
-    use_random_scenarios: bool = True,
-    p_bounds: Tuple[float, float] | None = None,
-    q_bounds: Tuple[float, float] | None = None,
-    v_bounds: Tuple[float, float] | None = None,
-    s_base: float = 1e6,
-    seed: int = 42,
-    ksop: KnownScenariosOptions | None = None,
-) -> NodeEdgeModel:
-    """
-    Convert a pandapower network to DigAPlan schema with random load scenarios.
-    This function generates random load scenarios based on the provided node data
-    and edge data.
-    """
-    node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
-        pandapower_to_dig_a_plan_schema(net, s_base=s_base)
-    )
-    if (
-        not use_random_scenarios
-        and ksop is not None
-        and egid_id_mapping_file is not None
-    ):
-        scenario_pipeline = ScenarioPipeline()
-        rand_scenarios = scenario_pipeline.process(ksop=ksop).map2scens(
-            egid_id_mapping_file=egid_id_mapping_file,
-            id_node_mapping=net.load,
-            cosφ=0.95,
-            s_base=s_base,
-            seed=seed,
-        )
-    else:
-        rand_scenarios = generate_random_load_scenarios(
-            node_data=node_data_validated,
-            v_slack_node_sqr_pu=v_slack_node_sqr_pu,
-            load_data=load_data,
-            number_of_random_scenarios=number_of_random_scenarios,
-            p_bounds=p_bounds,
-            q_bounds=q_bounds,
-            v_bounds=v_bounds,
-            seed=seed,
-        )
-
-    return NodeEdgeModel(
-        node_data=node_data_validated,
-        edge_data=edge_data_validated,
-        load_data=rand_scenarios,
     )

@@ -1,12 +1,15 @@
-from pydantic import BaseModel
-from api.models import CombinedInput, ReconfigurationOutput
-from api.grid_cases import get_grid_case
-from experiments import *
+from data_exporter.gridcase_to_dap import kace4reconfiguration
+from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
+from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
+from pipelines.reconfiguration import DigAPlanCombined
 
 
-def run_combined(input: CombinedInput) -> ReconfigurationOutput:
-    net, base_grid_data = get_grid_case(
-        grid=input.grid, seed=input.seed, stu=input.scenarios
+def run_combined(request: CombinedInput) -> ReconfigurationOutput:
+    base_grid_data = kace4reconfiguration(
+        grid=request.grid,
+        load_profiles=request.load_profiles,
+        st_scenarios=request.scenarios,
+        seed=request.seed,
     )
     config = CombinedConfig(
         verbose=True,
@@ -18,17 +21,12 @@ def run_combined(input: CombinedInput) -> ReconfigurationOutput:
     )
     dig_a_plan = DigAPlanCombined(config=config)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(groups=input.groups)  # one‐shot solve
+    dig_a_plan.solve_model(groups=request.groups)  # one‐shot solve
     switches = dig_a_plan.result_manager.extract_switch_status()
-    # Node voltages
     voltages = dig_a_plan.result_manager.extract_node_voltage()
-    # Line currents
     currents = dig_a_plan.result_manager.extract_edge_current()
-    # Power flow
-    powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
-    reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
-    result = ReconfigurationOutput(
+    return ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),

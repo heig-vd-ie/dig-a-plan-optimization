@@ -1,11 +1,16 @@
-from api.models import ExpansionInput, ExpansionOutput, InputObject
-from api.grid_cases import get_grid_case
-from experiments import *
+from pathlib import Path
+from pydantic import BaseModel
+from api.kace import get_grid_case
+from data_model.expansion import ExpansionInput
+from data_model.sddp import SDDPResponse, BenderCuts
 from datetime import datetime
-
-from pipelines.expansion.models.request import BenderCuts
-
 from pipelines.helpers.json_rw import load_obj_from_json, save_obj_to_json
+
+
+class DummyObj(BaseModel):
+    expansion: ExpansionInput
+    time_now: str
+    with_ray: bool
 
 
 def get_session_name() -> str:
@@ -14,17 +19,15 @@ def get_session_name() -> str:
 
 def run_expansion(
     input: ExpansionInput, with_ray: bool, cut_file: None | str = None
-) -> ExpansionOutput:
+) -> SDDPResponse:
     session_name = get_session_name()
     time_now = session_name
     (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
     save_obj_to_json(
-        InputObject(expansion=input, time_now=time_now, with_ray=with_ray),
+        DummyObj(expansion=input, time_now=time_now, with_ray=with_ray),
         Path(".cache/algorithm") / time_now / "input.json",
     )
-    _, grid_data = get_grid_case(
-        input.grid, seed=input.seed, stu=input.short_term_uncertainty
-    )
+    grid_data = get_grid_case(input.grid, seed=input.seed, stu=input.scenarios)
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
         admm_voll=input.admm_params.voll,

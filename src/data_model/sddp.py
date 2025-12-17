@@ -1,5 +1,5 @@
 from typing import List, Dict, Union
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from enum import Enum
 
 
@@ -100,7 +100,7 @@ class OptimizationConfig(BaseModel):
     additional_params: AdditionalParams
 
 
-class ExpansionRequest(BaseModel):
+class SDDPRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     optimization: OptimizationConfig
@@ -109,7 +109,7 @@ class ExpansionRequest(BaseModel):
     bender_cuts: BenderCuts
 
 
-class LongTermScenarioRequest(BaseModel):
+class SDDPScenarioRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     n_scenarios: int
@@ -122,3 +122,32 @@ class LongTermScenarioRequest(BaseModel):
     yearly_budget: float
     N_years_per_stage: int
     seed_number: int
+
+
+class StateVar(BaseModel):
+    in_: float = Field(alias="in")
+    out: float
+
+
+class SDDPSimulation(BaseModel):
+    bellman_term: float
+    node_index: int
+    objective_state: Union[float, None]
+    belief: Dict[str, float]
+    investment_cost: float
+    stage_objective: float
+    cap: List[StateVar]
+    obj: float
+    total_unmet_load: List[StateVar]
+    total_unmet_pv: List[StateVar]
+    δ_cap: List[float]
+    δ_load: List[float]
+    δ_pv: List[float]
+    δ_b: float
+
+
+class SDDPResponse(BaseModel):
+    objectives: List[float]
+    simulations: List[List[SDDPSimulation]]
+    out_of_sample_simulations: List[List[SDDPSimulation]]
+    out_of_sample_objectives: List[float]

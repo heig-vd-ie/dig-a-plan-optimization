@@ -2,7 +2,7 @@ import pytest
 import polars as pl
 import math
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_exporter.pandapower_to_dig_a_plan import (
+from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from pipelines.reconfiguration import DigAPlanADMM, DigAPlanCombined
