@@ -20,7 +20,7 @@ def kace4reconfiguration(
         ScenarioPipeline(load_profiles)
         .process(st_scenarios=st_scenarios)
         .map2scens(
-            id_node_mapping=net.load,
+            net=net,
             cosφ=grid.cosφ,
             s_base=grid.s_base,
             seed=seed,

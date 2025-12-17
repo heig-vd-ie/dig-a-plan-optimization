@@ -12,7 +12,7 @@ dap_fixed = load_dap_state(".cache/figs/boisy_dap_fixed")
 
 net = joblib.load(".cache/figs/boisy_net.joblib")
 
-base_grid_data = NodeEdgeModel(
+base_grid_data = NodeEdgeModel4Reconfiguration(
     node_data=dap.data_manager.node_data,  # type: ignore
     edge_data=dap.data_manager.edge_data,  # type: ignore
     load_data={},

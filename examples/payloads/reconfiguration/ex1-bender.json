@@ -1,0 +1,12 @@
+{
+    "grid": { "pp_file": "examples/ieee-33/simple_grid.p", "s_base": 1000000, "cosφ": 0.95 },
+    "max_iters": 100,
+    "scenarios": { "target_year": 2030, "quarter": 1, "scenario_name": "Basic", "n_scenarios": 10 },
+    "load_profiles": {
+        "load_profiles": [ "examples/ieee-33/load_profiles" ],
+        "pv_profile": "examples/ieee-33/pv_profiles",
+        "v_bounds": [ -0.03, 0.03 ],
+        "egid_id_mapping_file": "examples/ieee-33/consumer_egid_idx_mapping.csv"
+    },
+    "seed": 42
+}

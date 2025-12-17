@@ -59,7 +59,7 @@ class ScenarioPipeline:
         load_profiles: LoadProfiles,
         reduction_strategy: ReductionStrategy = KMeansMedoidReducer(),
     ):
-        self.load_profiles: LoadProfiles = self.load_profiles
+        self.load_profiles: LoadProfiles = load_profiles
         self.reducer = reduction_strategy
 
     def process(self, st_scenarios: ShortTermScenarios):
@@ -113,12 +113,15 @@ class ScenarioPipeline:
 
     def map2scens(
         self,
-        id_node_mapping: pd.DataFrame,
+        net: pp.pandapowerNet,
         cosφ: float,
         s_base: float,
         seed: int = 42,
     ):
-
+        id_node_mapping = net.load
+        bus = net.bus
+        bus["node_id"] = bus.index
+        bus_pl = pl.from_dataframe(bus).select("node_id")
         # E. Return Outputs
         egid_id_mapping = pl.read_csv(
             self.load_profiles.egid_id_mapping_file
@@ -157,7 +160,9 @@ class ScenarioPipeline:
                     ),
                 ]
             )
-            df = df1.join(df2, on="node_id", how="left")
+            df = df1.join(df2, on="node_id", how="left").join(
+                bus_pl, on="node_id", how="right"
+            )
             random_voltage = (
                 rng.uniform(low=0, high=1, size=df.height)
                 * (self.load_profiles.v_bounds[1] - self.load_profiles.v_bounds[0])
@@ -231,7 +236,7 @@ if __name__ == "__main__":
 
     # 3. Run Pipeline
     final_scenarios = pipeline.process(st_scenarios=st_scenario).map2scens(
-        id_node_mapping=net.load,
+        net=net,
         cosφ=0.95,
         s_base=1,
         seed=42,

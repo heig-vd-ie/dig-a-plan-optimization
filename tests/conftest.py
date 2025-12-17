@@ -5,6 +5,8 @@ Pytest configuration and shared fixtures for the test suite.
 import pytest
 import pandapower as pp
 from pathlib import Path
+from pipelines.helpers.json_rw import load_obj_from_json
+from data_model.reconfiguration import BenderInput
 from pipelines.reconfiguration.configs import (
     ADMMConfig,
     CombinedConfig,
@@ -93,6 +95,13 @@ def test_admm_config() -> ADMMConfig:
         τ_incr=2.0,
         τ_decr=2.0,
         groups=1,
+    )
+
+
+@pytest.fixture(scope="session")
+def bender_input_payload() -> BenderInput:
+    return BenderInput(
+        **load_obj_from_json(Path("examples/payloads/reconfiguration/ex1-bender.json"))
     )
 
 

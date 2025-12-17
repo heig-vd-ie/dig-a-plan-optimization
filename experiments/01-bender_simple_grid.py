@@ -2,16 +2,19 @@
 import os
 
 os.chdir(os.getcwd().replace("/src", ""))
-# %% import libraries
 from experiments import *
 
 # %% set parameters
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
-
+kace1 = BenderInput(
+    **load_obj_from_json(Path("examples/payloads/reconfiguration/ex1-bender.json"))
+)
+net = pp.from_pickle(kace1.grid.pp_file)
+base_grid_data = kace4reconfiguration(
+    kace1.grid, kace1.load_profiles, kace1.scenarios, kace1.seed
+)
 
 # %% initialize DigAPlan
-config = BenderConfig(
+konfig = BenderConfig(
     verbose=False,
     big_m=1e2,
     factor_p=1e-3,
@@ -21,7 +24,7 @@ config = BenderConfig(
     master_relaxed=False,
     pipeline_type=PipelineType.BENDER,
 )
-dig_a_plan = DigAPlanBender(config=config)
+dig_a_plan = DigAPlanBender(konfig=konfig)
 
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)

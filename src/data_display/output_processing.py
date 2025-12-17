@@ -42,7 +42,9 @@ def compare_dig_a_plan_with_pandapower(
 
     # ─────────── Compare Voltages ───────────
     node_voltage = dig_a_plan.result_manager.extract_node_voltage()
-    node_voltage_pp = pl.from_pandas(net.res_bus.reset_index())[
+    res_bus = net.res_bus
+    res_bus["node_id"] = res_bus.index
+    node_voltage_pp = pl.from_pandas(res_bus.reset_index())[
         "node_id", "vm_pu", "va_degree"
     ]
     node_voltage = node_voltage.join(

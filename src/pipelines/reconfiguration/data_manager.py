@@ -45,7 +45,7 @@ class PipelineDataManager:
         self.__slack_node: int
 
         # will hold the scenario‑indexed loads
-        self.__load_data: dict[int, pt.DataFrame[LoadData]] = {}
+        self.load_data: dict[int, pt.DataFrame[LoadData]] = {}
         # final data dict for Pyomo
         self.grid_data_parameters_dict: dict | None = None
 
@@ -113,7 +113,7 @@ class PipelineDataManager:
     def __set_load_data(self, load_data: dict[int, pt.DataFrame[LoadData]]):
         """
         Validate each scenario DataFrame against data_schema.load_data.NodeData
-        and store the validated Polars frames in self.__load_data.
+        and store the validated Polars frames in self.load_data.
         """
         validated: dict[int, pt.DataFrame[LoadData]] = {}
         for scen_id, data_F in load_data.items():
@@ -127,7 +127,7 @@ class PipelineDataManager:
             # as_polars() is equivalent to .to_polars() in recent patito
             validated[scen_id] = df_pt
 
-        self.__load_data = validated
+        self.load_data = validated
 
     def __validate_slack_node(self):
         """Validate there's exactly one slack node"""
@@ -143,7 +143,7 @@ class PipelineDataManager:
         Build a Pyomo data dict that includes:
         """
         # --- sets & keys ---
-        scen_ids = list(self.__load_data.keys())  # type: ignore
+        scen_ids = list(self.load_data.keys())  # type: ignore
         node_ids = self.node_data["node_id"].to_list()
         edge_ids = self.edge_data["edge_id"].to_list()
         switch_ids = self.edge_data.filter(c("type") == "switch")["edge_id"].to_list()
@@ -205,35 +205,35 @@ class PipelineDataManager:
                     # slack‑bus
                     "slack_node": {None: [self.__slack_node]},
                     "slack_node_v_sq": {
-                        s: self.__load_data[s].filter(
+                        s: self.load_data[s].filter(
                             c("node_id") == self.__slack_node
                         )["v_node_sqr_pu"][0]
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     # scenario loads
                     "p_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "p_cons_pu"].filter(
+                        (n, s): self.load_data[s]["node_id", "p_cons_pu"].filter(
                             c("node_id") == n
                         )["p_cons_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "q_cons_pu"].filter(
+                        (n, s): self.load_data[s]["node_id", "q_cons_pu"].filter(
                             c("node_id") == n
                         )["q_cons_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "p_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "p_prod_pu"].filter(
+                        (n, s): self.load_data[s]["node_id", "p_prod_pu"].filter(
                             c("node_id") == n
                         )["p_prod_pu"][0]
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "q_prod_pu"].filter(
+                        (n, s): self.load_data[s]["node_id", "q_prod_pu"].filter(
                             c("node_id") == n
                         )["q_prod_pu"][0]
                         for n in node_ids
