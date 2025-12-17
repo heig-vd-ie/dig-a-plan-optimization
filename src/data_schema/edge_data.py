@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import patito as pt
 import polars as pl
 from typing_extensions import Literal
@@ -22,6 +22,9 @@ class EdgeData(pt.Model):
     p_max_pu: Optional[float] = pt.Field(dtype=pl.Float64, default=10.0)
     normal_open: bool = pt.Field(dtype=pl.Boolean, default=False)
     taps: list[int] = pt.Field(dtype=pl.List(pl.Int32), default=[100])
+    coords: List[float] = pt.Field(dtype=pl.List(pl.Float64))
+    x_coords: List[float] = pt.Field(dtype=pl.List(pl.Float64))
+    y_coords: List[float] = pt.Field(dtype=pl.List(pl.Float64))
     type: TYPES = pt.Field(
         dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
     )

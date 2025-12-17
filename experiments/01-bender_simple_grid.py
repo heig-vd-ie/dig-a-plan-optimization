@@ -6,7 +6,6 @@ os.chdir(os.getcwd().replace("/src", ""))
 from experiments import *
 
 # %% set parameters
-
 net = pp.from_pickle("examples/ieee-33/simple_grid.p")
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
@@ -82,10 +81,10 @@ node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dig_a_plan, net=net
 )
 # %%
-plot_grid_from_pandapower(net=net, dap=dig_a_plan)
+plot_grid_from_pandapower(dap=dig_a_plan)
 
 # %%
-plot_grid_from_pandapower(net=net, dap=dig_a_plan, color_by_results=True)
+plot_grid_from_pandapower(dap=dig_a_plan, color_by_results=True)
 
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())

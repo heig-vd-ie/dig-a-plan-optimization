@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import List
 import polars as pl
 import patito as pt
 from polars import col as c
+from shapely import from_geojson
 from data_schema import NodeEdgeModel
 from data_schema import NodeData
 import numpy as np
@@ -11,6 +11,7 @@ from typing import Tuple
 from helper_functions import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
+    pl_to_dict,
 )
 from data_schema.edge_data import EdgeData
 from pipelines.helpers.scenario_utility import generate_random_load_scenarios
@@ -269,6 +270,33 @@ def pandapower_to_dig_a_plan_schema(
         pl.lit([100]).alias("taps"),
     )
 
+    ## Mapping the geo
+    coord_mapping_pl: pl.DataFrame = (
+        pl.from_dataframe(net.bus)
+        .with_columns(
+            c("geo")
+            .map_elements(
+                lambda x: list(from_geojson(x).coords)[0],
+                return_dtype=pl.List(pl.Float64),
+            )
+            .alias("coords"),
+        )
+        .select(["node_id", "coords"])
+    )
+
+    coord_mapping_pl = _handle_missing_coords(
+        coord_mapping_pl, switch["u_of_edge", "v_of_edge"]
+    )
+
+    coord_mapping = pl_to_dict(coord_mapping_pl["node_id", "coords"])
+
+    node_data = node_data.join(coord_mapping_pl, on="node_id", how="left")
+
+    line = _handle_coords_edge_element(line, coord_mapping)
+    trafo = _handle_coords_edge_element(trafo, coord_mapping)
+    switch = _handle_coords_edge_element(switch, coord_mapping)
+    ###
+
     edge_data = (
         pl.concat([line, trafo, switch], how="diagonal_relaxed")
         .with_row_index(name="edge_id")
@@ -278,10 +306,85 @@ def pandapower_to_dig_a_plan_schema(
         )
     )
 
+    edge_data = edge_data.with_columns(
+        pl.struct(["eq_fk", "type", "edge_id"]).map_elements(
+            lambda x: x["eq_fk"] if x["eq_fk"] else f"{x["type"]}_{x["edge_id"]}"
+        )
+    )
+
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
 
     return node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data
+
+
+def _handle_missing_coords(
+    coord_mapping_pl: pl.DataFrame, switch_edges: pl.DataFrame
+) -> pl.DataFrame:
+    ### Check input
+    if not (
+        "coords" in coord_mapping_pl.columns and "node_id" in coord_mapping_pl.columns
+    ):
+        raise ValueError("Wrong schema for coord_mapping_pl")
+    if not (
+        "u_of_edge" in switch_edges.columns and "v_of_edge" in switch_edges.columns
+    ):
+        raise ValueError("Wrong schema for switch_edges")
+    ### Main funtionality
+    edges = (
+        switch_edges.join(
+            coord_mapping_pl, left_on="u_of_edge", right_on="node_id", how="left"
+        )
+        .rename({"coords": "u_coords"})
+        .join(coord_mapping_pl, left_on="v_of_edge", right_on="node_id", how="left")
+        .rename({"coords": "v_coords"})
+    )
+    inferred_from_u = edges.filter(pl.col("u_coords").is_not_null()).select(
+        pl.col("v_of_edge").alias("node_id"), pl.col("u_coords").alias("coords")
+    )
+    inferred_from_v = edges.filter(pl.col("v_coords").is_not_null()).select(
+        pl.col("u_of_edge").alias("node_id"), pl.col("v_coords").alias("coords")
+    )
+    inferred_coords = pl.concat([inferred_from_u, inferred_from_v]).unique(
+        subset=["node_id"]
+    )
+    output_pl = (
+        coord_mapping_pl.join(
+            inferred_coords, on="node_id", how="outer", suffix="_inferred"
+        )
+        .with_columns(
+            pl.coalesce(pl.col("coords"), pl.col("coords_inferred")).alias("coords")
+        )
+        .select("node_id", "coords")
+    ).unique(subset=["node_id"])
+    ### Check output
+    if not ("coords" in output_pl.columns and "node_id" in output_pl.columns):
+        raise ValueError("Wrong schema in th output")
+    if output_pl.filter(pl.col("coords").is_null()).height > 0:
+        raise ValueError("Missing coords in the input")
+    return output_pl
+
+
+def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict):
+    return (
+        edge_element.with_columns(
+            pl.concat_list(
+                c("u_of_edge", "v_of_edge").replace_strict(coord_mapping, default=None)
+            ).alias("coords"),
+        )
+        .with_columns(
+            c("coords").list.gather_every(n=2).alias("x_coords"),
+            c("coords").list.gather_every(n=2, offset=1).alias("y_coords"),
+        )
+        .with_columns(
+            pl.concat_list(c("x_coords").list.get(0), c("x_coords").list.mean()).alias(
+                "x_coords"
+            ),
+            pl.concat_list(c("y_coords").list.get(0), c("y_coords").list.mean()).alias(
+                "y_coords"
+            ),
+        )
+    )
 
 
 def pandapower_to_dig_a_plan_schema_with_scenarios(
