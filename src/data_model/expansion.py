@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from pydantic import BaseModel, Field
 from data_model.kace import GridCaseModel, LoadProfiles
-from data_model.reconfiguration import ADMMConfig
+from data_model.reconfiguration import ADMMParams
 from data_model.sddp import RiskMeasureType
 
 
@@ -49,8 +49,8 @@ class ExpansionInput(BaseModel):
     grid: GridCaseModel = Field(description="Grid model")
     load_profiles: LoadProfiles = Field(description="Load Profiles")
     scenarios: LongTermScenarios = Field(description="Long term uncertainty model")
-    admm_config: ADMMConfig = Field(description="ADMM configuration")
-    sddp_config: SDDPConfig = Field(description="SDDP configuration")
+    admm_params: ADMMParams = Field(description="ADMM parameters")
+    sddp_params: SDDPConfig = Field(description="SDDP parameters")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(

@@ -15,23 +15,23 @@ def run_admm(request: ADMMInput) -> ReconfigurationOutput:
     konfig = ADMMConfig(
         verbose=False,
         solver_name="gurobi",
-        solver_non_convex=request.config.solver_non_convex,
-        big_m=request.config.big_m,
-        ε=request.config.ε,
-        ρ=request.config.ρ,
-        γ_infeasibility=request.config.γ_infeasibility,
-        γ_admm_penalty=request.config.γ_admm_penalty,
-        γ_trafo_loss=request.config.γ_trafo_loss,
-        time_limit=request.config.time_limit,
-        groups=request.config.groups,
-        max_iters=request.config.max_iters,
-        μ=request.config.μ,
-        τ_incr=request.config.τ_incr,
-        τ_decr=request.config.τ_decr,
+        solver_non_convex=request.params.solver_non_convex,
+        big_m=request.params.big_m,
+        ε=request.params.ε,
+        ρ=request.params.ρ,
+        γ_infeasibility=request.params.γ_infeasibility,
+        γ_admm_penalty=request.params.γ_admm_penalty,
+        γ_trafo_loss=request.params.γ_trafo_loss,
+        time_limit=request.params.time_limit,
+        groups=request.params.groups,
+        max_iters=request.params.max_iters,
+        μ=request.params.μ,
+        τ_incr=request.params.τ_incr,
+        τ_decr=request.params.τ_decr,
     )
     dap = DigAPlanADMM(konfig=konfig)
     dap.add_grid_data(base_grid_data)
-    dap.solve_model(groups=request.config.groups)
+    dap.solve_model(groups=request.params.groups)
 
     switches = dap.model_manager.zδ_variable
     taps = dap.model_manager.zζ_variable

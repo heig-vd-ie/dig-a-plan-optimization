@@ -4,7 +4,7 @@ import polars as pl
 from polars import col as c
 import patito as pt
 from data_model import EdgeData, NodeEdgeModel4Reconfiguration, NodeData
-from data_model.reconfiguration import ADMMConfig as ADMMParams
+from data_model.reconfiguration import ADMMParams
 from pipelines.reconfiguration import DigAPlanADMM
 from pipelines.reconfiguration.configs import ADMMConfig
 

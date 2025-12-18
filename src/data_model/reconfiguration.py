@@ -20,7 +20,7 @@ class ShortTermScenarios(BaseModel):
     n_scenarios: int = Field(default=10, description="Number of scenarios")
 
 
-class ADMMConfig(BaseModel):
+class ADMMParams(BaseModel):
     groups: int | dict[int, list[int]] = 10
     max_iters: int = 10
     solver_non_convex: bool = Field(default=True, description="Use non-convex solver")
@@ -40,7 +40,7 @@ class ADMMConfig(BaseModel):
 
 class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    config: ADMMConfig = ADMMConfig()
+    params: ADMMParams = ADMMParams()
     scenarios: ShortTermScenarios = ShortTermScenarios()
     load_profiles: LoadProfiles = LoadProfiles()
     save_path: Path | None = None
