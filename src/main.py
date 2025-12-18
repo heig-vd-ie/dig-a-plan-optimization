@@ -29,7 +29,7 @@ def read_root():
 
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
 def reconfiguration_bender(request: BenderInput) -> ReconfigurationOutput:
-    return run_bender(request)
+    return run_bender(request)[0]
 
 
 @app.patch("/reconfiguration/combined", tags=["Reconfiguration"])

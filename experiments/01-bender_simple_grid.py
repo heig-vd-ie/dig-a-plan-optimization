@@ -2,6 +2,7 @@
 import os
 
 os.chdir(os.getcwd().replace("/src", ""))
+from api.bender import run_bender
 from experiments import *
 
 # %% set parameters
@@ -9,27 +10,13 @@ kace1 = BenderInput(
     **load_obj_from_json(Path("examples/payloads/reconfiguration/ex1-bender.json"))
 )
 net = pp.from_pickle(kace1.grid.pp_file)
-base_grid_data = kace4reconfiguration(
-    kace1.grid, kace1.load_profiles, kace1.scenarios, kace1.seed
-)
-
-# %% initialize DigAPlan
-konfig = BenderConfig(
-    verbose=False,
-    big_m=1e3,
-)
-dig_a_plan = DigAPlanBender(konfig=konfig)
-
-# %% add grid data and solve models pipeline
-dig_a_plan.add_grid_data(base_grid_data)
-dig_a_plan.solve_model(max_iters=100)
-
+bender_output, dap = run_bender(kace1)
 
 # %% plot the results
 fig = make_subplots(rows=1, cols=1)
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.model_manager.slave_obj_list[1:]),
+        go.Scatter(y=dap.model_manager.slave_obj_list[1:]),
         mode="lines",
         name="Slave objective",
     ),
@@ -38,7 +25,7 @@ fig.add_trace(
 )
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.model_manager.master_obj_list[1:]),
+        go.Scatter(y=dap.model_manager.master_obj_list[1:]),
         mode="lines",
         name="Master objective",
     ),
@@ -47,7 +34,7 @@ fig.add_trace(
 )
 fig.add_trace(
     go.Scatter(
-        go.Scatter(y=dig_a_plan.model_manager.convergence_list[1:]),
+        go.Scatter(y=dap.model_manager.convergence_list[1:]),
         mode="lines",
         line=dict(dash="dot"),
         name="Difference",
@@ -74,29 +61,17 @@ fig.write_html(".cache/figs/bender-convergence.html")
 fig.write_image(".cache/figs/bender-convergence.svg", format="svg")
 
 # %% compare with pandapower
-node_data, edge_data = compare_dig_a_plan_with_pandapower(
-    dig_a_plan=dig_a_plan, net=net
-)
+node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
 # %%
-plot_grid_from_pandapower(dap=dig_a_plan)
+plot_grid_from_pandapower(dap=dap)
 
 # %%
-plot_grid_from_pandapower(dap=dig_a_plan, color_by_results=True)
+plot_grid_from_pandapower(dap=dap, color_by_results=True)
 
 
 # %% print(dig_a_plan.master_model_instance.objective.expr.to_string())
 print(
-    extract_optimization_results(dig_a_plan.model_manager.master_model_instance, "δ")
+    extract_optimization_results(dap.model_manager.master_model_instance, "δ")
     .to_pandas()
     .to_string()
 )
-
-# %% extract and compare results
-# Switch status
-switches = dig_a_plan.result_manager.extract_switch_status()
-# Node voltages
-voltages = dig_a_plan.result_manager.extract_node_voltage()
-# Line currents
-currents = dig_a_plan.result_manager.extract_edge_current()
-# tap positions
-taps = dig_a_plan.result_manager.extract_transformer_tap_position()
