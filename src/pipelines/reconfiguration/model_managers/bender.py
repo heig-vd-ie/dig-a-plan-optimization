@@ -14,7 +14,7 @@ from helper_functions import (
     get_all_edge_data,
 )
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import BenderConfig, PipelineType
+from pipelines.reconfiguration.configs import BenderConfig
 from model_reconfiguration import (
     generate_master_model,
     generate_infeasible_slave_model,
@@ -28,14 +28,9 @@ log = generate_log(name=__name__)
 
 class PipelineModelManagerBender(PipelineModelManager):
 
-    def __init__(
-        self,
-        config: BenderConfig,
-        data_manager: PipelineDataManager,
-        pipeline_type=PipelineType.BENDER,
-    ) -> None:
+    def __init__(self, config: BenderConfig, data_manager: PipelineDataManager) -> None:
         """Initialize the Bender model manager with configuration and data manager"""
-        super().__init__(config, data_manager, pipeline_type)
+        super().__init__(config, data_manager)
 
         self.master_model: pyo.AbstractModel = generate_master_model(
             relaxed=config.master_relaxed

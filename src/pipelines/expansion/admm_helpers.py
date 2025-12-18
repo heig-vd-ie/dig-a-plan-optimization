@@ -6,7 +6,7 @@ import patito as pt
 from data_model import EdgeData, NodeEdgeModel4Reconfiguration, NodeData
 from data_model.reconfiguration import ADMMConfig as ADMMParams
 from pipelines.reconfiguration import DigAPlanADMM
-from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
+from pipelines.reconfiguration.configs import ADMMConfig
 
 
 @dataclass
@@ -27,11 +27,10 @@ class ADMM:
         grid_data: NodeEdgeModel4Reconfiguration,
         admm_params: ADMMParams,
     ):
-        self.config = ADMMConfig(
+        self.konfig = ADMMConfig(
             voll=admm_params.voll,
             volp=admm_params.volp,
             verbose=False,
-            pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
             solver_non_convex=admm_params.solver_non_convex,
             big_m=admm_params.big_m,
@@ -162,7 +161,7 @@ class ADMM:
 
     def solve(self) -> ADMMResult:
         """Solve the optimization problem using ADMM."""
-        self.dap = DigAPlanADMM(config=self.config)
+        self.dap = DigAPlanADMM(konfig=self.konfig)
         self.dap.add_grid_data(grid_data=self.grid_data)
         self.dap.solve_model(extract_duals=True)
         duals = self.dap.result_manager.extract_duals_for_expansion()

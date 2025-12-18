@@ -2,7 +2,7 @@ import pyomo.environ as pyo
 import polars as pl
 from helper_functions import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import PipelineConfig, PipelineType
+from pipelines.reconfiguration.configs import PipelineConfig
 
 log = generate_log(name=__name__)
 
@@ -12,13 +12,7 @@ class PipelineModelManager:
         self,
         config: PipelineConfig,
         data_manager: PipelineDataManager,
-        pipeline_type: PipelineType,
     ) -> None:
-        if config.pipeline_type != pipeline_type:
-            raise ValueError(
-                f"Pipeline type must be {pipeline_type}, got {config.pipeline_type}"
-            )
-
         self.config = config
         self.data_manager = data_manager
 

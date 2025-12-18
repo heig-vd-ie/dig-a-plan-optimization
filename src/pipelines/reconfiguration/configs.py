@@ -1,13 +1,4 @@
 from dataclasses import dataclass
-from enum import Enum
-
-
-class PipelineType(Enum):
-    """Enum for different pipeline types"""
-
-    BENDER = "bender"
-    COMBINED = "combined"
-    ADMM = "admm"
 
 
 @dataclass
@@ -22,7 +13,6 @@ class PipelineConfig:
     ε: float = 1
     slack_threshold: float = 1e-2
     convergence_threshold: float = 1e-4
-    pipeline_type: PipelineType = PipelineType.BENDER
     max_iterations: int = 100
     factor_p: float = 1.0
     factor_q: float = 1.0

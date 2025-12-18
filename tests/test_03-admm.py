@@ -5,7 +5,7 @@ from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from pipelines.reconfiguration import DigAPlanADMM, DigAPlanCombined
-from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
+from pipelines.reconfiguration.configs import CombinedConfig
 
 
 class TestADMMModel:
@@ -25,7 +25,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
 
         grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        dap = DigAPlanADMM(config=self.admm_config)
+        dap = DigAPlanADMM(konfig=self.admm_config)
 
         dap.add_grid_data(grid_data)
 
@@ -58,18 +58,17 @@ class TestADMMModelSimpleExample(TestADMMModel):
         assert node_data.get_column("v_diff").abs().max() < 1e-1  # type: ignore
         assert edge_data.get_column("i_diff").abs().max() < 1e-1  # type: ignore
 
-        config = CombinedConfig(
+        konfig = CombinedConfig(
             verbose=True,
             threads=1,
             big_m=1e3,
             ε=1,
-            pipeline_type=PipelineType.COMBINED,
             γ_infeasibility=1.0,
             γ_admm_penalty=0.0,
             all_scenarios=True,
         )
 
-        dig_a_plan = DigAPlanCombined(config=config)
+        dig_a_plan = DigAPlanCombined(konfig=konfig)
 
         dig_a_plan.add_grid_data(grid_data)
         dig_a_plan.solve_model()  # one‐shot solve

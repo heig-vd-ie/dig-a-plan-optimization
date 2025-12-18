@@ -1,6 +1,6 @@
 from data_exporter.kace_to_dap import kace4reconfiguration
 from data_model.reconfiguration import ADMMInput, ReconfigurationOutput
-from pipelines.reconfiguration.configs import PipelineType, ADMMConfig
+from pipelines.reconfiguration.configs import ADMMConfig
 from pipelines.reconfiguration import DigAPlanADMM
 from data_exporter.dap_to_mock import save_dap_state
 
@@ -12,9 +12,8 @@ def run_admm(request: ADMMInput) -> ReconfigurationOutput:
         st_scenarios=request.scenarios,
         seed=request.seed,
     )
-    config = ADMMConfig(
+    konfig = ADMMConfig(
         verbose=False,
-        pipeline_type=PipelineType.ADMM,
         solver_name="gurobi",
         solver_non_convex=request.config.solver_non_convex,
         big_m=request.config.big_m,
@@ -30,7 +29,7 @@ def run_admm(request: ADMMInput) -> ReconfigurationOutput:
         τ_incr=request.config.τ_incr,
         τ_decr=request.config.τ_decr,
     )
-    dap = DigAPlanADMM(config=config)
+    dap = DigAPlanADMM(konfig=konfig)
     dap.add_grid_data(base_grid_data)
     dap.solve_model(groups=request.config.groups)
 

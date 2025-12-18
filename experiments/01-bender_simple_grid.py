@@ -16,13 +16,7 @@ base_grid_data = kace4reconfiguration(
 # %% initialize DigAPlan
 konfig = BenderConfig(
     verbose=False,
-    big_m=1e2,
-    factor_p=1e-3,
-    factor_q=1e-3,
-    factor_v=1,
-    factor_i=1e-3,
-    master_relaxed=False,
-    pipeline_type=PipelineType.BENDER,
+    big_m=1e3,
 )
 dig_a_plan = DigAPlanBender(konfig=konfig)
 

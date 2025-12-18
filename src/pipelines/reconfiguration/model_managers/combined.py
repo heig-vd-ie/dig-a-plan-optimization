@@ -2,7 +2,7 @@ import random
 import pyomo.environ as pyo
 from helper_functions import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
+from pipelines.reconfiguration.configs import CombinedConfig
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipelines.reconfiguration.model_managers import PipelineModelManager
 
@@ -11,13 +11,10 @@ log = generate_log(name=__name__)
 
 class PipelineModelManagerCombined(PipelineModelManager):
     def __init__(
-        self,
-        config: CombinedConfig,
-        data_manager: PipelineDataManager,
-        pipeline_type=PipelineType.COMBINED,
+        self, konfig: CombinedConfig, data_manager: PipelineDataManager
     ) -> None:
         """Initialize the combined model manager with configuration and data manager."""
-        super().__init__(config, data_manager, pipeline_type)
+        super().__init__(konfig, data_manager)
 
         self.combined_model: pyo.AbstractModel = generate_combined_model()
         self.combined_lin_model: pyo.AbstractModel = generate_combined_lin_model()

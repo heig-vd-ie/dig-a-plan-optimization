@@ -1,6 +1,6 @@
 from data_model.reconfiguration import BenderInput, ReconfigurationOutput
 from data_exporter.kace_to_dap import kace4reconfiguration
-from pipelines.reconfiguration.configs import PipelineType, BenderConfig
+from pipelines.reconfiguration.configs import BenderConfig
 from pipelines.reconfiguration import DigAPlanBender
 
 
@@ -11,7 +11,7 @@ def run_bender(request: BenderInput) -> ReconfigurationOutput:
         st_scenarios=request.scenarios,
         seed=request.seed,
     )
-    config = BenderConfig(
+    konfig = BenderConfig(
         verbose=False,
         big_m=1e2,
         factor_p=1e-3,
@@ -19,9 +19,8 @@ def run_bender(request: BenderInput) -> ReconfigurationOutput:
         factor_v=1,
         factor_i=1e-3,
         master_relaxed=False,
-        pipeline_type=PipelineType.BENDER,
     )
-    dig_a_plan = DigAPlanBender(config=config)
+    dig_a_plan = DigAPlanBender(konfig=konfig)
     dig_a_plan.add_grid_data(base_grid_data)
     dig_a_plan.solve_model(max_iters=request.max_iters)
     switches = dig_a_plan.result_manager.extract_switch_status()

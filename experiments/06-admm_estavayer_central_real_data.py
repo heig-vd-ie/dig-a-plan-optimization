@@ -28,9 +28,8 @@ grid_data.edge_data = grid_data.edge_data.with_columns(
 )
 
 # %% Configure ADMM pipeline
-config = ADMMConfig(
+konfig = ADMMConfig(
     verbose=False,
-    pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
     solver_non_convex=2,
     big_m=1e3,
@@ -47,7 +46,7 @@ config = ADMMConfig(
     groups=50,
 )
 
-dap = DigAPlanADMM(config=config)
+dap = DigAPlanADMM(konfig=konfig)
 
 # %% Build per-scenario models (instantiated inside add_grid_data)
 dap.add_grid_data(grid_data)

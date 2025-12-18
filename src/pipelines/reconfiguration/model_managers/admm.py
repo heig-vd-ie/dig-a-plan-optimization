@@ -8,7 +8,7 @@ import polars as pl
 from polars import col as c
 from helper_functions import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
+from pipelines.reconfiguration.configs import ADMMConfig
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipelines.reconfiguration.model_managers import PipelineModelManager
 
@@ -18,7 +18,7 @@ log = generate_log(name=__name__)
 class PipelineModelManagerADMM(PipelineModelManager):
     def __init__(self, config: ADMMConfig, data_manager: PipelineDataManager) -> None:
         """Initialize the combined model manager with configuration and data manager."""
-        super().__init__(config, data_manager, PipelineType.ADMM)
+        super().__init__(config, data_manager)
         self.config = config
 
         self.admm_model: pyo.AbstractModel = generate_combined_model()
