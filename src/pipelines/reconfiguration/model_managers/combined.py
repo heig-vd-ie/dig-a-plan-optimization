@@ -2,7 +2,7 @@ import random
 import pyomo.environ as pyo
 from helper_functions import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import CombinedConfig
+from data_model.reconfiguration_configs import CombinedConfig
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipelines.reconfiguration.model_managers import PipelineModelManager
 

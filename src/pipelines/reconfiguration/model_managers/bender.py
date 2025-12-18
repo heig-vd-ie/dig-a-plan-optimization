@@ -14,7 +14,7 @@ from helper_functions import (
     get_all_edge_data,
 )
 from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import BenderConfig
+from data_model.reconfiguration_configs import BenderConfig
 from model_reconfiguration import (
     generate_master_model,
     generate_infeasible_slave_model,

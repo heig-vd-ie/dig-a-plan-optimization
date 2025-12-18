@@ -1,6 +1,5 @@
 from data_exporter.kace_to_dap import kace4reconfiguration
 from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
-from pipelines.reconfiguration.configs import CombinedConfig
 from pipelines.reconfiguration import DigAPlanCombined
 
 
@@ -11,16 +10,9 @@ def run_combined(request: CombinedInput) -> ReconfigurationOutput:
         st_scenarios=request.scenarios,
         seed=request.seed,
     )
-    konfig = CombinedConfig(
-        verbose=True,
-        big_m=1e3,
-        ε=0.1,
-        γ_infeasibility=1.0,
-        γ_admm_penalty=0.0,
-    )
-    dig_a_plan = DigAPlanCombined(konfig=konfig)
+    dig_a_plan = DigAPlanCombined(konfig=request.konfig)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(groups=request.groups)  # one‐shot solve
+    dig_a_plan.solve_model(groups=request.konfig.groups)  # one‐shot solve
     switches = dig_a_plan.result_manager.extract_switch_status()
     voltages = dig_a_plan.result_manager.extract_node_voltage()
     currents = dig_a_plan.result_manager.extract_edge_current()

@@ -130,7 +130,7 @@ class ExpansionModel:
 
     def run_generate_scenarios(
         self,
-        long_term_scenario_request: SDDPRequest,
+        long_term_scenario_request: SDDPScenarioRequest,
     ) -> Scenarios:
         response = self.run_generate_scenarios_native(
             request_data=long_term_scenario_request.model_dump(by_alias=True)
@@ -154,7 +154,7 @@ def run_sddp(
 
 
 def generate_scenarios(
-    long_term_scenario_request: SDDPRequest,
+    long_term_scenario_request: SDDPScenarioRequest,
 ) -> Scenarios:
     expansion_model = ExpansionModel()
     return expansion_model.run_generate_scenarios(long_term_scenario_request)

@@ -4,9 +4,9 @@ import polars as pl
 from polars import col as c
 import patito as pt
 from data_model import EdgeData, NodeEdgeModel4Reconfiguration, NodeData
-from data_model.reconfiguration import ADMMParams
+from data_model.reconfiguration_configs import ADMMConfig
 from pipelines.reconfiguration import DigAPlanADMM
-from pipelines.reconfiguration.configs import ADMMConfig
+from data_model.reconfiguration_configs import ADMMConfig
 
 
 @dataclass
@@ -25,27 +25,9 @@ class ADMM:
     def __init__(
         self,
         grid_data: NodeEdgeModel4Reconfiguration,
-        admm_params: ADMMParams,
+        admm_params: ADMMConfig,
     ):
-        self.konfig = ADMMConfig(
-            voll=admm_params.voll,
-            volp=admm_params.volp,
-            verbose=False,
-            solver_name="gurobi",
-            solver_non_convex=admm_params.solver_non_convex,
-            big_m=admm_params.big_m,
-            ε=admm_params.ε,
-            ρ=admm_params.ρ,
-            γ_infeasibility=admm_params.γ_infeasibility,
-            γ_admm_penalty=admm_params.γ_admm_penalty,
-            γ_trafo_loss=admm_params.γ_trafo_loss,
-            max_iters=admm_params.max_iters,
-            μ=admm_params.μ,
-            τ_incr=admm_params.τ_incr,
-            τ_decr=admm_params.τ_decr,
-            time_limit=admm_params.time_limit,
-            groups=admm_params.groups,
-        )
+        self.konfig = admm_params
         self.grid_data = grid_data
 
     def update_node_grid_data(

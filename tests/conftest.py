@@ -7,7 +7,7 @@ import pandapower as pp
 from pathlib import Path
 from pipelines.helpers.json_rw import load_obj_from_json
 from data_model.reconfiguration import BenderInput
-from pipelines.reconfiguration.configs import (
+from data_model.reconfiguration_configs import (
     ADMMConfig,
     CombinedConfig,
     BenderConfig,
