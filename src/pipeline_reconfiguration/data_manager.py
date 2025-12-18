@@ -2,7 +2,7 @@ from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel4Reconfigurati
 import patito as pt
 import polars as pl
 from polars import col as c
-from helper_functions import pl_to_dict
+from helpers import pl_to_dict
 
 
 class PipelineDataManager:

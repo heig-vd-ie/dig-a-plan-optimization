@@ -1,6 +1,6 @@
 import pyomo.environ as pyo
 import polars as pl
-from helper_functions import generate_log
+from helpers import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
 from data_model.reconfiguration_configs import PipelineConfig
 

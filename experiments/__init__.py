@@ -10,7 +10,7 @@ import plotly.graph_objs as go
 import polars as pl
 from polars import col as c
 from datetime import datetime
-from config import settings
+from konfig import settings
 from data_exporter.kace_to_dap import (
     kace4reconfiguration,
     kace4expansion,
@@ -43,7 +43,7 @@ from data_model.reconfiguration import BenderInput
 from pipelines.helpers.pyomo_utility import extract_optimization_results
 from pipelines.expansion.algorithm import ExpansionAlgorithm
 from plotly.subplots import make_subplots
-from helper_functions import pl_to_dict, build_non_existing_dirs
+from helpers import pl_to_dict, build_non_existing_dirs
 from pandapower.networks import create_cigre_network_mv
 from shapely import from_geojson
 import joblib

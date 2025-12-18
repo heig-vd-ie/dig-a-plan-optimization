@@ -11,7 +11,7 @@ import plotly.colors
 from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
 import igraph as ig
-from helper_functions import pl_to_dict, generate_tree_graph_from_edge_data
+from helpers import pl_to_dict, generate_tree_graph_from_edge_data
 from data_model import NodeEdgeModel4Reconfiguration
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
 from data_display.style import apply_plot_style

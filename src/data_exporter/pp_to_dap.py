@@ -5,7 +5,7 @@ from shapely import from_geojson
 from data_model import NodeEdgeModel4Reconfiguration, NodeData, EdgeData
 import numpy as np
 import pandapower as pp
-from helper_functions import (
+from helpers import (
     get_transfo_impedance,
     get_transfo_imaginary_component,
     pl_to_dict,

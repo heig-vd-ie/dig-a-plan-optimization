@@ -1,7 +1,7 @@
 import polars as pl
 import numpy as np
 
-from helper_functions.general_functions import (
+from helpers.general import (
     generate_log,
     modify_string,
 )

@@ -3,7 +3,7 @@ from polars import col as c
 from typing import Optional, Union
 import networkx as nx
 
-from helper_functions.general_functions import generate_log
+from helpers.general import generate_log
 
 
 # Global variable

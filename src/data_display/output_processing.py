@@ -1,7 +1,7 @@
 import pandapower as pp
 import polars as pl
 from polars import col as c
-from helper_functions import pl_to_dict
+from helpers import pl_to_dict
 from pipelines.reconfiguration import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
 
 

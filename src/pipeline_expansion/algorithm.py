@@ -14,7 +14,7 @@ from data_exporter.dap_to_expansion import (
 )
 from data_model import NodeEdgeModel4Reconfiguration, EdgeData
 from data_model.expansion import ExpansionInput
-from helper_functions import pl_to_dict
+from helpers import pl_to_dict
 from pipelines.expansion.admm_helpers import ADMM, ADMMResult
 from api.sddp import run_sddp, generate_scenarios
 from data_model.sddp import (
