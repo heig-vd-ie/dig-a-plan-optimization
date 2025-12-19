@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import os
+from data_display.style import apply_plot_style
 
 
 class MyPlotter:
@@ -50,7 +51,15 @@ class MyPlotter:
                 print(f"Warning: {key} is not a valid formatting attribute")
 
     def _apply_scientific_formatting(self, fig, title=""):
-        """Apply scientific paper formatting to a plotly figure."""
+        """
+        Apply scientific paper formatting to a plotly figure,
+        starting from the shared project-wide style (apply_plot_style).
+        """
+    
+        # Apply the project-wide default plot style
+        # We pass empty axis titles; each caller sets them afterwards.
+        apply_plot_style(fig, x_title="", y_title="", title=title)
+        # Override with scientific paper formatting
         fig.update_layout(
             template=self.template,
             width=self.width,
@@ -62,37 +71,6 @@ class MyPlotter:
                 xanchor="center",
             ),
             font=dict(size=self.font_size, family=self.font_family),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            # Grid styling
-            xaxis=dict(
-                showgrid=True,
-                gridcolor=self.grid_color,
-                gridwidth=1,
-                showline=True,
-                linewidth=1,
-                linecolor="black",
-                mirror=True,
-                tickfont=dict(size=self.font_size, family=self.font_family),
-                title=dict(
-                    font=dict(size=self.font_size + 1, family=self.font_family),
-                    standoff=10,
-                ),
-            ),
-            yaxis=dict(
-                showgrid=True,
-                gridcolor=self.grid_color,
-                gridwidth=1,
-                showline=True,
-                linewidth=1,
-                linecolor="black",
-                mirror=True,
-                tickfont=dict(size=self.font_size, family=self.font_family),
-                title=dict(
-                    font=dict(size=self.font_size + 1, family=self.font_family),
-                    standoff=10,
-                ),
-            ),
             legend=dict(
                 font=dict(size=self.font_size, family=self.font_family),
                 bgcolor="rgba(255,255,255,0.9)",
@@ -100,6 +78,28 @@ class MyPlotter:
                 borderwidth=1,
             ),
             margin=dict(l=40, r=15, t=40, b=40),
+        )
+        
+        # Axis refinements on top of the shared style
+        fig.update_xaxes(
+            gridcolor=self.grid_color,
+            gridwidth=1,
+            showline=True,
+            linewidth=1,
+            linecolor="black",
+            mirror=True,
+            tickfont=dict(size=self.font_size, family=self.font_family),
+            title_font=dict(size=self.font_size + 1, family=self.font_family),
+        )
+        fig.update_yaxes(
+            gridcolor=self.grid_color,
+            gridwidth=1,
+            showline=True,
+            linewidth=1,
+            linecolor="black",
+            mirror=True,
+            tickfont=dict(size=self.font_size, family=self.font_family),
+            title_font=dict(size=self.font_size + 1, family=self.font_family),
         )
 
         return fig
@@ -402,19 +402,11 @@ class MyPlotter:
             plot_title = f"{title_prefix}{risk_label} - {field_name}"
             if normalize_to_label:
                 plot_title += f" / mean({normalize_to_label})"
+                
+            fig = self._apply_scientific_formatting(fig, title=plot_title)
+                
             fig.update_layout(
-                template=self.template,
                 width=self.width + 100,  # room for labels
-                height=self.height,
-                title=dict(
-                    text=plot_title,
-                    font=dict(size=self.font_size + 2, family=self.font_family),
-                    x=0.5,
-                    xanchor="center",
-                ),
-                font=dict(size=self.font_size, family=self.font_family),
-                plot_bgcolor="white",
-                paper_bgcolor="white",
                 margin=dict(l=60, r=120, t=60, b=60),
             )
 

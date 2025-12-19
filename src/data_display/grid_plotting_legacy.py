@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 import pandapower as pp
 import polars as pl
@@ -16,6 +17,8 @@ from _plotly_utils.basevalidators import ColorscaleValidator
 from helper_functions import generate_tree_graph_from_edge_data
 from data_schema import NodeEdgeModel
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
+
+from data_display.style import apply_plot_style
 
 
 def plot_grid_from_pandapower(
@@ -151,16 +154,17 @@ def plot_grid_from_pandapower(
             marker=dict(size=node_size, color="blue", symbol=bus["symbol"].to_list()),
         )
     )
+    
+    apply_plot_style(fig, x_title="", y_title="", title="Grid Topology")
 
     fig.update_layout(
         margin=dict(t=5, l=65, r=10, b=5),
         width=width,  # Set the width of the figure
         height=height,
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
+    fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
+    fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
+    
     fig.show()
 
 
@@ -442,15 +446,16 @@ def plot_power_flow_results(
             # hoverinfo="none",
         )
     )
+    apply_plot_style(fig, x_title="", y_title="", title="Power Flow Results")
 
     fig.update_layout(
         margin=dict(t=10, l=5, r=5, b=5),
         width=width,  # Set the width of the figure
         height=height,
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     )
-    fig.write_html(".cache/boisy_grid_plot.html", include_plotlyjs="cdn")
+    fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
+    fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
+
+    os.makedirs(".cache/figs", exist_ok=True)  
+    fig.write_html(".cache/figs/boisy_grid_plot.html", include_plotlyjs="cdn")
     return fig

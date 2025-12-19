@@ -3,6 +3,8 @@ from typing import Dict, Literal
 import polars as pl
 import plotly.express as px
 from pipelines.reconfiguration import DigAPlanADMM
+from data_display.style import apply_plot_style
+
 
 
 class DistributionVariable:
@@ -65,7 +67,7 @@ class DistributionVariable:
             self.daps[next(iter(self.daps))].data_manager.node_data["v_max_pu"].mean()
         )
 
-    def plot_distribution_variable(self) -> None:
+    def plot(self) -> None:
         df = self.merge_variables()
         if self.variable_type == "edge":
             df = df.filter(pl.col("from_node_id") > pl.col("to_node_id"))
@@ -113,59 +115,20 @@ class DistributionVariable:
                 line_color="red",
                 annotation_text="Max Current limit",
             )
+        
+        # === Apply shared style helper ===
+        x_title = "Bus ID" if self.variable_type == "nodal" else "Edge ID"
+        y_unit = "%" if self.variable_name == "current" else "p.u."
+        y_title = f"{self.variable_name.capitalize()} ({y_unit})"
+        title = f"{self.variable_name.capitalize()} Distribution by Bus"
+        
+        apply_plot_style(
+            fig,
+            x_title=x_title,
+            y_title=y_title,
+            title=title,
+        )
 
-        fig.update_layout(
-            width=1200,
-            height=600,
-            font=dict(family="Times New Roman, Serif", size=20),
-            xaxis_title="Bus ID" if self.variable_type == "nodal" else "Edge ID",
-            yaxis_title=f"{self.variable_name.capitalize()} ({'%' if self.variable_name == 'current' else 'p.u.'})",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1,
-                title_text="",
-                font=dict(family="Times New Roman, Serif", size=18),
-                bgcolor="rgba(0,0,0,0)",
-                bordercolor="black",
-                borderwidth=1,
-            ),
-            hovermode="x unified",
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(l=80, r=40, t=60, b=80),
-        )
-        fig.update_xaxes(
-            showgrid=True,
-            gridcolor="lightgray",
-            zeroline=False,
-            linecolor="black",
-            linewidth=2,
-            ticks="outside",
-            tickfont=dict(family="Times New Roman, Serif", size=18),
-            title_font=dict(family="Times New Roman, Serif", size=20),
-        )
-        fig.update_yaxes(
-            showgrid=True,
-            gridcolor="lightgray",
-            zeroline=False,
-            linecolor="black",
-            linewidth=2,
-            ticks="outside",
-            tickfont=dict(family="Times New Roman, Serif", size=18),
-            title_font=dict(family="Times New Roman, Serif", size=20),
-        )
         fig.update_xaxes(categoryorder="category ascending")
         os.makedirs(".cache/figs", exist_ok=True)
         fig.write_html(f".cache/figs/distribution_{self.variable_name}.html")
-
-
-def plot_distribution_variable(
-    daps: Dict[str, DigAPlanADMM],
-    variable_name: str,
-    variable_type: Literal["nodal", "edge"] = "nodal",
-) -> None:
-    distribution = DistributionVariable(daps, variable_name, variable_type)
-    distribution.plot_distribution_variable()
