@@ -5,8 +5,8 @@ import pytest
 from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from pipelines.expansion.algorithm import ExpansionAlgorithm
-from pipelines.expansion.models.request import Node, RiskMeasureType
+from pipeline_expansion.algorithm import ExpansionAlgorithm
+from pipeline_expansion.models.request import Node, RiskMeasureType
 
 
 class ExpansionTestBase:

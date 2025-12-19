@@ -14,9 +14,9 @@ from data_exporter.dap_to_expansion import (
     remove_switches_from_grid_data,
 )
 from data_model import NodeEdgeModel, EdgeData
-from pipelines.expansion.admm_helpers import ADMM, ADMMResult
-from pipelines.expansion.api import run_sddp, generate_scenarios
-from pipelines.expansion.models.request import (
+from pipeline_expansion.admm_helpers import ADMM, ADMMResult
+from pipeline_expansion.api import run_sddp, generate_scenarios
+from pipeline_expansion.models.request import (
     AdditionalParams,
     BenderCut,
     BenderCuts,
@@ -28,8 +28,8 @@ from pipelines.expansion.models.request import (
     PlanningParams,
     RiskMeasureType,
 )
-from pipelines.expansion.models.response import ExpansionResponse, Simulation
-from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
+from pipeline_expansion.models.response import ExpansionResponse, Simulation
+from helpers.json import save_obj_to_json, load_obj_from_json
 
 
 class ExpansionAlgorithm:

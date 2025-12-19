@@ -3,8 +3,8 @@ import polars as pl
 from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from pipelines.reconfiguration import DigAPlanADMM
-from pipelines.reconfiguration.configs import ADMMConfig
+from pipeline_reconfiguration import DigAPlanADMM
+from pipeline_reconfiguration.configs import ADMMConfig
 
 
 class ExpansionTestBase:

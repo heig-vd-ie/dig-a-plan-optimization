@@ -5,9 +5,9 @@ from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines.reconfiguration import DigAPlanCombined
+from pipeline_reconfiguration import DigAPlanCombined
 
-from pipelines.helpers.pyomo_utility import extract_optimization_results
+from helpers.pyomo import extract_optimization_results
 
 
 class TestCombinedModel:
