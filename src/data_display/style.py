@@ -10,9 +10,9 @@ def apply_plot_style(fig: Figure, x_title: str, y_title: str, title: str) -> Non
             text=title,
             x=0.55,
             xanchor="center",
-            y=0.98,        
+            y=0.98,
             yanchor="top",
-            font=dict(family="Times New Roman, Serif", size=22)
+            font=dict(family="Times New Roman, Serif", size=22),
         ),
         xaxis_title=x_title,
         yaxis_title=y_title,
