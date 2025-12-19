@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-
-
 @dataclass
 class PipelineConfig:
     """Configuration for the Dig A Plan optimization pipeline"""

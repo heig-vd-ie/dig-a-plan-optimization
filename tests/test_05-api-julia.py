@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import math
 from pathlib import Path
-from pipeline_expansion.api import run_sddp, run_sddp_native
+from api.sddp import run_sddp, run_sddp_native
 from data_model.sddp import (
     ExpansionRequest,
     OptimizationConfig,
