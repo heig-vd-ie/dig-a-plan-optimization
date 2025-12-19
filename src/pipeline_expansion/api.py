@@ -40,7 +40,7 @@ class ExpansionModel:
                 data_path = (
                     data_path
                     if data_path
-                    else Path(__file__).parent.parent.parent.parent
+                    else Path(__file__).parent.parent.parent
                     / "examples"
                     / "default.json"
                 )
