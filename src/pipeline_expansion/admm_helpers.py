@@ -7,7 +7,7 @@ from polars import col as c
 import patito as pt
 from data_model import NodeEdgeModel, EdgeData, NodeData
 from pipeline_reconfiguration import DigAPlanADMM
-from pipeline_reconfiguration.configs import ADMMConfig, PipelineType
+from pipeline_reconfiguration.configs import ADMMConfig
 
 
 @dataclass
@@ -46,7 +46,6 @@ class ADMM:
             voll=voll,
             volp=volp,
             verbose=False,
-            pipeline_type=PipelineType.ADMM,
             solver_name="gurobi",
             solver_non_convex=solver_non_convex,
             big_m=big_m,

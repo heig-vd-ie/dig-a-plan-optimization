@@ -5,7 +5,7 @@ from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from pipeline_reconfiguration import DigAPlanADMM, DigAPlanCombined
-from pipeline_reconfiguration.configs import CombinedConfig, PipelineType
+from pipeline_reconfiguration.configs import CombinedConfig
 
 
 class TestADMMModel:
@@ -63,7 +63,6 @@ class TestADMMModelSimpleExample(TestADMMModel):
             threads=1,
             big_m=1e3,
             ε=1,
-            pipeline_type=PipelineType.COMBINED,
             γ_infeasibility=1.0,
             γ_admm_penalty=0.0,
             all_scenarios=True,

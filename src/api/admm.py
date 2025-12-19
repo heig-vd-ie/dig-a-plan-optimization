@@ -9,7 +9,6 @@ def run_admm(input: ADMMInput) -> ReconfigurationOutput:
     )
     config = ADMMConfig(
         verbose=False,
-        pipeline_type=PipelineType.ADMM,
         solver_name="gurobi",
         solver_non_convex=2,
         big_m=1e3,

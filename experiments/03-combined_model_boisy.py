@@ -28,7 +28,6 @@ config = CombinedConfig(
     verbose=True,
     big_m=1000,
     ε=0.1,
-    pipeline_type=PipelineType.COMBINED,
     γ_admm_penalty=0.0,
 )
 dig_a_plan = DigAPlanCombined(config=config)

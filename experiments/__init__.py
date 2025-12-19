@@ -32,7 +32,6 @@ from pipeline_reconfiguration.configs import (
     BenderConfig,
     CombinedConfig,
     ADMMConfig,
-    PipelineType,
 )
 
 from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM

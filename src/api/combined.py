@@ -11,7 +11,6 @@ def run_combined(input: CombinedInput) -> ReconfigurationOutput:
         verbose=True,
         big_m=1e3,
         ε=0.1,
-        pipeline_type=PipelineType.COMBINED,
         γ_infeasibility=1.0,
         γ_admm_penalty=0.0,
     )

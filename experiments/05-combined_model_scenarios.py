@@ -17,7 +17,6 @@ config = CombinedConfig(
     verbose=True,
     big_m=1e3,
     ε=1,
-    pipeline_type=PipelineType.COMBINED,
     γ_infeasibility=100.0,
     γ_admm_penalty=0.0,
     all_scenarios=True,

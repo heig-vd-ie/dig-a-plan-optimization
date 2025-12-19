@@ -19,7 +19,6 @@ config = BenderConfig(
     factor_v=1,
     factor_i=1e-3,
     master_relaxed=False,
-    pipeline_type=PipelineType.BENDER,
 )
 dig_a_plan = DigAPlanBender(config=config)
 

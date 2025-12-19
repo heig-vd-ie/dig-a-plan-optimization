@@ -15,7 +15,6 @@ def run_bender(input: BenderInput) -> ReconfigurationOutput:
         factor_v=1,
         factor_i=1e-3,
         master_relaxed=False,
-        pipeline_type=PipelineType.BENDER,
     )
     dig_a_plan = DigAPlanBender(config=config)
     dig_a_plan.add_grid_data(base_grid_data)
