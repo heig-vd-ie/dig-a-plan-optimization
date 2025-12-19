@@ -7,10 +7,10 @@ import numpy as np
 import polars as pl
 from polars import col as c
 from helpers import generate_log
-from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
+from pipeline_reconfiguration.data_manager import PipelineDataManager
+from pipeline_reconfiguration.configs import ADMMConfig, PipelineType
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
-from pipelines.reconfiguration.model_managers import PipelineModelManager
+from pipeline_reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

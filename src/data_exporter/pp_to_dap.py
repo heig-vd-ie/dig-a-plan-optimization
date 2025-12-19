@@ -12,7 +12,7 @@ from helpers import (
     get_transfo_imaginary_component,
     pl_to_dict,
 )
-from pipelines.helpers.scenario_utility import generate_random_load_scenarios
+from helpers.scenarios import generate_random_load_scenarios
 from data_exporter import validate_data
 from data_exporter.scenario_reduction import (
     KnownScenariosOptions,

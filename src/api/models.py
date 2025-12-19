@@ -1,8 +1,8 @@
 from enum import Enum
 from pathlib import Path
 from pydantic import BaseModel
-from pipelines.expansion.models.response import ExpansionResponse
-from pipelines.expansion.models.request import RiskMeasureType
+from pipeline_expansion.models.response import ExpansionResponse
+from pipeline_expansion.models.request import RiskMeasureType
 from pydantic import BaseModel, Field
 from typing import Dict, List, Tuple
 

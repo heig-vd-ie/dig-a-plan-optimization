@@ -13,15 +13,15 @@ from helpers import (
     generate_bfs_tree_with_edge_data,
     get_all_edge_data,
 )
-from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import BenderConfig, PipelineType
+from pipeline_reconfiguration.data_manager import PipelineDataManager
+from pipeline_reconfiguration.configs import BenderConfig, PipelineType
 from model_reconfiguration import (
     generate_master_model,
     generate_infeasible_slave_model,
     generate_optimal_slave_model,
 )
-from pipelines.helpers.pyomo_utility import extract_optimization_results
-from pipelines.reconfiguration.model_managers import PipelineModelManager
+from helpers.pyomo import extract_optimization_results
+from pipeline_reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

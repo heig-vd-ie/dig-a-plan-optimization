@@ -1,10 +1,10 @@
 import random
 import pyomo.environ as pyo
 from helpers import generate_log
-from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.configs import CombinedConfig, PipelineType
+from pipeline_reconfiguration.data_manager import PipelineDataManager
+from pipeline_reconfiguration.configs import CombinedConfig, PipelineType
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
-from pipelines.reconfiguration.model_managers import PipelineModelManager
+from pipeline_reconfiguration.model_managers import PipelineModelManager
 
 log = generate_log(name=__name__)
 

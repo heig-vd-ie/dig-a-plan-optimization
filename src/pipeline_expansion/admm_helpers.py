@@ -5,9 +5,9 @@ from dataclasses import dataclass
 import polars as pl
 from polars import col as c
 import patito as pt
-from data_model import NodeEdgeModel, NodeData
-from pipelines.reconfiguration import DigAPlanADMM
-from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
+from data_model import NodeEdgeModel, EdgeData, NodeData
+from pipeline_reconfiguration import DigAPlanADMM
+from pipeline_reconfiguration.configs import ADMMConfig, PipelineType
 
 
 @dataclass
@@ -123,7 +123,7 @@ class ADMM:
         )
 
         self.grid_data.edge_data = (
-            pt.DataFrame(updated_edge_data).set_model(NodeData).cast(strict=True)
+            pt.DataFrame(updated_edge_data).set_model(EdgeData).cast(strict=True)
         )
 
     def update_grid_data(

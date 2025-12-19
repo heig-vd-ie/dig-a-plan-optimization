@@ -3,13 +3,13 @@ import logging
 import os
 import requests
 from pathlib import Path
-from pipelines.expansion.models.response import ExpansionResponse
-from pipelines.expansion.models.request import (
+from pipeline_expansion.models.response import ExpansionResponse
+from pipeline_expansion.models.request import (
     Scenarios,
     ExpansionRequest,
     LongTermScenarioRequest,
 )
-from pipelines.helpers.json_rw import save_obj_to_json, load_obj_from_json
+from helpers.json import save_obj_to_json, load_obj_from_json
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

@@ -1,17 +1,17 @@
 from data_model import NodeEdgeModel
-from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.result_manager import PipelineResultManager
-from pipelines.reconfiguration.configs import (
+from pipeline_reconfiguration.data_manager import PipelineDataManager
+from pipeline_reconfiguration.result_manager import PipelineResultManager
+from pipeline_reconfiguration.configs import (
     CombinedConfig,
     PipelineConfig,
     BenderConfig,
     ADMMConfig,
 )
-from pipelines.reconfiguration.model_managers.bender import PipelineModelManagerBender
-from pipelines.reconfiguration.model_managers.combined import (
+from pipeline_reconfiguration.model_managers.bender import PipelineModelManagerBender
+from pipeline_reconfiguration.model_managers.combined import (
     PipelineModelManagerCombined,
 )
-from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
+from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM
 
 
 class DigAPlan:

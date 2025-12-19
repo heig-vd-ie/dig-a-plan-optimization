@@ -1,7 +1,7 @@
 from typing import List, Union, Dict
 from pydantic import BaseModel, Field
 
-from pipelines.expansion.models.request import Scenario
+from pipeline_expansion.models.request import Scenario
 
 
 class StateVar(BaseModel):

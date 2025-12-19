@@ -16,29 +16,32 @@ from data_exporter.pp_to_dap import (
 )
 from data_model import NodeEdgeModel
 
-from data_display.grid_plotting import plot_grid_from_pandapower, plot_power_flow_results
+from data_display.grid_plotting import (
+    plot_grid_from_pandapower,
+    plot_power_flow_results,
+)
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_display.distribution_variable import DistributionVariable
-from pipelines.reconfiguration import (
+from pipeline_reconfiguration import (
     DigAPlan,
     DigAPlanADMM,
     DigAPlanCombined,
     DigAPlanBender,
 )
-from pipelines.reconfiguration.configs import (
+from pipeline_reconfiguration.configs import (
     BenderConfig,
     CombinedConfig,
     ADMMConfig,
     PipelineType,
 )
 
-from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
-from pipelines.reconfiguration.model_managers.bender import PipelineModelManagerBender
-from pipelines.reconfiguration.model_managers.combined import (
+from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM
+from pipeline_reconfiguration.model_managers.bender import PipelineModelManagerBender
+from pipeline_reconfiguration.model_managers.combined import (
     PipelineModelManagerCombined,
 )
-from pipelines.helpers.pyomo_utility import extract_optimization_results
-from pipelines.expansion.algorithm import ExpansionAlgorithm
+from helpers.pyomo import extract_optimization_results
+from pipeline_expansion.algorithm import ExpansionAlgorithm
 from plotly.subplots import make_subplots
 from helpers import pl_to_dict, build_non_existing_dirs
 

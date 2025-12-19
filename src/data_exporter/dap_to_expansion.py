@@ -4,7 +4,7 @@ import polars as pl
 from pathlib import Path
 from networkx import connected_components
 from polars import col as c
-from pipelines.expansion.models.request import (
+from pipeline_expansion.models.request import (
     Node,
     Edge,
     Cut,
@@ -17,7 +17,7 @@ from pipelines.expansion.models.request import (
     ExpansionRequest,
 )
 from data_model import NodeEdgeModel
-from pipelines.helpers.json_rw import save_obj_to_json
+from helpers.json import save_obj_to_json
 
 
 def remove_switches_from_grid_data(grid_data: NodeEdgeModel) -> NodeEdgeModel:

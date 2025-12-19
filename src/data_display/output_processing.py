@@ -2,7 +2,7 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from helpers import pl_to_dict
-from pipelines.reconfiguration import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
+from pipeline_reconfiguration import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
 
 
 def compare_dig_a_plan_with_pandapower(

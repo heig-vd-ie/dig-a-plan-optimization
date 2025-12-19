@@ -1,14 +1,14 @@
 from typing import List
 import polars as pl
 from polars import col as c
-from pipelines.reconfiguration.data_manager import PipelineDataManager
-from pipelines.reconfiguration.model_managers.combined import (
+from pipeline_reconfiguration.data_manager import PipelineDataManager
+from pipeline_reconfiguration.model_managers.combined import (
     PipelineModelManagerCombined,
 )
-from pipelines.reconfiguration.model_managers.bender import PipelineModelManagerBender
-from pipelines.reconfiguration.model_managers.admm import PipelineModelManagerADMM
+from pipeline_reconfiguration.model_managers.bender import PipelineModelManagerBender
+from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM
 from helpers import cast_boolean, modify_string_col
-from pipelines.helpers.pyomo_utility import extract_optimization_results
+from helpers.pyomo import extract_optimization_results
 
 
 class PipelineResultManager:

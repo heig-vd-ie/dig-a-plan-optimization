@@ -3,9 +3,9 @@ from api.grid_cases import get_grid_case
 from experiments import *
 from datetime import datetime
 
-from pipelines.expansion.models.request import BenderCuts
+from pipeline_expansion.models.request import BenderCuts
 
-from pipelines.helpers.json_rw import load_obj_from_json, save_obj_to_json
+from helpers.json import load_obj_from_json, save_obj_to_json
 
 
 def get_session_name() -> str:

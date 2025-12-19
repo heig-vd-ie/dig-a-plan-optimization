@@ -5,7 +5,7 @@ Pytest configuration and shared fixtures for the test suite.
 import pytest
 import pandapower as pp
 from pathlib import Path
-from pipelines.reconfiguration.configs import (
+from pipeline_reconfiguration.configs import (
     ADMMConfig,
     CombinedConfig,
     BenderConfig,
