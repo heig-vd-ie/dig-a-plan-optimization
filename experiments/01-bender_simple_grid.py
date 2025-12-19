@@ -11,7 +11,7 @@ base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
 
 # %% initialize DigAPlan
-config = BenderConfig(
+konfig = BenderConfig(
     verbose=False,
     big_m=1e2,
     factor_p=1e-3,
@@ -20,7 +20,7 @@ config = BenderConfig(
     factor_i=1e-3,
     master_relaxed=False,
 )
-dig_a_plan = DigAPlanBender(config=config)
+dig_a_plan = DigAPlanBender(konfig=config)
 
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)

@@ -24,7 +24,7 @@ class TestCombinedModelSimpleExample(TestCombinedModel):
 
         base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        dig_a_plan = DigAPlanCombined(config=self.combined_config)
+        dig_a_plan = DigAPlanCombined(konfig=self.combined_config)
 
         dig_a_plan.add_grid_data(base_grid_data)
         dig_a_plan.solve_model()  # one‐shot solve

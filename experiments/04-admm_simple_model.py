@@ -27,7 +27,7 @@ groups = {
 
 
 # %% Configure ADMM pipeline
-config = ADMMConfig(
+konfig = ADMMConfig(
     verbose=False,
     solver_name="gurobi",
     solver_non_convex=2,
@@ -44,7 +44,7 @@ config = ADMMConfig(
     τ_decr=2.0,
 )
 
-dap = DigAPlanADMM(config=config)
+dap = DigAPlanADMM(konfig=konfig)
 dap.add_grid_data(grid_data)
 
 

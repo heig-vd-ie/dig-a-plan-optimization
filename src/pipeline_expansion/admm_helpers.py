@@ -42,7 +42,7 @@ class ADMM:
         τ_incr: float = 2.0,
         τ_decr: float = 2.0,
     ):
-        self.config = ADMMConfig(
+        self.konfig = ADMMConfig(
             voll=voll,
             volp=volp,
             verbose=False,
@@ -176,7 +176,7 @@ class ADMM:
 
     def solve(self) -> ADMMResult:
         """Solve the optimization problem using ADMM."""
-        self.dap = DigAPlanADMM(config=self.config)
+        self.dap = DigAPlanADMM(konfig=self.konfig)
         self.dap.add_grid_data(grid_data=self.grid_data)
         self.dap.solve_model(extract_duals=True)
         duals = self.dap.result_manager.extract_duals_for_expansion()

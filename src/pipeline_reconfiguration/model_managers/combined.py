@@ -12,11 +12,11 @@ log = generate_log(name=__name__)
 class PipelineModelManagerCombined(PipelineModelManager):
     def __init__(
         self,
-        config: CombinedConfig,
+        konfig: CombinedConfig,
         data_manager: PipelineDataManager,
     ) -> None:
         """Initialize the combined model manager with configuration and data manager."""
-        super().__init__(config, data_manager)
+        super().__init__(konfig, data_manager)
 
         self.combined_model: pyo.AbstractModel = generate_combined_model()
         self.combined_lin_model: pyo.AbstractModel = generate_combined_lin_model()
@@ -34,7 +34,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
     def solve_model(self, groups: int | None = None, **kwargs) -> None:
         """Solve the combined radial+DistFlow model."""
         results = self.solver.solve(
-            self.combined_lin_model_instance, tee=self.config.verbose
+            self.combined_lin_model_instance, tee=self.konfig.verbose
         )
 
         δ_map = self.combined_lin_model_instance.δ.extract_values()  # type: ignore
@@ -55,7 +55,7 @@ class PipelineModelManagerCombined(PipelineModelManager):
                 self.combined_model_instance.δ[edge_id].fix(δ)  # type: ignore
 
         results = self.solver.solve(
-            self.combined_model_instance, tee=self.config.verbose
+            self.combined_model_instance, tee=self.konfig.verbose
         )
 
         if results.solver.termination_condition != pyo.TerminationCondition.optimal:

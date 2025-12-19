@@ -30,10 +30,10 @@ class TestADMMModelSimpleExample(TestADMMModel):
 
         grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        config = self.admm_config
-        config.groups = self.simple_grid_groups
+        konfig = self.admm_config
+        konfig.groups = self.simple_grid_groups
 
-        dap = DigAPlanADMM(config=config)
+        dap = DigAPlanADMM(konfig=konfig)
 
         dap.add_grid_data(grid_data)
 
@@ -66,7 +66,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
         assert node_data.get_column("v_diff").abs().max() < 1e-1  # type: ignore
         assert math.isclose(edge_data.get_column("i_diff").abs().max(), 0.00226884323285469, rel_tol=1e-3)  # type: ignore
 
-        config = CombinedConfig(
+        konfig = CombinedConfig(
             verbose=True,
             threads=1,
             big_m=1e3,
@@ -76,7 +76,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
             all_scenarios=True,
         )
 
-        dig_a_plan = DigAPlanCombined(config=config)
+        dig_a_plan = DigAPlanCombined(konfig=konfig)
 
         dig_a_plan.add_grid_data(grid_data)
         dig_a_plan.solve_model()  # one‐shot solve

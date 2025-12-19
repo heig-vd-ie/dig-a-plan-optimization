@@ -7,7 +7,7 @@ def run_admm(input: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=input.grid, seed=input.seed, stu=input.scenarios
     )
-    config = ADMMConfig(
+    konfig = ADMMConfig(
         verbose=False,
         solver_name="gurobi",
         solver_non_convex=2,
@@ -28,7 +28,7 @@ def run_admm(input: ADMMInput) -> ReconfigurationOutput:
         τ_incr=2.0,
         τ_decr=2.0,
     )
-    dap = DigAPlanADMM(config=config)
+    dap = DigAPlanADMM(konfig=konfig)
     dap.add_grid_data(base_grid_data)
     dap.solve_model(groups=input.groups)
     # Fixed switches solution (for distribution plots)

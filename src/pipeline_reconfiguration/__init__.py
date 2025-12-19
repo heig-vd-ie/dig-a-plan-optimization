@@ -24,20 +24,20 @@ class DigAPlan:
       until convergence.
     """
 
-    def __init__(self, config: PipelineConfig | BenderConfig | ADMMConfig) -> None:
+    def __init__(self, konfig: PipelineConfig | BenderConfig | ADMMConfig) -> None:
 
-        self.config = config or PipelineConfig()
+        self.konfig = konfig or PipelineConfig()
         # Pull ρ from the config (only used in the COMBINED/ADMM pipeline)
         self.data_manager = PipelineDataManager(
-            big_m=self.config.big_m,
-            ε=self.config.ε,
-            ρ=self.config.ρ,
-            voll=self.config.voll,
-            volp=self.config.volp,
-            γ_infeasibility=self.config.γ_infeasibility,
-            γ_admm_penalty=self.config.γ_admm_penalty,
-            γ_trafo_loss=self.config.γ_trafo_loss,
-            all_scenarios=self.config.all_scenarios,
+            big_m=self.konfig.big_m,
+            ε=self.konfig.ε,
+            ρ=self.konfig.ρ,
+            voll=self.konfig.voll,
+            volp=self.konfig.volp,
+            γ_infeasibility=self.konfig.γ_infeasibility,
+            γ_admm_penalty=self.konfig.γ_admm_penalty,
+            γ_trafo_loss=self.konfig.γ_trafo_loss,
+            all_scenarios=self.konfig.all_scenarios,
         )
         self.model_manager: (
             PipelineModelManagerBender
@@ -68,10 +68,10 @@ class DigAPlanBender(DigAPlan):
     Entrypoint for the Bender pipeline.
     """
 
-    def __init__(self, config: BenderConfig) -> None:
-        super().__init__(config)
+    def __init__(self, konfig: BenderConfig) -> None:
+        super().__init__(konfig)
         self.model_manager: PipelineModelManagerBender = PipelineModelManagerBender(
-            config, self.data_manager
+            konfig, self.data_manager
         )
         self.result_manager = PipelineResultManager(
             data_manager=self.data_manager,
@@ -84,10 +84,10 @@ class DigAPlanCombined(DigAPlan):
     Entrypoint for the Combined pipeline.
     """
 
-    def __init__(self, config: CombinedConfig) -> None:
-        super().__init__(config)
+    def __init__(self, konfig: CombinedConfig) -> None:
+        super().__init__(konfig)
         self.model_manager: PipelineModelManagerCombined = PipelineModelManagerCombined(
-            config, self.data_manager
+            konfig, self.data_manager
         )
         self.result_manager = PipelineResultManager(
             data_manager=self.data_manager,
@@ -100,10 +100,10 @@ class DigAPlanADMM(DigAPlan):
     Entrypoint for the ADMM pipeline.
     """
 
-    def __init__(self, config: ADMMConfig) -> None:
-        super().__init__(config)
+    def __init__(self, konfig: ADMMConfig) -> None:
+        super().__init__(konfig)
         self.model_manager: PipelineModelManagerADMM = PipelineModelManagerADMM(
-            config, self.data_manager
+            konfig, self.data_manager
         )
         self.result_manager = PipelineResultManager(
             data_manager=self.data_manager,

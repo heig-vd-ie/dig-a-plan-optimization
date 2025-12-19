@@ -7,7 +7,7 @@ def run_bender(input: BenderInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=input.grid, seed=input.seed, stu=input.scenarios
     )
-    config = BenderConfig(
+    konfig = BenderConfig(
         verbose=False,
         big_m=1e2,
         factor_p=1e-3,
@@ -16,7 +16,7 @@ def run_bender(input: BenderInput) -> ReconfigurationOutput:
         factor_i=1e-3,
         master_relaxed=False,
     )
-    dig_a_plan = DigAPlanBender(config=config)
+    dig_a_plan = DigAPlanBender(konfig=konfig)
     dig_a_plan.add_grid_data(base_grid_data)
     dig_a_plan.solve_model(max_iters=input.max_iters)
 

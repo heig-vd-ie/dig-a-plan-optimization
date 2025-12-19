@@ -30,14 +30,14 @@ class PipelineModelManagerBender(PipelineModelManager):
 
     def __init__(
         self,
-        config: BenderConfig,
+        konfig: BenderConfig,
         data_manager: PipelineDataManager,
     ) -> None:
-        """Initialize the Bender model manager with configuration and data manager"""
-        super().__init__(config, data_manager)
+        """Initialize the Bender model manager with konfiguration and data manager"""
+        super().__init__(konfig, data_manager)
 
         self.master_model: pyo.AbstractModel = generate_master_model(
-            relaxed=config.master_relaxed
+            relaxed=konfig.master_relaxed
         )
         self.optimal_slave_model: pyo.AbstractModel = generate_optimal_slave_model()
         self.infeasible_slave_model: pyo.AbstractModel = (
@@ -67,25 +67,25 @@ class PipelineModelManagerBender(PipelineModelManager):
         self.slave_obj_list = []
         self.convergence_list = []
 
-        self.master_solver = pyo.SolverFactory(config.solver_name)
-        self.master_solver.options["Seed"] = config.seed
-        if config.threads is not None:
-            self.master_solver.options["Threads"] = config.threads
+        self.master_solver = pyo.SolverFactory(konfig.solver_name)
+        self.master_solver.options["Seed"] = konfig.seed
+        if konfig.threads is not None:
+            self.master_solver.options["Threads"] = konfig.threads
         self.master_solver.options["IntegralityFocus"] = (
-            config.master_solver_integrality_focus
+            konfig.master_solver_integrality_focus
         )  # To insure master binary variable remains binary
-        self.slave_solver = pyo.SolverFactory(config.solver_name)
-        self.slave_solver.options["Seed"] = config.seed
-        if config.threads is not None:
-            self.slave_solver.options["Threads"] = config.threads
-        if config.solver_non_convex is not None:
-            self.slave_solver.options["NonConvex"] = config.solver_non_convex
-        if config.solver_qcp_dual is not None:
-            self.slave_solver.options["QCPDual"] = config.solver_qcp_dual
-        if config.solver_bar_qcp_conv_tol is not None:
-            self.slave_solver.options["BarQCPConvTol"] = config.solver_bar_qcp_conv_tol
-        if config.solver_bar_homogeneous is not None:
-            self.slave_solver.options["BarHomogeneous"] = config.solver_bar_homogeneous
+        self.slave_solver = pyo.SolverFactory(konfig.solver_name)
+        self.slave_solver.options["Seed"] = konfig.seed
+        if konfig.threads is not None:
+            self.slave_solver.options["Threads"] = konfig.threads
+        if konfig.solver_non_convex is not None:
+            self.slave_solver.options["NonConvex"] = konfig.solver_non_convex
+        if konfig.solver_qcp_dual is not None:
+            self.slave_solver.options["QCPDual"] = konfig.solver_qcp_dual
+        if konfig.solver_bar_qcp_conv_tol is not None:
+            self.slave_solver.options["BarQCPConvTol"] = konfig.solver_bar_qcp_conv_tol
+        if konfig.solver_bar_homogeneous is not None:
+            self.slave_solver.options["BarHomogeneous"] = konfig.solver_bar_homogeneous
 
     def __scale_slave_models(
         self, factor_p: float, factor_q: float, factor_i: float, factor_v: float
@@ -127,10 +127,10 @@ class PipelineModelManagerBender(PipelineModelManager):
             schema=["TrTaps", "ζ_variable"],
         )
         self.__scale_slave_models(
-            factor_p=self.config.factor_p,
-            factor_q=self.config.factor_q,
-            factor_i=self.config.factor_i,
-            factor_v=self.config.factor_v,
+            factor_p=self.konfig.factor_p,
+            factor_q=self.konfig.factor_q,
+            factor_i=self.konfig.factor_i,
+            factor_v=self.konfig.factor_v,
         )
 
     def solve_model(self, max_iters: int) -> None:
@@ -151,7 +151,7 @@ class PipelineModelManagerBender(PipelineModelManager):
             self.scaled_optimal_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
             try:
                 results = self.slave_solver.solve(
-                    self.scaled_optimal_slave_model_instance, tee=self.config.verbose
+                    self.scaled_optimal_slave_model_instance, tee=self.konfig.verbose
                 )
                 quadratic_infeasible = False
             except gp.GurobiError as e:
@@ -173,7 +173,7 @@ class PipelineModelManagerBender(PipelineModelManager):
                 self.scaled_infeasible_slave_model_instance.master_ζ.store_values(master_ζ)  # type: ignore
                 _ = self.slave_solver.solve(
                     self.scaled_infeasible_slave_model_instance,
-                    tee=self.config.verbose,
+                    tee=self.konfig.verbose,
                 )
                 pyo.TransformationFactory("core.scale_model").propagate_solution(  # type: ignore
                     self.scaled_infeasible_slave_model_instance,
@@ -205,7 +205,7 @@ class PipelineModelManagerBender(PipelineModelManager):
             self.master_obj_list.append(self.master_obj)
             self.slave_obj_list.append(self.slave_obj)
             self.convergence_list.append(self.slave_obj - self.master_obj)  # type: ignore
-            if convergence_result < self.config.convergence_threshold:
+            if convergence_result < self.konfig.convergence_threshold:
                 break
             master_δ = self.master_model_instance.δ.extract_values()  # type: ignore
             master_ζ = self.master_model_instance.ζ.extract_values()  # type: ignore
@@ -320,18 +320,18 @@ class PipelineModelManagerBender(PipelineModelManager):
     def check_slave_feasibility(self):
         self.p_curt_cons = extract_optimization_results(
             self.infeasible_slave_model_instance, "p_curt_cons"
-        ).filter(c("p_curt_cons") > self.config.slack_threshold)
+        ).filter(c("p_curt_cons") > self.konfig.slack_threshold)
 
         self.q_curt_cons = extract_optimization_results(
             self.infeasible_slave_model_instance, "q_curt_cons"
-        ).filter(c("q_curt_cons") > self.config.slack_threshold)
+        ).filter(c("q_curt_cons") > self.konfig.slack_threshold)
 
         self.p_curt_prod = extract_optimization_results(
             self.infeasible_slave_model_instance, "p_curt_prod"
-        ).filter(c("p_curt_prod") > self.config.slack_threshold)
+        ).filter(c("p_curt_prod") > self.konfig.slack_threshold)
         self.q_curt_prod = extract_optimization_results(
             self.infeasible_slave_model_instance, "q_curt_prod"
-        ).filter(c("q_curt_prod") > self.config.slack_threshold)
+        ).filter(c("q_curt_prod") > self.konfig.slack_threshold)
 
     def find_initial_state_of_switches(self):
         """

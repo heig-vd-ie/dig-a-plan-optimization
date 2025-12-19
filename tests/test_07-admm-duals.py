@@ -24,15 +24,15 @@ class ExpansionTestBase:
 class TestADMMModelDualExample(ExpansionTestBase):
     def test_extract_duals_simple_admm(self):
         """Extract dual variables from a simple ADMM problem."""
-        config = self.admm_config
-        config.groups = self.simple_grid_groups
+        konfig = self.admm_config
+        konfig.groups = self.simple_grid_groups
         self.grid_data.edge_data = self.grid_data.edge_data.with_columns(
             pl.when(pl.col("type") == "transformer")
             .then(list(range(95, 105, 1)))
             .otherwise([100])
             .alias("taps")
         )
-        dap = DigAPlanADMM(config=config)
+        dap = DigAPlanADMM(konfig=konfig)
         dap.add_grid_data(self.grid_data)
         dap.model_manager.solve_model(extract_duals=True)
         duals = dap.result_manager.extract_dual_variables(scenario=0)

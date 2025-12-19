@@ -25,7 +25,7 @@ class TestBenderModel(BenderTestCase):
 
         base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        dig_a_plan = DigAPlanBender(config=self.bender_config)
+        dig_a_plan = DigAPlanBender(konfig=self.bender_config)
 
         dig_a_plan.add_grid_data(base_grid_data)
         dig_a_plan.solve_model(max_iters=100)

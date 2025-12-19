@@ -16,10 +16,10 @@ log = generate_log(name=__name__)
 
 
 class PipelineModelManagerADMM(PipelineModelManager):
-    def __init__(self, config: ADMMConfig, data_manager: PipelineDataManager) -> None:
+    def __init__(self, konfig: ADMMConfig, data_manager: PipelineDataManager) -> None:
         """Initialize the combined model manager with configuration and data manager."""
-        super().__init__(config, data_manager)
-        self.config = config
+        super().__init__(konfig, data_manager)
+        self.konfig = konfig
 
         self.admm_model: pyo.AbstractModel = generate_combined_model()
         self.admm_linear_model: pyo.AbstractModel = generate_combined_lin_model()
@@ -47,22 +47,22 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self, fixed_switches: bool = False, extract_duals: bool = False, **kwargs
     ):
         """Solve the ADMM model with the given parameters."""
-        random.seed(self.config.seed_number)
+        random.seed(self.konfig.seed_number)
         self.s_norm: float | None = None
         self.r_norm: float | None = None
 
-        self.mutation_factor = self.config.mutation_factor
-        self.groups = self.config.groups
-        self.κ = self.config.κ
-        self.μ = self.config.μ
-        self.τ_incr = self.config.τ_incr
-        self.τ_decr = self.config.τ_decr
+        self.mutation_factor = self.konfig.mutation_factor
+        self.groups = self.konfig.groups
+        self.κ = self.konfig.κ
+        self.μ = self.konfig.μ
+        self.τ_incr = self.konfig.τ_incr
+        self.τ_decr = self.konfig.τ_decr
 
         self.Ω = list(self.admm_model_instances.keys())  # type: ignore
         self.number_of_groups = (
-            len(self.config.groups)
-            if isinstance(self.config.groups, dict)
-            else self.config.groups
+            len(self.konfig.groups)
+            if isinstance(self.konfig.groups, dict)
+            else self.konfig.groups
         )
 
         # Sets
@@ -82,7 +82,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
         self.time_list.append(time.process_time())
         # ADMM iterations
-        for k in range(1, self.config.max_iters + 1 if not fixed_switches else 2):
+        for k in range(1, self.konfig.max_iters + 1 if not fixed_switches else 2):
             zδ_old = self.zδ.copy()
             zζ_old = self.zζ.copy()
             # Broadcast z and λ into the model
@@ -119,19 +119,19 @@ class PipelineModelManagerADMM(PipelineModelManager):
             # ---- convergence ----
             if self.s_norm is None or self.r_norm is None:
                 raise ValueError("Residuals s_norm and r_norm must be initialized.")
-            if (self.r_norm <= self.config.ε_primal) and (
-                self.s_norm <= self.config.ε_dual
+            if (self.r_norm <= self.konfig.ε_primal) and (
+                self.s_norm <= self.konfig.ε_dual
             ):
                 log.info(f"ADMM converged in {k} iterations.")
                 break
 
             # ---- residual balancing (scaled ADMM) ----
             if self.r_norm > self.μ * self.s_norm:
-                self.config.ρ *= self.τ_incr
+                self.konfig.ρ *= self.τ_incr
             elif self.s_norm > self.μ * self.r_norm:
-                self.config.ρ /= self.τ_decr
+                self.konfig.ρ /= self.τ_decr
             for m in self.admm_model_instances.values():
-                getattr(m, "ρ").set_value(self.config.ρ)
+                getattr(m, "ρ").set_value(self.konfig.ρ)
 
         # Refresh δ table after final iterate
         self.__get_δ_map()
@@ -170,7 +170,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.__fix_taps(m, ζ_by_sc[ω])
             self.admm_model_instances[ω] = m
 
-        self.solver = pyo.SolverFactory(self.config.solver_name)
+        self.solver = pyo.SolverFactory(self.konfig.solver_name)
 
         self.solve_admm_inner_loop(
             δ_map=δ_map,
@@ -386,7 +386,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             f"{''.join(combined_values)}"
             + (f" [ADMM {k}]" if k is not None else "")
             + (
-                f" r_norm={self.r_norm:.3f}, s_norm={self.s_norm:.3f}, ρ={self.config.ρ:.3f}"
+                f" r_norm={self.r_norm:.3f}, s_norm={self.s_norm:.3f}, ρ={self.konfig.ρ:.3f}"
                 if self.s_norm is not None and self.r_norm is not None
                 else ""
             )
@@ -442,7 +442,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
     ) -> Tuple[Dict[str, float], Dict[Tuple[str, str], float]]:
         """Solve the given model and return the δ values."""
         try:
-            results = self.solver.solve(model, tee=self.config.verbose)
+            results = self.solver.solve(model, tee=self.konfig.verbose)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.error(f"Model solve failed: {results.solver.termination_condition}")
             δ_map = model.δ.extract_values()  # type: ignore
@@ -477,7 +477,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         )
 
         s_norm1 = float(
-            self.config.ρ
+            self.konfig.ρ
             * np.sqrt(sum((zδ[s] - zδ_old[s]) ** 2 for s in self.switch_list))
         )
         r_norm2 = float(
@@ -493,7 +493,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         )
 
         s_norm2 = float(
-            self.config.ρ
+            self.konfig.ρ
             * np.sqrt(
                 sum(
                     (zζ[(tr, tap)] - zζ_old[(tr, tap)]) ** 2

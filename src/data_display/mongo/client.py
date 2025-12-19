@@ -104,16 +104,16 @@ def extract_file_metadata(filename: str) -> Dict[str, Any]:
 
 
 class GeneralMongoClient:
-    def __init__(self, config: MongoConfig):
-        self.config = config
+    def __init__(self, konfig: MongoConfig):
+        self.konfig = konfig
         self.db: Optional[Database] = None
         self.collections: List[str] = []
 
     def connect(self) -> "GeneralMongoClient":
         self.db = connect_to_database(
-            self.config.mongodb_host,
-            self.config.mongodb_port,
-            self.config.database_name,
+            self.konfig.mongodb_host,
+            self.konfig.mongodb_port,
+            self.konfig.database_name,
         )
         return self
 
@@ -129,7 +129,7 @@ class GeneralMongoClient:
         self.collections = [
             name
             for name in all_collections
-            if self.config.start_collection <= name <= self.config.end_collection
+            if self.konfig.start_collection <= name <= self.konfig.end_collection
         ]
 
         return self
@@ -369,8 +369,8 @@ class GeneralMongoClient:
 
 
 class MyMongoClient(GeneralMongoClient):
-    def __init__(self, config: MongoConfig):
-        super().__init__(config)
+    def __init__(self, konfig: MongoConfig):
+        super().__init__(konfig)
         self.risk_info: List[Any] = []
         self.df: Optional[pd.DataFrame] = None
 
