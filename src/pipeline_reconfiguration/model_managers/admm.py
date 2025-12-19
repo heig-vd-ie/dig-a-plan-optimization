@@ -8,7 +8,7 @@ import polars as pl
 from polars import col as c
 from helpers import generate_log
 from pipeline_reconfiguration.data_manager import PipelineDataManager
-from pipeline_reconfiguration.configs import ADMMConfig
+from data_model.reconfiguration_konfig import ADMMConfig
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipeline_reconfiguration.model_managers import PipelineModelManager
 

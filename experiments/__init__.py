@@ -28,7 +28,7 @@ from pipeline_reconfiguration import (
     DigAPlanCombined,
     DigAPlanBender,
 )
-from pipeline_reconfiguration.configs import (
+from data_model.reconfiguration_konfig import (
     BenderConfig,
     CombinedConfig,
     ADMMConfig,
