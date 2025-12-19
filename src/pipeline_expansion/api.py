@@ -3,8 +3,8 @@ import logging
 import os
 import requests
 from pathlib import Path
-from pipeline_expansion.models.response import ExpansionResponse
-from pipeline_expansion.models.request import (
+from data_model.sddp import (
+    ExpansionResponse,
     Scenarios,
     ExpansionRequest,
     LongTermScenarioRequest,

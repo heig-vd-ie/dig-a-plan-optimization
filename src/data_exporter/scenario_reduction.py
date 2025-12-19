@@ -12,7 +12,7 @@ from data_model import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
-from api.models import (
+from data_model.kace import (
     KnownScenariosOptions,
     DiscreteScenario,
 )

@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from api.models import CombinedInput, ReconfigurationOutput
+from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 

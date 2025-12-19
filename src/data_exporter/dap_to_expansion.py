@@ -4,7 +4,7 @@ import polars as pl
 from pathlib import Path
 from networkx import connected_components
 from polars import col as c
-from pipeline_expansion.models.request import (
+from data_model.sddp import (
     Node,
     Edge,
     Cut,

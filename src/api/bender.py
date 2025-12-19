@@ -1,4 +1,4 @@
-from api.models import BenderInput, ReconfigurationOutput
+from data_model.reconfiguration import BenderInput, ReconfigurationOutput
 from experiments import *
 from api.grid_cases import get_grid_case
 

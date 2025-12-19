@@ -16,7 +16,7 @@ from data_exporter.dap_to_expansion import (
 from data_model import NodeEdgeModel, EdgeData
 from pipeline_expansion.admm_helpers import ADMM, ADMMResult
 from pipeline_expansion.api import run_sddp, generate_scenarios
-from pipeline_expansion.models.request import (
+from data_model.sddp import (
     AdditionalParams,
     BenderCut,
     BenderCuts,
@@ -27,8 +27,9 @@ from pipeline_expansion.models.request import (
     OptimizationConfig,
     PlanningParams,
     RiskMeasureType,
+    ExpansionResponse,
+    Simulation,
 )
-from pipeline_expansion.models.response import ExpansionResponse, Simulation
 from helpers.json import save_obj_to_json, load_obj_from_json
 
 

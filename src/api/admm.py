@@ -1,4 +1,4 @@
-from api.models import ADMMInput, ReconfigurationOutput
+from data_model.reconfiguration import ADMMInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 
@@ -36,12 +36,11 @@ def run_admm(input: ADMMInput) -> ReconfigurationOutput:
     dap_fixed = copy.deepcopy(dap)
     dap_fixed.solve_model(fixed_switches=True)
 
-
     switches = dap.model_manager.zδ_variable
     taps = dap.model_manager.zζ_variable
     voltages = dap.result_manager.extract_node_voltage(scenario=0)
     currents = dap.result_manager.extract_edge_current(scenario=0)
-    
+
     save_dap_state(dap, ".cache/figs/boisy_dap")
     save_dap_state(dap_fixed, ".cache/figs/boisy_dap_fixed")
     joblib.dump(net, ".cache/figs/boisy_net.joblib")
