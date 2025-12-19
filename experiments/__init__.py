@@ -10,7 +10,7 @@ import plotly.graph_objs as go
 import polars as pl
 from polars import col as c
 from datetime import datetime
-from config import settings
+from konfig import settings
 from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
