@@ -1,4 +1,4 @@
-from data_schema import NodeEdgeModel
+from data_model import NodeEdgeModel
 from pipelines.reconfiguration.data_manager import PipelineDataManager
 from pipelines.reconfiguration.result_manager import PipelineResultManager
 from pipelines.reconfiguration.configs import (

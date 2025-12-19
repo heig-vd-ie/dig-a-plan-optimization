@@ -1,5 +1,4 @@
-from data_schema import NodeData, EdgeData, LoadData
-from data_schema import NodeEdgeModel
+from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel
 import patito as pt
 import polars as pl
 from polars import col as c

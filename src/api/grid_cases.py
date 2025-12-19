@@ -6,7 +6,7 @@ from typing import Tuple
 from data_exporter.pandapower_to_dig_a_plan import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from data_schema import NodeEdgeModel
+from data_model import NodeEdgeModel
 from api.models import GridCaseModel, ShortTermUncertainty
 
 

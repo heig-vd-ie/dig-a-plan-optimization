@@ -3,7 +3,7 @@ from typing import Dict, Tuple
 import numpy as np
 import polars as pl
 import patito as pt
-from data_schema import NodeData, LoadData
+from data_model import NodeData, LoadData
 import random
 
 

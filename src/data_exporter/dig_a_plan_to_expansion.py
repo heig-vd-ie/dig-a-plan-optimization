@@ -16,7 +16,7 @@ from pipelines.expansion.models.request import (
     Scenarios,
     ExpansionRequest,
 )
-from data_schema import NodeEdgeModel
+from data_model import NodeEdgeModel
 from pipelines.helpers.json_rw import save_obj_to_json
 
 

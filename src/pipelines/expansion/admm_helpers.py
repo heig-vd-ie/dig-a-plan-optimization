@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import polars as pl
 from polars import col as c
 import patito as pt
-from data_schema import NodeEdgeModel, NodeData
+from data_model import NodeEdgeModel, NodeData
 from pipelines.reconfiguration import DigAPlanADMM
 from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 
