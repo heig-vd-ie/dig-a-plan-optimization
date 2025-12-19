@@ -9,7 +9,7 @@ from pathlib import Path
 from polars import col as c
 import tqdm
 from api.ray_utils import init_ray, shutdown_ray, check_ray
-from data_exporter.dig_a_plan_to_expansion import (
+from data_exporter.dap_to_expansion import (
     dig_a_plan_to_expansion,
     remove_switches_from_grid_data,
 )
