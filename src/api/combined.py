@@ -28,14 +28,11 @@ def run_combined(input: CombinedInput) -> ReconfigurationOutput:
     powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
     reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
-    if input.grid.pp_file == "examples/ieee-33/simple_grid.p":
-        fig = plot_grid_from_pandapower(net=net, dap=dig_a_plan)
-        node_data, edge_data = compare_dig_a_plan_with_pandapower(
-            dig_a_plan=dig_a_plan, net=net
-        )
-    return ReconfigurationOutput(
+    result = ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),
         taps=taps.to_dicts(),
     )
+
+    return result

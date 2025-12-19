@@ -20,60 +20,7 @@ def run_bender(input: BenderInput) -> ReconfigurationOutput:
     dig_a_plan = DigAPlanBender(config=config)
     dig_a_plan.add_grid_data(base_grid_data)
     dig_a_plan.solve_model(max_iters=input.max_iters)
-    fig = make_subplots(rows=1, cols=1)
-    fig.add_trace(
-        go.Scatter(
-            go.Scatter(y=dig_a_plan.model_manager.slave_obj_list[1:]),
-            mode="lines",
-            name="Slave objective",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            go.Scatter(y=dig_a_plan.model_manager.master_obj_list[1:]),
-            mode="lines",
-            name="Master objective",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            go.Scatter(y=dig_a_plan.model_manager.convergence_list[1:]),
-            mode="lines",
-            line=dict(dash="dot"),
-            name="Difference",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.update_layout(
-        height=600,
-        width=1200,
-        margin=dict(t=10, l=20, r=10, b=10),
-        legend=dict(
-            x=0.70,  # Position legend inside the plot area
-            y=0.98,  # Position at top-left
-            bgcolor="rgba(255,255,255,0.8)",  # Semi-transparent white background
-            bordercolor="rgba(0,0,0,0.2)",  # Light border
-            borderwidth=1,
-        ),
-        xaxis_title="Iteration",
-        yaxis_title="Objective Value",
-    )
-    os.makedirs(".cache/figs", exist_ok=True)
-    fig.write_html(".cache/figs/bender-convergence.html")
-    plot_grid_from_pandapower(net=net, dap=dig_a_plan)
-    plot_grid_from_pandapower(net=net, dap=dig_a_plan, color_by_results=True)
-    print(
-        extract_optimization_results(
-            dig_a_plan.model_manager.master_model_instance, "δ"
-        )
-        .to_pandas()
-        .to_string()
-    )
+
     switches = dig_a_plan.result_manager.extract_switch_status()
     voltages = dig_a_plan.result_manager.extract_node_voltage()
     currents = dig_a_plan.result_manager.extract_edge_current()
