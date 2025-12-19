@@ -1,18 +1,12 @@
-from api import GridCaseModel, ReconfigurationOutput
+from api.models import BenderInput, ReconfigurationOutput
 from experiments import *
 from api.grid_cases import get_grid_case
 
 
-class BenderInput(GridCaseModel):
-    max_iters: int = 100
-
-
-class BenderOutput(ReconfigurationOutput):
-    pass
-
-
-def run_bender(input: BenderInput) -> BenderOutput:
-    net, base_grid_data = get_grid_case(input)
+def run_bender(input: BenderInput) -> ReconfigurationOutput:
+    net, base_grid_data = get_grid_case(
+        grid=input.grid, seed=input.seed, stu=input.scenarios
+    )
     config = BenderConfig(
         verbose=False,
         big_m=1e2,
@@ -31,7 +25,7 @@ def run_bender(input: BenderInput) -> BenderOutput:
     voltages = dig_a_plan.result_manager.extract_node_voltage()
     currents = dig_a_plan.result_manager.extract_edge_current()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
-    return BenderOutput(
+    return ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),

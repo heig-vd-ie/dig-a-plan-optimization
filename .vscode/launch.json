@@ -12,7 +12,7 @@
                 "-s"
             ],
             "console": "integratedTerminal",
-            "justMyCode": false,
+            "justMyCode": true,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src",
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",

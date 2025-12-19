@@ -15,14 +15,12 @@ if USE_SIMPLIFIED_GRID := True:
         v_bounds=(-0.07, 0.07),
         p_bounds=(-0.5, 1.0),
         q_bounds=(-0.5, 0.5),
-        taps=[95, 98, 99, 100, 101, 102, 105],
     )
 else:
     net = pp.from_pickle(".cache/boisy_grid.p")
     grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net,
         number_of_random_scenarios=10,
-        taps=[95, 98, 99, 100, 101, 102, 105],
     )
 
 grid_data.edge_data = grid_data.edge_data.with_columns(

@@ -385,7 +385,9 @@ def pp_losses_MW(net: pp.pandapowerNet) -> float:
 
 
 # %% ------------------ Stage A: ADMM on train scenarios -> learn y* ------------
-net = pp.from_pickle("examples/simple_grid.p")
+net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+net.bus["max_vm_pu"] = 1.05
+net.bus["min_vm_pu"] = 0.95
 
 groups = {
     0: [19, 20, 21, 29, 32, 35],
@@ -406,8 +408,6 @@ if need_train:
         p_bounds=(-0.6, 1.5),
         q_bounds=(-0.1, 0.1),
         v_bounds=(-0.1, 0.1),
-        v_min=0.95,
-        v_max=1.05,
         s_base=S_BASE_W,
         seed=42,
     )
@@ -523,8 +523,6 @@ grid_train_pp = pandapower_to_dig_a_plan_schema_with_scenarios(
     p_bounds=(-0.6, 1.5),
     q_bounds=(-0.1, 0.1),
     v_bounds=(-0.1, 0.1),
-    v_min=0.95,
-    v_max=1.05,
     s_base=S_BASE_W,
     seed=42,  # must match the ADMM train seed
 )
@@ -567,8 +565,6 @@ grid_test = pandapower_to_dig_a_plan_schema_with_scenarios(
     p_bounds=(-0.6, 1.5),
     q_bounds=(-0.1, 0.1),
     v_bounds=(-0.1, 0.1),
-    v_min=0.95,
-    v_max=1.05,
     s_base=S_BASE_W,
     seed=777,  # different seed -> different scenarios
 )

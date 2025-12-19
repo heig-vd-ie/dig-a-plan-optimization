@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import patito as pt
 import polars as pl
 from typing_extensions import Literal
@@ -13,11 +13,11 @@ class NodeData(pt.Model):
     i_base: Optional[float] = pt.Field(dtype=pl.Float64, default=None)
     s_base: Optional[float] = pt.Field(dtype=pl.Float64, default=None)
     v_base: float = pt.Field(dtype=pl.Float64)
-    v_min_pu: float = pt.Field(dtype=pl.Float64, default=0.9)
-    v_max_pu: float = pt.Field(dtype=pl.Float64, default=1.1)
+    min_vm_pu: float = pt.Field(dtype=pl.Float64, default=0.9)
+    max_vm_pu: float = pt.Field(dtype=pl.Float64, default=1.1)
     cons_installed: float = pt.Field(dtype=pl.Float64, default=1.0)
     prod_installed: float = pt.Field(dtype=pl.Float64, default=1.0)
-
+    coords: List[float] = pt.Field(dtype=pl.List(pl.Float64))
     type: TYPES = pt.Field(
         dtype=pl.Utf8, constraints=literal_constraint(pt.field, TYPES)
     )

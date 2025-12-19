@@ -15,4 +15,3 @@ class NodeEdgeModel:
         default_factory=lambda: EdgeData.DataFrame(schema=EdgeData.columns).cast()
     )
     load_data: Dict[int, pt.DataFrame[LoadData]] = field(default_factory=dict)
-    taps: List[int] = field(default_factory=list)

@@ -1,23 +1,16 @@
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
-
+from typing import List, Optional, Tuple
 import numpy as np
-import pandapower as pp
 import polars as pl
 from polars import col as c
 import plotly.graph_objects as go
-
 import plotly.colors as pc
 from plotly.subplots import make_subplots
-
 import plotly.colors
 from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
-
-import networkx as nx
 import igraph as ig
-
 from helper_functions import pl_to_dict, generate_tree_graph_from_edge_data
 from data_schema import NodeEdgeModel
 from pipelines.reconfiguration import DigAPlan, DigAPlanADMM
@@ -26,6 +19,7 @@ from data_display.style import apply_plot_style
 # -----------------------------
 # Data containers
 # -----------------------------
+
 
 @dataclass
 class GridDataFrames:
@@ -56,8 +50,9 @@ class EdgeFlowResults:
     line: EdgeFlows
     trafo: EdgeFlows
 
+
 # -----------------------------
-# Legacy colorscale utilities 
+# Legacy colorscale utilities
 # -----------------------------
 
 
@@ -69,43 +64,10 @@ def _create_rainbow_cm(values: list[float], min_val: float, max_val: float) -> L
     normalized = np.clip(normalized, 0.0, 1.0)
     return [pc.sample_colorscale("jet", [norm_val])[0] for norm_val in normalized]
 
+
 # -----------------------------
 # Extraction helpers
 # -----------------------------
-
-
-def _generate_bus_coordinates(dap: DigAPlan, switch_status: dict) -> dict:
-    """
-    Generate coordinates using a tree/sugiyama-ish layout.
-    Open switches are removed from the graph to reflect the energized topology.
-    """
-    open_switches = [k for k, v in switch_status.items() if not v]
-    edge_data = dap.data_manager.edge_data.filter(
-        ~((c("type") == "switch") & c("eq_fk").is_in(open_switches))
-    )
-
-    external_node = dap.data_manager.node_data.filter(c("type") == "slack").get_column(
-        "node_id"
-    )[0]
-
-    nx_graph = nx.Graph()
-    for edge in edge_data.iter_rows(named=True):
-        nx_graph.add_edge(edge["u_of_edge"], edge["v_of_edge"])
-    for n in nx_graph.nodes():
-        nx_graph.nodes[n]["node_id"] = n
-
-    i_graph = ig.Graph.from_networkx(nx_graph)
-    root_idx = i_graph.vs.find(node_id=external_node).index
-    distances = i_graph.shortest_paths(root_idx)[0]
-    layers = [-int(d) for d in distances]
-    layout = i_graph.layout_sugiyama(layers=layers)
-    coord_mapping = dict(zip(range(len(layout)), list(layout)))
-
-    return {
-        node_id: coord_mapping[i]
-        for i, node_id in enumerate(nx_graph.nodes())
-        if i < len(coord_mapping)
-    }
 
 
 def _extract_switch_status(dap: DigAPlan, from_z: bool) -> dict:
@@ -121,12 +83,7 @@ def _extract_switch_status(dap: DigAPlan, from_z: bool) -> dict:
     return switch_status
 
 
-def _prepare_dfs_w_coordinates(
-    dap: DigAPlan,
-    net: pp.pandapowerNet,
-    switch_status: dict,
-    is_generate_coords: bool = False,
-) -> GridDataFrames:
+def _prepare_dfs_w_coordinates(dap: DigAPlan, switch_status: dict) -> GridDataFrames:
     """
     Prepare bus/edge frames with x_coords/y_coords lists for plotting.
 
@@ -139,53 +96,7 @@ def _prepare_dfs_w_coordinates(
     bus = dap.data_manager.node_data
 
     edges = dap.data_manager.edge_data
-    if is_generate_coords:
-        coord_mapping = _generate_bus_coordinates(dap, switch_status)
-        coord_mapping_pl = pl.DataFrame(
-            {
-                "node_id": list(coord_mapping.keys()),
-                "coords": [
-                    [float(coords[0]), float(coords[1])]
-                    for coords in coord_mapping.values()
-                ],
-            }
-        )
 
-    else:
-        coord_mapping_pl = pl.DataFrame(
-            {
-                "node_id": list(net.bus.index),
-                "coords": [
-                    [float(coords[0]), float(coords[1])]
-                    for coords in net.bus["coords"].values.tolist()
-                ],
-            }
-        )
-
-    bus = bus.join(coord_mapping_pl, on="node_id", how="left")
-
-    edges = (
-        edges.join(
-            coord_mapping_pl.rename({"node_id": "u_of_edge", "coords": "from_coords"}),
-            on="u_of_edge",
-            how="left",
-        )
-        .join(
-            coord_mapping_pl.rename({"node_id": "v_of_edge", "coords": "to_coords"}),
-            on="v_of_edge",
-            how="left",
-        )
-        .with_columns(
-            [
-                pl.concat_list(
-                    [c("from_coords").list.get(0), c("to_coords").list.get(0)]
-                ).alias("x_coords"),
-                pl.concat_list(
-                    [c("from_coords").list.get(1), c("to_coords").list.get(1)]
-                ).alias("y_coords"),
-            ]
-        )
-    )
     line = edges.filter(c("type") == "branch")
     trafo = edges.filter(c("type") == "transformer")
     switches = edges.filter(c("type") == "switch")
@@ -540,8 +451,6 @@ def _plot_switches(
                     )
                 )
 
-            
-
 
 def _plot_buses(
     fig: go.Figure,
@@ -607,17 +516,22 @@ def _plot_buses(
         )
 
 
-def _plot_loads(
-    fig: go.Figure, net: pp.pandapowerNet, grid_dfs: GridDataFrames, node_size: int
-):
+def _plot_loads(fig: go.Figure, grid_dfs: GridDataFrames, node_size: int):
     """
     Plot the loads on the grid.
     """
-    load_id = list(net.load["bus"])
-    bus = grid_dfs.bus
-    gen_id = list(net.gen["bus"]) + list(net.sgen["bus"])
+    load_id = (
+        grid_dfs.bus.filter(pl.col("cons_installed") > 1e-3)
+        .get_column("node_id")
+        .to_list()
+    )
+    gen_id = (
+        grid_dfs.bus.filter(pl.col("prod_installed") > 1e-3)
+        .get_column("node_id")
+        .to_list()
+    )
     for node_id in load_id:
-        bus_row = bus.filter(pl.col("node_id") == node_id)
+        bus_row = grid_dfs.bus.filter(pl.col("node_id") == node_id)
         if len(bus_row) > 0:
             bus_coords = bus_row.select("coords").to_series()[0]
             x_coord = bus_coords[0]
@@ -636,7 +550,7 @@ def _plot_loads(
                 hovertext=f"Load at Bus {node_id}",
             )
     for node_id in gen_id:
-        bus_row = bus.filter(pl.col("node_id") == node_id)
+        bus_row = grid_dfs.bus.filter(pl.col("node_id") == node_id)
         if len(bus_row) > 0:
             bus_coords = bus_row.select("coords").to_series()[0]
             x_coord = bus_coords[0]
@@ -717,7 +631,6 @@ def _add_color_legend(
 
 def plot_grid_from_pandapower(
     dap: DigAPlan,
-    net: pp.pandapowerNet,
     node_size: int = 22,
     text_size: int = 10,
     width: int = 800,
@@ -730,9 +643,7 @@ def plot_grid_from_pandapower(
 ) -> None:
     """Plot the grid from a pandapower network."""
     switch_status = _extract_switch_status(dap, from_z)
-    grid_dfs = _prepare_dfs_w_coordinates(
-        dap, net, switch_status, is_generate_coords=color_by_results
-    )
+    grid_dfs = _prepare_dfs_w_coordinates(dap, switch_status)
     result_data = _get_results_data(dap)
 
     fig = go.Figure()
@@ -750,8 +661,8 @@ def plot_grid_from_pandapower(
         current_range = (min(all_currents), max(all_currents))
 
     voltage_range = (
-        dap.data_manager.node_data["v_min_pu"].min(),
-        dap.data_manager.node_data["v_max_pu"].max(),
+        dap.data_manager.node_data["min_vm_pu"].min(),
+        dap.data_manager.node_data["max_vm_pu"].max(),
     )
 
     if color_by_results:
@@ -795,7 +706,12 @@ def plot_grid_from_pandapower(
             fig, grid_dfs.trafo, trafo_default_color, node_size=node_size
         )
         _plot_switches(
-            fig, grid_dfs.switches, plot_open_switch=True, node_size=node_size, show_switch_ids=show_switch_ids, edge_id_mapping=result_data.edge_id_mapping,
+            fig,
+            grid_dfs.switches,
+            plot_open_switch=True,
+            node_size=node_size,
+            show_switch_ids=show_switch_ids,
+            edge_id_mapping=result_data.edge_id_mapping,
         )
         _plot_buses(
             fig,
@@ -807,11 +723,9 @@ def plot_grid_from_pandapower(
             text_size=text_size,
         )
 
-    _plot_loads(fig, net=net, grid_dfs=grid_dfs, node_size=node_size)
-    
-    title = (
-        "Grid Topology (Colored Flows)" if color_by_results else "Grid Topology"
-    )
+    _plot_loads(fig, grid_dfs=grid_dfs, node_size=node_size)
+
+    title = "Grid Topology (Colored Flows)" if color_by_results else "Grid Topology"
     apply_plot_style(
         fig,
         x_title="",
@@ -820,13 +734,13 @@ def plot_grid_from_pandapower(
     )
 
     fig.update_layout(
-        margin=dict(t=5, l=65, r=120, b=5),  
+        margin=dict(t=5, l=65, r=120, b=5),
         width=width,
         height=height,
     )
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
-    
+
     os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(
         f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.html",
@@ -836,7 +750,8 @@ def plot_grid_from_pandapower(
         f".cache/figs/grid_plot{'_colored' if color_by_results else '_default'}.svg",
         format="svg",
     )
-    
+
+
 def generate_interactive_plot():
     data = make_subplots(
         rows=2,
@@ -872,13 +787,20 @@ def get_continuous_color(colorscale, intermed):
     # Ensure float and clamp to [0, 1]
     intermed = float(intermed)
     if intermed <= 0 or len(colorscale) == 1:
-        return colorscale[0][1] if colorscale[0][1][0] != "#" else "rgb" + str(ImageColor.getcolor(colorscale[0][1], "RGB"))
+        return (
+            colorscale[0][1]
+            if colorscale[0][1][0] != "#"
+            else "rgb" + str(ImageColor.getcolor(colorscale[0][1], "RGB"))
+        )
     if intermed >= 1:
-        return colorscale[-1][1] if colorscale[-1][1][0] != "#" else "rgb" + str(ImageColor.getcolor(colorscale[-1][1], "RGB"))
+        return (
+            colorscale[-1][1]
+            if colorscale[-1][1][0] != "#"
+            else "rgb" + str(ImageColor.getcolor(colorscale[-1][1], "RGB"))
+        )
 
     hex_to_rgb = lambda cc: "rgb" + str(ImageColor.getcolor(cc, "RGB"))
 
-    
     low_cutoff, low_color = colorscale[0]
     high_cutoff, high_color = colorscale[-1]
 
@@ -889,13 +811,12 @@ def get_continuous_color(colorscale, intermed):
             high_cutoff, high_color = cutoff, color
             break
 
-    
     if low_color[0] == "#":
         low_color = hex_to_rgb(low_color)
     if high_color[0] == "#":
         high_color = hex_to_rgb(high_color)
 
-    denom = (high_cutoff - low_cutoff)
+    denom = high_cutoff - low_cutoff
     if denom == 0:
         return low_color
 
@@ -970,7 +891,10 @@ def plot_power_flow_results(
         )
         .with_columns(
             c("coord").list.gather_every(n=2).alias("x"),
-            c("coord").list.gather_every(n=2, offset=1).list.eval(pl.element().neg()).alias("y"),
+            c("coord")
+            .list.gather_every(n=2, offset=1)
+            .list.eval(pl.element().neg())
+            .alias("y"),
             (c("i_pu") / c("i_max_pu") * 100).alias("loading"),
         )
         .with_columns(
@@ -1009,7 +933,9 @@ def plot_power_flow_results(
                     mode="lines",
                     line=dict(
                         width=edge_width,
-                        color=get_color(edge_colorscale, float(data["loading"]) / float(max_loading)),
+                        color=get_color(
+                            edge_colorscale, float(data["loading"]) / float(max_loading)
+                        ),
                     ),
                     hoverinfo="none",
                     showlegend=False,

@@ -96,7 +96,7 @@ class PipelineResultManager:
             .select((c(variable)).sqrt(), c("NΩ").list.get(0).alias("node_id"))
             .join(
                 self.data_manager.node_data[
-                    ["cn_fk", "node_id", "v_base", "v_min_pu", "v_max_pu"]
+                    ["cn_fk", "node_id", "v_base", "min_vm_pu", "max_vm_pu"]
                 ],
                 on="node_id",
                 how="full",

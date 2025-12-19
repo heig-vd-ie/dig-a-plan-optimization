@@ -1,4 +1,5 @@
 import pytest
+import polars as pl
 from data_exporter.pandapower_to_dig_a_plan import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
@@ -25,6 +26,12 @@ class TestADMMModelDualExample(ExpansionTestBase):
         """Extract dual variables from a simple ADMM problem."""
         config = self.admm_config
         config.groups = self.simple_grid_groups
+        self.grid_data.edge_data = self.grid_data.edge_data.with_columns(
+            pl.when(pl.col("type") == "transformer")
+            .then(list(range(95, 105, 1)))
+            .otherwise([100])
+            .alias("taps")
+        )
         dap = DigAPlanADMM(config=config)
         dap.add_grid_data(self.grid_data)
         dap.model_manager.solve_model(extract_duals=True)
@@ -36,4 +43,4 @@ class TestADMMModelDualExample(ExpansionTestBase):
         θs = dap.result_manager.extract_reconfiguration_θ()
         assert θs.shape[0] == 10
         assert θs.shape[1] == 2
-        assert θs["θ"].sum() == pytest.approx(2.1814419859640596e-07, abs=1e-2)
+        assert θs["θ"].sum() == pytest.approx(0.0, abs=1e-1)

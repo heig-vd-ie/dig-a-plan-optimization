@@ -14,14 +14,12 @@ class TestADMMModel:
     def setup_common_data(
         self,
         test_simple_grid,
-        test_taps,
         test_admm_config,
         test_combined_config,
         test_simple_grid_groups,
     ):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.taps = test_taps
         self.admm_config: ADMMConfig = test_admm_config
         self.combined_config = test_combined_config
         self.simple_grid_groups = test_simple_grid_groups
@@ -30,7 +28,7 @@ class TestADMMModel:
 class TestADMMModelSimpleExample(TestADMMModel):
     def test_admm_model_simple_example2(self):
 
-        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net, taps=[100])
+        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
         config = self.admm_config
         config.groups = self.simple_grid_groups

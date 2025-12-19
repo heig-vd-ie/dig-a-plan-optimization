@@ -12,11 +12,10 @@ class TestADMMModel:
 
     @pytest.fixture(autouse=True)
     def setup_common_data(
-        self, test_simple_grid, test_taps, test_admm_config, test_combined_config
+        self, test_simple_grid, test_admm_config, test_combined_config
     ):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.taps = test_taps
         self.admm_config = test_admm_config
         self.combined_config = test_combined_config
 
@@ -24,7 +23,7 @@ class TestADMMModel:
 class TestADMMModelSimpleExample(TestADMMModel):
     def test_admm_model_simple_example(self):
 
-        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net, taps=[100])
+        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
         dap = DigAPlanADMM(config=self.admm_config)
 

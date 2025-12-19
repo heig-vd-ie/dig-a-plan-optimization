@@ -299,7 +299,7 @@ def voltage_tap_lower_limit_rule(m, tr, i, tap, ω):
 
 
 def tap_limit_rule(m, tr):
-    return sum(m.ζ[tr, tap] for tap in m.Taps) == 1
+    return sum(m.ζ[tr, tap] for tr0, tap in m.TrTaps if tr0 == tr) == 1
 
 
 def switch_active_power_lower_bound_rule(m, l, i, j, ω):

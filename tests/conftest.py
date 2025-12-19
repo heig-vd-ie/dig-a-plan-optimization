@@ -31,7 +31,7 @@ def test_data_dir():
 @pytest.fixture(scope="session")
 def test_simple_grid():
     """Provide a simple grid test case."""
-    return pp.from_pickle("examples/simple_grid.p")
+    return pp.from_pickle("examples/ieee-33/simple_grid.p")
 
 
 @pytest.fixture(scope="session")
@@ -44,12 +44,6 @@ def test_simple_grid_groups():
         3: [31, 24, 28, 21, 22, 23],
         4: [34, 26, 25, 24, 31],
     }
-
-
-@pytest.fixture(scope="session")
-def test_taps():
-    """Provide taps for the simple grid test case."""
-    return [95, 98, 99, 100, 101, 102, 105]
 
 
 @pytest.fixture(scope="session")

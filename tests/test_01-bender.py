@@ -14,19 +14,16 @@ class BenderTestCase:
     """Base class for Bender test cases."""
 
     @pytest.fixture(autouse=True)
-    def setup_common_data(self, test_simple_grid, test_taps, test_bender_config):
+    def setup_common_data(self, test_simple_grid, test_bender_config):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.taps = test_taps
         self.bender_config = test_bender_config
 
 
 class TestBenderModel(BenderTestCase):
     def test_bender_model_simple_example(self):
 
-        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-            self.net, taps=self.taps
-        )
+        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
         dig_a_plan = DigAPlanBender(config=self.bender_config)
 

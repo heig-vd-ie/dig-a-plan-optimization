@@ -1,22 +1,13 @@
-from api import (
-    GridCase,
-    GridCaseModel,
-    ReconfigurationOutput,
-)
+from pydantic import BaseModel
+from api.models import CombinedInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 
 
-class CombinedInput(GridCaseModel):
-    groups: int | None = None
-
-
-class CombinedOutput(ReconfigurationOutput):
-    pass
-
-
-def run_combined(input: CombinedInput) -> CombinedOutput:
-    net, base_grid_data = get_grid_case(input)
+def run_combined(input: CombinedInput) -> ReconfigurationOutput:
+    net, base_grid_data = get_grid_case(
+        grid=input.grid, seed=input.seed, stu=input.scenarios
+    )
     config = CombinedConfig(
         verbose=True,
         big_m=1e3,
@@ -37,7 +28,7 @@ def run_combined(input: CombinedInput) -> CombinedOutput:
     powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
     reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
-    result = CombinedOutput(
+    result = ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),
