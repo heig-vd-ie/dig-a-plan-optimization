@@ -6,7 +6,7 @@ import pyomo.environ as pyo
 import numpy as np
 import polars as pl
 from polars import col as c
-from helper_functions import generate_log
+from helpers import generate_log
 from pipelines.reconfiguration.data_manager import PipelineDataManager
 from pipelines.reconfiguration.configs import ADMMConfig, PipelineType
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
