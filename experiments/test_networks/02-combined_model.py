@@ -26,7 +26,7 @@ dig_a_plan = DigAPlanCombined(konfig=konfig)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)
-dig_a_plan.solve_model()  # one‐shot solve
+dig_a_plan.solve_model()  # has error in solver
 
 # %% extract and compare results
 # Switch status
