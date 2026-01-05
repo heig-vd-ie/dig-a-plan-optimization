@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 # %% set parameters
 net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net, number_of_random_scenarios=10
+    net, number_of_random_scenarios=12
 )
 
 # %% initialize DigAPlan
