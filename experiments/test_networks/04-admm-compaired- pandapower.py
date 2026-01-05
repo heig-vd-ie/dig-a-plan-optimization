@@ -1,9 +1,11 @@
 # %% ------------------ setup & imports ------------------
 import os, json, copy as _copy, re, math
 
-os.chdir(os.getcwd().replace("/src", ""))
 
+from pathlib import Path
 from experiments import *
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 import numpy as np
 import pandas as pd
@@ -385,7 +387,7 @@ def pp_losses_MW(net: pp.pandapowerNet) -> float:
 
 
 # %% ------------------ Stage A: ADMM on train scenarios -> learn y* ------------
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
 net.bus["max_vm_pu"] = 1.05
 net.bus["min_vm_pu"] = 0.95
 
