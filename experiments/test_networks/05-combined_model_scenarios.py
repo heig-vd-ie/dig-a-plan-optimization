@@ -1,12 +1,14 @@
 # %%
 import os
 
-os.chdir(os.getcwd().replace("/src", ""))
 # %% import libraries
+from pathlib import Path
 from experiments import *
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 # %% set parameters
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net, number_of_random_scenarios=10
 )
@@ -36,12 +38,3 @@ voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
 
-
-# # %% plot the grid annotated with DigAPlan results
-# fig = plot_grid_from_pandapower(net=net, dap=dig_a_plan)
-
-# # %% compare DigAPlan results with pandapower results
-
-# node_data, edge_data = compare_dig_a_plan_with_pandapower(
-#     dig_a_plan=dig_a_plan, net=net
-# )
