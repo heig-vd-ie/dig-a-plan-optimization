@@ -1,9 +1,9 @@
-# %%
-import os
 
-os.chdir(os.getcwd().replace("/src", ""))
+
 # %%
 from experiments import *
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 # %%
@@ -74,7 +74,10 @@ def create_simple_grid():
 
     net["trafo"]["shift_degree"] = 0
     net["line"].loc[:, "max_i_ka"] = 1
-    pp.to_pickle(net, "examples/ieee-33/simple_grid.p")
+    out_path = PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    pp.to_pickle(net, str(out_path))
 
 
 # %%
