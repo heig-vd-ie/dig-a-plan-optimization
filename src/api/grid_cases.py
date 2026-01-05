@@ -3,11 +3,12 @@ import polars as pl
 from polars import col as c
 from typing import Tuple
 
-from data_exporter.pandapower_to_dig_a_plan import (
+from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from data_schema import NodeEdgeModel
-from api.models import GridCaseModel, ShortTermUncertainty
+from data_model import NodeEdgeModel
+from data_model.kace import GridCaseModel
+from data_model.reconfiguration import ShortTermUncertainty
 
 
 def get_grid_case(

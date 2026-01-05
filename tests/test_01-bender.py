@@ -1,13 +1,13 @@
 import polars as pl
 import pytest
 
-from data_exporter.pandapower_to_dig_a_plan import (
+from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines.reconfiguration import DigAPlanBender
+from pipeline_reconfiguration import DigAPlanBender
 
-from pipelines.helpers.pyomo_utility import extract_optimization_results
+from helpers.pyomo import extract_optimization_results
 
 
 class BenderTestCase:
@@ -25,7 +25,7 @@ class TestBenderModel(BenderTestCase):
 
         base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        dig_a_plan = DigAPlanBender(config=self.bender_config)
+        dig_a_plan = DigAPlanBender(konfig=self.bender_config)
 
         dig_a_plan.add_grid_data(base_grid_data)
         dig_a_plan.solve_model(max_iters=100)

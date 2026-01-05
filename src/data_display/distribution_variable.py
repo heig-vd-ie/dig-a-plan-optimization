@@ -2,7 +2,7 @@ import os
 from typing import Dict, Literal
 import polars as pl
 import plotly.express as px
-from pipelines.reconfiguration import DigAPlanADMM
+from pipeline_reconfiguration import DigAPlanADMM
 from data_display.style import apply_plot_style
 
 

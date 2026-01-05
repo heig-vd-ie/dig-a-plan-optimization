@@ -24,14 +24,13 @@ base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
 )
 # %% initialize DigAPlan
 
-config = CombinedConfig(
+konfig = CombinedConfig(
     verbose=True,
     big_m=1000,
     ε=0.1,
-    pipeline_type=PipelineType.COMBINED,
     γ_admm_penalty=0.0,
 )
-dig_a_plan = DigAPlanCombined(config=config)
+dig_a_plan = DigAPlanCombined(konfig=konfig)
 
 # %% add grid data and solve the combined model
 dig_a_plan.add_grid_data(base_grid_data)

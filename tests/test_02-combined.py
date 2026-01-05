@@ -1,13 +1,13 @@
 import pytest
 import polars as pl
 import math
-from data_exporter.pandapower_to_dig_a_plan import (
+from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from pipelines.reconfiguration import DigAPlanCombined
+from pipeline_reconfiguration import DigAPlanCombined
 
-from pipelines.helpers.pyomo_utility import extract_optimization_results
+from helpers.pyomo import extract_optimization_results
 
 
 class TestCombinedModel:
@@ -24,7 +24,7 @@ class TestCombinedModelSimpleExample(TestCombinedModel):
 
         base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
 
-        dig_a_plan = DigAPlanCombined(config=self.combined_config)
+        dig_a_plan = DigAPlanCombined(konfig=self.combined_config)
 
         dig_a_plan.add_grid_data(base_grid_data)
         dig_a_plan.solve_model()  # one‐shot solve

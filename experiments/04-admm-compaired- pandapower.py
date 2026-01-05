@@ -413,7 +413,6 @@ if need_train:
     )
     config_train = ADMMConfig(
         verbose=False,
-        pipeline_type=PipelineType.ADMM,
         solver_name="gurobi",
         solver_non_convex=2,
         big_m=1e3,
@@ -428,7 +427,7 @@ if need_train:
         τ_incr=2.0,
         τ_decr=2.0,
     )
-    dap_train = DigAPlanADMM(config=config_train)
+    dap_train = DigAPlanADMM(konfig=config_train)
     dap_train.add_grid_data(grid_train)
     dap_train.solve_model()
 

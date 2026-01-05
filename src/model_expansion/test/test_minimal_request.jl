@@ -88,8 +88,9 @@ end
 
 function test_generate_scenarios_request()
     @testset "Test generate scenarios" begin
-        custom_request =
-            JSON3.read(read(joinpath(@__DIR__, "../../../examples/scenarios_request.json"), String))
+        custom_request = JSON3.read(
+            read(joinpath(@__DIR__, "../../../examples/scenarios_request.json"), String),
+        )
         custom_request = Dict(custom_request)
         response = HTTP.patch(
             "$SERVER_BASE_URL/generate-scenarios",

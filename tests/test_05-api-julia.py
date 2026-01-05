@@ -2,14 +2,14 @@ import pytest
 import numpy as np
 import math
 from pathlib import Path
-from pipelines.expansion.api import run_sddp, run_sddp_native
-from pipelines.expansion.models.request import (
+from api.sddp import run_sddp, run_sddp_native
+from data_model.sddp import (
     ExpansionRequest,
     OptimizationConfig,
     Scenarios,
     BenderCuts,
 )
-from pipelines.helpers.json_rw import load_obj_from_json
+from helpers.json import load_obj_from_json
 
 
 class TestExpansion:

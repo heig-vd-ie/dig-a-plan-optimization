@@ -33,9 +33,8 @@ grid_data.edge_data = grid_data.edge_data.with_columns(
 )
 
 # %% Configure ADMM pipeline
-config = ADMMConfig(
+konfig = ADMMConfig(
     verbose=False,
-    pipeline_type=PipelineType.ADMM,
     solver_name="gurobi",
     solver_non_convex=0,  # Set non-convex parameters to 2 for Boisy grid
     big_m=1e3,
@@ -52,7 +51,7 @@ config = ADMMConfig(
     groups=10,  # TODO: set number of groups for actual boisy grid to 40
 )
 
-dap = DigAPlanADMM(config=config)
+dap = DigAPlanADMM(konfig=konfig)
 
 # %% Build per-scenario models (instantiated inside add_grid_data)
 dap.add_grid_data(grid_data)
