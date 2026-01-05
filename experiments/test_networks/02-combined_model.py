@@ -1,12 +1,16 @@
 # %%
 import os
+print(os.environ.get("GRB_LICENSE_FILE"))
 
-os.chdir(os.getcwd().replace("/src", ""))
 # %% import libraries
 from experiments import *
 
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  
+
+
 # %% set parameters
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
 # %% initialize DigAPlan
@@ -37,7 +41,7 @@ reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
 taps = dig_a_plan.result_manager.extract_transformer_tap_position()
 
 # %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(net=net, dap=dig_a_plan)
+fig = plot_grid_from_pandapower(dap=dig_a_plan)
 
 # %% compare DigAPlan results with pandapower results
 

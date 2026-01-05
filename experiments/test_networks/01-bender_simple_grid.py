@@ -4,7 +4,7 @@ import os
 # %% import libraries
 from experiments import *
 from pathlib import Path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # project root if file is in experiments/test_networks/
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  
 
 
 
