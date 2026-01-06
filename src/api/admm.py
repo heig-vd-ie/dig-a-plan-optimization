@@ -3,34 +3,34 @@ from api.grid_cases import get_grid_case
 from experiments import *
 
 
-def run_admm(input: ADMMInput) -> ReconfigurationOutput:
+def run_admm(requets: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=input.grid, seed=input.seed, stu=input.scenarios
+        grid=requets.grid, seed=requets.seed, stu=requets.scenarios
     )
     konfig = ADMMConfig(
         verbose=False,
         solver_name="gurobi",
         solver_non_convex=2,
         big_m=1e3,
-        ε=1 if input.grid.pp_file != "examples/ieee-33/simple_grid.p" else 1e-4,
+        ε=1 if requets.grid.pp_file != "examples/ieee-33/simple_grid.p" else 1e-4,
         ρ=2.0,
         γ_infeasibility=(
-            10 if input.grid.pp_file == "examples/ieee-33/simple_grid.p" else 100.0
+            10 if requets.grid.pp_file == "examples/ieee-33/simple_grid.p" else 100.0
         ),
         γ_admm_penalty=1.0,
         γ_trafo_loss=(
-            1e2 if input.grid.pp_file == "examples/ieee-33/simple_grid.p" else 1.0
+            1e2 if requets.grid.pp_file == "examples/ieee-33/simple_grid.p" else 1.0
         ),
-        time_limit=(1 if input.grid.pp_file == "examples/boisy_simplified.p" else 10),
-        groups=input.groups,
-        max_iters=input.max_iters,
+        time_limit=(1 if requets.grid.pp_file == "examples/boisy_simplified.p" else 10),
+        groups=requets.groups,
+        max_iters=requets.max_iters,
         μ=10.0,
         τ_incr=2.0,
         τ_decr=2.0,
     )
     dap = DigAPlanADMM(konfig=konfig)
     dap.add_grid_data(base_grid_data)
-    dap.solve_model(groups=input.groups)
+    dap.solve_model(groups=requets.groups)
     # Fixed switches solution (for distribution plots)
     dap_fixed = copy.deepcopy(dap)
     dap_fixed.solve_model(fixed_switches=True)

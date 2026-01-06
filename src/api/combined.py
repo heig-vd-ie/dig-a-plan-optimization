@@ -3,9 +3,9 @@ from api.grid_cases import get_grid_case
 from experiments import *
 
 
-def run_combined(input: CombinedInput) -> ReconfigurationOutput:
+def run_combined(requets: CombinedInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=input.grid, seed=input.seed, stu=input.scenarios
+        grid=requets.grid, seed=requets.seed, stu=requets.scenarios
     )
     konfig = CombinedConfig(
         verbose=True,
@@ -16,7 +16,7 @@ def run_combined(input: CombinedInput) -> ReconfigurationOutput:
     )
     dig_a_plan = DigAPlanCombined(konfig=konfig)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(groups=input.groups)  # one‐shot solve
+    dig_a_plan.solve_model(groups=requets.groups)  # one‐shot solve
     switches = dig_a_plan.result_manager.extract_switch_status()
     # Node voltages
     voltages = dig_a_plan.result_manager.extract_node_voltage()
