@@ -66,39 +66,23 @@ class ExpansionAlgorithm:
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
-        self.create_planning_params(γ_cuts=γ_cuts)
+        self.create_planning_params(
+            γ_cuts=γ_cuts, n_stages=self.long_term_uncertainty.n_stages
+        )
         self.create_additional_params(sddp_config=sddp_config)
         nodes = [
             Node(id=node["node_id"])
             for node in grid_data.node_data.iter_rows(named=True)
         ]
-        self.create_scenario_data(
+        self.scenario_data = self.create_scenario_data(
             nodes=nodes,
-            load_potential={
-                node.id: self.long_term_uncertainty.δ_load_var for node in nodes
-            },
-            pv_potential={
-                node.id: self.long_term_uncertainty.δ_pv_var for node in nodes
-            },
-            δ_b_var=self.long_term_uncertainty.δ_b_var,
-            number_of_scenarios=self.long_term_uncertainty.number_of_scenarios,
-            number_of_stages=self.long_term_uncertainty.n_stages,
+            n_stages=self.long_term_uncertainty.n_stages,
             seed_number=self.seed_number,
-            n_years_per_stage=self.planning_params.years_per_stage,
         )
-        self.create_out_of_sample_scenario_data(
+        self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
-            load_potential={
-                node.id: self.long_term_uncertainty.δ_load_var for node in nodes
-            },
-            pv_potential={
-                node.id: self.long_term_uncertainty.δ_pv_var for node in nodes
-            },
-            δ_b_var=self.long_term_uncertainty.δ_b_var,
-            number_of_scenarios=self.long_term_uncertainty.number_of_scenarios,
-            number_of_stages=self.long_term_uncertainty.n_stages,
+            n_stages=self.long_term_uncertainty.n_stages,
             seed_number=self.seed_number + 1000,
-            n_years_per_stage=self.planning_params.years_per_stage,
         )
 
         self.create_bender_cuts(bender_cuts=bender_cuts)
@@ -108,10 +92,10 @@ class ExpansionAlgorithm:
     def _range(self, i: int):
         return range(1, 2 if self.just_test else i + 1)
 
-    def create_planning_params(self, γ_cuts: float = 0.0):
+    def create_planning_params(self, γ_cuts: float = 0.0, n_stages: int = 3):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
-            n_stages=self.long_term_uncertainty.n_stages,
+            n_stages=n_stages,
             initial_budget=self.sddp_config.initial_budget,
             γ_cuts=γ_cuts,
             discount_rate=self.sddp_config.discount_rate,
@@ -122,58 +106,25 @@ class ExpansionAlgorithm:
     def create_scenario_data(
         self,
         nodes: List[Node],
-        load_potential: Dict[int, float],
-        pv_potential: Dict[int, float],
-        δ_b_var=10000.0,
-        min_load=5.0,
-        min_pv=1.0,
-        number_of_scenarios=10,
-        number_of_stages=3,
+        n_stages=3,
         seed_number=1000,
-        n_years_per_stage=1,
     ):
         """Generate long-term scenarios with configurable parameters."""
         ltm_scenarios = LongTermScenarioRequest(
-            n_scenarios=number_of_scenarios,
-            n_stages=number_of_stages,
+            n_scenarios=self.long_term_uncertainty.number_of_scenarios,
+            n_stages=n_stages,
             nodes=nodes,
-            load_potential=load_potential,
-            pv_potential=pv_potential,
-            min_load=min_load,
-            min_pv=min_pv,
-            yearly_budget=δ_b_var,
-            N_years_per_stage=n_years_per_stage,
+            load_potential={
+                node.id: self.long_term_uncertainty.δ_load_var for node in nodes
+            },
+            pv_potential={
+                node.id: self.long_term_uncertainty.δ_pv_var for node in nodes
+            },
+            yearly_budget=self.long_term_uncertainty.δ_b_var,
+            N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,
         )
-        self.scenario_data = generate_scenarios(ltm_scenarios)
-
-    def create_out_of_sample_scenario_data(
-        self,
-        nodes: List[Node],
-        load_potential: Dict[int, float],
-        pv_potential: Dict[int, float],
-        δ_b_var=10000.0,
-        min_load=5.0,
-        min_pv=1.0,
-        number_of_scenarios=10,
-        number_of_stages=3,
-        seed_number=1000,
-        n_years_per_stage=1,
-    ):
-        """Generate long-term scenarios with configurable parameters."""
-        ltm_scenarios = LongTermScenarioRequest(
-            n_scenarios=number_of_scenarios,
-            n_stages=number_of_stages,
-            nodes=nodes,
-            load_potential=load_potential,
-            pv_potential=pv_potential,
-            min_load=min_load,
-            min_pv=min_pv,
-            yearly_budget=δ_b_var,
-            N_years_per_stage=n_years_per_stage,
-            seed_number=seed_number,
-        )
-        self.out_of_sample_scenarios = generate_scenarios(ltm_scenarios)
+        return generate_scenarios(ltm_scenarios)
 
     def create_additional_params(self, sddp_config: SDDPConfig):
         """Create additional parameters with default or custom values."""

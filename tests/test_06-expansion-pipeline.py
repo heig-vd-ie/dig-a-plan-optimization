@@ -1,4 +1,3 @@
-from ast import iter_child_nodes
 import datetime
 import math
 import numpy as np
@@ -8,7 +7,7 @@ from data_exporter.pp_to_dap import (
 )
 from data_model.expansion import LongTermUncertainty, SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
-from data_model.sddp import Node, RiskMeasureType
+from data_model.sddp import RiskMeasureType
 from pipeline_reconfiguration import ADMMConfig
 
 
@@ -76,26 +75,15 @@ class TestExpansionDataExporter(ExpansionTestBase):
 
     def test_expansion_with_different_stages(self):
         """Test expansion with different number of stages."""
-        δ_load_var: float = 5.0
-        δ_pv_var: float = 1.0
-        nodes = [
-            Node(id=node["node_id"])
-            for node in self.grid_data.node_data.iter_rows(named=True)
-        ]
         self.expansion_algorithm.create_expansion_request()
-        self.expansion_algorithm.n_stages = 5
-        self.expansion_algorithm.create_planning_params()
-        self.expansion_algorithm.create_scenario_data(
+        self.expansion_algorithm.create_planning_params(n_stages=5)
+        self.expansion_algorithm.scenario_data = self.expansion_algorithm.create_scenario_data(
             nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
-            number_of_stages=5,
-            load_potential={node.id: δ_load_var for node in nodes},
-            pv_potential={node.id: δ_pv_var for node in nodes},
+            n_stages=5,
         )
-        self.expansion_algorithm.create_out_of_sample_scenario_data(
+        self.expansion_algorithm.out_of_sample_scenarios = self.expansion_algorithm.create_scenario_data(
             nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
-            number_of_stages=5,
-            load_potential={node.id: δ_load_var for node in nodes},
-            pv_potential={node.id: δ_pv_var for node in nodes},
+            n_stages=5,
         )
         self.expansion_algorithm.create_expansion_request()
         results = self.expansion_algorithm.run_sddp()
