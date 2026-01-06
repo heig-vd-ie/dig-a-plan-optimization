@@ -83,7 +83,8 @@ class TestExpansionDataExporter(ExpansionTestBase):
             for node in self.grid_data.node_data.iter_rows(named=True)
         ]
         self.expansion_algorithm.create_expansion_request()
-        self.expansion_algorithm.create_planning_params(n_stages=5)
+        self.expansion_algorithm.n_stages = 5
+        self.expansion_algorithm.create_planning_params()
         self.expansion_algorithm.create_scenario_data(
             nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
             number_of_stages=5,
@@ -104,7 +105,8 @@ class TestExpansionDataExporter(ExpansionTestBase):
 
     def test_expansion_with_different_budget(self):
         """Test expansion with different initial budget."""
-        self.expansion_algorithm.create_planning_params(initial_budget=50000)
+        self.expansion_algorithm.sddp_config.initial_budget = 50000
+        self.expansion_algorithm.create_planning_params()
         self.expansion_algorithm.create_expansion_request()
         results = self.expansion_algorithm.run_sddp()
 

@@ -43,7 +43,7 @@ class ExpansionAlgorithm:
         long_term_uncertainty: LongTermUncertainty,
         each_task_memory: float,
         time_now: str,
-        cache_dir: Path,
+        cache_dir: Path = Path(".cache"),
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
@@ -66,13 +66,7 @@ class ExpansionAlgorithm:
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
-        self.create_planning_params(
-            n_stages=self.long_term_uncertainty.n_stages,
-            initial_budget=self.sddp_config.initial_budget,
-            discount_rate=self.sddp_config.discount_rate,
-            γ_cuts=γ_cuts,
-            years_per_stage=self.sddp_config.years_per_stage,
-        )
+        self.create_planning_params(γ_cuts=γ_cuts)
         self.create_additional_params(sddp_config=sddp_config)
         nodes = [
             Node(id=node["node_id"])
@@ -114,21 +108,14 @@ class ExpansionAlgorithm:
     def _range(self, i: int):
         return range(1, 2 if self.just_test else i + 1)
 
-    def create_planning_params(
-        self,
-        n_stages: int = 3,
-        initial_budget: float = 1e6,
-        discount_rate: float = 0.05,
-        γ_cuts: float = 0.0,
-        years_per_stage: int = 1,
-    ):
+    def create_planning_params(self, γ_cuts: float = 0.0):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
-            n_stages=n_stages,
-            initial_budget=initial_budget,
+            n_stages=self.n_stages,
+            initial_budget=self.sddp_config.initial_budget,
             γ_cuts=γ_cuts,
-            discount_rate=discount_rate,
-            years_per_stage=years_per_stage,
+            discount_rate=self.sddp_config.discount_rate,
+            years_per_stage=self.sddp_config.years_per_stage,
             n_cut_scenarios=len(list(self.grid_data.load_data.keys())),
         )
 
