@@ -44,6 +44,8 @@ expansion_algorithm = ExpansionAlgorithm(
     admm_config=ADMMConfig(
         groups=groups,
     ),
+    sddp_config=SDDPConfig(),
+    long_term_uncertainty=LongTermUncertainty(),
 )
 
 # %%

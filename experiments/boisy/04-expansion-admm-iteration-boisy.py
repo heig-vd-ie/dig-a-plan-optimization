@@ -38,6 +38,8 @@ expansion_algorithm = ExpansionAlgorithm(
         # time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
         # solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
     ),
+    sddp_config=SDDPConfig(),
+    long_term_uncertainty=LongTermUncertainty(),
 )
 
 # %%

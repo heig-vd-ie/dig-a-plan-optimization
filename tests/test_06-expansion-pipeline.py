@@ -1,3 +1,4 @@
+from ast import iter_child_nodes
 import datetime
 import math
 import numpy as np
@@ -5,6 +6,7 @@ import pytest
 from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
+from data_model.expansion import LongTermUncertainty, SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
 from data_model.sddp import Node, RiskMeasureType
 from pipeline_reconfiguration import ADMMConfig
@@ -25,6 +27,25 @@ class ExpansionTestBase:
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
             admm_config=ADMMConfig(),
+            sddp_config=SDDPConfig(
+                n_simulations=100,
+                n_optimizations=10,
+                initial_budget=1e6,
+                discount_rate=0.05,
+                years_per_stage=1,
+                iterations=10,
+                expansion_line_cost_per_km_kw=1e3,
+                expansion_transformer_cost_per_kw=1e3,
+                penalty_cost_per_consumption_kw=1e3,
+                penalty_cost_per_production_kw=1e3,
+            ),
+            long_term_uncertainty=LongTermUncertainty(
+                δ_load_var=5.0,
+                δ_b_var=1000,
+                δ_pv_var=1.0,
+                number_of_scenarios=100,
+                n_stages=3,
+            ),
             each_task_memory=1024,
             time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             cache_dir=self.cache_dir,
@@ -93,7 +114,9 @@ class TestExpansionDataExporter(ExpansionTestBase):
     def test_expansion_with_cvar_risk_measure(self):
         """Test expansion with CVaR risk measure."""
         self.expansion_algorithm.create_additional_params(
-            risk_measure_type=RiskMeasureType.CVAR, risk_measure_param=0.95
+            sddp_config=SDDPConfig(
+                risk_measure_type=RiskMeasureType.CVAR, risk_measure_param=0.95
+            )
         )
         self.expansion_algorithm.create_expansion_request()
         results = self.expansion_algorithm.run_sddp()

@@ -21,9 +21,6 @@ class SDDPConfig(BaseModel):
     n_optimizations: int = Field(
         default=10, description="Number of ADMM optimization per stage"
     )
-
-
-class SDDPParams(BaseModel):
     initial_budget: float = Field(default=50e3, description="Initial budget in k$")
     discount_rate: float = Field(default=0.05, description="Discount rate in per unit")
     years_per_stage: int = Field(default=1, description="Years per stage")
@@ -55,7 +52,6 @@ class ExpansionInput(BaseModel):
     )
     admm_config: ADMMConfig = Field(description="ADMM configuration")
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
-    sddp_params: SDDPParams = Field(description="SDDP parameters")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(
