@@ -4,7 +4,7 @@ from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
 from pipeline_reconfiguration import DigAPlanADMM
-from data_model.reconfiguration_konfig import ADMMConfig
+from data_model.reconfiguration import ADMMConfig
 
 
 class ExpansionTestBase:

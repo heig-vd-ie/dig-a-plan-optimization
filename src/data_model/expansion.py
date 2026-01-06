@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from data_model.sddp import ExpansionResponse, RiskMeasureType
 from pydantic import BaseModel, Field
 from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty, ADMMOptConfig, ADMMParams
+from data_model.reconfiguration import ShortTermUncertainty, ADMMConfig
 
 
 class LongTermUncertainty(BaseModel):
@@ -53,9 +53,8 @@ class ExpansionInput(BaseModel):
     long_term_uncertainty: LongTermUncertainty = Field(
         description="Long term uncertainty model"
     )
-    admm_config: ADMMOptConfig = Field(description="ADMM configuration")
+    admm_config: ADMMConfig = Field(description="ADMM configuration")
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
-    admm_params: ADMMParams = Field(description="ADMM parameters")
     sddp_params: SDDPParams = Field(description="SDDP parameters")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")

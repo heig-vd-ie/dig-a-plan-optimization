@@ -26,7 +26,7 @@ from pipeline_reconfiguration import (
     DigAPlanCombined,
     DigAPlanBender,
 )
-from data_model.reconfiguration_konfig import (
+from data_model.reconfiguration import (
     BenderConfig,
     CombinedConfig,
     ADMMConfig,
@@ -47,4 +47,3 @@ from pandapower.networks import create_cigre_network_mv
 from shapely import from_geojson
 import joblib
 from data_exporter.mock_dap import save_dap_state, load_dap_state
-

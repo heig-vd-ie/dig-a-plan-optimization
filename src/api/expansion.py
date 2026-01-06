@@ -27,8 +27,8 @@ def run_expansion(
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
-        admm_voll=requets.admm_params.voll,
-        admm_volp=requets.admm_params.volp,
+        admm_voll=requets.admm_config.voll,
+        admm_volp=requets.admm_config.volp,
         cache_dir=Path(".cache"),
         bender_cuts=(
             None
@@ -61,7 +61,7 @@ def run_expansion(
         penalty_cost_per_consumption_kw=requets.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=requets.sddp_params.penalty_cost_per_production_kw,
         s_base=requets.grid.s_base,
-        admm_max_iters=requets.admm_config.iterations,
+        admm_max_iters=requets.admm_config.admm_max_iterations,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()
