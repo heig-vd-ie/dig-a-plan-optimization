@@ -1,8 +1,15 @@
-from api.bender import *
-from api.combined import *
-from api.admm import *
-from api.expansion import *
+from api.bender import run_bender
+from api.combined import run_combined
+from api.admm import run_admm
+from api.expansion import run_expansion
 from api.ray_utils import init_ray, shutdown_ray, where_am_i
+from data_model.reconfiguration import (
+    ADMMInput,
+    CombinedInput,
+    BenderInput,
+    ReconfigurationOutput,
+)
+from data_model.expansion import ExpansionInput, ExpansionOutput
 from fastapi import FastAPI
 import ray
 import warnings
