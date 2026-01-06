@@ -1,6 +1,6 @@
-from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
-from experiments import *
+from data_model.reconfiguration import CombinedInput, ReconfigurationOutput
+from pipeline_reconfiguration import DigAPlanCombined
 
 
 def run_combined(requests: CombinedInput) -> ReconfigurationOutput:

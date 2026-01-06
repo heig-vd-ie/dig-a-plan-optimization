@@ -1,6 +1,6 @@
-from data_model.reconfiguration import BenderInput, ReconfigurationOutput
-from experiments import *
 from api.grid_cases import get_grid_case
+from data_model.reconfiguration import BenderInput, ReconfigurationOutput
+from pipeline_reconfiguration import DigAPlanBender
 
 
 def run_bender(requests: BenderInput) -> ReconfigurationOutput:
