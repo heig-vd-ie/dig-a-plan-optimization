@@ -3,13 +3,13 @@ from api.grid_cases import get_grid_case
 from experiments import *
 
 
-def run_admm(requets: ADMMInput) -> ReconfigurationOutput:
+def run_admm(requests: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=requets.grid, seed=requets.konfig.seed, stu=requets.scenarios
+        grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
     )
-    dap = DigAPlanADMM(konfig=requets.konfig)
+    dap = DigAPlanADMM(konfig=requests.konfig)
     dap.add_grid_data(base_grid_data)
-    dap.solve_model(groups=requets.konfig.groups)
+    dap.solve_model(groups=requests.konfig.groups)
     # Fixed switches solution (for distribution plots)
     dap_fixed = copy.deepcopy(dap)
     dap_fixed.solve_model(fixed_switches=True)

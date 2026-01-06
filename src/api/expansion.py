@@ -13,23 +13,23 @@ def get_session_name() -> str:
 
 
 def run_expansion(
-    requets: ExpansionInput, with_ray: bool, cut_file: None | str = None
+    requests: ExpansionInput, with_ray: bool, cut_file: None | str = None
 ) -> ExpansionOutput:
     session_name = get_session_name()
     time_now = session_name
     (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
     save_obj_to_json(
-        InputObject(expansion=requets, time_now=time_now, with_ray=with_ray),
+        InputObject(expansion=requests, time_now=time_now, with_ray=with_ray),
         Path(".cache/algorithm") / time_now / "input.json",
     )
     _, grid_data = get_grid_case(
-        requets.grid, seed=requets.seed, stu=requets.short_term_uncertainty
+        requests.grid, seed=requests.seed, stu=requests.short_term_uncertainty
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
-        admm_config=requets.admm_config,
-        sddp_config=requets.sddp_config,
-        long_term_uncertainty=requets.long_term_uncertainty,
+        admm_config=requests.admm_config,
+        sddp_config=requests.sddp_config,
+        long_term_uncertainty=requests.long_term_uncertainty,
         cache_dir=Path(".cache"),
         bender_cuts=(
             None
@@ -37,11 +37,11 @@ def run_expansion(
             else BenderCuts(**load_obj_from_json(Path(cut_file)))
         ),
         time_now=time_now,
-        each_task_memory=requets.each_task_memory,
-        iterations=requets.iterations,
-        seed_number=requets.seed,
+        each_task_memory=requests.each_task_memory,
+        iterations=requests.iterations,
+        seed_number=requests.seed,
         γ_cuts=1.0,
-        s_base=requets.grid.s_base,
+        s_base=requests.grid.s_base,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()

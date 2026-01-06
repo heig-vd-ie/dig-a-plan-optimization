@@ -28,25 +28,25 @@ def read_root():
 
 
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
-def reconfiguration_bender(requets: BenderInput) -> ReconfigurationOutput:
-    return run_bender(requets)
+def reconfiguration_bender(requests: BenderInput) -> ReconfigurationOutput:
+    return run_bender(requests)
 
 
 @app.patch("/reconfiguration/combined", tags=["Reconfiguration"])
-def reconfiguration_combined(requets: CombinedInput) -> ReconfigurationOutput:
-    return run_combined(requets)
+def reconfiguration_combined(requests: CombinedInput) -> ReconfigurationOutput:
+    return run_combined(requests)
 
 
 @app.patch("/reconfiguration/admm", tags=["Reconfiguration"])
-def reconfiguration_admm(requets: ADMMInput) -> ReconfigurationOutput:
-    return run_admm(requets)
+def reconfiguration_admm(requests: ADMMInput) -> ReconfigurationOutput:
+    return run_admm(requests)
 
 
 @app.patch("/expansion", tags=["Expansion"])
 def expansion(
-    requets: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
+    requests: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
 ) -> ExpansionOutput:
-    results = run_expansion(requets, with_ray=with_ray, cut_file=cut_file)
+    results = run_expansion(requests, with_ray=with_ray, cut_file=cut_file)
     return results
 
 

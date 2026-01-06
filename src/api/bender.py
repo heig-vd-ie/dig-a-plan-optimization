@@ -3,13 +3,13 @@ from experiments import *
 from api.grid_cases import get_grid_case
 
 
-def run_bender(requets: BenderInput) -> ReconfigurationOutput:
+def run_bender(requests: BenderInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=requets.grid, seed=requets.konfig.seed, stu=requets.scenarios
+        grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
     )
-    dig_a_plan = DigAPlanBender(konfig=requets.konfig)
+    dig_a_plan = DigAPlanBender(konfig=requests.konfig)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(max_iters=requets.konfig.max_iters)
+    dig_a_plan.solve_model(max_iters=requests.konfig.max_iters)
 
     switches = dig_a_plan.result_manager.extract_switch_status()
     voltages = dig_a_plan.result_manager.extract_node_voltage()
