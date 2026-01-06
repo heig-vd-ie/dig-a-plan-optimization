@@ -18,6 +18,9 @@ class LongTermUncertainty(BaseModel):
 class SDDPConfig(BaseModel):
     iterations: int = Field(default=10, description="Number of iterations")
     n_simulations: int = Field(default=100, description="Number of simulations")
+    n_optimizations: int = Field(
+        default=10, description="Number of ADMM optimization per stage"
+    )
 
 
 class SDDPParams(BaseModel):

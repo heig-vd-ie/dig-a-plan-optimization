@@ -39,7 +39,7 @@ def run_expansion(
         each_task_memory=requets.each_task_memory,
         admm_groups=requets.admm_config.groups,
         iterations=requets.iterations,
-        n_admm_simulations=requets.admm_config.n_simulations,
+        n_admm_simulations=requets.sddp_config.n_simulations,
         seed_number=requets.seed,
         time_limit=requets.admm_config.time_limit,
         solver_non_convex=2 if requets.admm_config.solver_non_convex else 0,

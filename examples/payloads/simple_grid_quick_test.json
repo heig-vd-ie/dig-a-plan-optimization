@@ -15,7 +15,6 @@
     },
     "admm_config": {
         "iterations": 10,
-        "n_simulations": 3,
         "solver_non_convex": true,
         "time_limit": 1,
         "groups": {
@@ -26,7 +25,7 @@
             "4": [ 34, 26, 25, 24, 31 ]
         }
     },
-    "sddp_config": { "iterations": 1, "n_simulations": 10 },
+    "sddp_config": { "iterations": 1, "n_simulations": 10, "n_optimizations": 3 },
     "admm_params": {
         "big_m": 1000,
         "ε": 0.0001,

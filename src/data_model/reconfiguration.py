@@ -21,9 +21,6 @@ class ShortTermUncertainty(BaseModel):
 
 class ADMMOptConfig(BaseModel):
     iterations: int = Field(default=10, description="Number of iterations")
-    n_simulations: int = Field(
-        default=10, description="Number of simulations per stage"
-    )
     solver_non_convex: bool = Field(default=True, description="Use non-convex solver")
     time_limit: int = Field(default=10, description="Time limit in seconds")
     groups: int | Dict[int, List[int]] = Field(
