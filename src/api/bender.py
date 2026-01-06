@@ -7,18 +7,9 @@ def run_bender(requets: BenderInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=requets.grid, seed=requets.seed, stu=requets.scenarios
     )
-    konfig = BenderConfig(
-        verbose=False,
-        big_m=1e2,
-        factor_p=1e-3,
-        factor_q=1e-3,
-        factor_v=1,
-        factor_i=1e-3,
-        master_relaxed=False,
-    )
-    dig_a_plan = DigAPlanBender(konfig=konfig)
+    dig_a_plan = DigAPlanBender(konfig=requets.konfig)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(max_iters=requets.max_iters)
+    dig_a_plan.solve_model(max_iters=requets.konfig.max_iters)
 
     switches = dig_a_plan.result_manager.extract_switch_status()
     voltages = dig_a_plan.result_manager.extract_node_voltage()

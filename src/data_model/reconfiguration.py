@@ -46,13 +46,13 @@ class BenderConfig(PipelineConfig):
     master_solver_options: dict | None = None
     slave_solver_options: dict | None = None
     master_solver_integrality_focus: int = 1
+    max_iters: int = 10
 
 
 class CombinedConfig(PipelineConfig):
     """Configuration for Bender's decomposition pipeline"""
 
-    # Solver configurations
-    pass
+    groups: int | dict[int, list[int]] = 10
 
 
 class ADMMConfig(PipelineConfig):
@@ -95,21 +95,20 @@ class ReconfigurationOutput(BaseModel):
 
 class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    groups: int | dict[int, list[int]] = 10
-    max_iters: int = 10
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int
+    konfig: ADMMConfig = ADMMConfig()
+    seed: int = 42
 
 
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    max_iters: int = 100
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    konfig: BenderConfig = BenderConfig()
     seed: int = 42
 
 
 class CombinedInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    groups: int | None = None
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    konfig: CombinedConfig = CombinedConfig()
     seed: int = 42

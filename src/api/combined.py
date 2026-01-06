@@ -7,16 +7,9 @@ def run_combined(requets: CombinedInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
         grid=requets.grid, seed=requets.seed, stu=requets.scenarios
     )
-    konfig = CombinedConfig(
-        verbose=True,
-        big_m=1e3,
-        ε=0.1,
-        γ_infeasibility=1.0,
-        γ_admm_penalty=0.0,
-    )
-    dig_a_plan = DigAPlanCombined(konfig=konfig)
+    dig_a_plan = DigAPlanCombined(konfig=requets.konfig)
     dig_a_plan.add_grid_data(base_grid_data)
-    dig_a_plan.solve_model(groups=requets.groups)  # one‐shot solve
+    dig_a_plan.solve_model(groups=requets.konfig.groups)  # one‐shot solve
     switches = dig_a_plan.result_manager.extract_switch_status()
     # Node voltages
     voltages = dig_a_plan.result_manager.extract_node_voltage()
