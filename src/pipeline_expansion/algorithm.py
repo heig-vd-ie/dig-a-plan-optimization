@@ -111,7 +111,7 @@ class ExpansionAlgorithm:
     def create_planning_params(self, γ_cuts: float = 0.0):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
-            n_stages=self.n_stages,
+            n_stages=self.long_term_uncertainty.n_stages,
             initial_budget=self.sddp_config.initial_budget,
             γ_cuts=γ_cuts,
             discount_rate=self.sddp_config.discount_rate,

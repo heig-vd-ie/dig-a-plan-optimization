@@ -1,4 +1,4 @@
-from data_model.expansion import ExpansionInput, ExpansionOutput, InputObject
+from data_model.expansion import ExpansionInput, ExpansionOutput
 from api.grid_cases import get_grid_case
 from experiments import *
 from datetime import datetime
@@ -18,7 +18,7 @@ def run_expansion(
     time_now = get_session_name()
     (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
     save_obj_to_json(
-        InputObject(expansion=requests, time_now=time_now, with_ray=with_ray),
+        requests,
         Path(".cache/algorithm") / time_now / "input.json",
     )
     _, grid_data = get_grid_case(

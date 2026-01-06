@@ -59,11 +59,5 @@ class ExpansionInput(BaseModel):
     )
 
 
-class InputObject(BaseModel):
-    expansion: ExpansionInput
-    time_now: str
-    with_ray: bool
-
-
 class ExpansionOutput(BaseModel):
     sddp_response: ExpansionResponse
