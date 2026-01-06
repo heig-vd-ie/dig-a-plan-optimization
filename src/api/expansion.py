@@ -61,7 +61,7 @@ def run_expansion(
         penalty_cost_per_consumption_kw=requets.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=requets.sddp_params.penalty_cost_per_production_kw,
         s_base=requets.grid.s_base,
-        admm_max_iters=requets.admm_config.admm_max_iterations,
+        admm_max_iters=requets.admm_config.max_iters,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()

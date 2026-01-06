@@ -14,7 +14,7 @@ class PipelineConfig(BaseModel):
     ε: float = 1
     slack_threshold: float = 1e-2
     convergence_threshold: float = 1e-4
-    max_iterations: int = 100
+    solver_iteration: int = 100
     factor_p: float = 1.0
     factor_q: float = 1.0
     factor_i: float = 1.0
@@ -58,7 +58,6 @@ class CombinedConfig(PipelineConfig):
 class ADMMConfig(PipelineConfig):
     """Configuration for ADMM pipeline"""
 
-    admm_max_iterations: int = 10
     admm_tolerance: float = 1e-4
     max_iters: int = 10
     μ: float = 10.0
