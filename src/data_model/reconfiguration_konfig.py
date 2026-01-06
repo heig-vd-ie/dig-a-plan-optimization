@@ -1,9 +1,7 @@
-from dataclasses import dataclass
-from enum import Enum
+from pydantic import BaseModel, Field
 
 
-@dataclass
-class PipelineConfig:
+class PipelineConfig(BaseModel):
     """Configuration for the Dig A Plan optimization pipeline"""
 
     verbose: bool = False
@@ -38,7 +36,6 @@ class PipelineConfig:
     threads: int | None = None
 
 
-@dataclass
 class BenderConfig(PipelineConfig):
     """Configuration for Bender's decomposition pipeline"""
 
@@ -49,7 +46,6 @@ class BenderConfig(PipelineConfig):
     master_solver_integrality_focus: int = 1
 
 
-@dataclass
 class CombinedConfig(PipelineConfig):
     """Configuration for Bender's decomposition pipeline"""
 
@@ -57,7 +53,6 @@ class CombinedConfig(PipelineConfig):
     pass
 
 
-@dataclass
 class ADMMConfig(PipelineConfig):
     """Configuration for ADMM pipeline"""
 
