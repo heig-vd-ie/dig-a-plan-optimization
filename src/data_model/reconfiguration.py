@@ -67,7 +67,6 @@ class ADMMConfig(PipelineConfig):
     groups: int | dict[int, list[int]] = 10
     ε_primal: float = 1e-3
     ε_dual: float = 1e-3
-    seed_number: int = 42
     κ: float = 0.1
 
 
@@ -97,18 +96,15 @@ class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
     konfig: ADMMConfig = ADMMConfig()
-    seed: int = 42
 
 
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
     konfig: BenderConfig = BenderConfig()
-    seed: int = 42
 
 
 class CombinedInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
     scenarios: ShortTermUncertainty = ShortTermUncertainty()
     konfig: CombinedConfig = CombinedConfig()
-    seed: int = 42

@@ -5,7 +5,7 @@ from experiments import *
 
 def run_combined(requets: CombinedInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=requets.grid, seed=requets.seed, stu=requets.scenarios
+        grid=requets.grid, seed=requets.konfig.seed, stu=requets.scenarios
     )
     dig_a_plan = DigAPlanCombined(konfig=requets.konfig)
     dig_a_plan.add_grid_data(base_grid_data)

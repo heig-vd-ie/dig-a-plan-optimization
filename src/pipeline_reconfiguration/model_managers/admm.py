@@ -47,7 +47,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self, fixed_switches: bool = False, extract_duals: bool = False, **kwargs
     ):
         """Solve the ADMM model with the given parameters."""
-        random.seed(self.konfig.seed_number)
+        random.seed(self.konfig.seed)
         self.s_norm: float | None = None
         self.r_norm: float | None = None
 
