@@ -1,4 +1,4 @@
-FROM julia@sha256:3afc2d24ee9b2e4f507f58210df68d413b2df513e0c646fbdd7c15c2840a1aec
+FROM julia@sha256:09aba3b03f60dc888a571fb5796a7d1c62c93db515a4ac38f5a8fd5aab85baf3
 
 WORKDIR /app
 
