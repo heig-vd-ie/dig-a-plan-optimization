@@ -33,9 +33,11 @@ expansion_algorithm = ExpansionAlgorithm(
     each_task_memory=4 * 1024 * 1024 * 1024,  # 4 GB
     time_now=datetime.now().strftime("%Y%m%d_%H%M%S"),
     cache_dir=Path(".cache"),
-    admm_groups=10,  # TODO: set number of groups for actual boisy grid to 40
-    # time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
-    # solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
+    admm_config=ADMMConfig(
+        groups=10,  # TODO: set number of groups for actual boisy grid to 40
+        # time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
+        # solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
+    ),
 )
 
 # %%

@@ -7,6 +7,7 @@ from data_exporter.pp_to_dap import (
 )
 from pipeline_expansion.algorithm import ExpansionAlgorithm
 from data_model.sddp import Node, RiskMeasureType
+from pipeline_reconfiguration import ADMMConfig
 
 
 class ExpansionTestBase:
@@ -23,6 +24,7 @@ class ExpansionTestBase:
         self.simple_grid_groups = test_simple_grid_groups
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
+            admm_config=ADMMConfig(),
             each_task_memory=1024,
             time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
             cache_dir=self.cache_dir,

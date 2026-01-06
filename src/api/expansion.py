@@ -27,8 +27,7 @@ def run_expansion(
     )
     expansion_algorithm = ExpansionAlgorithm(
         grid_data=grid_data,
-        admm_voll=requets.admm_config.voll,
-        admm_volp=requets.admm_config.volp,
+        admm_config=requets.admm_config,
         cache_dir=Path(".cache"),
         bender_cuts=(
             None
@@ -37,12 +36,9 @@ def run_expansion(
         ),
         time_now=time_now,
         each_task_memory=requets.each_task_memory,
-        admm_groups=requets.admm_config.groups,
         iterations=requets.iterations,
         n_admm_simulations=requets.sddp_config.n_simulations,
         seed_number=requets.seed,
-        time_limit=requets.admm_config.time_limit,
-        solver_non_convex=2 if requets.admm_config.solver_non_convex else 0,
         n_stages=requets.long_term_uncertainty.n_stages,
         initial_budget=requets.sddp_params.initial_budget,
         discount_rate=requets.sddp_params.discount_rate,
@@ -61,7 +57,6 @@ def run_expansion(
         penalty_cost_per_consumption_kw=requets.sddp_params.penalty_cost_per_consumption_kw,
         penalty_cost_per_production_kw=requets.sddp_params.penalty_cost_per_production_kw,
         s_base=requets.grid.s_base,
-        admm_max_iters=requets.admm_config.max_iters,
         with_ray=with_ray,
     )
     result = expansion_algorithm.run_pipeline()

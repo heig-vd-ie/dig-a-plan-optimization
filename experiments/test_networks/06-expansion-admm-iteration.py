@@ -41,7 +41,9 @@ expansion_algorithm = ExpansionAlgorithm(
     each_task_memory=4 * 1024 * 1024 * 1024,  # 4 GB
     time_now=datetime.now().strftime("%Y%m%d_%H%M%S"),
     cache_dir=Path(os.getcwd()).parent / ".cache",
-    admm_groups=groups,
+    admm_config=ADMMConfig(
+        groups=groups,
+    ),
 )
 
 # %%

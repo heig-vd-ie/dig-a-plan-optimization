@@ -14,6 +14,7 @@ from data_exporter.dap_to_expansion import (
     remove_switches_from_grid_data,
 )
 from data_model import NodeEdgeModel, EdgeData
+from data_model.reconfiguration import ADMMConfig
 from pipeline_expansion.admm_helpers import ADMM, ADMMResult
 from api.sddp import run_sddp, generate_scenarios
 from data_model.sddp import (
@@ -38,18 +39,14 @@ class ExpansionAlgorithm:
     def __init__(
         self,
         grid_data: NodeEdgeModel,
+        admm_config: ADMMConfig,
         each_task_memory: float,
         time_now: str,
         cache_dir: Path,
         bender_cuts: BenderCuts | None = None,
-        admm_voll: float = 1.0,
-        admm_volp: float = 1.0,
-        admm_groups: int | Dict[int, List[int]] = 1,
         iterations: int = 10,
         n_admm_simulations: int = 10,
         seed_number: int = 42,
-        time_limit: int = 10,
-        solver_non_convex: int = 2,
         n_stages: int = 3,
         initial_budget: float = 1e6,
         discount_rate: float = 0.05,
@@ -69,46 +66,22 @@ class ExpansionAlgorithm:
         penalty_cost_per_consumption_kw: float = 1e3,
         penalty_cost_per_production_kw: float = 1e3,
         s_base: float = 1e6,
-        admm_big_m: float = 1e3,
-        admm_ε: float = 1e-4,
-        admm_ρ: float = 2.0,
-        admm_γ_infeasibility: float = 1.0,
-        admm_γ_admm_penalty: float = 1.0,
-        admm_γ_trafo_loss: float = 1e2,
-        admm_max_iters: int = 10,
-        admm_μ: float = 10.0,
-        admm_τ_incr: float = 2.0,
-        admm_τ_decr: float = 2.0,
         with_ray: bool = False,
     ):
         self.grid_data = grid_data
+        self.admm_config = admm_config
         self.cache_dir = cache_dir
-        self.admm_voll = admm_voll
-        self.admm_volp = admm_volp
         self.each_task_memory = each_task_memory
-        self.admm_groups = admm_groups
         self.iterations = iterations
         self.just_test = just_test
         self.n_admm_simulations = n_admm_simulations
         self.seed_number = seed_number
-        self.time_limit = time_limit
-        self.solver_non_convex = solver_non_convex
         self.with_ray = with_ray
         self.expansion_transformer_cost_per_kw = expansion_transformer_cost_per_kw
         self.expansion_line_cost_per_km_kw = expansion_line_cost_per_km_kw
         self.penalty_cost_per_consumption_kw = penalty_cost_per_consumption_kw
         self.penalty_cost_per_production_kw = penalty_cost_per_production_kw
         self.s_base = s_base
-        self.admm_big_m = admm_big_m
-        self.admm_ε = admm_ε
-        self.admm_ρ = admm_ρ
-        self.admm_γ_infeasibility = admm_γ_infeasibility
-        self.admm_γ_admm_penalty = admm_γ_admm_penalty
-        self.admm_γ_trafo_loss = admm_γ_trafo_loss
-        self.admm_max_iters = admm_max_iters
-        self.admm_μ = admm_μ
-        self.admm_τ_incr = admm_τ_incr
-        self.admm_τ_decr = admm_τ_decr
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -317,24 +290,7 @@ class ExpansionAlgorithm:
 
     def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
-        admm = ADMM(
-            volp=self.admm_volp,
-            voll=self.admm_voll,
-            groups=self.admm_groups,
-            grid_data=self.grid_data,
-            solver_non_convex=self.solver_non_convex,
-            time_limit=self.time_limit,
-            big_m=self.admm_big_m,
-            ε=self.admm_ε,
-            ρ=self.admm_ρ,
-            γ_infeasibility=self.admm_γ_infeasibility,
-            γ_admm_penalty=self.admm_γ_admm_penalty,
-            γ_trafo_loss=self.admm_γ_trafo_loss,
-            max_iters=self.admm_max_iters,
-            μ=self.admm_μ,
-            τ_incr=self.admm_τ_incr,
-            τ_decr=self.admm_τ_decr,
-        )
+        admm = ADMM(grid_data=self.grid_data, konfig=self.admm_config)
         (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
