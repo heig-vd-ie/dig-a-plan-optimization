@@ -1,13 +1,26 @@
 # %% import libraries
 from pathlib import Path
 from experiments import *
+from api.grid_cases import get_grid_case
+from data_model.kace import GridCaseModel
+from data_model.reconfiguration import ShortTermUncertainty
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-# %% set parameters
-net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
+# %% set parameters from API
+
+grid = GridCaseModel(
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    s_base=1e6,
+)
+stu = ShortTermUncertainty(
+    number_of_scenarios=12,
+)
+net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net, number_of_random_scenarios=12
+    net=net,
+    s_base=grid.s_base,
+    number_of_random_scenarios=stu.number_of_scenarios,
 )
 
 # %% initialize DigAPlan
