@@ -1,6 +1,7 @@
 from data_model.kace import GridCaseModel
-from pydantic import BaseModel, Field
-from typing import Tuple
+from pydantic import BaseModel
+from typing import Union
+from data_model.kace import ShortTermUncertainty, ShortTermUncertaintyRandom
 
 
 class PipelineConfig(BaseModel):
@@ -70,21 +71,6 @@ class ADMMConfig(PipelineConfig):
     κ: float = 0.1
 
 
-class ShortTermUncertainty(BaseModel):
-    number_of_scenarios: int = Field(
-        default=10, description="Number of short term scenarios"
-    )
-    p_bounds: Tuple[float, float] = Field(
-        default=(-0.2, 0.2), description="Active power bounds in per unit"
-    )
-    q_bounds: Tuple[float, float] = Field(
-        default=(-0.2, 0.2), description="Reactive power bounds in per unit"
-    )
-    v_bounds: Tuple[float, float] = Field(
-        default=(-0.03, 0.03), description="Voltage bounds in per unit"
-    )
-
-
 class ReconfigurationOutput(BaseModel):
     switches: list[dict]
     voltages: list[dict]
@@ -94,17 +80,17 @@ class ReconfigurationOutput(BaseModel):
 
 class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
     konfig: ADMMConfig = ADMMConfig()
 
 
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
     konfig: BenderConfig = BenderConfig()
 
 
 class CombinedInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
     konfig: CombinedConfig = CombinedConfig()

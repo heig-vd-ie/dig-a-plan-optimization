@@ -1,8 +1,7 @@
 from enum import Enum
 from pathlib import Path
-from pydantic import BaseModel
 from pydantic import BaseModel, Field
-from typing import Tuple
+from typing import Tuple, Union
 
 
 class DiscreteScenario(Enum):
@@ -21,7 +20,14 @@ class GridCaseModel(BaseModel):
     cosφ: float = Field(default=0.95, description="Power factor")
 
 
-class KnownScenariosOptions(BaseModel):
+class ShortTermUncertintyBase(BaseModel):
+    v_bounds: Tuple[float, float] = Field(
+        default=(-0.03, 0.03), description="Voltage bounds in per unit"
+    )
+    n_scenarios: int = Field(default=10, description="Number of short term scenarios")
+
+
+class ShortTermUncertaintyProfile(ShortTermUncertintyBase):
     load_profiles: list[Path] = Field(
         default=[Path("examples/ieee-33/load_profiles")],
         description="List of paths to load profile directories",
@@ -35,7 +41,15 @@ class KnownScenariosOptions(BaseModel):
     scenario_name: DiscreteScenario = Field(
         default=DiscreteScenario.BASIC, description="Type of discrete scenario"
     )
-    v_bounds: Tuple[float, float] = Field(
-        default=(-0.03, 0.03), description="Voltage bounds in per unit"
+
+
+class ShortTermUncertaintyRandom(ShortTermUncertintyBase):
+    p_bounds: Tuple[float, float] = Field(
+        default=(-0.2, 0.2), description="Active power bounds in per unit"
     )
-    n_scenarios: int = Field(default=10, description="Number of scenarios")
+    q_bounds: Tuple[float, float] = Field(
+        default=(-0.2, 0.2), description="Reactive power bounds in per unit"
+    )
+
+
+ShortTermUncertainty = Union[ShortTermUncertaintyRandom, ShortTermUncertaintyProfile]

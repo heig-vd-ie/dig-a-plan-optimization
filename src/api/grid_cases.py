@@ -6,9 +6,12 @@ from typing import Tuple
 from data_exporter.pp_to_dap import (
     pandapower_to_dig_a_plan_schema_with_scenarios,
 )
-from data_model import NodeEdgeModel
-from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty
+from data_model import (
+    NodeEdgeModel,
+    GridCaseModel,
+    ShortTermUncertainty,
+    ShortTermUncertaintyProfile,
+)
 
 
 def get_grid_case(
@@ -24,6 +27,11 @@ def get_grid_case(
     - Cleans / normalizes edge_data columns (b_pu, r_pu, x_pu, normal_open)
     """
 
+    if isinstance(stu, ShortTermUncertaintyProfile):
+        raise NotImplementedError(
+            "For ShortTermUncertaintyProfile, this method is not implemented yet"
+        )
+
     # 1) Load the pandapower network from pickle depending on the selected case
     net = pp.from_pickle(grid.pp_file)
 
@@ -34,7 +42,7 @@ def get_grid_case(
         v_bounds=stu.v_bounds,
         p_bounds=stu.p_bounds,
         q_bounds=stu.q_bounds,
-        number_of_random_scenarios=stu.number_of_scenarios,
+        number_of_random_scenarios=stu.n_scenarios,
         seed=seed,
     )
 

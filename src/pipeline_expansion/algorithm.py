@@ -111,7 +111,7 @@ class ExpansionAlgorithm:
     ):
         """Generate long-term scenarios with configurable parameters."""
         ltm_scenarios = LongTermScenarioRequest(
-            n_scenarios=self.long_term_uncertainty.number_of_scenarios,
+            n_scenarios=self.long_term_uncertainty.n_scenarios,
             n_stages=n_stages,
             nodes=nodes,
             load_potential={

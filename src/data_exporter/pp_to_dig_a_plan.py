@@ -13,9 +13,9 @@ from helpers import (
     pl_to_dict,
 )
 from helpers.scenarios import generate_random_load_scenarios
+from data_model import ShortTermUncertaintyProfile
 from data_exporter import validate_data
 from data_exporter.scenario_reduction import (
-    KnownScenariosOptions,
     ScenarioPipeline,
 )
 
@@ -395,7 +395,7 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     v_bounds: Tuple[float, float] | None = None,
     s_base: float = 1e6,
     seed: int = 42,
-    ksop: KnownScenariosOptions | None = None,
+    ksop: ShortTermUncertaintyProfile | None = None,
 ) -> NodeEdgeModel:
     """
     Convert a pandapower network to DigAPlan schema with random load scenarios.

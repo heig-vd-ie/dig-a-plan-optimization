@@ -7,9 +7,7 @@ from data_model.reconfiguration import ShortTermUncertainty, ADMMConfig
 
 class LongTermUncertainty(BaseModel):
     n_stages: int = Field(default=3, description="Number of stages")
-    number_of_scenarios: int = Field(
-        default=100, description="Number of long-term scenarios"
-    )
+    n_scenarios: int = Field(default=100, description="Number of long-term scenarios")
     δ_load_var: float = Field(default=0.1, description="Load variation in per unit")
     δ_pv_var: float = Field(default=0.1, description="PV variation in per unit")
     δ_b_var: float = Field(default=10e3, description="Budget variation in k$")

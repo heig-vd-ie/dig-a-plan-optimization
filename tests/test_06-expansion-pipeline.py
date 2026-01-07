@@ -42,7 +42,7 @@ class ExpansionTestBase:
                 δ_load_var=5.0,
                 δ_b_var=1000,
                 δ_pv_var=1.0,
-                number_of_scenarios=100,
+                n_scenarios=100,
                 n_stages=3,
             ),
             each_task_memory=1024,
