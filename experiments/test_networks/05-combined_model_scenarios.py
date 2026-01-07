@@ -1,6 +1,3 @@
-# %%
-import os
-
 # %% import libraries
 from pathlib import Path
 from experiments import *
