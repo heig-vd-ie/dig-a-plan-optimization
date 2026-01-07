@@ -1,9 +1,12 @@
 import copy
 import joblib
+from pathlib import Path
 from data_model.reconfiguration import ADMMInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
 from pipeline_reconfiguration import DigAPlanADMM
 from data_exporter.mock_dap import save_dap_state
+from konfig import settings
+
 
 def run_admm(requests: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
@@ -21,9 +24,13 @@ def run_admm(requests: ADMMInput) -> ReconfigurationOutput:
     voltages = dap.result_manager.extract_node_voltage(scenario=0)
     currents = dap.result_manager.extract_edge_current(scenario=0)
 
-    save_dap_state(dap, ".cache/figs/boisy_dap")
-    save_dap_state(dap_fixed, ".cache/figs/boisy_dap_fixed")
-    joblib.dump(net, ".cache/figs/boisy_net.joblib")
+    save_dap_state(dap, str(Path(settings.cache.figures) / requests.grid.name))
+    save_dap_state(
+        dap_fixed, str(Path(settings.cache.figures) / (requests.grid.name + "_fixed"))
+    )
+    joblib.dump(
+        net, str(Path(settings.cache.figures) / (requests.grid.name + ".joblib"))
+    )
 
     return ReconfigurationOutput(
         switches=switches.to_dicts(),

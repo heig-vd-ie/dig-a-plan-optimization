@@ -36,6 +36,7 @@ RUN --mount=type=ssh \
 COPY src/ /app/src/
 COPY experiments/ /app/experiments/
 COPY examples/ /app/examples/
+COPY .settings.toml /app/.settings.toml
 
 ENV GRB_LICENCE_FILE=/licenses/GRB_LICENCE_FILE
 

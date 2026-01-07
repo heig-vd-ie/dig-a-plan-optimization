@@ -5,6 +5,9 @@ from data_model.expansion import ExpansionInput, ExpansionOutput
 from data_model.sddp import BenderCuts
 from pipeline_expansion.algorithm import ExpansionAlgorithm
 from helpers.json import load_obj_from_json, save_obj_to_json
+from konfig import settings
+
+INPUT_FILENAME = "input.json"
 
 
 def get_session_name() -> str:
@@ -15,10 +18,10 @@ def run_expansion(
     requests: ExpansionInput, with_ray: bool, cut_file: None | str = None
 ) -> ExpansionOutput:
     time_now = get_session_name()
-    (Path(".cache/algorithm") / time_now).mkdir(parents=True, exist_ok=True)
+    (Path(settings.cache.outputs) / time_now).mkdir(parents=True, exist_ok=True)
     save_obj_to_json(
         requests,
-        Path(".cache/algorithm") / time_now / "input.json",
+        Path(settings.cache.outputs) / time_now / INPUT_FILENAME,
     )
     _, grid_data = get_grid_case(
         requests.grid, seed=requests.seed, stu=requests.short_term_uncertainty

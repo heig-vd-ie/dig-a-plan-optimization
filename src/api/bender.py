@@ -4,7 +4,7 @@ from pipeline_reconfiguration import DigAPlanBender
 
 
 def run_bender(requests: BenderInput) -> ReconfigurationOutput:
-    net, base_grid_data = get_grid_case(
+    _, base_grid_data = get_grid_case(
         grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
     )
     dig_a_plan = DigAPlanBender(konfig=requests.konfig)

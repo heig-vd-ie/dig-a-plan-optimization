@@ -12,6 +12,7 @@ class DiscreteScenario(Enum):
 
 
 class GridCaseModel(BaseModel):
+    name: str = Field(default="default", description="Grid case name")
     pp_file: str = Field(
         default="examples/ieee-33/simple_grid.p",
         description="Path to pandapower .p file",

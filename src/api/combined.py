@@ -4,7 +4,7 @@ from pipeline_reconfiguration import DigAPlanCombined
 
 
 def run_combined(requests: CombinedInput) -> ReconfigurationOutput:
-    net, base_grid_data = get_grid_case(
+    _, base_grid_data = get_grid_case(
         grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
     )
     dig_a_plan = DigAPlanCombined(konfig=requests.konfig)
@@ -15,9 +15,6 @@ def run_combined(requests: CombinedInput) -> ReconfigurationOutput:
     voltages = dig_a_plan.result_manager.extract_node_voltage()
     # Line currents
     currents = dig_a_plan.result_manager.extract_edge_current()
-    # Power flow
-    powers = dig_a_plan.result_manager.extract_edge_active_power_flow()
-    reactive_powers = dig_a_plan.result_manager.extract_edge_reactive_power_flow()
     taps = dig_a_plan.result_manager.extract_transformer_tap_position()
     result = ReconfigurationOutput(
         switches=switches.to_dicts(),
