@@ -15,13 +15,16 @@ base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
 # %% initialize DigAPlan
 
+
 konfig = CombinedConfig(
-    verbose=True,
-    big_m=1e3,
-    ε=1,
+    verbose=True,      
+    threads=1,
+    big_m=1e2,
     γ_infeasibility=1.0,
-    γ_admm_penalty=0.0,
+    factor_v=1,
+    factor_i=1e-3,
 )
+
 dig_a_plan = DigAPlanCombined(konfig=konfig)
 
 # %% add grid data and solve the combined model
