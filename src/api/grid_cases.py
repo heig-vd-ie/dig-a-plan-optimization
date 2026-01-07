@@ -27,24 +27,29 @@ def get_grid_case(
     - Cleans / normalizes edge_data columns (b_pu, r_pu, x_pu, normal_open)
     """
 
-    if isinstance(stu, ShortTermUncertaintyProfile):
-        raise NotImplementedError(
-            "For ShortTermUncertaintyProfile, this method is not implemented yet"
-        )
-
     # 1) Load the pandapower network from pickle depending on the selected case
     net = pp.from_pickle(grid.pp_file)
 
     # 2) Build Dig-A-Plan schema + scenarios
-    base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net=net,
-        s_base=grid.s_base,
-        v_bounds=stu.v_bounds,
-        p_bounds=stu.p_bounds,
-        q_bounds=stu.q_bounds,
-        number_of_random_scenarios=stu.n_scenarios,
-        seed=seed,
-    )
+    if isinstance(stu, ShortTermUncertaintyProfile):
+        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+            net=net,
+            s_base=grid.s_base,
+            v_bounds=stu.v_bounds,
+            number_of_random_scenarios=stu.n_scenarios,
+            seed=seed,
+            ksop=stu,
+        )
+    else:
+        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+            net=net,
+            s_base=grid.s_base,
+            v_bounds=stu.v_bounds,
+            p_bounds=stu.p_bounds,
+            q_bounds=stu.q_bounds,
+            number_of_random_scenarios=stu.n_scenarios,
+            seed=seed,
+        )
 
     # 3) Clean / normalize edge columns for all but the simple grid
     base_grid_data.edge_data = base_grid_data.edge_data.with_columns(

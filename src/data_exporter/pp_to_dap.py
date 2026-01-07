@@ -12,11 +12,11 @@ from helpers import (
     get_transfo_imaginary_component,
     pl_to_dict,
 )
-from helpers.scenarios import generate_random_load_scenarios
+from data_exporter.uncert_to_scens_rand import generate_random_load_scenarios
 from data_model import ShortTermUncertaintyProfile
 from data_exporter import validate_data
-from data_exporter.scenario_reduction import (
-    ScenarioPipeline,
+from data_exporter.uncert_to_scens_prof import (
+    ScenarioPipelineProfile,
 )
 
 
@@ -410,7 +410,7 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
         and ksop is not None
         and egid_id_mapping_file is not None
     ):
-        scenario_pipeline = ScenarioPipeline()
+        scenario_pipeline = ScenarioPipelineProfile()
         rand_scenarios = scenario_pipeline.process(ksop=ksop).map2scens(
             egid_id_mapping_file=egid_id_mapping_file,
             id_node_mapping=net.load,

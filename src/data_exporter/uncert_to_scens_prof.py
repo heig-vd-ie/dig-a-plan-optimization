@@ -51,7 +51,7 @@ class KMeansMedoidReducer(ReductionStrategy):
         return closest_row_indices
 
 
-class ScenarioPipeline:
+class ScenarioPipelineProfile:
     def __init__(self, reduction_strategy: ReductionStrategy = KMeansMedoidReducer()):
         self.reducer = reduction_strategy
 
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     strategy = KMeansMedoidReducer()
 
     # 2. Initialize Pipeline
-    pipeline = ScenarioPipeline(strategy)
+    pipeline = ScenarioPipelineProfile(strategy)
 
     net = pp.from_pickle("examples/ieee-33/simple_grid.p")
 
