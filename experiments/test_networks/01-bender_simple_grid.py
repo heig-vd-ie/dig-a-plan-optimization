@@ -1,16 +1,19 @@
-# %%
-import os
-
 # %% import libraries
 from experiments import *
+from api.grid_cases import get_grid_case
+from data_model.kace import GridCaseModel
+from data_model.reconfiguration import ShortTermUncertainty
 from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  
 
 
+grid = GridCaseModel(pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"), s_base=1e6)
+stu = ShortTermUncertainty()
 
+# Use API to load the net 
+net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
 
-# %% set parameters
-net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
+# %% build base_grid_data
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
 
