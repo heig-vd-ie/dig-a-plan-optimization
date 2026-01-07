@@ -1,16 +1,15 @@
 # %%
-import os
-
-os.chdir(os.getcwd().replace("/src", ""))
-# %% import libraries
+from pathlib import Path
 from experiments import *
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # %% set parameters
 if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid_simplified.p")
+    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p"))
     base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 else:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
+    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"))
     base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
 
