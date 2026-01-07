@@ -4,8 +4,9 @@ from pathlib import Path
 
 from api.grid_cases import get_grid_case
 from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  
+from data_model.reconfiguration import ShortTermUncertaintyRandom
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
 # %% --- load net via API
@@ -15,8 +16,8 @@ grid = GridCaseModel(
     cosφ=0.95,
 )
 
-stu = ShortTermUncertainty(
-    number_of_scenarios=10,
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=10,
     p_bounds=(-0.2, 0.2),
     q_bounds=(-0.2, 0.2),
     v_bounds=(-0.03, 0.03),
@@ -28,7 +29,7 @@ net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
 base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net=net,
     s_base=grid.s_base,
-    number_of_random_scenarios=stu.number_of_scenarios,
+    number_of_random_scenarios=stu.n_scenarios,
     p_bounds=stu.p_bounds,
     q_bounds=stu.q_bounds,
     v_bounds=stu.v_bounds,
@@ -37,7 +38,7 @@ base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
 
 # %% initialize DigAPlan
 konfig = CombinedConfig(
-    verbose=True,      
+    verbose=True,
     threads=1,
     big_m=1e2,
     γ_infeasibility=1.0,
