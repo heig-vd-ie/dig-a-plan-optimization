@@ -40,7 +40,7 @@ expansion_algorithm = ExpansionAlgorithm(
     grid_data=grid_data,
     each_task_memory=4 * 1024 * 1024 * 1024,  # 4 GB
     time_now=datetime.now().strftime("%Y%m%d_%H%M%S"),
-    cache_dir=Path(".cache"),
+    cache_dir=Path(os.getcwd()).parent / ".cache",
     admm_groups=groups,
 )
 
