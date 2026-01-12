@@ -6,7 +6,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p"))
+    net = pp.from_pickle(
+        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p")
+    )
     grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net,
         number_of_random_scenarios=10,
@@ -15,7 +17,9 @@ if USE_SIMPLIFIED_GRID := True:
         q_bounds=(-0.5, 0.5),
     )
 else:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"))
+    net = pp.from_pickle(
+        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p")
+    )
     grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
         net,
         number_of_random_scenarios=10,

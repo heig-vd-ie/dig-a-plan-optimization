@@ -10,10 +10,12 @@ USE_SIMPLIFIED_GRID = True
 seed = 42
 
 pp_path = (
-    PROJECT_ROOT / ".cache" / "input" / "boisy"
+    PROJECT_ROOT
+    / ".cache"
+    / "input"
+    / "boisy"
     / ("boisy_grid_simplified.p" if USE_SIMPLIFIED_GRID else "boisy_grid.p")
 )
-
 
 
 net = pp.from_pickle(str(pp_path))
@@ -35,8 +37,6 @@ base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net=net,
     seed=seed,
 )
-
-
 
 
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(

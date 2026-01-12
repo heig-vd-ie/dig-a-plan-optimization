@@ -4,6 +4,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+
 def fill_missing_bus_geo(net):
 
     missing = net.bus["geo"].isna()
@@ -15,19 +16,24 @@ def fill_missing_bus_geo(net):
     print("Filled missing geo:", len(idxs))
     return net
 
+
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
 USE_SIMPLIFIED_GRID = True
 seed = 42
 
 if USE_SIMPLIFIED_GRID:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p"))
+    net = pp.from_pickle(
+        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p")
+    )
 else:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"))
+    net = pp.from_pickle(
+        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p")
+    )
 
-#%% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
+# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
 net = fill_missing_bus_geo(net)
 
-#%% --- Build the DigAPlan grid data ---
+# %% --- Build the DigAPlan grid data ---
 grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
     net,
     seed=seed,
