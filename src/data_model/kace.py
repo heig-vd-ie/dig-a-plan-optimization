@@ -18,6 +18,10 @@ class GridCaseModel(BaseModel):
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
     cosφ: float = Field(default=0.95, description="Power factor")
+    egid_id_mapping_file: str = Field(
+        default="examples/ieee-33/consumer_egid_idx_mapping.csv",
+        description="Path to EGID to ID mapping CSV file",
+    )
 
 
 class ShortTermUncertintyBase(BaseModel):

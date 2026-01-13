@@ -1,8 +1,6 @@
 import pytest
 import polars as pl
-from data_exporter.pp_to_dap import (
-    pp_to_dap_w_scenarios,
-)
+from api.grid_cases import get_grid_case
 from pipeline_reconfiguration import DigAPlanADMM
 from data_model.reconfiguration import ADMMConfig
 
@@ -12,11 +10,20 @@ class ExpansionTestBase:
 
     @pytest.fixture(autouse=True)
     def setup_common_data(
-        self, test_simple_grid, test_admm_config, test_simple_grid_groups
+        self,
+        test_simple_grid,
+        test_admm_config,
+        test_simple_grid_groups,
+        test_seed,
+        test_short_term_uncertainty_random,
     ):
         """Set up common test data and configurations."""
-        self.net = test_simple_grid
-        self.grid_data = pp_to_dap_w_scenarios(self.net)
+        self.grid = test_simple_grid
+        self.seed = test_seed
+        self.stu = test_short_term_uncertainty_random
+        self.net, self.grid_data = get_grid_case(
+            grid=self.grid, seed=self.seed, stu=self.stu
+        )
         self.admm_config: ADMMConfig = test_admm_config
         self.simple_grid_groups = test_simple_grid_groups
 

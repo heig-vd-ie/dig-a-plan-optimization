@@ -9,8 +9,8 @@ import polars as pl
 from polars import col as c
 from datetime import datetime
 from konfig import settings
-from data_exporter.pp_to_dap import (
-    pp_to_dap_w_scenarios,
+from api.grid_cases import (
+    get_grid_case,
 )
 from data_model import NodeEdgeModel
 

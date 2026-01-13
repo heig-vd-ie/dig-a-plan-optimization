@@ -1,9 +1,8 @@
-from pathlib import Path
 import polars as pl
 import patito as pt
 from polars import col as c
 from shapely import from_geojson
-from data_model import NodeEdgeModel, NodeData, EdgeData
+from data_model import NodeData, EdgeData
 import numpy as np
 import pandapower as pp
 from typing import Tuple
@@ -12,12 +11,7 @@ from helpers import (
     get_transfo_imaginary_component,
     pl_to_dict,
 )
-from data_exporter.uncert_to_scens_rand import generate_random_load_scenarios
-from data_model import ShortTermUncertaintyProfile
 from data_exporter import validate_data
-from data_exporter.uncert_to_scens_prof import (
-    ScenarioPipelineProfile,
-)
 
 
 def pp_to_dap(
@@ -382,56 +376,4 @@ def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict)
                 "y_coords"
             ),
         )
-    )
-
-
-def pp_to_dap_w_scenarios(
-    net: pp.pandapowerNet,
-    egid_id_mapping_file: Path | None = None,
-    number_of_random_scenarios: int = 10,
-    use_random_scenarios: bool = True,
-    p_bounds: Tuple[float, float] | None = None,
-    q_bounds: Tuple[float, float] | None = None,
-    v_bounds: Tuple[float, float] | None = None,
-    s_base: float = 1e6,
-    seed: int = 42,
-    ksop: ShortTermUncertaintyProfile | None = None,
-) -> NodeEdgeModel:
-    """
-    Convert a pandapower network to DigAPlan schema with random load scenarios.
-    This function generates random load scenarios based on the provided node data
-    and edge data.
-    """
-    node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
-        pp_to_dap(net, s_base=s_base)
-    )
-    if (
-        not use_random_scenarios
-        and ksop is not None
-        and egid_id_mapping_file is not None
-    ):
-        scenario_pipeline = ScenarioPipelineProfile()
-        rand_scenarios = scenario_pipeline.process(ksop=ksop).map2scens(
-            egid_id_mapping_file=egid_id_mapping_file,
-            id_node_mapping=net.load,
-            cosφ=0.95,
-            s_base=s_base,
-            seed=seed,
-        )
-    else:
-        rand_scenarios = generate_random_load_scenarios(
-            node_data=node_data_validated,
-            v_slack_node_sqr_pu=v_slack_node_sqr_pu,
-            load_data=load_data,
-            number_of_random_scenarios=number_of_random_scenarios,
-            p_bounds=p_bounds,
-            q_bounds=q_bounds,
-            v_bounds=v_bounds,
-            seed=seed,
-        )
-
-    return NodeEdgeModel(
-        node_data=node_data_validated,
-        edge_data=edge_data_validated,
-        load_data=rand_scenarios,
     )

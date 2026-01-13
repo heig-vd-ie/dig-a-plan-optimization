@@ -5,10 +5,12 @@ Pytest configuration and shared fixtures for the test suite.
 import pytest
 import pandapower as pp
 from pathlib import Path
+from data_model import GridCaseModel
 from data_model.reconfiguration import (
     ADMMConfig,
     CombinedConfig,
     BenderConfig,
+    ShortTermUncertaintyRandom,
 )
 
 
@@ -30,7 +32,27 @@ def test_data_dir():
 @pytest.fixture(scope="session")
 def test_simple_grid():
     """Provide a simple grid test case."""
-    return pp.from_pickle("examples/ieee-33/simple_grid.p")
+    return GridCaseModel(
+        pp_file="examples/ieee-33/simple_grid.p",
+    )
+
+
+@pytest.fixture(scope="session")
+def test_short_term_uncertainty_random():
+    """Provide ShortTermUncertaintyRandom instance for tests."""
+
+    return ShortTermUncertaintyRandom(
+        n_scenarios=10,
+        p_bounds=(-0.2, 0.2),
+        q_bounds=(-0.2, 0.2),
+        v_bounds=(-0.03, 0.03),
+    )
+
+
+@pytest.fixture(scope="session")
+def test_seed():
+    """Provide a fixed seed for reproducibility."""
+    return 42
 
 
 @pytest.fixture(scope="session")

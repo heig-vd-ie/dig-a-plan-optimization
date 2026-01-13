@@ -1,9 +1,7 @@
 import pytest
 import polars as pl
+from api.grid_cases import get_grid_case
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
-from data_exporter.pp_to_dap import (
-    pp_to_dap_w_scenarios,
-)
 from pipeline_reconfiguration import DigAPlanADMM, DigAPlanCombined
 from data_model.reconfiguration import CombinedConfig
 
@@ -12,18 +10,25 @@ class TestADMMModel:
 
     @pytest.fixture(autouse=True)
     def setup_common_data(
-        self, test_simple_grid, test_admm_config, test_combined_config
+        self,
+        test_simple_grid,
+        test_admm_config,
+        test_combined_config,
+        test_short_term_uncertainty_random,
+        test_seed,
     ):
         """Set up common test data and configurations."""
-        self.net = test_simple_grid
+        self.grid = test_simple_grid
         self.admm_config = test_admm_config
         self.combined_config = test_combined_config
+        self.stu = test_short_term_uncertainty_random
+        self.seed = test_seed
 
 
 class TestADMMModelSimpleExample(TestADMMModel):
     def test_admm_model_simple_example(self):
 
-        grid_data = pp_to_dap_w_scenarios(self.net)
+        net, grid_data = get_grid_case(grid=self.grid, seed=self.seed, stu=self.stu)
 
         dap = DigAPlanADMM(konfig=self.admm_config)
 
@@ -53,7 +58,7 @@ class TestADMMModelSimpleExample(TestADMMModel):
         )
 
         node_data, edge_data = compare_dig_a_plan_with_pandapower(
-            dig_a_plan=dap, net=self.net
+            dig_a_plan=dap, net=net
         )
         assert node_data.get_column("v_diff").abs().max() < 1e-1  # type: ignore
         assert edge_data.get_column("i_diff").abs().max() < 1e-1  # type: ignore
