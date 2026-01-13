@@ -1,13 +1,33 @@
-# %%
-import os
-
-os.chdir(os.getcwd().replace("/src", ""))
 # %% import libraries
 from experiments import *
+from api.grid_cases import get_grid_case
+from data_model.kace import GridCaseModel
+from data_model.reconfiguration import ShortTermUncertainty
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  
 
-# %% set parameters
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
-base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
+
+grid = GridCaseModel(pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"), s_base=1e6)
+stu = ShortTermUncertainty(
+    number_of_scenarios=10,
+    p_bounds=(-0.2, 0.2),
+    q_bounds=(-0.2, 0.2),
+    v_bounds=(-0.03, 0.03),
+)
+
+
+# Use API to load the net 
+net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
+
+# %% build base_grid_data
+base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net=net,
+    s_base=grid.s_base,
+    number_of_random_scenarios=stu.number_of_scenarios,
+    p_bounds=stu.p_bounds,
+    q_bounds=stu.q_bounds,
+    v_bounds=stu.v_bounds,
+    seed=42,
+)
 
 
 # %% initialize DigAPlan
@@ -20,7 +40,7 @@ konfig = BenderConfig(
     factor_i=1e-3,
     master_relaxed=False,
 )
-dig_a_plan = DigAPlanBender(konfig=config)
+dig_a_plan = DigAPlanBender(konfig=konfig)
 
 # %% add grid data and solve models pipeline
 dig_a_plan.add_grid_data(base_grid_data)

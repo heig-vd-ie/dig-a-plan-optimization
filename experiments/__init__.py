@@ -1,6 +1,4 @@
 import os
-
-os.chdir(os.getcwd() + "/src")
 import numpy as np
 from pathlib import Path
 from logging import config
@@ -50,5 +48,3 @@ from shapely import from_geojson
 import joblib
 from data_exporter.mock_dap import save_dap_state, load_dap_state
 
-os.chdir(os.getcwd().replace("/src", ""))
-os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"

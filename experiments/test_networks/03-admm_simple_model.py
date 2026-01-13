@@ -1,13 +1,22 @@
 # %%
-import os
-
-os.chdir(os.getcwd().replace("/src", ""))
-# %%
 from experiments import *
+from pathlib import Path
+from api.grid_cases import get_grid_case
+from data_model.kace import GridCaseModel
+from data_model.reconfiguration import ShortTermUncertainty
 
-# %% set parameters
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+
+# %% --- Load net via API  ---
+grid = GridCaseModel(
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    s_base=1e6,
+)
+stu = ShortTermUncertainty()
+
+net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
+# %% --- build grid data with scenarios ---
 net.bus["max_vm_pu"] = 1.05
 net.bus["min_vm_pu"] = 0.95
 grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
@@ -58,7 +67,7 @@ node_data, edge_data = compare_dig_a_plan_with_pandapower(
     dig_a_plan=dap, net=net, from_z=True
 )
 # %% plot the grid annotated with DigAPlan results
-fig = plot_grid_from_pandapower(net=net, dap=dap, from_z=True)
+fig = plot_grid_from_pandapower( dap=dap, from_z=True)
 
 # %% Fixed switches
 dap_fixed = copy.deepcopy(dap)

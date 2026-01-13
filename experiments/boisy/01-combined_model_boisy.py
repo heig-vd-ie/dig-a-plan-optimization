@@ -1,20 +1,43 @@
 # %%
-import os
-
-os.chdir(os.getcwd().replace("/src", ""))
-# %% import libraries
+from pathlib import Path
 from experiments import *
 
-# %% set parameters
-if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid_simplified.p")
-    base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
-else:
-    net = pp.from_pickle(".cache/input/boisy/boisy_grid.p")
-    base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(net)
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# %% set parameters
+USE_SIMPLIFIED_GRID = True
+seed = 42
+
+pp_path = (
+    PROJECT_ROOT / ".cache" / "input" / "boisy"
+    / ("boisy_grid_simplified.p" if USE_SIMPLIFIED_GRID else "boisy_grid.p")
+)
+
+
+
+net = pp.from_pickle(str(pp_path))
+
+# %% --- handeling with missing geo coordinates ---
+
+missing = net.bus["geo"].isna()
+idxs = net.bus.index[missing]
+
+
+for k, idx in enumerate(idxs):
+    net.bus.at[idx, "geo"] = f'{{"type":"Point","coordinates":[{float(k)},{0.0}]}}'
+
+print("Filled missing geo:", len(idxs))
 
 # %% convert pandapower grid to DigAPlan grid data
+
+base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+    net=net,
+    seed=seed,
+)
+
+
+
 
 base_grid_data.edge_data = base_grid_data.edge_data.with_columns(
     pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
