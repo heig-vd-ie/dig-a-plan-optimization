@@ -20,7 +20,7 @@ net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
 # %% --- build grid data with scenarios ---
 net.bus["max_vm_pu"] = 1.05
 net.bus["min_vm_pu"] = 0.95
-grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+grid_data = pp_to_dap_w_scenarios(
     net,
     number_of_random_scenarios=100,
     p_bounds=(-0.6, 1.5),

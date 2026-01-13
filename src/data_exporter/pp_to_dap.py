@@ -20,7 +20,7 @@ from data_exporter.uncert_to_scens_prof import (
 )
 
 
-def pandapower_to_dig_a_plan_schema(
+def pp_to_dap(
     net: pp.pandapowerNet, s_base: float = 1e6
 ) -> Tuple[pt.DataFrame[NodeData], pt.DataFrame[EdgeData], float, pl.DataFrame]:
     """
@@ -385,7 +385,7 @@ def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict)
     )
 
 
-def pandapower_to_dig_a_plan_schema_with_scenarios(
+def pp_to_dap_w_scenarios(
     net: pp.pandapowerNet,
     egid_id_mapping_file: Path | None = None,
     number_of_random_scenarios: int = 10,
@@ -403,7 +403,7 @@ def pandapower_to_dig_a_plan_schema_with_scenarios(
     and edge data.
     """
     node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
-        pandapower_to_dig_a_plan_schema(net, s_base=s_base)
+        pp_to_dap(net, s_base=s_base)
     )
     if (
         not use_random_scenarios

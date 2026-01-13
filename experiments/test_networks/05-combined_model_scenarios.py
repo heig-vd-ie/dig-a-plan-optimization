@@ -17,7 +17,7 @@ stu = ShortTermUncertaintyRandom(
     n_scenarios=12,
 )
 net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
-base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+base_grid_data = pp_to_dap_w_scenarios(
     net=net,
     s_base=grid.s_base,
     number_of_random_scenarios=stu.n_scenarios,

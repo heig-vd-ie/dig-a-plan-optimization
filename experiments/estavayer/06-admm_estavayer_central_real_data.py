@@ -9,7 +9,7 @@ from experiments import *
 kace = "estavayer_centre_ville"
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
 net = pp.from_pickle(settings.cases[kace].pandapower_file)
-grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+grid_data = pp_to_dap_w_scenarios(
     net,
     number_of_random_scenarios=10,
     v_bounds=(-0.07, 0.07),

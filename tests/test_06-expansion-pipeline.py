@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+    pp_to_dap_w_scenarios,
 )
 from data_model.expansion import LongTermUncertainty, SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
@@ -20,7 +20,7 @@ class ExpansionTestBase:
     ):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
+        self.grid_data = pp_to_dap_w_scenarios(self.net)
         self.cache_dir = test_cache_dir
         self.simple_grid_groups = test_simple_grid_groups
         self.expansion_algorithm = ExpansionAlgorithm(

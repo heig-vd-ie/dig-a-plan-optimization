@@ -3,7 +3,7 @@ import polars as pl
 import math
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+    pp_to_dap_w_scenarios,
 )
 from pipeline_reconfiguration import DigAPlanADMM, DigAPlanCombined
 from data_model.reconfiguration import ADMMConfig, CombinedConfig
@@ -28,7 +28,7 @@ class TestADMMModel:
 class TestADMMModelSimpleExample(TestADMMModel):
     def test_admm_model_simple_example2(self):
 
-        grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
+        grid_data = pp_to_dap_w_scenarios(self.net)
 
         konfig = self.admm_config
         konfig.groups = self.simple_grid_groups

@@ -4,7 +4,7 @@ from polars import col as c
 from typing import Tuple
 
 from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+    pp_to_dap_w_scenarios,
 )
 from data_model import (
     NodeEdgeModel,
@@ -21,7 +21,7 @@ def get_grid_case(
     Load a pandapower grid and build the Dig-A-Plan NodeEdgeModel with scenarios.
 
     - Loads .p files based on GridCase
-    - Calls pandapower_to_dig_a_plan_schema_with_scenarios to:
+    - Calls pp_to_dap_w_scenarios to:
         * create NodeEdgeModel
         * generate random scenarios
     - Cleans / normalizes edge_data columns (b_pu, r_pu, x_pu, normal_open)
@@ -32,7 +32,7 @@ def get_grid_case(
 
     # 2) Build Dig-A-Plan schema + scenarios
     if isinstance(stu, ShortTermUncertaintyProfile):
-        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+        base_grid_data = pp_to_dap_w_scenarios(
             net=net,
             s_base=grid.s_base,
             v_bounds=stu.v_bounds,
@@ -41,7 +41,7 @@ def get_grid_case(
             ksop=stu,
         )
     else:
-        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+        base_grid_data = pp_to_dap_w_scenarios(
             net=net,
             s_base=grid.s_base,
             v_bounds=stu.v_bounds,

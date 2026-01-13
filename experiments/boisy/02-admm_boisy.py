@@ -34,7 +34,7 @@ else:
 net = fill_missing_bus_geo(net)
 
 # %% --- Build the DigAPlan grid data ---
-grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+grid_data = pp_to_dap_w_scenarios(
     net,
     seed=seed,
     number_of_random_scenarios=10,

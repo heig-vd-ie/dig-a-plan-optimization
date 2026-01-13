@@ -33,7 +33,7 @@ print("Filled missing geo:", len(idxs))
 
 # %% convert pandapower grid to DigAPlan grid data
 
-base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
+base_grid_data = pp_to_dap_w_scenarios(
     net=net,
     seed=seed,
 )

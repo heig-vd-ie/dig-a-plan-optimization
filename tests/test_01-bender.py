@@ -2,7 +2,7 @@ import polars as pl
 import pytest
 
 from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+    pp_to_dap_w_scenarios,
 )
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipeline_reconfiguration import DigAPlanBender
@@ -23,7 +23,7 @@ class BenderTestCase:
 class TestBenderModel(BenderTestCase):
     def test_bender_model_simple_example(self):
 
-        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
+        base_grid_data = pp_to_dap_w_scenarios(self.net)
 
         dig_a_plan = DigAPlanBender(konfig=self.bender_config)
 

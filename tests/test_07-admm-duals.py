@@ -1,7 +1,7 @@
 import pytest
 import polars as pl
 from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+    pp_to_dap_w_scenarios,
 )
 from pipeline_reconfiguration import DigAPlanADMM
 from data_model.reconfiguration import ADMMConfig
@@ -16,7 +16,7 @@ class ExpansionTestBase:
     ):
         """Set up common test data and configurations."""
         self.net = test_simple_grid
-        self.grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
+        self.grid_data = pp_to_dap_w_scenarios(self.net)
         self.admm_config: ADMMConfig = test_admm_config
         self.simple_grid_groups = test_simple_grid_groups
 
