@@ -32,7 +32,7 @@ services:
     ports:
       - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
     volumes:
-      - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:ro
+      - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:rw
       - ../spill:/tmp/spill
       - ../ray:/tmp/ray
       - ../.cache:/app/.cache:rw
@@ -85,7 +85,7 @@ services:
       - "${SERVER_RAY_METRICS_EXPORT_PORT}:${SERVER_RAY_METRICS_EXPORT_PORT}"
       - "9090:9090" # Prometheus
     volumes:
-      - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:ro
+      - ${GRB_LICENSE_FILE}:/root/gurobi_license/gurobi.lic:rw
       - ../ray:/tmp/ray
       - ../spill:/tmp/spill
       - ../.cache:/app/.cache:rw

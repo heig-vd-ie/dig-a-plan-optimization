@@ -1,5 +1,4 @@
 import pyomo.environ as pyo
-from traitlets import default
 
 
 def slave_model_parameters(model: pyo.AbstractModel) -> pyo.AbstractModel:

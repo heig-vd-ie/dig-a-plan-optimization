@@ -8,7 +8,7 @@ import polars as pl
 from polars import col as c
 from helpers import generate_log
 from pipeline_reconfiguration.data_manager import PipelineDataManager
-from data_model.reconfiguration_konfig import ADMMConfig
+from data_model.reconfiguration import ADMMConfig
 from model_reconfiguration import generate_combined_model, generate_combined_lin_model
 from pipeline_reconfiguration.model_managers import PipelineModelManager
 
@@ -47,7 +47,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self, fixed_switches: bool = False, extract_duals: bool = False, **kwargs
     ):
         """Solve the ADMM model with the given parameters."""
-        random.seed(self.konfig.seed_number)
+        random.seed(self.konfig.seed)
         self.s_norm: float | None = None
         self.r_norm: float | None = None
 

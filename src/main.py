@@ -1,8 +1,15 @@
-from api.bender import *
-from api.combined import *
-from api.admm import *
-from api.expansion import *
+from api.bender import run_bender
+from api.combined import run_combined
+from api.admm import run_admm
+from api.expansion import run_expansion
 from api.ray_utils import init_ray, shutdown_ray, where_am_i
+from data_model.reconfiguration import (
+    ADMMInput,
+    CombinedInput,
+    BenderInput,
+    ReconfigurationOutput,
+)
+from data_model.expansion import ExpansionInput, ExpansionOutput
 from fastapi import FastAPI
 import ray
 import warnings
@@ -28,25 +35,25 @@ def read_root():
 
 
 @app.patch("/reconfiguration/bender", tags=["Reconfiguration"])
-def reconfiguration_bender(input: BenderInput) -> ReconfigurationOutput:
-    return run_bender(input)
+def reconfiguration_bender(requests: BenderInput) -> ReconfigurationOutput:
+    return run_bender(requests)
 
 
 @app.patch("/reconfiguration/combined", tags=["Reconfiguration"])
-def reconfiguration_combined(input: CombinedInput) -> ReconfigurationOutput:
-    return run_combined(input)
+def reconfiguration_combined(requests: CombinedInput) -> ReconfigurationOutput:
+    return run_combined(requests)
 
 
 @app.patch("/reconfiguration/admm", tags=["Reconfiguration"])
-def reconfiguration_admm(input: ADMMInput) -> ReconfigurationOutput:
-    return run_admm(input)
+def reconfiguration_admm(requests: ADMMInput) -> ReconfigurationOutput:
+    return run_admm(requests)
 
 
 @app.patch("/expansion", tags=["Expansion"])
 def expansion(
-    input: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
+    requests: ExpansionInput, with_ray: bool = False, cut_file: None | str = None
 ) -> ExpansionOutput:
-    results = run_expansion(input, with_ray=with_ray, cut_file=cut_file)
+    results = run_expansion(requests, with_ray=with_ray, cut_file=cut_file)
     return results
 
 

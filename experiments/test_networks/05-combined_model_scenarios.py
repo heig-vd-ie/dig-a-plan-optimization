@@ -3,7 +3,7 @@ from pathlib import Path
 from experiments import *
 from api.grid_cases import get_grid_case
 from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty
+from data_model.reconfiguration import ShortTermUncertaintyRandom
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -13,15 +13,11 @@ grid = GridCaseModel(
     pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
     s_base=1e6,
 )
-stu = ShortTermUncertainty(
-    number_of_scenarios=12,
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=12,
 )
-net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
-base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net=net,
-    s_base=grid.s_base,
-    number_of_random_scenarios=stu.number_of_scenarios,
-)
+net, base_grid_data = get_grid_case(grid=grid, seed=42, stu=stu)
+
 
 # %% initialize DigAPlan
 
@@ -47,4 +43,3 @@ switches = dig_a_plan.result_manager.extract_switch_status()
 voltages = dig_a_plan.result_manager.extract_node_voltage()
 # Line currents
 currents = dig_a_plan.result_manager.extract_edge_current()
-

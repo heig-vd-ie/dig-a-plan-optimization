@@ -117,11 +117,11 @@ class LongTermScenarioRequest(BaseModel):
     nodes: List[Node]
     load_potential: Dict[int, float]
     pv_potential: Dict[int, float]
-    min_load: float
-    min_pv: float
     yearly_budget: float
     N_years_per_stage: int
     seed_number: int
+    min_load: float = 5.0
+    min_pv: float = 1.0
 
 
 class StateVar(BaseModel):

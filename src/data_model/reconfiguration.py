@@ -1,48 +1,73 @@
-from pydantic import BaseModel
-from pydantic import BaseModel, Field
-from typing import Dict, List, Tuple
 from data_model.kace import GridCaseModel
+from pydantic import BaseModel
+from data_model.kace import ShortTermUncertainty, ShortTermUncertaintyRandom
 
 
-class ShortTermUncertainty(BaseModel):
-    number_of_scenarios: int = Field(
-        default=10, description="Number of short term scenarios"
-    )
-    p_bounds: Tuple[float, float] = Field(
-        default=(-0.2, 0.2), description="Active power bounds in per unit"
-    )
-    q_bounds: Tuple[float, float] = Field(
-        default=(-0.2, 0.2), description="Reactive power bounds in per unit"
-    )
-    v_bounds: Tuple[float, float] = Field(
-        default=(-0.03, 0.03), description="Voltage bounds in per unit"
-    )
+class PipelineConfig(BaseModel):
+    """Configuration for the Dig A Plan optimization pipeline"""
+
+    verbose: bool = False
+    voll: float = 1.0
+    volp: float = 1.0
+    ρ: float = 10.0
+    big_m: float = 1e4
+    ε: float = 1
+    slack_threshold: float = 1e-2
+    convergence_threshold: float = 1e-4
+    solver_iteration: int = 100
+    factor_p: float = 1.0
+    factor_q: float = 1.0
+    factor_i: float = 1.0
+    factor_v: float = 1.0
+    γ_infeasibility: float = 1.0
+    γ_admm_penalty: float = 1.0
+    γ_trafo_loss: float = 1.0
+    solver_name: str = "gurobi"
+    solver_integrality_focus: int = 1
+    solver_method: int = 2
+    time_limit: int = 60
+    optimality_tolerance: float = 1e-5
+    feasibility_tolerance: float = 1e-5
+    barrier_convergence_tolerance: float = 1e-5
+    solver_non_convex: int | None = None
+    solver_qcp_dual: int | None = None
+    solver_bar_qcp_conv_tol: float | None = None
+    solver_bar_homogeneous: int | None = None
+    all_scenarios: bool = False
+    seed: int = 1234
+    threads: int | None = None
 
 
-class ADMMOptConfig(BaseModel):
-    iterations: int = Field(default=10, description="Number of iterations")
-    n_simulations: int = Field(
-        default=10, description="Number of simulations per stage"
-    )
-    solver_non_convex: bool = Field(default=True, description="Use non-convex solver")
-    time_limit: int = Field(default=10, description="Time limit in seconds")
-    groups: int | Dict[int, List[int]] = Field(
-        default=10, description="Number of groups for ADMM"
-    )
+class BenderConfig(PipelineConfig):
+    """Configuration for Bender's decomposition pipeline"""
+
+    # Solver configurations
+    master_relaxed: bool = False
+    master_solver_options: dict | None = None
+    slave_solver_options: dict | None = None
+    master_solver_integrality_focus: int = 1
+    max_iters: int = 10
 
 
-class ADMMParams(BaseModel):
-    big_m: float = Field(default=1e3, description="Big M parameter")
-    ε: float = Field(default=1e-4, description="ADMM epsilon")
-    ρ: float = Field(default=2.0, description="ADMM rho")
-    γ_infeasibility: float = Field(default=1.0, description="ADMM gamma infeasibility")
-    γ_admm_penalty: float = Field(default=1.0, description="ADMM gamma ADMM penalty")
-    γ_trafo_loss: float = Field(default=1e2, description="ADMM gamma transformer loss")
-    μ: float = Field(default=10.0, description="ADMM mu")
-    τ_incr: float = Field(default=2.0, description="ADMM tau increment")
-    τ_decr: float = Field(default=2.0, description="ADMM tau decrement")
-    voll: float = Field(default=1.0, description="ADMM value of load curtailment")
-    volp: float = Field(default=1.0, description="ADMM value of production curtailment")
+class CombinedConfig(PipelineConfig):
+    """Configuration for Bender's decomposition pipeline"""
+
+    groups: int | dict[int, list[int]] = 10
+
+
+class ADMMConfig(PipelineConfig):
+    """Configuration for ADMM pipeline"""
+
+    admm_tolerance: float = 1e-4
+    max_iters: int = 10
+    μ: float = 10.0
+    τ_incr: float = 2.0
+    τ_decr: float = 2.0
+    mutation_factor: int = 5
+    groups: int | dict[int, list[int]] = 10
+    ε_primal: float = 1e-3
+    ε_dual: float = 1e-3
+    κ: float = 0.1
 
 
 class ReconfigurationOutput(BaseModel):
@@ -54,21 +79,17 @@ class ReconfigurationOutput(BaseModel):
 
 class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    groups: int | dict[int, list[int]] = 10
-    max_iters: int = 10
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    konfig: ADMMConfig = ADMMConfig()
 
 
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    max_iters: int = 100
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int = 42
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    konfig: BenderConfig = BenderConfig()
 
 
 class CombinedInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    groups: int | None = None
-    scenarios: ShortTermUncertainty = ShortTermUncertainty()
-    seed: int = 42
+    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    konfig: CombinedConfig = CombinedConfig()

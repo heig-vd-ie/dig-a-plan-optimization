@@ -1,13 +1,11 @@
-import json
 from typing import Dict, List
-from pathlib import Path
 from dataclasses import dataclass
 import polars as pl
 from polars import col as c
 import patito as pt
 from data_model import NodeEdgeModel, EdgeData, NodeData
 from pipeline_reconfiguration import DigAPlanADMM
-from data_model.reconfiguration_konfig import ADMMConfig
+from data_model.reconfiguration import ADMMConfig
 
 
 @dataclass
@@ -23,44 +21,8 @@ class ADMMResult:
 class ADMM:
     """ADMM (Alternating Direction Method of Multipliers) optimization class."""
 
-    def __init__(
-        self,
-        volp: float,
-        voll: float,
-        groups: Dict[int, List[int]] | int,
-        grid_data: NodeEdgeModel,
-        solver_non_convex: int,
-        time_limit: int,
-        big_m: float = 1e3,
-        ε: float = 1e-4,
-        ρ: float = 2.0,
-        γ_infeasibility: float = 1.0,
-        γ_admm_penalty: float = 1.0,
-        γ_trafo_loss: float = 1e2,
-        max_iters: int = 10,
-        μ: float = 10.0,
-        τ_incr: float = 2.0,
-        τ_decr: float = 2.0,
-    ):
-        self.konfig = ADMMConfig(
-            voll=voll,
-            volp=volp,
-            verbose=False,
-            solver_name="gurobi",
-            solver_non_convex=solver_non_convex,
-            big_m=big_m,
-            ε=ε,
-            ρ=ρ,
-            γ_infeasibility=γ_infeasibility,
-            γ_admm_penalty=γ_admm_penalty,
-            γ_trafo_loss=γ_trafo_loss,
-            max_iters=max_iters,
-            μ=μ,
-            τ_incr=τ_incr,
-            τ_decr=τ_decr,
-            time_limit=time_limit,
-            groups=groups,
-        )
+    def __init__(self, konfig: ADMMConfig, grid_data: NodeEdgeModel):
+        self.konfig = konfig
         self.grid_data = grid_data
 
     def update_node_grid_data(

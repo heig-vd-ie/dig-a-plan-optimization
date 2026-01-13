@@ -2,14 +2,12 @@ from pydantic import BaseModel
 from data_model.sddp import ExpansionResponse, RiskMeasureType
 from pydantic import BaseModel, Field
 from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty, ADMMOptConfig, ADMMParams
+from data_model.reconfiguration import ShortTermUncertainty, ADMMConfig
 
 
 class LongTermUncertainty(BaseModel):
     n_stages: int = Field(default=3, description="Number of stages")
-    number_of_scenarios: int = Field(
-        default=100, description="Number of long-term scenarios"
-    )
+    n_scenarios: int = Field(default=100, description="Number of long-term scenarios")
     δ_load_var: float = Field(default=0.1, description="Load variation in per unit")
     δ_pv_var: float = Field(default=0.1, description="PV variation in per unit")
     δ_b_var: float = Field(default=10e3, description="Budget variation in k$")
@@ -18,9 +16,9 @@ class LongTermUncertainty(BaseModel):
 class SDDPConfig(BaseModel):
     iterations: int = Field(default=10, description="Number of iterations")
     n_simulations: int = Field(default=100, description="Number of simulations")
-
-
-class SDDPParams(BaseModel):
+    n_optimizations: int = Field(
+        default=10, description="Number of ADMM optimization per stage"
+    )
     initial_budget: float = Field(default=50e3, description="Initial budget in k$")
     discount_rate: float = Field(default=0.05, description="Discount rate in per unit")
     years_per_stage: int = Field(default=1, description="Years per stage")
@@ -50,21 +48,13 @@ class ExpansionInput(BaseModel):
     long_term_uncertainty: LongTermUncertainty = Field(
         description="Long term uncertainty model"
     )
-    admm_config: ADMMOptConfig = Field(description="ADMM configuration")
+    admm_config: ADMMConfig = Field(description="ADMM configuration")
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
-    admm_params: ADMMParams = Field(description="ADMM parameters")
-    sddp_params: SDDPParams = Field(description="SDDP parameters")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(
         default=1e8, description="Memory allocated for each task in bytes"
     )
-
-
-class InputObject(BaseModel):
-    expansion: ExpansionInput
-    time_now: str
-    with_ray: bool
 
 
 class ExpansionOutput(BaseModel):

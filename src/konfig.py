@@ -17,10 +17,15 @@ class Kace:
 
 
 @dataclass
+class CacheFolder:
+    figures: str
+    outputs: str
+
+
+@dataclass
 class Settings:
-    SWITCH_LINK: str
-    SWITCH_PASS: str
     cases: Dict[str, Kace]
+    cache: CacheFolder
 
 
 settings_not_casted = Dynaconf(

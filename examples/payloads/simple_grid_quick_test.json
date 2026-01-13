@@ -1,21 +1,14 @@
 {
     "grid": { "pp_file": "examples/ieee-33/simple_grid.p", "s_base": 1000000 },
     "short_term_uncertainty": {
-        "number_of_scenarios": 3,
+        "n_scenarios": 3,
         "p_bounds": [ -0.2, 0.2 ],
         "q_bounds": [ -0.2, 0.2 ],
         "v_bounds": [ -0.03, 0.03 ]
     },
-    "long_term_uncertainty": {
-        "n_stages": 1,
-        "number_of_scenarios": 10,
-        "δ_load_var": 0.1,
-        "δ_pv_var": 0.1,
-        "δ_b_var": 10000
-    },
+    "long_term_uncertainty": { "n_stages": 1, "n_scenarios": 10, "δ_load_var": 0.1, "δ_pv_var": 0.1, "δ_b_var": 10000 },
     "admm_config": {
         "iterations": 10,
-        "n_simulations": 3,
         "solver_non_convex": true,
         "time_limit": 1,
         "groups": {
@@ -26,7 +19,7 @@
             "4": [ 34, 26, 25, 24, 31 ]
         }
     },
-    "sddp_config": { "iterations": 1, "n_simulations": 10 },
+    "sddp_config": { "iterations": 1, "n_simulations": 10, "n_optimizations": 3 },
     "admm_params": {
         "big_m": 1000,
         "ε": 0.0001,

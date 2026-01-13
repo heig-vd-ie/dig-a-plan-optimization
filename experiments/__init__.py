@@ -9,8 +9,8 @@ import polars as pl
 from polars import col as c
 from datetime import datetime
 from konfig import settings
-from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
+from api.grid_cases import (
+    get_grid_case,
 )
 from data_model import NodeEdgeModel
 
@@ -26,11 +26,12 @@ from pipeline_reconfiguration import (
     DigAPlanCombined,
     DigAPlanBender,
 )
-from data_model.reconfiguration_konfig import (
+from data_model.reconfiguration import (
     BenderConfig,
     CombinedConfig,
     ADMMConfig,
 )
+from data_model.expansion import SDDPConfig, LongTermUncertainty
 
 from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM
 from pipeline_reconfiguration.model_managers.bender import PipelineModelManagerBender
@@ -47,4 +48,5 @@ from pandapower.networks import create_cigre_network_mv
 from shapely import from_geojson
 import joblib
 from data_exporter.mock_dap import save_dap_state, load_dap_state
-
+from data_model.reconfiguration import GridCaseModel
+from data_model import ShortTermUncertaintyRandom

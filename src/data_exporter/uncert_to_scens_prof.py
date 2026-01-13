@@ -8,12 +8,11 @@ import numpy as np
 import pandapower as pp
 import patito as pt
 import pandas as pd
-from data_model import LoadData
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
+from data_model import GridCaseModel, ShortTermUncertaintyProfile, LoadData
 from data_model.kace import (
-    KnownScenariosOptions,
     DiscreteScenario,
 )
 
@@ -52,11 +51,11 @@ class KMeansMedoidReducer(ReductionStrategy):
         return closest_row_indices
 
 
-class ScenarioPipeline:
+class ScenarioPipelineProfile:
     def __init__(self, reduction_strategy: ReductionStrategy = KMeansMedoidReducer()):
         self.reducer = reduction_strategy
 
-    def process(self, ksop: KnownScenariosOptions):
+    def process(self, ksop: ShortTermUncertaintyProfile):
         """
         1. Filters Polars DF by Year/Scenario
         2. Extracts features
@@ -196,10 +195,30 @@ class ScenarioPipeline:
         return scenarios
 
 
+def generate_profile_based_load_scenarios(
+    grid: GridCaseModel,
+    stu: ShortTermUncertaintyProfile,
+    net: pp.pandapowerNet,
+    seed: int,
+) -> Dict[int, pt.DataFrame[LoadData]]:
+    """
+    Generate load scenarios based on predefined profiles using ScenarioPipelineProfile.
+    """
+    scenario_pipeline = ScenarioPipelineProfile()
+    rand_scenarios = scenario_pipeline.process(ksop=stu).map2scens(
+        egid_id_mapping_file=Path(grid.egid_id_mapping_file),
+        id_node_mapping=net.load,
+        cosφ=grid.cosφ,
+        s_base=grid.s_base,
+        seed=seed,
+    )
+    return rand_scenarios
+
+
 # --- 4. USAGE EXAMPLE ---
 if __name__ == "__main__":
     # --- INPUT DATA ---
-    ksop = KnownScenariosOptions(
+    ksop = ShortTermUncertaintyProfile(
         load_profiles=[Path("examples/ieee-33/load_profiles")],
         pv_profile=Path("examples/ieee-33/pv_profiles"),
         target_year=2030,
@@ -214,7 +233,7 @@ if __name__ == "__main__":
     strategy = KMeansMedoidReducer()
 
     # 2. Initialize Pipeline
-    pipeline = ScenarioPipeline(strategy)
+    pipeline = ScenarioPipelineProfile(strategy)
 
     net = pp.from_pickle("examples/ieee-33/simple_grid.p")
 

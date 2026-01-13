@@ -1,7 +1,7 @@
 from data_model import NodeEdgeModel
 from pipeline_reconfiguration.data_manager import PipelineDataManager
 from pipeline_reconfiguration.result_manager import PipelineResultManager
-from data_model.reconfiguration_konfig import (
+from data_model.reconfiguration import (
     CombinedConfig,
     PipelineConfig,
     BenderConfig,

@@ -6,16 +6,22 @@ os.chdir(os.getcwd().replace("/src", ""))
 # %%
 from experiments import *
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 kace = "estavayer_centre_ville"
-# %% Convert pandapower -> DigAPlan schema with a few scenarios
-net = pp.from_pickle(settings.cases[kace].pandapower_file)
-grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-    net,
-    number_of_random_scenarios=10,
-    v_bounds=(-0.07, 0.07),
-    use_random_scenarios=False,
-    kace=kace,
+seed = 42
+pp_path = PROJECT_ROOT / ".cache" / "input" / "estavayer" / "estavayer_centre_ville.p"
+
+grid = GridCaseModel(
+    pp_file=str(pp_path),
+    s_base=1e6,
 )
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=10,
+    v_bounds=(-0.07, 0.07),
+)
+
+# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
+net, grid_data = get_grid_case(grid=grid, seed=seed, stu=stu)
 
 
 # %% convert pandapower grid to DigAPlan grid data

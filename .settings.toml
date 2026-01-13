@@ -8,3 +8,6 @@ dap_state_file=".cache/figs/estavayer_centre_ville"
 dap_state_fixed_file=".cache/figs/estavayer_centre_ville_fixed"
 dump_net_file=".cache/figs/estavayer_centre_ville.joblib"
 
+[cache]
+figures=".cache/figs"
+outputs=".cache/algorithm"

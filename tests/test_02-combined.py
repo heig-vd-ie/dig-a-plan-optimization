@@ -1,9 +1,7 @@
 import pytest
 import polars as pl
 import math
-from data_exporter.pp_to_dap import (
-    pandapower_to_dig_a_plan_schema_with_scenarios,
-)
+from api.grid_cases import get_grid_case
 from data_display.output_processing import compare_dig_a_plan_with_pandapower
 from pipeline_reconfiguration import DigAPlanCombined
 
@@ -13,16 +11,26 @@ from helpers.pyomo import extract_optimization_results
 class TestCombinedModel:
 
     @pytest.fixture(autouse=True)
-    def setup_common_data(self, test_simple_grid, test_combined_config):
+    def setup_common_data(
+        self,
+        test_simple_grid,
+        test_combined_config,
+        test_seed,
+        test_short_term_uncertainty_random,
+    ):
         """Set up common test data and configurations."""
-        self.net = test_simple_grid
+        self.grid = test_simple_grid
         self.combined_config = test_combined_config
+        self.seed = test_seed
+        self.stu = test_short_term_uncertainty_random
 
 
 class TestCombinedModelSimpleExample(TestCombinedModel):
     def test_combined_model_simple_example(self):
 
-        base_grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(self.net)
+        net, base_grid_data = get_grid_case(
+            grid=self.grid, seed=self.seed, stu=self.stu
+        )
 
         dig_a_plan = DigAPlanCombined(konfig=self.combined_config)
 
@@ -38,7 +46,7 @@ class TestCombinedModelSimpleExample(TestCombinedModel):
         taps = dig_a_plan.result_manager.extract_transformer_tap_position()
 
         node_data, edge_data = compare_dig_a_plan_with_pandapower(
-            dig_a_plan=dig_a_plan, net=self.net
+            dig_a_plan=dig_a_plan, net=net
         )
 
         assert taps.get_column("tap_value").sort().to_list() == [100, 100]

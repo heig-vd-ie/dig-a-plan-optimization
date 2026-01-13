@@ -5,21 +5,22 @@ from pathlib import Path
 # %% set parameters
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p"))
-    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net,
-        number_of_random_scenarios=10,
-        v_bounds=(-0.07, 0.07),
-        p_bounds=(-0.5, 1.0),
-        q_bounds=(-0.5, 0.5),
-    )
-else:
-    net = pp.from_pickle(str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"))
-    grid_data = pandapower_to_dig_a_plan_schema_with_scenarios(
-        net,
-        number_of_random_scenarios=10,
-    )
+seed = 42
+pp_path = PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"
+
+grid = GridCaseModel(
+    pp_file=str(pp_path),
+    s_base=1e6,
+)
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=10,
+    v_bounds=(-0.07, 0.07),
+    p_bounds=(-0.5, 1.0),
+    q_bounds=(-0.5, 0.5),
+)
+
+# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
+net, grid_data = get_grid_case(grid=grid, seed=seed, stu=stu)
 
 grid_data.edge_data = grid_data.edge_data.with_columns(
     pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
@@ -33,9 +34,13 @@ expansion_algorithm = ExpansionAlgorithm(
     each_task_memory=4 * 1024 * 1024 * 1024,  # 4 GB
     time_now=datetime.now().strftime("%Y%m%d_%H%M%S"),
     cache_dir=Path(".cache"),
-    admm_groups=10,  # TODO: set number of groups for actual boisy grid to 40
-    # time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
-    # solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
+    admm_config=ADMMConfig(
+        groups=10,  # TODO: set number of groups for actual boisy grid to 40
+        # time_limit=10,  # TODO: set time limit to 10 seconds for actual boisy grid
+        # solver_non_convex=2,  # Set non-convex parameters to 2 for Boisy grid
+    ),
+    sddp_config=SDDPConfig(),
+    long_term_uncertainty=LongTermUncertainty(),
 )
 
 # %%
