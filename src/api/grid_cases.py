@@ -1,7 +1,6 @@
 import pandapower as pp
 from pathlib import Path
 from typing import Tuple
-
 from data_exporter.pp_to_dap import (
     pp_to_dap,
 )
@@ -13,6 +12,18 @@ from data_model import (
     ShortTermUncertainty,
     ShortTermUncertaintyProfile,
 )
+
+
+def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
+
+    missing = net.bus["geo"].isna()
+    idxs = net.bus.index[missing]
+
+    for k, idx in enumerate(idxs):
+        net.bus.at[idx, "geo"] = f'{{"type":"Point","coordinates":[{float(k)},{0.0}]}}'
+
+    print("Filled missing geo:", len(idxs))
+    return net
 
 
 def get_grid_case(
@@ -32,6 +43,7 @@ def get_grid_case(
 
     # 1) Load the pandapower network from pickle depending on the selected case
     net = pp.from_pickle(grid.pp_file)
+    net = fill_missing_bus_geo(net)
 
     node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
         pp_to_dap(net, s_base=grid.s_base)

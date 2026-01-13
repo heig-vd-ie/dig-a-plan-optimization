@@ -14,19 +14,17 @@ grid = GridCaseModel(
     pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
     s_base=1e6,
 )
-stu = ShortTermUncertaintyRandom()
-
-net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
-# %% --- build grid data with scenarios ---
-net.bus["max_vm_pu"] = 1.05
-net.bus["min_vm_pu"] = 0.95
-grid_data = pp_to_dap_w_scenarios(
-    net,
-    number_of_random_scenarios=100,
+stu = ShortTermUncertaintyRandom(
     p_bounds=(-0.6, 1.5),
     q_bounds=(-0.1, 0.1),
     v_bounds=(-0.1, 0.1),
+    n_scenarios=100,
 )
+
+net, grid_data = get_grid_case(grid=grid, seed=42, stu=stu)
+# %% --- build grid data with scenarios ---
+net.bus["max_vm_pu"] = 1.05
+net.bus["min_vm_pu"] = 0.95
 groups = {
     0: [19, 20, 21, 29, 32, 35],
     1: [35, 30, 33, 25, 26, 27],

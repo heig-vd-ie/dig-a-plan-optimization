@@ -404,19 +404,18 @@ need_train = not (
 
 dap_train = None
 
+
 if need_train:
     print("[ADMM][TRAIN] Build train scenarios & solve ADMM to learn y* ...")
     np.random.seed(42)
-
-    grid_train = pp_to_dap_w_scenarios(
-        net,
-        number_of_random_scenarios=NUM_SCEN_TRAIN,
-        p_bounds=(-0.6, 1.5),
-        q_bounds=(-0.1, 0.1),
-        v_bounds=(-0.1, 0.1),
+    grid = GridCaseModel(
+        pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
         s_base=S_BASE_W,
-        seed=42,
     )
+    stu = ShortTermUncertaintyRandom(
+        p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1), v_bounds=(-0.1, 0.1)
+    )
+    net, grid_train = get_grid_case(grid=grid, seed=42, stu=stu)
     config_train = ADMMConfig(
         verbose=False,
         solver_name="gurobi",
@@ -470,15 +469,14 @@ print("Sample y* (δ):", list(z_switch_y.items())[:5])
 # If we loaded cache, dap_train doesn't exist -> create it now (same as training setup)
 if dap_train is None:
     print("[ADMM][CACHE] Re-solving ADMM once to compute Normal-Open topology ...")
-    grid_train = pp_to_dap_w_scenarios(
-        net,
-        number_of_random_scenarios=NUM_SCEN_TRAIN,
-        p_bounds=(-0.6, 1.5),
-        q_bounds=(-0.1, 0.1),
-        v_bounds=(-0.1, 0.1),
+    grid = GridCaseModel(
+        pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
         s_base=S_BASE_W,
-        seed=42,
     )
+    stu = ShortTermUncertaintyRandom(
+        p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1), v_bounds=(-0.1, 0.1)
+    )
+    net, grid_train = get_grid_case(grid=grid, seed=42, stu=stu)
     config_train = ADMMConfig(
         verbose=False,
         solver_name="gurobi",
@@ -553,15 +551,14 @@ os.makedirs(".cache/figs", exist_ok=True)
 diag.to_csv(".cache/figs/pp_switch_states__ystar_vs_normalopen.csv", index=False)
 
 # Re-create the **same** train scenarios (without re-solving ADMM) for PP evaluation
-grid_train_pp = pp_to_dap_w_scenarios(
-    net,
-    number_of_random_scenarios=NUM_SCEN_TRAIN,
-    p_bounds=(-0.6, 1.5),
-    q_bounds=(-0.1, 0.1),
-    v_bounds=(-0.1, 0.1),
+grid = GridCaseModel(
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
     s_base=S_BASE_W,
-    seed=42,  # must match the ADMM train seed
 )
+stu = ShortTermUncertaintyRandom(
+    p_bounds=(-0.6, 1.5), q_bounds=(-0.1, 0.1), v_bounds=(-0.1, 0.1)
+)
+net, grid_train_pp = get_grid_case(grid=grid, seed=42, stu=stu)
 
 # %% --------- PP on TRAIN set: losses for Fixed y* vs Normal-Open --------------
 rows_pp_train_fixed, rows_pp_train_no = [], []
@@ -595,15 +592,18 @@ df_PP_train_no.to_csv(".cache/figs/pp_losses_train_normalopen.csv", index=False)
 
 # %% ------------------ Stage B: build OOS scenarios ----------------------------
 print("[OOS] Building OOS scenarios ...")
-grid_test = pp_to_dap_w_scenarios(
-    net,
-    number_of_random_scenarios=NUM_SCEN_TEST,
+grid = GridCaseModel(
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    s_base=S_BASE_W,
+)
+stu = ShortTermUncertaintyRandom(
     p_bounds=(-0.6, 1.5),
     q_bounds=(-0.1, 0.1),
     v_bounds=(-0.1, 0.1),
-    s_base=S_BASE_W,
-    seed=777,  # different seed -> different scenarios
+    n_scenarios=NUM_SCEN_TEST,
 )
+net, grid_test = get_grid_case(grid=grid, seed=777, stu=stu)
+
 
 # %% --------- PP on OOS set: losses for Fixed y*  ---
 rows_pp_oos_fixed = []

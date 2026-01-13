@@ -5,25 +5,22 @@ from pathlib import Path
 # %% set parameters
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-if USE_SIMPLIFIED_GRID := True:
-    net = pp.from_pickle(
-        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p")
-    )
-    grid_data = pp_to_dap_w_scenarios(
-        net,
-        number_of_random_scenarios=10,
-        v_bounds=(-0.07, 0.07),
-        p_bounds=(-0.5, 1.0),
-        q_bounds=(-0.5, 0.5),
-    )
-else:
-    net = pp.from_pickle(
-        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p")
-    )
-    grid_data = pp_to_dap_w_scenarios(
-        net,
-        number_of_random_scenarios=10,
-    )
+seed = 42
+pp_path = PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"
+
+grid = GridCaseModel(
+    pp_file=str(pp_path),
+    s_base=1e6,
+)
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=10,
+    v_bounds=(-0.07, 0.07),
+    p_bounds=(-0.5, 1.0),
+    q_bounds=(-0.5, 0.5),
+)
+
+# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
+net, grid_data = get_grid_case(grid=grid, seed=seed, stu=stu)
 
 grid_data.edge_data = grid_data.edge_data.with_columns(
     pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)

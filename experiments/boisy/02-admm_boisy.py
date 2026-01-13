@@ -5,43 +5,23 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
-def fill_missing_bus_geo(net):
-
-    missing = net.bus["geo"].isna()
-    idxs = net.bus.index[missing]
-
-    for k, idx in enumerate(idxs):
-        net.bus.at[idx, "geo"] = f'{{"type":"Point","coordinates":[{float(k)},{0.0}]}}'
-
-    print("Filled missing geo:", len(idxs))
-    return net
-
-
 # %% Convert pandapower -> DigAPlan schema with a few scenarios
-USE_SIMPLIFIED_GRID = True
 seed = 42
+pp_path = PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p"
 
-if USE_SIMPLIFIED_GRID:
-    net = pp.from_pickle(
-        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid_simplified.p")
-    )
-else:
-    net = pp.from_pickle(
-        str(PROJECT_ROOT / ".cache" / "input" / "boisy" / "boisy_grid.p")
-    )
-
-# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
-net = fill_missing_bus_geo(net)
-
-# %% --- Build the DigAPlan grid data ---
-grid_data = pp_to_dap_w_scenarios(
-    net,
-    seed=seed,
-    number_of_random_scenarios=10,
+grid = GridCaseModel(
+    pp_file=str(pp_path),
+    s_base=1e6,
+)
+stu = ShortTermUncertaintyRandom(
+    n_scenarios=10,
     v_bounds=(-0.07, 0.07),
     p_bounds=(-0.5, 1.0),
     q_bounds=(-0.5, 0.5),
 )
+
+# %% --- CLEAN NULLS IN THE RAW PANDAPOWER NET (same as your 2nd script) ---
+net, grid_data = get_grid_case(grid=grid, seed=seed, stu=stu)
 
 # %% convert pandapower grid to DigAPlan grid data
 

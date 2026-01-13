@@ -20,19 +20,7 @@ stu = ShortTermUncertaintyRandom(
 
 
 # Use API to load the net
-net, _ = get_grid_case(grid=grid, seed=42, stu=stu)
-
-# %% build base_grid_data
-base_grid_data = pp_to_dap_w_scenarios(
-    net=net,
-    s_base=grid.s_base,
-    number_of_random_scenarios=stu.n_scenarios,
-    p_bounds=stu.p_bounds,
-    q_bounds=stu.q_bounds,
-    v_bounds=stu.v_bounds,
-    seed=42,
-)
-
+net, base_grid_data = get_grid_case(grid=grid, seed=42, stu=stu)
 
 # %% initialize DigAPlan
 konfig = BenderConfig(
