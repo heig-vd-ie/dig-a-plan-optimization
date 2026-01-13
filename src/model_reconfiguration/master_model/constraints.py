@@ -1,6 +1,5 @@
 # constraints.py
 import pyomo.environ as pyo
-import pyomo.gdp as pyg
 from pyomo.environ import ConstraintList
 from model_reconfiguration.constraints import *
 

@@ -1,6 +1,5 @@
 from data_model.kace import GridCaseModel
 from pydantic import BaseModel
-from typing import Union
 from data_model.kace import ShortTermUncertainty, ShortTermUncertaintyRandom
 
 

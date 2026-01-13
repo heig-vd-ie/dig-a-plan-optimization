@@ -1,46 +1,38 @@
 from __future__ import annotations
-from typing import Dict, Tuple
+from typing import Dict
 import numpy as np
 import polars as pl
 import patito as pt
-from data_model import NodeData, LoadData
+from data_model import LoadData, NodeEdgeModel, ShortTermUncertaintyRandom
 import random
 
 
 def generate_random_load_scenarios(
-    node_data: pt.DataFrame[NodeData],
+    node_edge_model: NodeEdgeModel,
+    stu: ShortTermUncertaintyRandom,
     v_slack_node_sqr_pu: float,
-    load_data: pl.DataFrame,
-    number_of_random_scenarios: int,
     seed: int,
-    p_bounds: Tuple[float, float] | None = None,
-    q_bounds: Tuple[float, float] | None = None,
-    v_bounds: Tuple[float, float] | None = None,
 ) -> Dict[int, pt.DataFrame[LoadData]]:
     """
     Generate randomized p/q/v load scenarios for every node, validated
     against `data_schema.load_data.NodeData`.
     """
-    if p_bounds is None:
-        p_bounds = (-0.2, 0.2)
-    if q_bounds is None:
-        q_bounds = (-0.2, 0.2)
-    if v_bounds is None:
-        v_bounds = (-0.03, 0.03)
 
     random.seed(seed)
     rng = np.random.default_rng(seed)
 
-    node_ids = node_data["node_id"].to_numpy()
+    node_ids = node_edge_model.node_data["node_id"].to_numpy()
     n_nodes = len(node_ids)
 
-    p_min, p_max = p_bounds
-    q_min, q_max = q_bounds
-    v_min, v_max = v_bounds
+    p_min, p_max = stu.p_bounds
+    q_min, q_max = stu.q_bounds
+    v_min, v_max = stu.v_bounds
 
     scenarios: Dict[int, pt.DataFrame[LoadData]] = {}
 
-    for i in range(1, number_of_random_scenarios + 1):
+    load_data = node_edge_model.load_data[0]
+
+    for i in range(1, stu.n_scenarios + 1):
         random_numbers = rng.uniform(low=0, high=1, size=5 * n_nodes)
         p_rand = random_numbers[0 * n_nodes : 1 * n_nodes] * (p_max - p_min) + p_min
         q_rand = random_numbers[1 * n_nodes : 2 * n_nodes] * (q_max - q_min) + q_min

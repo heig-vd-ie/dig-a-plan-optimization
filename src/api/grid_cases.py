@@ -1,10 +1,12 @@
 import pandapower as pp
-from pathlib import Path
 from typing import Tuple
+
 from data_exporter.pp_to_dap import (
     pp_to_dap,
 )
-from data_exporter.uncert_to_scens_prof import ScenarioPipelineProfile
+from data_exporter.uncert_to_scens_prof import (
+    generate_profile_based_load_scenarios,
+)
 from data_exporter.uncert_to_scens_rand import generate_random_load_scenarios
 from data_model import (
     NodeEdgeModel,
@@ -45,35 +47,27 @@ def get_grid_case(
     net = pp.from_pickle(grid.pp_file)
     net = fill_missing_bus_geo(net)
 
-    node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data = (
-        pp_to_dap(net, s_base=grid.s_base)
-    )
+    node_edge_model, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
 
     # 2) Build Dig-A-Plan schema + scenarios
     if isinstance(stu, ShortTermUncertaintyProfile):
-        scenario_pipeline = ScenarioPipelineProfile()
-        rand_scenarios = scenario_pipeline.process(ksop=stu).map2scens(
-            egid_id_mapping_file=Path(grid.egid_id_mapping_file),
-            id_node_mapping=net.load,
-            cosφ=grid.cosφ,
-            s_base=grid.s_base,
+        rand_scenarios = generate_profile_based_load_scenarios(
+            grid=grid,
+            stu=stu,
+            net=net,
             seed=seed,
         )
     else:
         rand_scenarios = generate_random_load_scenarios(
-            node_data=node_data_validated,
+            node_edge_model=node_edge_model,
+            stu=stu,
             v_slack_node_sqr_pu=v_slack_node_sqr_pu,
-            load_data=load_data,
-            number_of_random_scenarios=stu.n_scenarios,
-            p_bounds=stu.p_bounds,
-            q_bounds=stu.q_bounds,
-            v_bounds=stu.v_bounds,
             seed=seed,
         )
 
     base_grid_data = NodeEdgeModel(
-        node_data=node_data_validated,
-        edge_data=edge_data_validated,
+        node_data=node_edge_model.node_data,
+        edge_data=node_edge_model.edge_data,
         load_data=rand_scenarios,
     )
 

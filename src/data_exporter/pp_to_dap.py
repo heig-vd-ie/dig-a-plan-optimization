@@ -2,7 +2,7 @@ import polars as pl
 import patito as pt
 from polars import col as c
 from shapely import from_geojson
-from data_model import NodeData, EdgeData
+from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel
 import numpy as np
 import pandapower as pp
 from typing import Tuple
@@ -16,7 +16,7 @@ from data_exporter import validate_data
 
 def pp_to_dap(
     net: pp.pandapowerNet, s_base: float = 1e6
-) -> Tuple[pt.DataFrame[NodeData], pt.DataFrame[EdgeData], float, pl.DataFrame]:
+) -> Tuple[NodeEdgeModel, float]:
     """
     Convert a pandapower network to DigAPlan schema.
     This function extracts static node and edge data from the pandapower network
@@ -306,8 +306,15 @@ def pp_to_dap(
 
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
+    load_data_validated = validate_data(load_data, LoadData)
 
-    return node_data_validated, edge_data_validated, v_slack_node_sqr_pu, load_data
+    node_edge_model = NodeEdgeModel(
+        node_data=node_data_validated,
+        edge_data=edge_data_validated,
+        load_data={0: load_data_validated},
+    )
+
+    return node_edge_model, v_slack_node_sqr_pu
 
 
 def _handle_missing_coords(

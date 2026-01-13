@@ -11,7 +11,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
-from data_model import ShortTermUncertaintyProfile, LoadData
+from data_model import GridCaseModel, ShortTermUncertaintyProfile, LoadData
 from data_model.kace import (
     DiscreteScenario,
 )
@@ -193,6 +193,26 @@ class ScenarioPipelineProfile:
             scenarios[ω] = df_pt
 
         return scenarios
+
+
+def generate_profile_based_load_scenarios(
+    grid: GridCaseModel,
+    stu: ShortTermUncertaintyProfile,
+    net: pp.pandapowerNet,
+    seed: int,
+) -> Dict[int, pt.DataFrame[LoadData]]:
+    """
+    Generate load scenarios based on predefined profiles using ScenarioPipelineProfile.
+    """
+    scenario_pipeline = ScenarioPipelineProfile()
+    rand_scenarios = scenario_pipeline.process(ksop=stu).map2scens(
+        egid_id_mapping_file=Path(grid.egid_id_mapping_file),
+        id_node_mapping=net.load,
+        cosφ=grid.cosφ,
+        s_base=grid.s_base,
+        seed=seed,
+    )
+    return rand_scenarios
 
 
 # --- 4. USAGE EXAMPLE ---
