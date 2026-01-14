@@ -445,16 +445,18 @@ class PipelineModelManagerADMM(PipelineModelManager):
             results = self.solver.solve(model, tee=self.konfig.verbose)
             if results.solver.termination_condition != pyo.TerminationCondition.optimal:
                 log.error(f"Model solve failed: {results.solver.termination_condition}")
-            δ_map = model.δ.extract_values()  # type: ignore
-            ζ_map = model.ζ.extract_values()  # type: ignore
-            if None in δ_map.values() or None in ζ_map.values():
+            δ_map_res = model.δ.extract_values()  # type: ignore
+            ζ_map_res = model.ζ.extract_values()  # type: ignore
+            if None in δ_map_res.values() or None in ζ_map_res.values():
                 raise ValueError("Extracted δ or ζ values contain None.")
-            self.__print_switch_states(δ_map, k=k, selected_switches=selected_switches)
+            self.__print_switch_states(
+                δ_map_res, k=k, selected_switches=selected_switches
+            )
         except Exception as e:
-            δ_map = {}
-            ζ_map = {}
+            δ_map_res = δ_map
+            ζ_map_res = ζ_map
             log.error(f"Error solving model: {e}")
-        return δ_map, ζ_map
+        return δ_map_res, ζ_map_res
 
     def __calculate_residuals(
         self,
