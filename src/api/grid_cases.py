@@ -72,7 +72,10 @@ def get_grid_case(
     node_edge_model.load_data = rand_scenarios
 
     node_edge_model.edge_data = node_edge_model.edge_data.with_columns(
-        pl.when(c(col) < 1e-3).then(pl.lit(0)).otherwise(c(col)).alias(col)
+        pl.when(c(col) < grid.minimum_impedance)
+        .then(pl.lit(0))
+        .otherwise(c(col))
+        .alias(col)
         for col in ["b_pu", "r_pu", "x_pu"]
     ).with_columns(
         c("normal_open").fill_null(False),

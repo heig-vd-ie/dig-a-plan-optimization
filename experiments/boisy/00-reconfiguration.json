@@ -4,7 +4,8 @@
         "pp_file": ".cache/input/boisy/feeders/feeder_feeder_1.p",
         "s_base": 1000000,
         "cosφ": 0.95,
-        "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.csv"
+        "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0.001
     },
     "profiles": {
         "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],

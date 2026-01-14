@@ -22,6 +22,9 @@ class GridCaseModel(BaseModel):
         default="examples/ieee-33/consumer_egid_idx_mapping.csv",
         description="Path to EGID to ID mapping CSV file",
     )
+    minimum_impedance: float = Field(
+        default=0.0, description="Minimum impedance to avoid numerical issues"
+    )
 
 
 class ShortTermUncertintyBase(BaseModel):

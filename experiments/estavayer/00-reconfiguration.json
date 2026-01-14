@@ -4,7 +4,8 @@
         "pp_file": ".cache/input/estavayer/feeders/feeder_aumont.p",
         "s_base": 1000000,
         "cosφ": 0.95,
-        "egid_id_mapping_file": ".cache/input/estavayer/consumer_egid_idx_mapping.csv"
+        "egid_id_mapping_file": ".cache/input/estavayer/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0.001
     },
     "profiles": {
         "load_profiles": [ ".cache/input/estavayer/load_profiles/aumont" ],
