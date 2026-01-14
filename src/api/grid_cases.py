@@ -48,7 +48,7 @@ def get_grid_case(
 
     # 1) Load the pandapower network from pickle depending on the selected case
     net = pp.from_pickle(grid.pp_file)
-    net = fill_missing_bus_geo(net)
+    # net = fill_missing_bus_geo(net)
 
     node_edge_model, load_data, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
 
