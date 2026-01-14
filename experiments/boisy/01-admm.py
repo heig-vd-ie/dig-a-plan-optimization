@@ -1,7 +1,7 @@
 from experiments import *
 
 if __name__ == "__main__":
-    payload_file = PROJECT_ROOT / "experiments/boisy/00a-reconfiguration.json"
+    payload_file = PROJECT_ROOT / "experiments/boisy/00-reconfiguration.json"
     payload = json.load(open(payload_file, "r"))
     request = ADMMInput.model_validate(payload)
 
