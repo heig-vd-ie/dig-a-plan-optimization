@@ -53,6 +53,7 @@ from data_exporter.mock_dap import save_dap_state, load_dap_state
 from data_model.reconfiguration import GridCaseModel
 from data_model import ShortTermUncertaintyRandom
 from api.combined import CombinedInput
+from api.admm import ADMMInput
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCALHOST = os.getenv("LOCAL_HOST")

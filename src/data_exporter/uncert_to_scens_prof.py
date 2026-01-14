@@ -175,10 +175,10 @@ class ScenarioPipelineProfile:
             df = df.select(
                 [
                     pl.col("node_id").alias("node_id"),
-                    pl.col("p_cons_pu").fill_null(0).alias("p_cons_pu"),
-                    pl.col("q_cons_pu").fill_null(0).alias("q_cons_pu"),
-                    pl.col("p_prod_pu").fill_null(0).alias("p_prod_pu"),
-                    pl.col("q_prod_pu").fill_null(0).alias("q_prod_pu"),
+                    pl.col("p_cons_pu").fill_null(0).alias("p_cons_pu") * 1e3,
+                    pl.col("q_cons_pu").fill_null(0).alias("q_cons_pu") * 1e3,
+                    pl.col("p_prod_pu").fill_null(0).alias("p_prod_pu") * 1e3,
+                    pl.col("q_prod_pu").fill_null(0).alias("q_prod_pu") * 1e3,
                     pl.Series(random_voltage).alias("v_node_sqr_pu"),
                 ]
             )
@@ -191,19 +191,19 @@ class ScenarioPipelineProfile:
                     pl.col("p_cons_pu")
                     .sum()
                     .alias("p_cons_pu")
-                    .map_elements(lambda x: max(x, 0.0)),
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
                     pl.col("q_cons_pu")
                     .sum()
                     .alias("q_cons_pu")
-                    .map_elements(lambda x: max(x, 0.0)),
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
                     pl.col("p_prod_pu")
                     .sum()
                     .alias("p_prod_pu")
-                    .map_elements(lambda x: max(x, 0.0)),
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
                     pl.col("q_prod_pu")
                     .sum()
                     .alias("q_prod_pu")
-                    .map_elements(lambda x: max(x, 0.0)),
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
                     pl.col("v_node_sqr_pu").mean().alias("v_node_sqr_pu"),
                 )
             ).select(

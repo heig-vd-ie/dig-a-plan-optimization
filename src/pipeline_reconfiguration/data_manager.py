@@ -256,11 +256,21 @@ class PipelineDataManager:
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "node_cons_installed_param": {
-                        n: self.node_data.filter(c("node_id") == n)["cons_installed"][0]
+                        n: safe_first(
+                            self.node_data.filter(c("node_id") == n)[
+                                "cons_installed"
+                            ].to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                     },
                     "node_prod_installed_param": {
-                        n: self.node_data.filter(c("node_id") == n)["prod_installed"][0]
+                        n: safe_first(
+                            self.node_data.filter(c("node_id") == n)[
+                                "prod_installed"
+                            ].to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                     },
                     # ADMM & big‑M parameters
