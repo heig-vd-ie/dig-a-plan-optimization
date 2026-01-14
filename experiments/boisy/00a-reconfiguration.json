@@ -1,0 +1,18 @@
+{
+    "grid": {
+        "name": "boisy_simplified",
+        "load_profile": "boisy_simplified",
+        "pp_file": ".cache/input/boisy/boisy_grid_simplified.p",
+        "s_base": 1000000,
+        "cosφ": 0.95,
+        "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.p"
+    },
+    "scenarios": {
+        "load_profiles": ".cache/input/boisy/load_profiles",
+        "pv_profile": ".cache/input/boisy/pv_profiles",
+        "target_year": 2030,
+        "quarter": 1,
+        "scenario_name": "BASIC"
+    },
+    "konfig": { "verbose": true, "big_m": 1000, "ε": 0.1, "γ_admm_penalty": 0, "seed": 42, "groups": 5 }
+}

@@ -47,7 +47,7 @@ def get_grid_case(
     net = pp.from_pickle(grid.pp_file)
     net = fill_missing_bus_geo(net)
 
-    node_edge_model, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
+    node_edge_model, load_data, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
 
     # 2) Build Dig-A-Plan schema + scenarios
     if isinstance(stu, ShortTermUncertaintyProfile):
@@ -60,6 +60,7 @@ def get_grid_case(
     else:
         rand_scenarios = generate_random_load_scenarios(
             node_edge_model=node_edge_model,
+            load_data=load_data,
             stu=stu,
             v_slack_node_sqr_pu=v_slack_node_sqr_pu,
             seed=seed,

@@ -180,6 +180,15 @@ class ScenarioPipelineProfile:
                     pl.col("q_prod_pu").sum().alias("q_prod_pu"),
                     pl.col("v_node_sqr_pu").mean().alias("v_node_sqr_pu"),
                 )
+            ).select(
+                [
+                    "node_id",
+                    "p_cons_pu",
+                    "q_cons_pu",
+                    "p_prod_pu",
+                    "q_prod_pu",
+                    "v_node_sqr_pu",
+                ]
             )
 
             df_pt = (

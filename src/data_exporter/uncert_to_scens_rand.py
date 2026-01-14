@@ -9,6 +9,7 @@ import random
 
 def generate_random_load_scenarios(
     node_edge_model: NodeEdgeModel,
+    load_data: pl.DataFrame,
     stu: ShortTermUncertaintyRandom,
     v_slack_node_sqr_pu: float,
     seed: int,
@@ -29,8 +30,6 @@ def generate_random_load_scenarios(
     v_min, v_max = stu.v_bounds
 
     scenarios: Dict[int, pt.DataFrame[LoadData]] = {}
-
-    load_data = node_edge_model.load_data[0]
 
     for i in range(1, stu.n_scenarios + 1):
         random_numbers = rng.uniform(low=0, high=1, size=5 * n_nodes)

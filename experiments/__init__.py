@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import json
+import requests
 from pathlib import Path
 from logging import config
 import copy
@@ -50,3 +52,8 @@ import joblib
 from data_exporter.mock_dap import save_dap_state, load_dap_state
 from data_model.reconfiguration import GridCaseModel
 from data_model import ShortTermUncertaintyRandom
+from api.combined import CombinedInput
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+LOCALHOST = os.getenv("LOCAL_HOST")
+PY_PORT = os.getenv("SERVER_PY_PORT")
