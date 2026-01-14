@@ -54,6 +54,3 @@ class ShortTermUncertaintyRandom(ShortTermUncertintyBase):
     q_bounds: Tuple[float, float] = Field(
         default=(-0.2, 0.2), description="Reactive power bounds in per unit"
     )
-
-
-ShortTermUncertainty = Union[ShortTermUncertaintyRandom, ShortTermUncertaintyProfile]

@@ -2,7 +2,11 @@ from pydantic import BaseModel
 from data_model.sddp import ExpansionResponse, RiskMeasureType
 from pydantic import BaseModel, Field
 from data_model.kace import GridCaseModel
-from data_model.reconfiguration import ShortTermUncertainty, ADMMConfig
+from data_model.reconfiguration import (
+    ShortTermUncertaintyRandom,
+    ShortTermUncertaintyProfile,
+    ADMMConfig,
+)
 
 
 class LongTermUncertainty(BaseModel):
@@ -42,8 +46,11 @@ class SDDPConfig(BaseModel):
 
 class ExpansionInput(BaseModel):
     grid: GridCaseModel = Field(description="Grid model")
-    short_term_uncertainty: ShortTermUncertainty = Field(
+    short_term_uncertainty: ShortTermUncertaintyRandom = Field(
         description="Short term uncertainty model"
+    )
+    profiles: ShortTermUncertaintyProfile | None = Field(
+        description="Profile-based uncertainty model", default=None
     )
     long_term_uncertainty: LongTermUncertainty = Field(
         description="Long term uncertainty model"

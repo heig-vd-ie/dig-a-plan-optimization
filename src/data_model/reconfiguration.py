@@ -1,6 +1,7 @@
+from data_model import ShortTermUncertaintyProfile
 from data_model.kace import GridCaseModel
 from pydantic import BaseModel
-from data_model.kace import ShortTermUncertainty, ShortTermUncertaintyRandom
+from data_model.kace import ShortTermUncertaintyRandom
 
 
 class PipelineConfig(BaseModel):
@@ -79,17 +80,20 @@ class ReconfigurationOutput(BaseModel):
 
 class ADMMInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
+    profiles: ShortTermUncertaintyProfile | None = None
     konfig: ADMMConfig = ADMMConfig()
 
 
 class BenderInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
+    profiles: ShortTermUncertaintyProfile | None = None
     konfig: BenderConfig = BenderConfig()
 
 
 class CombinedInput(BaseModel):
     grid: GridCaseModel = GridCaseModel()
-    scenarios: ShortTermUncertainty = ShortTermUncertaintyRandom()
+    scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
+    profiles: ShortTermUncertaintyProfile | None = None
     konfig: CombinedConfig = CombinedConfig()

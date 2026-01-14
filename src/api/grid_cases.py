@@ -11,7 +11,7 @@ from data_exporter.uncert_to_scens_rand import generate_random_load_scenarios
 from data_model import (
     NodeEdgeModel,
     GridCaseModel,
-    ShortTermUncertainty,
+    ShortTermUncertaintyRandom,
     ShortTermUncertaintyProfile,
 )
 
@@ -31,7 +31,8 @@ def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
 def get_grid_case(
     grid: GridCaseModel,
     seed: int,
-    stu: ShortTermUncertainty,
+    stu: ShortTermUncertaintyRandom,
+    profiles: ShortTermUncertaintyProfile | None = None,
 ) -> Tuple[pp.pandapowerNet, NodeEdgeModel]:
     """
     Load a pandapower grid and build the Dig-A-Plan NodeEdgeModel with scenarios.
@@ -50,10 +51,10 @@ def get_grid_case(
     node_edge_model, load_data, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
 
     # 2) Build Dig-A-Plan schema + scenarios
-    if isinstance(stu, ShortTermUncertaintyProfile):
+    if profiles is not None:
         rand_scenarios = generate_profile_based_load_scenarios(
             grid=grid,
-            stu=stu,
+            profiles=profiles,
             net=net,
             seed=seed,
         )
@@ -66,10 +67,6 @@ def get_grid_case(
             seed=seed,
         )
 
-    base_grid_data = NodeEdgeModel(
-        node_data=node_edge_model.node_data,
-        edge_data=node_edge_model.edge_data,
-        load_data=rand_scenarios,
-    )
+    node_edge_model.load_data = rand_scenarios
 
-    return net, base_grid_data
+    return net, node_edge_model

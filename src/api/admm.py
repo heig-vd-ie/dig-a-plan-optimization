@@ -10,7 +10,10 @@ from konfig import settings
 
 def run_admm(requests: ADMMInput) -> ReconfigurationOutput:
     net, base_grid_data = get_grid_case(
-        grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
+        grid=requests.grid,
+        seed=requests.konfig.seed,
+        stu=requests.scenarios,
+        profiles=requests.profiles,
     )
     dap = DigAPlanADMM(konfig=requests.konfig)
     dap.add_grid_data(base_grid_data)

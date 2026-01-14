@@ -235,3 +235,17 @@ def modify_string(string: str, format_str: dict) -> str:
     for str_in, str_out in format_str.items():
         string = re.sub(str_in, str_out, string)
     return string
+
+
+def safe_first(lst: list, default_val: float = 0.0) -> float:
+    """
+    Safely get the first element of a list. If the list is empty, return None.
+
+    Args:
+        lst (list): Input list.
+    Returns:
+        The first element of the list or default_val if the list is empty.
+    """
+    if len(lst) > 0:
+        return lst[0]
+    return default_val

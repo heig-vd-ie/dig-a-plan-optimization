@@ -1,4 +1,5 @@
 from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel
+from helpers.general import safe_first
 import patito as pt
 import polars as pl
 from polars import col as c
@@ -205,37 +206,52 @@ class PipelineDataManager:
                     # slack‑bus
                     "slack_node": {None: [self.__slack_node]},
                     "slack_node_v_sq": {
-                        s: self.__load_data[s].filter(
-                            c("node_id") == self.__slack_node
-                        )["v_node_sqr_pu"][0]
+                        s: safe_first(
+                            self.__load_data[s]
+                            .filter(c("node_id") == self.__slack_node)["v_node_sqr_pu"]
+                            .to_list(),
+                            default_val=1.0,
+                        )
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     # scenario loads
                     "p_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "p_cons_pu"].filter(
-                            c("node_id") == n
-                        )["p_cons_pu"][0]
+                        (n, s): safe_first(
+                            self.__load_data[s]["node_id", "p_cons_pu"]
+                            .filter(c("node_id") == n)["p_cons_pu"]
+                            .to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_cons": {
-                        (n, s): self.__load_data[s]["node_id", "q_cons_pu"].filter(
-                            c("node_id") == n
-                        )["q_cons_pu"][0]
+                        (n, s): safe_first(
+                            self.__load_data[s]["node_id", "q_cons_pu"]
+                            .filter(c("node_id") == n)["q_cons_pu"]
+                            .to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "p_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "p_prod_pu"].filter(
-                            c("node_id") == n
-                        )["p_prod_pu"][0]
+                        (n, s): safe_first(
+                            self.__load_data[s]["node_id", "p_prod_pu"]
+                            .filter(c("node_id") == n)["p_prod_pu"]
+                            .to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
                     "q_node_prod": {
-                        (n, s): self.__load_data[s]["node_id", "q_prod_pu"].filter(
-                            c("node_id") == n
-                        )["q_prod_pu"][0]
+                        (n, s): safe_first(
+                            self.__load_data[s]["node_id", "q_prod_pu"]
+                            .filter(c("node_id") == n)["q_prod_pu"]
+                            .to_list(),
+                            default_val=0.0,
+                        )
                         for n in node_ids
                         for s in (scen_ids if self.all_scenarios else [scen_id])
                     },
