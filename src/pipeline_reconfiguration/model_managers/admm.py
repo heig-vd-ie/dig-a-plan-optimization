@@ -210,15 +210,12 @@ class PipelineModelManagerADMM(PipelineModelManager):
 
             # ---- z-update (per switch) ----
             for s in self.switch_list:
-                self.zδ[s] = (
-                    sum(δ_by_sc[ω][s] if δ_by_sc[ω][s] else 0 for ω in self.Ω)
-                ) / len(self.Ω)
+                self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / len(self.Ω)
             # ---- zζ-update (per transformer tap) ----
             for tr, tap in self.zζ.keys():
-                self.zζ[(tr, tap)] = sum(
-                    ζ_by_sc[ω][(tr, tap)] if ζ_by_sc[ω][(tr, tap)] else 0
-                    for ω in self.Ω
-                ) / len(self.Ω)
+                self.zζ[(tr, tap)] = sum(ζ_by_sc[ω][(tr, tap)] for ω in self.Ω) / len(
+                    self.Ω
+                )
 
             # ---- residuals (after all scenarios solved) ----
             self.r_norm, self.s_norm = self.__calculate_residuals(
@@ -454,6 +451,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 raise ValueError("Extracted δ or ζ values contain None.")
             self.__print_switch_states(δ_map, k=k, selected_switches=selected_switches)
         except Exception as e:
+            δ_map = {}
+            ζ_map = {}
             log.error(f"Error solving model: {e}")
         return δ_map, ζ_map
 
