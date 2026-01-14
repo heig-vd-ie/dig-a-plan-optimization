@@ -447,8 +447,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 log.error(f"Model solve failed: {results.solver.termination_condition}")
             δ_map = model.δ.extract_values()  # type: ignore
             ζ_map = model.ζ.extract_values()  # type: ignore
-            δ_map = {s: val if val else 0.0 for s, val in δ_map.items()}
-            ζ_map = {(tr, tap): val if val else 0.0 for (tr, tap), val in ζ_map.items()}
+            if None in δ_map.values() or None in ζ_map.values():
+                raise ValueError("Extracted δ or ζ values contain None.")
             self.__print_switch_states(δ_map, k=k, selected_switches=selected_switches)
         except Exception as e:
             log.error(f"Error solving model: {e}")
