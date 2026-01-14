@@ -45,8 +45,8 @@ def save_dap_state(dap, base_path=".cache/boisy_dap"):
 
     # Save metadata
     metadata = {
-        "config": (
-            dap.config.__dict__ if hasattr(dap.config, "__dict__") else str(dap.config)
+        "konfig": (
+            dap.konfig.__dict__ if hasattr(dap.konfig, "__dict__") else str(dap.konfig)
         ),
         "consensus_data": consensus_data,
         "results_data": results_data,
