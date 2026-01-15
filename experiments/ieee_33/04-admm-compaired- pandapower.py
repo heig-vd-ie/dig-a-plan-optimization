@@ -386,7 +386,7 @@ def pp_losses_MW(net: pp.pandapowerNet) -> float:
 
 
 # %% ------------------ Stage A: ADMM on train scenarios -> learn y* ------------
-net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee-33/simple_grid.p"))
+net = pp.from_pickle(str(PROJECT_ROOT / "examples/ieee_33/simple_grid.p"))
 net.bus["max_vm_pu"] = 1.05
 net.bus["min_vm_pu"] = 0.95
 
@@ -409,7 +409,7 @@ if need_train:
     print("[ADMM][TRAIN] Build train scenarios & solve ADMM to learn y* ...")
     np.random.seed(42)
     grid = GridCaseModel(
-        pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+        pp_file=str(PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"),
         s_base=S_BASE_W,
     )
     stu = ShortTermUncertaintyRandom(
@@ -470,7 +470,7 @@ print("Sample y* (δ):", list(z_switch_y.items())[:5])
 if dap_train is None:
     print("[ADMM][CACHE] Re-solving ADMM once to compute Normal-Open topology ...")
     grid = GridCaseModel(
-        pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+        pp_file=str(PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"),
         s_base=S_BASE_W,
     )
     stu = ShortTermUncertaintyRandom(
@@ -552,7 +552,7 @@ diag.to_csv(".cache/figs/pp_switch_states__ystar_vs_normalopen.csv", index=False
 
 # Re-create the **same** train scenarios (without re-solving ADMM) for PP evaluation
 grid = GridCaseModel(
-    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"),
     s_base=S_BASE_W,
 )
 stu = ShortTermUncertaintyRandom(
@@ -593,7 +593,7 @@ df_PP_train_no.to_csv(".cache/figs/pp_losses_train_normalopen.csv", index=False)
 # %% ------------------ Stage B: build OOS scenarios ----------------------------
 print("[OOS] Building OOS scenarios ...")
 grid = GridCaseModel(
-    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"),
     s_base=S_BASE_W,
 )
 stu = ShortTermUncertaintyRandom(

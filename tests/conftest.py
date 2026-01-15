@@ -33,7 +33,7 @@ def test_data_dir():
 def test_simple_grid():
     """Provide a simple grid test case."""
     return GridCaseModel(
-        pp_file="examples/ieee-33/simple_grid.p",
+        pp_file="examples/ieee_33/simple_grid.p",
     )
 
 

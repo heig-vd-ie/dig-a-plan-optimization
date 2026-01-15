@@ -254,8 +254,8 @@ def generate_profile_based_load_scenarios(
 if __name__ == "__main__":
     # --- INPUT DATA ---
     ksop = ShortTermUncertaintyProfile(
-        load_profiles=[Path("examples/ieee-33/load_profiles")],
-        pv_profile=Path("examples/ieee-33/pv_profiles"),
+        load_profiles=[Path("examples/ieee_33/load_profiles")],
+        pv_profile=Path("examples/ieee_33/pv_profiles"),
         target_year=2030,
         quarter=4,
         scenario_name=DiscreteScenario.BASIC,
@@ -270,11 +270,11 @@ if __name__ == "__main__":
     # 2. Initialize Pipeline
     pipeline = ScenarioPipelineProfile(strategy)
 
-    net = pp.from_pickle("examples/ieee-33/simple_grid.p")
+    net = pp.from_pickle("examples/ieee_33/simple_grid.p")
 
     # 3. Run Pipeline
     final_scenarios = pipeline.process(ksop=ksop).map2scens(
-        egid_id_mapping_file=Path("examples/ieee-33/consumer_egid_idx_mapping.csv"),
+        egid_id_mapping_file=Path("examples/ieee_33/consumer_egid_idx_mapping.csv"),
         net=net,
         cosφ=0.95,
         s_base=1,

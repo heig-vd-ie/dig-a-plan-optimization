@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # %% --- Load net via API  ---
 grid = GridCaseModel(
-    pp_file=str(PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"),
+    pp_file=str(PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"),
     s_base=1e6,
 )
 stu = ShortTermUncertaintyRandom()

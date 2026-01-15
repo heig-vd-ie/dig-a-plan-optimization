@@ -1,5 +1,5 @@
 {
-    "grid": { "pp_file": "examples/ieee-33/simple_grid.p", "s_base": 1000000 },
+    "grid": { "pp_file": "examples/ieee_33/simple_grid.p", "s_base": 1000000 },
     "short_term_uncertainty": {
         "n_scenarios": 3,
         "p_bounds": [ -0.2, 0.2 ],
