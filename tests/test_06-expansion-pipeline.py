@@ -1,8 +1,8 @@
-import datetime
 import math
 import numpy as np
 import pytest
 
+from api.expansion import get_session_name
 from api.grid_cases import get_grid_case
 from data_model.expansion import LongTermUncertainty, SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
@@ -26,9 +26,7 @@ class ExpansionTestBase:
         self.grid = test_simple_grid
         self.seed = test_seed
         self.stu = test_short_term_uncertainty_random
-        self_net, self.grid_data = get_grid_case(
-            grid=self.grid, seed=self.seed, stu=self.stu
-        )
+        _, self.grid_data = get_grid_case(grid=self.grid, seed=self.seed, stu=self.stu)
         self.cache_dir = test_cache_dir
         self.simple_grid_groups = test_simple_grid_groups
         self.expansion_algorithm = ExpansionAlgorithm(
@@ -54,7 +52,7 @@ class ExpansionTestBase:
                 n_stages=3,
             ),
             each_task_memory=1024,
-            time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            time_now=get_session_name(),
             cache_dir=self.cache_dir,
             just_test=True,
         )
