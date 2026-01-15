@@ -35,28 +35,7 @@ for variable in nodal_variables + edge_variables:
     ).plot()
 
 # %% Plot iteration of r_norm and s_norm
-import matplotlib.pyplot as plt
-import numpy as np
-
-plt.figure(figsize=(12, 6))
-plt.plot(
-    np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0],
-    dap.model_manager.r_norm_list,
-    label="r_norm",
-    marker="o",
-)
-plt.plot(
-    np.array(dap.model_manager.time_list[1:]) - dap.model_manager.time_list[0],
-    dap.model_manager.s_norm_list,
-    label="s_norm",
-    marker="o",
-)
-plt.xlabel("Seconds")
-plt.ylabel("Norm Value")
-plt.title("ADMM Iteration: r_norm and s_norm")
-plt.legend()
-plt.grid()
-plt.show()
+plot_admm_convergence(dap=dap)
 
 # %%
 plot_grid_from_pandapower(dap=dap, from_z=True, color_by_results=True, node_size=6)  # type: ignore
