@@ -116,7 +116,7 @@ def test_admm_config() -> ADMMConfig:
 
 @pytest.fixture(scope="session")
 def test_basic_grid_quick_expansion() -> Path:
-    return Path("experiments/test_networks/00-expansion-quick.json")
+    return Path("experiments/ieee_33/00-expansion-quick.json")
 
 
 @pytest.fixture(scope="session")
