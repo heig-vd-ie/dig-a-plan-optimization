@@ -3,6 +3,7 @@ import joblib
 from pathlib import Path
 from data_model.reconfiguration import ADMMInput, ReconfigurationOutput
 from api.grid_cases import get_grid_case
+from helpers.json import save_obj_to_json
 from pipeline_reconfiguration import DigAPlanADMM
 from data_exporter.mock_dap import save_dap_state
 from konfig import settings
@@ -27,17 +28,25 @@ def run_admm(requests: ADMMInput) -> ReconfigurationOutput:
     voltages = dap.result_manager.extract_node_voltage(scenario=0)
     currents = dap.result_manager.extract_edge_current(scenario=0)
 
-    save_dap_state(dap, str(Path(settings.cache.figures) / requests.grid.name))
-    save_dap_state(
-        dap_fixed, str(Path(settings.cache.figures) / (requests.grid.name + "_fixed"))
-    )
-    joblib.dump(
-        net, str(Path(settings.cache.figures) / (requests.grid.name + ".joblib"))
-    )
-
-    return ReconfigurationOutput(
+    result = ReconfigurationOutput(
         switches=switches.to_dicts(),
         voltages=voltages.to_dicts(),
         currents=currents.to_dicts(),
         taps=taps.to_dicts(),
     )
+    if requests.to_save:
+        save_dap_state(dap, str(Path(settings.cache.outputs_admm) / requests.grid.name))
+        save_dap_state(
+            dap_fixed,
+            str(Path(settings.cache.outputs_admm) / (requests.grid.name + "_fixed")),
+        )
+        joblib.dump(
+            net,
+            str(Path(settings.cache.outputs_admm) / (requests.grid.name + ".joblib")),
+        )
+        save_obj_to_json(
+            result,
+            Path(settings.cache.outputs_admm) / (requests.grid.name + "_result.json"),
+        )
+
+    return result
