@@ -27,5 +27,5 @@ def plot_admm_convergence(
     plt.title("ADMM Iteration: r_norm and s_norm")
     plt.legend()
     plt.grid()
-    plt.show()
     plt.savefig(base_path / "admm_convergence.png")
+    plt.show()
