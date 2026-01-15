@@ -20,6 +20,7 @@ class Kace:
 class CacheFolder:
     figures: str
     outputs: str
+    outputs_admm: str
 
 
 @dataclass

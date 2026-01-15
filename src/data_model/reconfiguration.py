@@ -83,6 +83,7 @@ class ADMMInput(BaseModel):
     scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
     profiles: ShortTermUncertaintyProfile | None = None
     konfig: ADMMConfig = ADMMConfig()
+    to_save: bool = True
 
 
 class BenderInput(BaseModel):

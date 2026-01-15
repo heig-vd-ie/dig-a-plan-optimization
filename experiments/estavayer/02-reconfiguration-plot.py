@@ -3,7 +3,7 @@ from experiments import *
 
 # %% Load DAP States and Network
 os.chdir(PROJECT_ROOT)
-GRID_NAME = "boisy-feeder-1"
+GRID_NAME = "estavayer-feeder-centre-ville"
 dap = load_dap_state(str(OUTPUT_ADMM_PATH / GRID_NAME))
 dap_fixed = load_dap_state(str(OUTPUT_ADMM_PATH / f"{GRID_NAME}_fixed"))
 net = joblib.load(str(OUTPUT_ADMM_PATH / f"{GRID_NAME}.joblib"))
