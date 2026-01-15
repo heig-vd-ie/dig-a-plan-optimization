@@ -52,7 +52,7 @@ class ExpansionTestBase:
                 n_stages=3,
             ),
             each_task_memory=1024,
-            time_now=get_session_name(),
+            time_now="run_test",
             cache_dir=self.cache_dir,
             just_test=True,
         )

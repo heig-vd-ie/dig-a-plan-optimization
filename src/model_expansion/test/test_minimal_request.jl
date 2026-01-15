@@ -78,7 +78,7 @@ function test_plot()
                 "seed" => 1234,
             ),
         ]
-        custom_request[:plot_saved] = ".cache/objective_histogram.pdf"
+        custom_request[:plot_saved] = ".cache/outputs_expansion/run_test/objective_histogram.pdf"
         response = HTTP.patch(
             "$SERVER_BASE_URL/compare-plot",
             ["Content-Type" => "application/json"],

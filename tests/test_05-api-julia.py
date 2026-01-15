@@ -55,15 +55,6 @@ class TestExpansionModel(TestExpansion):
         bender_cuts_data = load_obj_from_json(
             Path("examples/payloads_jl/bender_cuts.json")
         )
-        expansion_request_data["planning_params"]["bender_cuts"] = str(
-            self.test_cache_dir / "bender_cuts.json"
-        )
-        expansion_request_data["scenarios"] = str(
-            self.test_cache_dir / "scenarios.json"
-        )
-        expansion_request_data["out_of_sample_scenarios"] = str(
-            self.test_cache_dir / "out_of_sample_scenarios.json"
-        )
         expansion_request = ExpansionRequest(
             optimization=OptimizationConfig(**expansion_request_data),
             scenarios=Scenarios(**scenarios_data),

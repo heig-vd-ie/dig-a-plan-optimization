@@ -372,7 +372,7 @@ function compare_plot(req::HTTP.Request)
 
     # Save the plot
     isdir(".cache") || mkpath(".cache")
-    savefig(get(body, :plot_saved, ".cache/objective_histogram.pdf"))
+    savefig(get(body, :plot_saved, ".cache/outputs_expansion/run_test/objective_histogram.pdf"))
 
     println("[$(log_datetime())] Comparison plot completed and saved")
 
