@@ -50,9 +50,6 @@ class ExpansionInput(BaseModel):
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
-    each_task_memory: float = Field(
-        default=1e8, description="Memory allocated for each task in bytes"
-    )
     long_term_uncertainty: LongTermUncertainty = Field(
         description="Long term uncertainty model"
     )

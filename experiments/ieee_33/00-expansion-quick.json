@@ -55,6 +55,5 @@
         "penalty_cost_per_production_kw": 2
     },
     "iterations": 2,
-    "seed": 42,
-    "each_task_memory": 100000000
+    "seed": 42
 }

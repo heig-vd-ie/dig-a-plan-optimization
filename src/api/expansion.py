@@ -39,7 +39,6 @@ def run_expansion(
         bender_cuts=bender_cuts,
         cache_dir=Path(settings.cache.outputs_expansion),
         time_now=time_now,
-        each_task_memory=requests.each_task_memory,
         iterations=requests.iterations,
         seed_number=requests.seed,
         γ_cuts=1.0,

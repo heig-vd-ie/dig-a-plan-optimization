@@ -31,6 +31,7 @@ from data_model.sddp import (
     Simulation,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
+from konfig import settings
 
 
 class ExpansionAlgorithm:
@@ -41,7 +42,6 @@ class ExpansionAlgorithm:
         admm_config: ADMMConfig,
         sddp_config: SDDPConfig,
         long_term_uncertainty: LongTermUncertainty,
-        each_task_memory: float,
         time_now: str,
         cache_dir: Path,
         bender_cuts: BenderCuts | None = None,
@@ -57,7 +57,6 @@ class ExpansionAlgorithm:
         self.sddp_config = sddp_config
         self.long_term_uncertainty = long_term_uncertainty
         self.cache_dir = cache_dir
-        self.each_task_memory = each_task_memory
         self.iterations = iterations
         self.just_test = just_test
         self.seed_number = seed_number
@@ -211,7 +210,7 @@ class ExpansionAlgorithm:
         if self.with_ray:
             init_ray()
             check_ray(self.with_ray)
-            heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
+            heavy_task_remote = ray.remote(memory=settings.EACH_TASK_MEMORY)(heavy_task)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)

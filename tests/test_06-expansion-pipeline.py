@@ -1,8 +1,6 @@
 import math
 import numpy as np
 import pytest
-
-from api.expansion import get_session_name
 from api.grid_cases import get_grid_case
 from data_model.expansion import LongTermUncertainty, SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
@@ -51,7 +49,6 @@ class ExpansionTestBase:
                 n_scenarios=100,
                 n_stages=3,
             ),
-            each_task_memory=1024,
             time_now="run_test",
             cache_dir=self.cache_dir,
             just_test=True,
