@@ -43,7 +43,7 @@ class ExpansionAlgorithm:
         long_term_uncertainty: LongTermUncertainty,
         each_task_memory: float,
         time_now: str,
-        cache_dir: Path = Path(".cache"),
+        cache_dir: Path,
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
@@ -86,7 +86,7 @@ class ExpansionAlgorithm:
         )
 
         self.create_bender_cuts(bender_cuts=bender_cuts)
-        self.cache_dir_run = self.cache_dir / "algorithm" / time_now
+        self.cache_dir_run = self.cache_dir / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):

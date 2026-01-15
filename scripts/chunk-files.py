@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 from typing import Dict, Any
+from konfig import settings
 
 
 def get_file_size_mb(file_path: Path) -> float:
@@ -134,8 +135,8 @@ def chunk_directory(directory: Path, chunk_size: int = 500, max_file_size_mb: in
 
 
 def main():
-    """Main function to chunk files in .cache/algorithm directory."""
-    base_dir = Path(".cache/algorithm")
+    """Main function to chunk files in settings.cache.outputs_expansion directory."""
+    base_dir = Path(settings.cache.outputs_expansion)
 
     if not base_dir.exists():
         print(f"Directory {base_dir} does not exist")
