@@ -16,7 +16,6 @@
         "quarter": 1,
         "scenario_name": "Basic"
     },
-    "long_term_uncertainty": { "n_stages": 1, "n_scenarios": 10, "δ_load_var": 0.1, "δ_pv_var": 0.1, "δ_b_var": 10000 },
     "admm_config": {
         "iterations": 10,
         "solver_non_convex": true,
@@ -41,6 +40,8 @@
         "volp": 2
     },
     "sddp_config": {
+        "n_stages": 1,
+        "n_scenarios": 10,
         "iterations": 1,
         "n_simulations": 10,
         "n_optimizations": 3,
@@ -52,7 +53,8 @@
         "expansion_line_cost_per_km_kw": 0.2,
         "expansion_transformer_cost_per_kw": 0.15,
         "penalty_cost_per_consumption_kw": 6,
-        "penalty_cost_per_production_kw": 2
+        "penalty_cost_per_production_kw": 2,
+        "δ_b_var": 10000
     },
     "iterations": 2,
     "seed": 42

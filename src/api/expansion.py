@@ -35,7 +35,6 @@ def run_expansion(
         grid_data=grid_data,
         admm_config=requests.admm_config,
         sddp_config=requests.sddp_config,
-        long_term_uncertainty=requests.long_term_uncertainty,
         bender_cuts=bender_cuts,
         cache_dir=Path(settings.cache.outputs_expansion),
         time_now=time_now,

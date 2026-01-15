@@ -13,7 +13,7 @@ from data_exporter.dap_to_expansion import (
     remove_switches_from_grid_data,
 )
 from data_model import NodeEdgeModel, EdgeData
-from data_model.expansion import LongTermUncertainty, SDDPConfig
+from data_model.expansion import SDDPConfig
 from data_model.reconfiguration import ADMMConfig
 from pipeline_expansion.admm_helpers import ADMM, ADMMResult
 from api.sddp import run_sddp, generate_scenarios
@@ -41,7 +41,6 @@ class ExpansionAlgorithm:
         grid_data: NodeEdgeModel,
         admm_config: ADMMConfig,
         sddp_config: SDDPConfig,
-        long_term_uncertainty: LongTermUncertainty,
         time_now: str,
         cache_dir: Path,
         bender_cuts: BenderCuts | None = None,
@@ -55,7 +54,6 @@ class ExpansionAlgorithm:
         self.grid_data = grid_data
         self.admm_config = admm_config
         self.sddp_config = sddp_config
-        self.long_term_uncertainty = long_term_uncertainty
         self.cache_dir = cache_dir
         self.iterations = iterations
         self.just_test = just_test
@@ -65,9 +63,7 @@ class ExpansionAlgorithm:
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
-        self.create_planning_params(
-            γ_cuts=γ_cuts, n_stages=self.long_term_uncertainty.n_stages
-        )
+        self.create_planning_params(γ_cuts=γ_cuts, n_stages=self.sddp_config.n_stages)
         self.create_additional_params(sddp_config=sddp_config)
         nodes = [
             Node(id=node["node_id"])
@@ -75,12 +71,12 @@ class ExpansionAlgorithm:
         ]
         self.scenario_data = self.create_scenario_data(
             nodes=nodes,
-            n_stages=self.long_term_uncertainty.n_stages,
+            n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number,
         )
         self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
-            n_stages=self.long_term_uncertainty.n_stages,
+            n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number + 1000,
         )
 
@@ -110,16 +106,14 @@ class ExpansionAlgorithm:
     ):
         """Generate long-term scenarios with configurable parameters."""
         ltm_scenarios = LongTermScenarioRequest(
-            n_scenarios=self.long_term_uncertainty.n_scenarios,
+            n_scenarios=self.sddp_config.n_scenarios,
             n_stages=n_stages,
             nodes=nodes,
-            load_potential={
-                node.id: self.long_term_uncertainty.δ_load_var for node in nodes
-            },
-            pv_potential={
-                node.id: self.long_term_uncertainty.δ_pv_var for node in nodes
-            },
-            yearly_budget=self.long_term_uncertainty.δ_b_var,
+            # TODO: make configurable based on variation of profile
+            load_potential={node.id: 5.0 for node in nodes},
+            pv_potential={node.id: 1.0 for node in nodes},
+            ########################################################
+            yearly_budget=self.sddp_config.δ_b_var,
             N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,
         )

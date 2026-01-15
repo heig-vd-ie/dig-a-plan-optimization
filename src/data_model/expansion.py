@@ -9,16 +9,10 @@ from data_model.reconfiguration import (
 )
 
 
-class LongTermUncertainty(BaseModel):
-    n_stages: int = Field(default=3, description="Number of stages")
-    n_scenarios: int = Field(default=100, description="Number of long-term scenarios")
-    δ_load_var: float = Field(default=0.1, description="Load variation in per unit")
-    δ_pv_var: float = Field(default=0.1, description="PV variation in per unit")
-    δ_b_var: float = Field(default=10e3, description="Budget variation in k$")
-
-
 class SDDPConfig(BaseModel):
     iterations: int = Field(default=10, description="Number of iterations")
+    n_stages: int = Field(default=3, description="Number of stages")
+    n_scenarios: int = Field(default=100, description="Number of long-term scenarios")
     n_simulations: int = Field(default=100, description="Number of simulations")
     n_optimizations: int = Field(
         default=10, description="Number of ADMM optimization per stage"
@@ -42,23 +36,23 @@ class SDDPConfig(BaseModel):
     penalty_cost_per_production_kw: float = Field(
         default=0.05, description="Penalty cost in k$ per production per kW"
     )
+    δ_b_var: float = Field(
+        default=5000.0, description="Yearly budget variation for long-term scenarios"
+    )
 
 
 class ExpansionInput(BaseModel):
     grid: GridCaseModel = Field(description="Grid model")
-    admm_config: ADMMConfig = Field(description="ADMM configuration")
-    sddp_config: SDDPConfig = Field(description="SDDP configuration")
-    iterations: int = Field(default=10, description="Pipeline iteration numbers")
-    seed: int = Field(default=42, description="Random seed")
-    long_term_uncertainty: LongTermUncertainty = Field(
-        description="Long term uncertainty model"
-    )
     profiles: ShortTermUncertaintyProfile | None = Field(
         description="Profile-based uncertainty model", default=None
     )
     short_term_uncertainty: ShortTermUncertaintyRandom = Field(
         description="Short term uncertainty model", default=ShortTermUncertaintyRandom()
     )
+    admm_config: ADMMConfig = Field(description="ADMM configuration")
+    sddp_config: SDDPConfig = Field(description="SDDP configuration")
+    iterations: int = Field(default=10, description="Pipeline iteration numbers")
+    seed: int = Field(default=42, description="Random seed")
 
 
 class ExpansionOutput(BaseModel):

@@ -6,7 +6,6 @@
         "q_bounds": [ -0.2, 0.2 ],
         "v_bounds": [ -0.03, 0.03 ]
     },
-    "long_term_uncertainty": { "n_stages": 5, "n_scenarios": 100, "δ_load_var": 10, "δ_pv_var": 10, "δ_b_var": 100000 },
     "admm_config": {
         "iterations": 5,
         "solver_non_convex": true,
@@ -17,10 +16,7 @@
             "2": [ 27, 32, 22, 23, 34 ],
             "3": [ 31, 24, 28, 21, 22, 23 ],
             "4": [ 34, 26, 25, 24, 31 ]
-        }
-    },
-    "sddp_config": { "iterations": 100, "n_simulations": 5000, "n_optimizations": 10 },
-    "admm_params": {
+        },
         "big_m": 1000,
         "ε": 0.0001,
         "ρ": 2,
@@ -33,7 +29,12 @@
         "voll": 6,
         "volp": 2
     },
-    "sddp_params": {
+    "sddp_config": {
+        "iterations": 100,
+        "n_simulations": 5000,
+        "n_optimizations": 10,
+        "n_stages": 5,
+        "n_scenarios": 100,
         "initial_budget": 500000,
         "discount_rate": 0.05,
         "years_per_stage": 5,
@@ -42,7 +43,8 @@
         "expansion_line_cost_per_km_kw": 0.2,
         "expansion_transformer_cost_per_kw": 0.15,
         "penalty_cost_per_consumption_kw": 6,
-        "penalty_cost_per_production_kw": 2
+        "penalty_cost_per_production_kw": 2,
+        "δ_b_var": 100000
     },
     "iterations": 5,
     "seed": 42

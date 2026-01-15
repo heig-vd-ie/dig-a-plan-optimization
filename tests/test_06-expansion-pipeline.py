@@ -2,7 +2,7 @@ import math
 import numpy as np
 import pytest
 from api.grid_cases import get_grid_case
-from data_model.expansion import LongTermUncertainty, SDDPConfig
+from data_model.expansion import SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
 from data_model.sddp import RiskMeasureType
 from pipeline_reconfiguration import ADMMConfig
@@ -31,6 +31,8 @@ class ExpansionTestBase:
             grid_data=self.grid_data,
             admm_config=ADMMConfig(),
             sddp_config=SDDPConfig(
+                n_stages=3,
+                n_scenarios=100,
                 n_simulations=100,
                 n_optimizations=10,
                 initial_budget=1e6,
@@ -41,13 +43,7 @@ class ExpansionTestBase:
                 expansion_transformer_cost_per_kw=1e3,
                 penalty_cost_per_consumption_kw=1e3,
                 penalty_cost_per_production_kw=1e3,
-            ),
-            long_term_uncertainty=LongTermUncertainty(
-                δ_load_var=5.0,
                 δ_b_var=1000,
-                δ_pv_var=1.0,
-                n_scenarios=100,
-                n_stages=3,
             ),
             time_now="run_test",
             cache_dir=self.cache_dir,
