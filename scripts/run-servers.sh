@@ -8,7 +8,7 @@ direnv allow
 
 commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization logs -f")
 commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
-commands+=("./scripts/run-interactive.sh; sleep 3")
+commands+=("make venv-activate; sleep 3")
 
 tmux new-session -d -s $SESSION
 
@@ -33,7 +33,7 @@ for i in "${!titles[@]}"; do
     tmux select-pane -t $SESSION:0.$i -T "${titles[$i]}"
 done
 
-tmux select-pane -t $SESSION:0.1
+tmux select-pane -t $SESSION:0.2
 
 tmux set-option -g pane-border-status top
 tmux set-option -g pane-border-format "#{pane_title}"

@@ -1,3 +1,5 @@
+EACH_TASK_MEMORY = 1e8  # in bytes
+
 [cache]
 figures=".cache/figs"
 outputs_admm=".cache/outputs_admm"
