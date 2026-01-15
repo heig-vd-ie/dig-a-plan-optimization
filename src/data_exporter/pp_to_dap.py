@@ -16,7 +16,7 @@ from data_exporter import validate_data
 
 def pp_to_dap(
     net: pp.pandapowerNet, s_base: float = 1e6
-) -> Tuple[NodeEdgeModel, float]:
+) -> Tuple[NodeEdgeModel, pl.DataFrame, float]:
     """
     Convert a pandapower network to DigAPlan schema.
     This function extracts static node and edge data from the pandapower network
@@ -306,15 +306,14 @@ def pp_to_dap(
 
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
-    load_data_validated = validate_data(load_data, LoadData)
 
     node_edge_model = NodeEdgeModel(
         node_data=node_data_validated,
         edge_data=edge_data_validated,
-        load_data={0: load_data_validated},
+        load_data={},
     )
 
-    return node_edge_model, v_slack_node_sqr_pu
+    return node_edge_model, load_data, v_slack_node_sqr_pu
 
 
 def _handle_missing_coords(

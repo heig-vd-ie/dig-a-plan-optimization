@@ -5,7 +5,10 @@ from pipeline_reconfiguration import DigAPlanCombined
 
 def run_combined(requests: CombinedInput) -> ReconfigurationOutput:
     _, base_grid_data = get_grid_case(
-        grid=requests.grid, seed=requests.konfig.seed, stu=requests.scenarios
+        grid=requests.grid,
+        seed=requests.konfig.seed,
+        profiles=requests.profiles,
+        stu=requests.scenarios,
     )
     dig_a_plan = DigAPlanCombined(konfig=requests.konfig)
     dig_a_plan.add_grid_data(base_grid_data)

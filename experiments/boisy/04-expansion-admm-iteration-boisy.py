@@ -1,6 +1,5 @@
 # %%
 from experiments import *
-from pathlib import Path
 
 # %% set parameters
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

@@ -1,0 +1,35 @@
+{
+    "grid": {
+        "name": "estavayer-feeder-centre-ville",
+        "pp_file": ".cache/input/estavayer/feeders/feeder_centre_ville.p",
+        "s_base": 1000000,
+        "cosφ": 0.95,
+        "egid_id_mapping_file": ".cache/input/estavayer/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0.001
+    },
+    "profiles": {
+        "load_profiles": [ ".cache/input/estavayer/load_profiles/centre_ville" ],
+        "pv_profile": ".cache/input/estavayer/pv_profiles",
+        "target_year": 2030,
+        "quarter": 1,
+        "scenario_name": "Basic"
+    },
+    "konfig": {
+        "verbose": false,
+        "solver_name": "gurobi",
+        "solver_non_convex": 2,
+        "big_m": 1000,
+        "ε": 0.0001,
+        "ρ": 2,
+        "γ_admm_penalty": 1,
+        "γ_infeasibility": 100,
+        "time_limit": 10,
+        "max_iters": 10,
+        "μ": 10,
+        "τ_incr": 2,
+        "τ_decr": 2,
+        "mutation_factor": 2,
+        "groups": 40,
+        "seed": 42
+    }
+}

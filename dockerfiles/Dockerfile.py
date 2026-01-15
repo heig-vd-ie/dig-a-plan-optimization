@@ -38,7 +38,7 @@ COPY experiments/ /app/experiments/
 COPY examples/ /app/examples/
 COPY .settings.toml /app/.settings.toml
 
-ENV GRB_LICENCE_FILE=/licenses/GRB_LICENCE_FILE
+ENV GRB_LICENSE_FILE=/root/gurobi_license/gurobi.lic
 
 EXPOSE ${SERVER_PY_PORT}
 

@@ -37,7 +37,7 @@ COPY src/ /app/src/
 COPY experiments/ /app/experiments/
 COPY examples/ /app/examples/
 
-ENV GRB_LICENCE_FILE=/licenses/GRB_LICENCE_FILE
+ENV GRB_LICENSE_FILE=/root/gurobi_license/gurobi.lic
 
 # Copy and make the Ray start script executable
 COPY scripts/start-ray-head.sh /app/start-ray-head.sh

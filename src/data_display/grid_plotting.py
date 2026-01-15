@@ -11,6 +11,7 @@ import plotly.colors
 from PIL import ImageColor
 from _plotly_utils.basevalidators import ColorscaleValidator
 import igraph as ig
+from data_exporter.mock_dap import MockDigAPlan
 from helpers import pl_to_dict, generate_tree_graph_from_edge_data
 from data_model import NodeEdgeModel
 from pipeline_reconfiguration import DigAPlan, DigAPlanADMM
@@ -630,7 +631,7 @@ def _add_color_legend(
 
 
 def plot_grid_from_pandapower(
-    dap: DigAPlan,
+    dap: DigAPlan | MockDigAPlan,
     node_size: int = 22,
     text_size: int = 10,
     width: int = 800,
@@ -642,9 +643,9 @@ def plot_grid_from_pandapower(
     show_switch_ids: bool = False,
 ) -> None:
     """Plot the grid from a pandapower network."""
-    switch_status = _extract_switch_status(dap, from_z)
-    grid_dfs = _prepare_dfs_w_coordinates(dap, switch_status)
-    result_data = _get_results_data(dap)
+    switch_status = _extract_switch_status(dap, from_z)  # type: ignore
+    grid_dfs = _prepare_dfs_w_coordinates(dap, switch_status)  # type: ignore
+    result_data = _get_results_data(dap)  # type: ignore
 
     fig = go.Figure()
 

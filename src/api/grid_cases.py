@@ -1,4 +1,6 @@
 import pandapower as pp
+import polars as pl
+from polars import col as c
 from typing import Tuple
 
 from data_exporter.pp_to_dap import (
@@ -11,13 +13,21 @@ from data_exporter.uncert_to_scens_rand import generate_random_load_scenarios
 from data_model import (
     NodeEdgeModel,
     GridCaseModel,
-    ShortTermUncertainty,
+    ShortTermUncertaintyRandom,
     ShortTermUncertaintyProfile,
 )
 
 
 def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
-
+    """
+    Fill missing geo information in pandapower bus DataFrame.
+    Args:
+        net (pp.pandapowerNet): The pandapower network.
+    Returns:
+        pp.pandapowerNet: The pandapower network with filled geo information.
+    """
+    if "geo" not in net.bus.columns:
+        net.bus["geo"] = None
     missing = net.bus["geo"].isna()
     idxs = net.bus.index[missing]
 
@@ -31,7 +41,8 @@ def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
 def get_grid_case(
     grid: GridCaseModel,
     seed: int,
-    stu: ShortTermUncertainty,
+    stu: ShortTermUncertaintyRandom,
+    profiles: ShortTermUncertaintyProfile | None = None,
 ) -> Tuple[pp.pandapowerNet, NodeEdgeModel]:
     """
     Load a pandapower grid and build the Dig-A-Plan NodeEdgeModel with scenarios.
@@ -47,28 +58,35 @@ def get_grid_case(
     net = pp.from_pickle(grid.pp_file)
     net = fill_missing_bus_geo(net)
 
-    node_edge_model, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
+    node_edge_model, load_data, v_slack_node_sqr_pu = pp_to_dap(net, s_base=grid.s_base)
 
     # 2) Build Dig-A-Plan schema + scenarios
-    if isinstance(stu, ShortTermUncertaintyProfile):
+    if profiles is not None:
         rand_scenarios = generate_profile_based_load_scenarios(
             grid=grid,
-            stu=stu,
+            profiles=profiles,
             net=net,
             seed=seed,
         )
     else:
         rand_scenarios = generate_random_load_scenarios(
             node_edge_model=node_edge_model,
+            load_data=load_data,
             stu=stu,
             v_slack_node_sqr_pu=v_slack_node_sqr_pu,
             seed=seed,
         )
 
-    base_grid_data = NodeEdgeModel(
-        node_data=node_edge_model.node_data,
-        edge_data=node_edge_model.edge_data,
-        load_data=rand_scenarios,
+    node_edge_model.load_data = rand_scenarios
+
+    node_edge_model.edge_data = node_edge_model.edge_data.with_columns(
+        pl.when(c(col) < grid.minimum_impedance)
+        .then(pl.lit(0))
+        .otherwise(c(col))
+        .alias(col)
+        for col in ["b_pu", "r_pu", "x_pu"]
+    ).with_columns(
+        c("normal_open").fill_null(False),
     )
 
-    return net, base_grid_data
+    return net, node_edge_model

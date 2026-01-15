@@ -22,6 +22,9 @@ class GridCaseModel(BaseModel):
         default="examples/ieee-33/consumer_egid_idx_mapping.csv",
         description="Path to EGID to ID mapping CSV file",
     )
+    minimum_impedance: float = Field(
+        default=0.0, description="Minimum impedance to avoid numerical issues"
+    )
 
 
 class ShortTermUncertintyBase(BaseModel):
@@ -54,6 +57,3 @@ class ShortTermUncertaintyRandom(ShortTermUncertintyBase):
     q_bounds: Tuple[float, float] = Field(
         default=(-0.2, 0.2), description="Reactive power bounds in per unit"
     )
-
-
-ShortTermUncertainty = Union[ShortTermUncertaintyRandom, ShortTermUncertaintyProfile]

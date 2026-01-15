@@ -64,17 +64,18 @@ class ScenarioPipelineProfile:
         """
         # A. Filter Data (Polars Operation)
         # Assuming input has columns like 'year', 'scenario_type', 'quarter'
+        self.ksop = ksop
         try:
             load_dfs = []
-            for load_profile_path in ksop.load_profiles:
+            for load_profile_path in self.ksop.load_profiles:
                 df = pl.read_parquet(
                     load_profile_path
-                    / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+                    / f"{self.ksop.scenario_name.value}_{self.ksop.target_year}.parquet"
                 )
                 load_dfs.append(df)
             pv_df = pl.read_parquet(
-                ksop.pv_profile
-                / f"{ksop.scenario_name.value}_{ksop.target_year}.parquet"
+                self.ksop.pv_profile
+                / f"{self.ksop.scenario_name.value}_{self.ksop.target_year}.parquet"
             )
         except Exception as e:
             raise ValueError(f"Error reading profile data: {e}")
@@ -84,15 +85,15 @@ class ScenarioPipelineProfile:
         df = pl.concat([load_df, pv_df], how="vertical").drop("egid")
 
         col_names = list(df.columns)
-        from_idx = len(col_names) // 4 * (ksop.quarter - 1)
-        to_idx = len(col_names) // 4 * ksop.quarter
+        from_idx = len(col_names) // 4 * (self.ksop.quarter - 1)
+        to_idx = len(col_names) // 4 * self.ksop.quarter
         filter_cols = col_names[from_idx:to_idx]
         df = df.select(filter_cols)
 
         X = df.to_numpy().T  # Transpose to get scenarios as rows
 
         # C. Run Strategy (Numpy -> Indices)
-        indices = self.reducer.get_representative_indices(X, ksop.n_scenarios)
+        indices = self.reducer.get_representative_indices(X, self.ksop.n_scenarios)
 
         print(f"Selected scenario indices: {indices}")
         # D. Reconstruction (Indices -> Polars)
@@ -107,12 +108,13 @@ class ScenarioPipelineProfile:
     def map2scens(
         self,
         egid_id_mapping_file: Path,
-        id_node_mapping: pd.DataFrame,
+        net: pp.pandapowerNet,
         cosφ: float,
         s_base: float,
         seed: int = 42,
     ):
-
+        id_node_mapping = net.load
+        external_grid = net.ext_grid["bus"].to_list()
         # E. Return Outputs
         egid_id_mapping = pl.read_csv(egid_id_mapping_file).with_columns(
             pl.col("egid").cast(pl.Utf8)
@@ -121,11 +123,23 @@ class ScenarioPipelineProfile:
         id_node_mapping_pl = pl.from_dataframe(id_node_mapping[["index", "bus"]])
 
         reduced_load_df = self.reduced_load_df.join(
-            egid_id_mapping, on="egid", how="left"
-        ).join(id_node_mapping_pl, on="index", how="left")
+            egid_id_mapping[["index", "egid"]], on="egid", how="left"
+        ).join(id_node_mapping_pl[["index", "bus"]], on="index", how="left")
         reduced_pv_df = self.reduced_pv_df.join(
-            egid_id_mapping, on="egid", how="left"
-        ).join(id_node_mapping_pl, on="index", how="left")
+            egid_id_mapping[["index", "egid"]], on="egid", how="left"
+        ).join(id_node_mapping_pl[["index", "bus"]], on="index", how="left")
+
+        for ex_bus in external_grid:
+            if ex_bus not in reduced_load_df["bus"].to_list():
+                new_row = pl.DataFrame(
+                    {
+                        "egid": [f"ext_grid_{ex_bus}"],
+                        **{col: [0.0] for col in self.desired_cols[1:]},
+                        "index": [-1],
+                        "bus": [ex_bus],
+                    }
+                ).with_columns(pl.col("bus").cast(pl.UInt32))
+                reduced_load_df = pl.concat([reduced_load_df, new_row], how="vertical")
 
         random.seed(seed)
         rng = np.random.default_rng(seed)
@@ -154,17 +168,17 @@ class ScenarioPipelineProfile:
             df = df1.join(df2, on="node_id", how="left")
             random_voltage = (
                 rng.uniform(low=0, high=1, size=df.height)
-                * (ksop.v_bounds[1] - ksop.v_bounds[0])
-                + ksop.v_bounds[0]
+                * (self.ksop.v_bounds[1] - self.ksop.v_bounds[0])
+                + self.ksop.v_bounds[0]
                 + 1.0
             )
             df = df.select(
                 [
                     pl.col("node_id").alias("node_id"),
-                    pl.col("p_cons_pu").fill_null(0).alias("p_cons_pu"),
-                    pl.col("q_cons_pu").fill_null(0).alias("q_cons_pu"),
-                    pl.col("p_prod_pu").fill_null(0).alias("p_prod_pu"),
-                    pl.col("q_prod_pu").fill_null(0).alias("q_prod_pu"),
+                    pl.col("p_cons_pu").fill_null(0).alias("p_cons_pu") * 1e3,
+                    pl.col("q_cons_pu").fill_null(0).alias("q_cons_pu") * 1e3,
+                    pl.col("p_prod_pu").fill_null(0).alias("p_prod_pu") * 1e3,
+                    pl.col("q_prod_pu").fill_null(0).alias("q_prod_pu") * 1e3,
                     pl.Series(random_voltage).alias("v_node_sqr_pu"),
                 ]
             )
@@ -174,12 +188,33 @@ class ScenarioPipelineProfile:
                 .drop_nulls(["node_id"])
                 .group_by("node_id")
                 .agg(
-                    pl.col("p_cons_pu").sum().alias("p_cons_pu"),
-                    pl.col("q_cons_pu").sum().alias("q_cons_pu"),
-                    pl.col("p_prod_pu").sum().alias("p_prod_pu"),
-                    pl.col("q_prod_pu").sum().alias("q_prod_pu"),
+                    pl.col("p_cons_pu")
+                    .sum()
+                    .alias("p_cons_pu")
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
+                    pl.col("q_cons_pu")
+                    .sum()
+                    .alias("q_cons_pu")
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
+                    pl.col("p_prod_pu")
+                    .sum()
+                    .alias("p_prod_pu")
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
+                    pl.col("q_prod_pu")
+                    .sum()
+                    .alias("q_prod_pu")
+                    .map_elements(lambda x: x if x > 1e-3 else 0.0),
                     pl.col("v_node_sqr_pu").mean().alias("v_node_sqr_pu"),
                 )
+            ).select(
+                [
+                    "node_id",
+                    "p_cons_pu",
+                    "q_cons_pu",
+                    "p_prod_pu",
+                    "q_prod_pu",
+                    "v_node_sqr_pu",
+                ]
             )
 
             df_pt = (
@@ -197,7 +232,7 @@ class ScenarioPipelineProfile:
 
 def generate_profile_based_load_scenarios(
     grid: GridCaseModel,
-    stu: ShortTermUncertaintyProfile,
+    profiles: ShortTermUncertaintyProfile,
     net: pp.pandapowerNet,
     seed: int,
 ) -> Dict[int, pt.DataFrame[LoadData]]:
@@ -205,9 +240,9 @@ def generate_profile_based_load_scenarios(
     Generate load scenarios based on predefined profiles using ScenarioPipelineProfile.
     """
     scenario_pipeline = ScenarioPipelineProfile()
-    rand_scenarios = scenario_pipeline.process(ksop=stu).map2scens(
+    rand_scenarios = scenario_pipeline.process(ksop=profiles).map2scens(
         egid_id_mapping_file=Path(grid.egid_id_mapping_file),
-        id_node_mapping=net.load,
+        net=net,
         cosφ=grid.cosφ,
         s_base=grid.s_base,
         seed=seed,
@@ -240,7 +275,7 @@ if __name__ == "__main__":
     # 3. Run Pipeline
     final_scenarios = pipeline.process(ksop=ksop).map2scens(
         egid_id_mapping_file=Path("examples/ieee-33/consumer_egid_idx_mapping.csv"),
-        id_node_mapping=net.load,
+        net=net,
         cosφ=0.95,
         s_base=1,
         seed=42,

@@ -5,7 +5,7 @@ It combines:
 - a **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
 - a **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
 
-The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 1000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
+The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
 Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
 
@@ -33,7 +33,7 @@ make venv-activate
 
 You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
 ```sh
-make docker-build  # if it fails because of poetry, use `poetry lock`
+make build  # if it fails because of poetry, use `poetry lock`
 make start
 ```
 
@@ -78,10 +78,6 @@ cd .. && make run-extraction
 4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
 5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
-
-### Power Profile data
-
-To access the required environment variables for power profile data, ensure you have the `.secrets.toml` file. Then, run `power_profiles/__init__.py` to initialize the necessary settings.
 
 ## Development
 
