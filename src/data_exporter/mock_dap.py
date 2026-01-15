@@ -52,6 +52,7 @@ def save_dap_state(dap: DigAPlanADMM, base_path=".cache/boisy_dap"):
         "time_list": dap.model_manager.time_list,
         "r_norm_list": dap.model_manager.r_norm_list,
         "s_norm_list": dap.model_manager.s_norm_list,
+        "scenarios": list(dap.model_manager.admm_model_instances.keys()),
     }
 
     with open(base_path / "metadata.json", "w") as f:
@@ -67,7 +68,7 @@ def save_dap_state(dap: DigAPlanADMM, base_path=".cache/boisy_dap"):
 
 # Create a mock DAP-like object for plotting
 class MockDataManager:
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.node_data = pl.read_parquet(str(path / "node_data.parquet"))
         self.edge_data = pl.read_parquet(str(path / "edge_data.parquet"))
 
@@ -131,6 +132,7 @@ class MockModelManager:
         self.time_list = metadata.get("time_list", [])
         self.r_norm_list = metadata.get("r_norm_list", [])
         self.s_norm_list = metadata.get("s_norm_list", [])
+        self.admm_model_instances = {ω: None for ω in metadata.get("scenarios", [])}
 
 
 class MockDigAPlan:
