@@ -3,6 +3,6 @@ def test_nothing():
 
 
 def load_test_case_simple_grid():
-    from experiments.test_networks.test_case_simple_grid import create_simple_grid
+    from experiments.ieee-33.test_case_simple_grid import create_simple_grid
 
     create_simple_grid()
