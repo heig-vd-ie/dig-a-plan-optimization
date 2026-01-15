@@ -45,12 +45,18 @@ class TestExpansionModel(TestExpansion):
         assert len(results.simulations) == 100
 
     def test_expansion_model_with_request(self):
-        expansion_request_data = load_obj_from_json(Path("examples/default.json"))
-        scenarios_data = load_obj_from_json(Path("examples/scenarios.json"))
-        out_of_sample_scenarios_data = load_obj_from_json(
-            Path("examples/out_of_sample_scenarios.json")
+        expansion_request_data = load_obj_from_json(
+            Path("examples/payloads-julia/default.json")
         )
-        bender_cuts_data = load_obj_from_json(Path("examples/bender_cuts.json"))
+        scenarios_data = load_obj_from_json(
+            Path("examples/payloads-julia/scenarios.json")
+        )
+        out_of_sample_scenarios_data = load_obj_from_json(
+            Path("examples/payloads-julia/out_of_sample_scenarios.json")
+        )
+        bender_cuts_data = load_obj_from_json(
+            Path("examples/payloads-julia/bender_cuts.json")
+        )
         expansion_request_data["planning_params"]["bender_cuts"] = str(
             self.test_cache_dir / "bender_cuts.json"
         )
