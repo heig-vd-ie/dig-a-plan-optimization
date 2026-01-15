@@ -74,24 +74,24 @@ class MockDataManager:
 
 
 class MockResultManager:
-    def __init__(self, path):
+    def __init__(self, path: Path):
         self.base_path = path
 
-    def extract_node_voltage(self, ω):
+    def extract_node_voltage(self, ω=0):
         return pl.read_parquet(str(self.base_path / f"voltage_results_{ω}.parquet"))
 
-    def extract_edge_current(self, ω):
+    def extract_edge_current(self, ω=0):
         return pl.read_parquet(str(self.base_path / f"current_results_{ω}.parquet"))
 
     def extract_switch_status(self):
         return pl.read_parquet(str(self.base_path / "switch_status.parquet"))
 
-    def extract_nodal_variables(self, variable_name, ω):
+    def extract_nodal_variables(self, variable_name, ω=0):
         return pl.read_parquet(
             str(self.base_path / f"nodal_{variable_name}_results_{ω}.parquet")
         )
 
-    def extract_edge_variables(self, variable_name, ω):
+    def extract_edge_variables(self, variable_name, ω=0):
         return pl.read_parquet(
             str(self.base_path / f"edge_{variable_name}_results_{ω}.parquet")
         )
@@ -113,7 +113,7 @@ def parse_series_string(s, cast=str):
 
 
 class MockModelManager:
-    def __init__(self, path):
+    def __init__(self, path: Path):
         metadata = load_obj_from_json(Path(path / "metadata.json"))
         consensus_data_zdelta = pl.read_parquet(
             Path(path / "consensus_variables_zdelta.parquet")
@@ -137,17 +137,9 @@ class MockModelManager:
 
 class MockDigAPlan:
     def __init__(self, path):
-
-        metadata = load_obj_from_json(Path(path / "metadata.json"))
-
         self.data_manager = MockDataManager(path)
         self.model_manager = MockModelManager(path)
-
-        # Only create result manager if results exist
-        if metadata.get("results_data", {}).get("has_results", False):
-            self.result_manager = MockResultManager(path)
-        else:
-            self.result_manager = None
+        self.result_manager = MockResultManager(path)
 
 
 def load_dap_state(base_path=".cache/boisy_dap"):
