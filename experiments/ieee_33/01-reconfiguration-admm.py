@@ -1,7 +1,7 @@
 from experiments import *
 
 if __name__ == "__main__":
-    payload_file = PROJECT_ROOT / "experiments/ieee-33/00-reconfiguration.json"
+    payload_file = PROJECT_ROOT / "experiments/ieee_33/00-reconfiguration.json"
     payload = json.load(open(payload_file, "r"))
 
     # Optional: validate schema before sending
