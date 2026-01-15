@@ -17,9 +17,8 @@ minimal_request = Dict()
 simple_request = Dict("iteration_limit" => 50, "n_simulations" => 100)
 
 # Custom grid configuration
-custom_request = JSON3.read(
-    read(joinpath(@__DIR__, "../../../examples/payloads-julia/default.json"), String),
-)
+custom_request =
+    JSON3.read(read(joinpath(@__DIR__, "../../../examples/payloads_jl/default.json"), String))
 custom_request = Dict(custom_request)  # Convert to mutable Dict
 custom_request[:additional_params] = Dict(
     "iteration_limit" => 50,
@@ -53,7 +52,7 @@ end
 function test_plot()
     @testset "Plot Tests" begin
         custom_request = JSON3.read(
-            read(joinpath(@__DIR__, "../../../examples/payloads-julia/default.json"), String),
+            read(joinpath(@__DIR__, "../../../examples/payloads_jl/default.json"), String),
         )
         custom_request = Dict(custom_request)  # Convert to mutable Dict
         custom_request[:cases] = [
@@ -93,7 +92,7 @@ function test_generate_scenarios_request()
     @testset "Test generate scenarios" begin
         custom_request = JSON3.read(
             read(
-                joinpath(@__DIR__, "../../../examples/payloads-julia/scenarios_request.json"),
+                joinpath(@__DIR__, "../../../examples/payloads_jl/scenarios_request.json"),
                 String,
             ),
         )
