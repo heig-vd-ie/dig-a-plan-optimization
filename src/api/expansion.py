@@ -18,10 +18,12 @@ def run_expansion(
     requests: ExpansionInput, with_ray: bool, cut_file: None | str = None
 ) -> ExpansionOutput:
     time_now = get_session_name()
-    (Path(settings.cache.outputs) / time_now).mkdir(parents=True, exist_ok=True)
+    (Path(settings.cache.outputs_expansion) / time_now).mkdir(
+        parents=True, exist_ok=True
+    )
     save_obj_to_json(
         requests,
-        Path(settings.cache.outputs) / time_now / INPUT_FILENAME,
+        Path(settings.cache.outputs_expansion) / time_now / INPUT_FILENAME,
     )
     _, grid_data = get_grid_case(
         requests.grid, seed=requests.seed, stu=requests.short_term_uncertainty

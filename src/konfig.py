@@ -19,7 +19,7 @@ class Kace:
 @dataclass
 class CacheFolder:
     figures: str
-    outputs: str
+    outputs_expansion: str
     outputs_admm: str
     outputs_bender: str
     outputs_combined: str
