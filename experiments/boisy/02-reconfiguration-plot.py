@@ -3,10 +3,11 @@ from experiments import *
 
 # %% Load DAP States and Network
 os.chdir(PROJECT_ROOT)
-dap = load_dap_state(str(OUTPUT_ADMM_PATH / "test"))
-dap_fixed = load_dap_state(str(OUTPUT_ADMM_PATH / "test_fixed"))
-net = joblib.load(str(OUTPUT_ADMM_PATH / "test.joblib"))
-results = load_obj_from_json(OUTPUT_ADMM_PATH / "test_result.json")
+GRID_NAME = "boisy-feeder-1"
+dap = load_dap_state(str(OUTPUT_ADMM_PATH / GRID_NAME))
+dap_fixed = load_dap_state(str(OUTPUT_ADMM_PATH / f"{GRID_NAME}_fixed"))
+net = joblib.load(str(OUTPUT_ADMM_PATH / f"{GRID_NAME}.joblib"))
+results = load_obj_from_json(OUTPUT_ADMM_PATH / f"{GRID_NAME}_result.json")
 
 
 # %% Inspect consensus and per-scenario deltas
