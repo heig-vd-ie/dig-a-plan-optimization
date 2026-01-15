@@ -1,4 +1,5 @@
 import json
+import re
 import polars as pl
 from pathlib import Path
 from pipeline_reconfiguration import DigAPlanADMM
@@ -16,20 +17,11 @@ def save_dap_state(dap: DigAPlanADMM, base_path=".cache/boisy_dap"):
 
     # Save consensus results
     consensus_data = {
-        "zδ_variable": (
-            dap.model_manager.zδ_variable.to_dict()
-            if hasattr(dap.model_manager.zδ_variable, "to_dict")
-            else None
-        ),
-        "zζ_variable": (
-            dap.model_manager.zζ_variable.to_dict()
-            if hasattr(dap.model_manager.zζ_variable, "to_dict")
-            else None
-        ),
+        "zδ_variable": (dap.model_manager.zδ_variable),
+        "zζ_variable": (dap.model_manager.zζ_variable),
     }
 
     # Save results if available
-    results_data = {}
     switch_status = dap.result_manager.extract_switch_status()
     switch_status.write_parquet(base_path / "switch_status.parquet")
     for ω in range(len(dap.model_manager.admm_model_instances)):
@@ -57,8 +49,6 @@ def save_dap_state(dap: DigAPlanADMM, base_path=".cache/boisy_dap"):
         "konfig": (
             dap.konfig.__dict__ if hasattr(dap.konfig, "__dict__") else str(dap.konfig)
         ),
-        "consensus_data": consensus_data,
-        "results_data": results_data,
         "time_list": dap.model_manager.time_list,
         "r_norm_list": dap.model_manager.r_norm_list,
         "s_norm_list": dap.model_manager.s_norm_list,
@@ -66,6 +56,11 @@ def save_dap_state(dap: DigAPlanADMM, base_path=".cache/boisy_dap"):
 
     with open(base_path / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2, default=str)
+
+    with open(base_path / "consensus_variables_zdelta.parquet", "wb") as f:
+        consensus_data["zδ_variable"].write_parquet(f)
+    with open(base_path / "consensus_variables_zzeta.parquet", "wb") as f:
+        consensus_data["zζ_variable"].write_parquet(f)
 
     print(f"DAP state saved to {base_path}")
 
@@ -101,25 +96,41 @@ class MockResultManager:
         )
 
 
+def parse_series_string(s, cast=str):
+    body = re.search(r"(.∗)(.∗)", s, flags=re.S)
+    if not body:
+        return []
+    lines = body.group(1).splitlines()
+    values = []
+    for line in lines:
+        line = line.strip()
+        if not line or line == "…":
+            continue
+        line = line.strip('"')
+        values.append(cast(line))
+    return values
+
+
 class MockModelManager:
-    def __init__(self, metadata):
-        consensus_data = metadata.get("consensus_data", {})
+    def __init__(self, path):
+        metadata = load_obj_from_json(Path(path / "metadata.json"))
+        consensus_data_zdelta = pl.read_parquet(
+            Path(path / "consensus_variables_zdelta.parquet")
+        )
+        consensus_data_zzeta = pl.read_parquet(
+            Path(path / "consensus_variables_zzeta.parquet")
+        )
         # Reconstruct consensus variables if they exist
         self.zδ_variable = None
         self.zζ_variable = None
         self.time_list = []  # Dummy placeholder
         self.r_norm_list = []  # Dummy placeholder
         self.s_norm_list = []  # Dummy placeholder
-        if consensus_data.get("zδ_variable"):
-            self.zδ_variable = pl.from_dict(consensus_data["zδ_variable"])
-        if consensus_data.get("zζ_variable"):
-            self.zζ_variable = pl.from_dict(consensus_data["zζ_variable"])
-        if consensus_data.get("time_list"):
-            self.time_list = metadata.get("time_list", [])
-        if consensus_data.get("r_norm_list"):
-            self.r_norm_list = metadata.get("r_norm_list", [])
-        if consensus_data.get("s_norm_list"):
-            self.s_norm_list = metadata.get("s_norm_list", [])
+        self.zδ_variable = consensus_data_zdelta
+        self.zζ_variable = consensus_data_zzeta
+        self.time_list = metadata.get("time_list", [])
+        self.r_norm_list = metadata.get("r_norm_list", [])
+        self.s_norm_list = metadata.get("s_norm_list", [])
 
 
 class MockDigAPlan:
@@ -128,7 +139,7 @@ class MockDigAPlan:
         metadata = load_obj_from_json(Path(path / "metadata.json"))
 
         self.data_manager = MockDataManager(path)
-        self.model_manager = MockModelManager(metadata)
+        self.model_manager = MockModelManager(path)
 
         # Only create result manager if results exist
         if metadata.get("results_data", {}).get("has_results", False):
