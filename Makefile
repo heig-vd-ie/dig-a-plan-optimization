@@ -3,6 +3,7 @@ include Makefile.common.mak
 
 
 IMAGES := dap-py-api custom-grafana mongo:latest
+CACHE_FOLDER := .cache
 
 clean: ## Clean ignored files
 	@echo "Cleaning up ignored files..."
@@ -112,10 +113,10 @@ shutdown-prometheus: ## Shutdown Prometheus and clean up files
 	@ray metrics shutdown-prometheus || true
 	@sudo rm -rf prometheus-* || true
 
-fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
-	@echo "Fixing permissions for .cache/algorithm..."
-	@sudo chown -R $(USER):$(USER) .cache/algorithm || true
-	@sudo chmod -R 775 .cache/algorithm || true
+fix-cache-permissions: ## Fix permissions of the CACHE_FOLDER folder
+	@echo "Fixing permissions for a folder ..."
+	@sudo chown -R $(USER):$(USER) $(CACHE_FOLDER) || true
+	@sudo chmod -R 775 $(CACHE_FOLDER) || true
 	@echo "Done."
 
 permit-remote-ray-port: ## Permit remote access to Ray server
