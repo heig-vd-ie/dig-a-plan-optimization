@@ -832,10 +832,7 @@ def get_continuous_color(colorscale, intermed):
 
 
 def plot_power_flow_results(
-    base_grid_data: NodeEdgeModel,
-    switches: pl.DataFrame,
-    currents: pl.DataFrame,
-    voltages: pl.DataFrame,
+    dap: DigAPlan | MockDigAPlan,
     node_size: int = 10,
     edge_width: int = 3,
     width: int = 1200,
@@ -851,7 +848,14 @@ def plot_power_flow_results(
     Independent plot used for PF results using NodeEdgeModel + switches/currents/voltages tables.
     """
     fig: go.Figure = go.Figure()
-
+    base_grid_data = NodeEdgeModel(
+        node_data=dap.data_manager.node_data,  # type: ignore
+        edge_data=dap.data_manager.edge_data,  # type: ignore
+        load_data={},
+    )
+    switches = dap.result_manager.extract_switch_status()  # type: ignore
+    voltages = dap.result_manager.extract_node_voltage()  # type: ignore
+    currents = dap.result_manager.extract_edge_current()  # type: ignore
     open_switches_id: pl.Series = switches.filter(c("open"))["edge_id"]
     edge_data: pl.DataFrame = base_grid_data.edge_data.filter(
         ~c("edge_id").is_in(open_switches_id)
@@ -1017,7 +1021,7 @@ def plot_power_flow_results(
     )
     fig.update_xaxes(showgrid=False, zeroline=False, showticklabels=False)
     fig.update_yaxes(showgrid=False, zeroline=False, showticklabels=False)
-
+    fig.show()
     os.makedirs(".cache/figs", exist_ok=True)
     fig.write_html(".cache/figs/boisy_grid_plot.html", include_plotlyjs="cdn")
     return fig

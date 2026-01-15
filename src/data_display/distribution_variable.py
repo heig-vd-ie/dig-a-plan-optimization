@@ -130,4 +130,5 @@ class DistributionVariable:
 
         fig.update_xaxes(categoryorder="category ascending")
         os.makedirs(".cache/figs", exist_ok=True)
+        fig.show()
         fig.write_html(f".cache/figs/distribution_{self.variable_name}.html")
