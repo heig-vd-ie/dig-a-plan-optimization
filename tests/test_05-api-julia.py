@@ -14,8 +14,8 @@ from helpers.json import load_obj_from_json
 
 class TestExpansion:
     @pytest.fixture(autouse=True)
-    def setup_common_data(self):
-        self.test_cache_dir = Path(".cache/test")
+    def setup_common_data(self, test_cache_dir):
+        self.test_cache_dir = test_cache_dir
 
 
 class TestExpansionModel(TestExpansion):
@@ -68,7 +68,7 @@ class TestExpansionModel(TestExpansion):
         )
         results = run_sddp(
             expansion_request=expansion_request,
-            cache_path=Path(".cache/test"),
+            cache_path=self.test_cache_dir,
         )
         assert results is not None
         assert math.isclose(

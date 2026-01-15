@@ -3,7 +3,6 @@ Pytest configuration and shared fixtures for the test suite.
 """
 
 import pytest
-import pandapower as pp
 from pathlib import Path
 from data_model import GridCaseModel
 from data_model.reconfiguration import (
@@ -12,12 +11,13 @@ from data_model.reconfiguration import (
     BenderConfig,
     ShortTermUncertaintyRandom,
 )
+from konfig import settings
 
 
 @pytest.fixture(scope="session")
 def test_cache_dir():
     """Provide a test cache directory that's cleaned up after tests."""
-    cache_dir = Path(".cache/test")
+    cache_dir = Path(settings.cache.outputs_expansion)
     cache_dir.mkdir(parents=True, exist_ok=True)
     yield cache_dir
     # Cleanup could be added here if needed

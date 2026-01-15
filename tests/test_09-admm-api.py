@@ -3,8 +3,6 @@ import pytest
 import json
 import requests
 
-from data_exporter.mock_dap import load_dap_state
-
 
 class ADMMApiTestBase:
     """Base class for admm pipeline tests with common setup."""
