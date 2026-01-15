@@ -122,20 +122,6 @@ permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
-run-expansion: ## Curl expansion for a payload
-	@echo "Triggering expansion..."
-	@curl -X PATCH \
-		-H "Content-Type: application/json" \
-		-d @$(PAYLOAD) \
-		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)"
-
-run-expansion-with-cut: ## Curl expansion for a payload with cut_file
-	@echo "Triggering expansion..."
-	@curl -X PATCH \
-		-H "Content-Type: application/json" \
-		--data-binary @$(PAYLOAD) \
-		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
-
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB
 	@echo "Syncing data from MongoDB..."
