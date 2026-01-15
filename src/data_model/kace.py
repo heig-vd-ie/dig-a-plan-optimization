@@ -35,12 +35,12 @@ class ShortTermUncertintyBase(BaseModel):
 
 
 class ShortTermUncertaintyProfile(ShortTermUncertintyBase):
-    load_profiles: list[Path] = Field(
-        default=[Path("examples/ieee_33/load_profiles")],
+    load_profiles: list[str] = Field(
+        default=["examples/ieee_33/load_profiles"],
         description="List of paths to load profile directories",
     )
-    pv_profile: Path = Field(
-        default=Path("examples/ieee_33/pv_profiles"),
+    pv_profile: str = Field(
+        default="examples/ieee_33/pv_profiles",
         description="Path to PV profile directory",
     )
     target_year: int = Field(default=2030, description="Target year for scenarios")

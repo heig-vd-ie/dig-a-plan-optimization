@@ -46,21 +46,21 @@ class SDDPConfig(BaseModel):
 
 class ExpansionInput(BaseModel):
     grid: GridCaseModel = Field(description="Grid model")
-    short_term_uncertainty: ShortTermUncertaintyRandom = Field(
-        description="Short term uncertainty model"
-    )
-    profiles: ShortTermUncertaintyProfile | None = Field(
-        description="Profile-based uncertainty model", default=None
-    )
-    long_term_uncertainty: LongTermUncertainty = Field(
-        description="Long term uncertainty model"
-    )
     admm_config: ADMMConfig = Field(description="ADMM configuration")
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
     each_task_memory: float = Field(
         default=1e8, description="Memory allocated for each task in bytes"
+    )
+    long_term_uncertainty: LongTermUncertainty = Field(
+        description="Long term uncertainty model"
+    )
+    profiles: ShortTermUncertaintyProfile | None = Field(
+        description="Profile-based uncertainty model", default=None
+    )
+    short_term_uncertainty: ShortTermUncertaintyRandom = Field(
+        description="Short term uncertainty model", default=ShortTermUncertaintyRandom()
     )
 
 

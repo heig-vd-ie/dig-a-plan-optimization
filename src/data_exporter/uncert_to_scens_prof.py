@@ -69,12 +69,12 @@ class ScenarioPipelineProfile:
             load_dfs = []
             for load_profile_path in self.ksop.load_profiles:
                 df = pl.read_parquet(
-                    load_profile_path
+                    Path(load_profile_path)
                     / f"{self.ksop.scenario_name.value}_{self.ksop.target_year}.parquet"
                 )
                 load_dfs.append(df)
             pv_df = pl.read_parquet(
-                self.ksop.pv_profile
+                Path(self.ksop.pv_profile)
                 / f"{self.ksop.scenario_name.value}_{self.ksop.target_year}.parquet"
             )
         except Exception as e:
@@ -254,8 +254,8 @@ def generate_profile_based_load_scenarios(
 if __name__ == "__main__":
     # --- INPUT DATA ---
     ksop = ShortTermUncertaintyProfile(
-        load_profiles=[Path("examples/ieee_33/load_profiles")],
-        pv_profile=Path("examples/ieee_33/pv_profiles"),
+        load_profiles=["examples/ieee_33/load_profiles"],
+        pv_profile="examples/ieee_33/pv_profiles",
         target_year=2030,
         quarter=4,
         scenario_name=DiscreteScenario.BASIC,
