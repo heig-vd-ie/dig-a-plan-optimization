@@ -30,7 +30,7 @@ def save_dap_state(dap: DigAPlanADMM | DigAPlanBender, base_path=".cache/boisy_d
     _write_parquet_any(dap.data_manager.node_data, base_path / "node_data.parquet")
     _write_parquet_any(dap.data_manager.edge_data, base_path / "edge_data.parquet")
 
-    # --- Save switch status (common) ---
+    # --- Save switch status ---
     switch_status = dap.result_manager.extract_switch_status()
     _write_parquet_any(switch_status, base_path / "switch_status.parquet")
 
