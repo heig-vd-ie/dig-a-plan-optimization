@@ -1,10 +1,16 @@
+import joblib
+from pathlib import Path
+
 from api.grid_cases import get_grid_case
 from data_model.reconfiguration import BenderInput, ReconfigurationOutput
+from helpers.json import save_obj_to_json
 from pipeline_reconfiguration import DigAPlanBender
+from data_exporter.mock_dap import save_dap_state
+from konfig import settings
 
 
 def run_bender(requests: BenderInput) -> ReconfigurationOutput:
-    _, base_grid_data = get_grid_case(
+    net, base_grid_data = get_grid_case(
         grid=requests.grid,
         seed=requests.konfig.seed,
         stu=requests.scenarios,
