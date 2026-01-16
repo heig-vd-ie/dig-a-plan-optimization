@@ -62,3 +62,5 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCALHOST = os.getenv("LOCAL_HOST")
 PY_PORT = os.getenv("SERVER_PY_PORT")
 OUTPUT_ADMM_PATH = Path(settings.cache.outputs_admm)
+OUTPUT_BENDER_PATH = Path(settings.cache.outputs_bender)
+

@@ -91,6 +91,7 @@ class BenderInput(BaseModel):
     scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
     profiles: ShortTermUncertaintyProfile | None = None
     konfig: BenderConfig = BenderConfig()
+    to_save: bool = True
 
 
 class CombinedInput(BaseModel):
