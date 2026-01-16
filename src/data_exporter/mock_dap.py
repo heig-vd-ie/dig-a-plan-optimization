@@ -95,9 +95,10 @@ def save_dap_state(dap: DigAPlanADMM | DigAPlanBender, base_path=".cache/boisy_d
         _write_parquet_any(voltage_results, base_path / "voltage_results_0.parquet")
         _write_parquet_any(current_results, base_path / "current_results_0.parquet")
 
-        # Optional: if your plotting uses these variables, save them when available
-        for variable_name in ["p_flow", "q_flow"]:
-            if hasattr(dap.result_manager, "extract_edge_variables"):
+        # Optional: if the plotting uses these variables, save them when available
+        
+        if hasattr(dap.result_manager, "extract_edge_variables"):
+            for variable_name in ["p_flow", "q_flow"]:  
                 edge_var = dap.result_manager.extract_edge_variables(variable_name)
                 _write_parquet_any(
                     edge_var,
