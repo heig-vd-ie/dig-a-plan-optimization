@@ -33,7 +33,7 @@ from data_model.reconfiguration import (
     CombinedConfig,
     ADMMConfig,
 )
-from data_model.expansion import SDDPConfig, LongTermUncertainty
+from data_model.expansion import SDDPConfig
 
 from pipeline_reconfiguration.model_managers.admm import PipelineModelManagerADMM
 from pipeline_reconfiguration.model_managers.bender import PipelineModelManagerBender
