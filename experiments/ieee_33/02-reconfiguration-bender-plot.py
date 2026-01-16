@@ -67,7 +67,7 @@ fig.write_html(".cache/figs/bender-convergence.html")
 fig.write_image(".cache/figs/bender-convergence.svg", format="svg")
 
 # %% Compare with pandapower + plot grid
-node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net)
+node_data, edge_data = compare_dig_a_plan_with_pandapower(dig_a_plan=dap, net=net) #type: ignore
 
 plot_grid_from_pandapower(dap=dap)
 plot_grid_from_pandapower(dap=dap, color_by_results=True)

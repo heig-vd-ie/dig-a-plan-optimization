@@ -91,8 +91,10 @@ def save_dap_state(dap: DigAPlanADMM | DigAPlanBender, base_path=".cache/boisy_d
         # Save one set of results using _0 naming so existing loader works
         voltage_results = dap.result_manager.extract_node_voltage()
         current_results = dap.result_manager.extract_edge_current()
+        tap_position = dap.result_manager.extract_transformer_tap_position()
         _write_parquet_any(voltage_results, base_path / "voltage_results_0.parquet")
         _write_parquet_any(current_results, base_path / "current_results_0.parquet")
+        _write_parquet_any(tap_position, base_path / "tap_position.parquet")
 
         # Optional: if the plotting uses these variables, save them when available
         
@@ -137,6 +139,9 @@ class MockResultManager:
 
     def extract_switch_status(self):
         return pl.read_parquet(str(self.base_path / "switch_status.parquet"))
+    
+    def extract_transformer_tap_position(self):
+        return pl.read_parquet(str(self.base_path / "tap_position.parquet"))
 
     def extract_nodal_variables(self, variable_name, ω=0):
         return pl.read_parquet(
