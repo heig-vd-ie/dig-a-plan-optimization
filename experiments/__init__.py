@@ -54,6 +54,7 @@ from data_model.reconfiguration import GridCaseModel
 from data_model import ShortTermUncertaintyRandom
 from api.combined import CombinedInput
 from api.admm import ADMMInput
+from api.bender import BenderInput  
 from helpers.json import load_obj_from_json
 from data_display.admm_convergence import plot_admm_convergence
 
