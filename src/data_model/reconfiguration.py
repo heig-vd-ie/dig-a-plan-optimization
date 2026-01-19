@@ -99,3 +99,4 @@ class CombinedInput(BaseModel):
     scenarios: ShortTermUncertaintyRandom = ShortTermUncertaintyRandom()
     profiles: ShortTermUncertaintyProfile | None = None
     konfig: CombinedConfig = CombinedConfig()
+    to_save: bool = True
