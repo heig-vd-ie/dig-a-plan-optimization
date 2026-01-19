@@ -7,6 +7,7 @@ ORG := heig-vd-ie
 
 # Default target: help
 .DEFAULT_GOAL := help
+PYLINT_FILES := **/*.py
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -116,3 +117,7 @@ build-wheel: # Build the Python wheel for this project based on pyproject.toml v
 fetch-wheel: ## Fetch the Python wheel from a remote URL [<organization> <repo> <name-of-wheel> <version> <dest_dir>]
 	@echo "Fetching Python wheel..."
 	@bash scripts/fetch-wheel.sh $(ORG) $(REPO) $(BRANCH) $(VERSION) $(DEST_DIR)
+
+lint: ## Lint the code using pylint
+	@echo "Linting Python code with pylint..."
+	@poetry run pylint --rcfile .pylintrc $(PYLINT_FILES)

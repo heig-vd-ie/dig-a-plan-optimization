@@ -24,7 +24,7 @@ services:
   python-api:
     build:
       context: ..
-      dockerfile: dockerfiles/Dockerfile.py
+      dockerfile: dockerfiles/Dockerfile.python
     container_name: dap-py-api
     network_mode: host
     environment:
