@@ -46,6 +46,7 @@ pyarrow = "^22.0.0"
 numba = "^0.62.1"
 numpy = "<2.0.0"
 pylint = "^4.0.4"
+mypy = "^1.19.1"
 
 
 [tool.poetry.group.dev.dependencies]

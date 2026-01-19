@@ -7,7 +7,7 @@ ORG := heig-vd-ie
 
 # Default target: help
 .DEFAULT_GOAL := help
-PYLINT_FILES := **/*.py
+PY_FILES := **/*.py
 
 help: ## Show this help message
 	@echo "Available targets:"
@@ -120,4 +120,8 @@ fetch-wheel: ## Fetch the Python wheel from a remote URL [<organization> <repo> 
 
 lint: ## Lint the code using pylint
 	@echo "Linting Python code with pylint..."
-	@poetry run pylint --rcfile .pylintrc $(PYLINT_FILES)
+	@poetry run pylint --rcfile .pylintrc $(PY_FILES)
+
+mypy: ## Run mypy type checking
+	@echo "Running mypy type checking..."
+	@poetry run mypy --config-file mypy.ini $(PY_FILES)
