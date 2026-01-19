@@ -22,6 +22,7 @@ class CacheFolder:
     outputs: str
     outputs_admm: str
     outputs_bender: str
+    outputs_combined: str
 
 
 @dataclass
