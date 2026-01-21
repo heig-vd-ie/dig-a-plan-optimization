@@ -1,0 +1,40 @@
+[MASTER]
+py-version=3.11
+
+# Files or directories to ignore
+ignore=.venv,migrations,__pycache__
+
+load-plugins=pylint.extensions.docparams
+
+[MESSAGES CONTROL]
+disable=
+    ; C0114,  # missing-module-docstring
+    ; C0115,  # missing-class-docstring
+    ; C0116,  # missing-function-docstring
+    ; R0903,  # too-few-public-methods
+    ; R0902,  # too-many-instance-attributes
+    ; C0411,  # wrong-import-order
+    ; C0412,  # ungrouped-imports
+    ; C0413,  # wrong-import-position
+
+[REPORTS]
+reports=no
+output-format=colorized
+
+[FORMAT]
+max-line-length=88
+
+[DESIGN]
+max-args=6 # Max arguments for a function
+max-attributes=10 # Max number of attributes in a class
+max-nested-blocks=5 # Max number of nested blocks
+
+[TYPECHECK]
+# Optional modules that might not be installed during lint
+ignored-modules=
+    numpy,
+    pandas,
+    matplotlib
+
+[SIMILARITIES]
+ignore-comments=yes

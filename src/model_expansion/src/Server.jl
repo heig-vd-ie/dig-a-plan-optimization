@@ -93,7 +93,10 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Extract input parameters with default values
     # Read defaults from file if present
     default = JSON3.read(
-        read(joinpath(@__DIR__, "..", "..", "..", "examples", "default.json"), String),
+        read(
+            joinpath(@__DIR__, "..", "..", "..", "examples", "payloads_jl", "default.json"),
+            String,
+        ),
     )
     # Grid structure with defaults
     grid_data = get(body, "grid", default["grid"])
@@ -369,7 +372,7 @@ function compare_plot(req::HTTP.Request)
 
     # Save the plot
     isdir(".cache") || mkpath(".cache")
-    savefig(get(body, :plot_saved, ".cache/objective_histogram.pdf"))
+    savefig(get(body, :plot_saved, ".cache/outputs_expansion/run_test/objective_histogram.pdf"))
 
     println("[$(log_datetime())] Comparison plot completed and saved")
 

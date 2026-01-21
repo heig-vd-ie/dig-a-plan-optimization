@@ -18,9 +18,9 @@
         "penalty_costs_pv": { "1": 8000, "2": 8000, "3": 8000, "4": 8000 },
         "penalty_costs_infeasibility": 6000
     },
-    "scenarios": "examples/scenarios.json",
-    "out_of_sample_scenarios": "examples/out_of_sample_scenarios.json",
-    "bender_cuts": "examples/bender_cuts.json",
+    "scenarios": "examples/payloads_jl/scenarios.json",
+    "out_of_sample_scenarios": "examples/payloads_jl/out_of_sample_scenarios.json",
+    "bender_cuts": "examples/payloads_jl/bender_cuts.json",
     "planning_params": {
         "n_stages": 5,
         "γ_cuts": 0,

@@ -194,7 +194,7 @@ histogram(
     fillcolor = [:blue :red :green],
 )
 isdir(".cache") || mkpath(".cache")
-savefig(".cache/objective_histogram.pdf")
+savefig(".cache/outputs_expansion/run_test/objective_histogram.pdf")
 
 histogram(
     [objectives1o, objectives2o, objectives3o],
@@ -211,7 +211,7 @@ histogram(
     fillcolor = [:blue :red :green],
 )
 isdir(".cache") || mkpath(".cache")
-savefig(".cache/objective_histogramo.pdf")
+savefig(".cache/outputs_expansion/run_test/objective_histogramo.pdf")
 
 plt1 = SDDP.SpaghettiPlot(simulations1)
 

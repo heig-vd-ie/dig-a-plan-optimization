@@ -73,7 +73,7 @@ def create_simple_grid():
 
     net["trafo"]["shift_degree"] = 0
     net["line"].loc[:, "max_i_ka"] = 1
-    out_path = PROJECT_ROOT / "examples" / "ieee-33" / "simple_grid.p"
+    out_path = PROJECT_ROOT / "examples" / "ieee_33" / "simple_grid.p"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     pp.to_pickle(net, str(out_path))

@@ -13,13 +13,13 @@ class DiscreteScenario(Enum):
 class GridCaseModel(BaseModel):
     name: str = Field(default="default", description="Grid case name")
     pp_file: str = Field(
-        default="examples/ieee-33/simple_grid.p",
+        default="examples/ieee_33/simple_grid.p",
         description="Path to pandapower .p file",
     )
     s_base: float = Field(default=1e6, description="Rated power in Watts")
     cosφ: float = Field(default=0.95, description="Power factor")
     egid_id_mapping_file: str = Field(
-        default="examples/ieee-33/consumer_egid_idx_mapping.csv",
+        default="examples/ieee_33/consumer_egid_idx_mapping.csv",
         description="Path to EGID to ID mapping CSV file",
     )
     minimum_impedance: float = Field(
@@ -35,12 +35,12 @@ class ShortTermUncertintyBase(BaseModel):
 
 
 class ShortTermUncertaintyProfile(ShortTermUncertintyBase):
-    load_profiles: list[Path] = Field(
-        default=[Path("examples/ieee-33/load_profiles")],
+    load_profiles: list[str] = Field(
+        default=["examples/ieee_33/load_profiles"],
         description="List of paths to load profile directories",
     )
-    pv_profile: Path = Field(
-        default=Path("examples/ieee-33/pv_profiles"),
+    pv_profile: str = Field(
+        default="examples/ieee_33/pv_profiles",
         description="Path to PV profile directory",
     )
     target_year: int = Field(default=2030, description="Target year for scenarios")

@@ -17,7 +17,8 @@ minimal_request = Dict()
 simple_request = Dict("iteration_limit" => 50, "n_simulations" => 100)
 
 # Custom grid configuration
-custom_request = JSON3.read(read(joinpath(@__DIR__, "../../../examples/default.json"), String))
+custom_request =
+    JSON3.read(read(joinpath(@__DIR__, "../../../examples/payloads_jl/default.json"), String))
 custom_request = Dict(custom_request)  # Convert to mutable Dict
 custom_request[:additional_params] = Dict(
     "iteration_limit" => 50,
@@ -50,8 +51,9 @@ end
 
 function test_plot()
     @testset "Plot Tests" begin
-        custom_request =
-            JSON3.read(read(joinpath(@__DIR__, "../../../examples/default.json"), String))
+        custom_request = JSON3.read(
+            read(joinpath(@__DIR__, "../../../examples/payloads_jl/default.json"), String),
+        )
         custom_request = Dict(custom_request)  # Convert to mutable Dict
         custom_request[:cases] = [
             Dict(
@@ -76,7 +78,7 @@ function test_plot()
                 "seed" => 1234,
             ),
         ]
-        custom_request[:plot_saved] = ".cache/objective_histogram.pdf"
+        custom_request[:plot_saved] = ".cache/outputs_expansion/run_test/objective_histogram.pdf"
         response = HTTP.patch(
             "$SERVER_BASE_URL/compare-plot",
             ["Content-Type" => "application/json"],
@@ -89,7 +91,10 @@ end
 function test_generate_scenarios_request()
     @testset "Test generate scenarios" begin
         custom_request = JSON3.read(
-            read(joinpath(@__DIR__, "../../../examples/scenarios_request.json"), String),
+            read(
+                joinpath(@__DIR__, "../../../examples/payloads_jl/scenarios_request.json"),
+                String,
+            ),
         )
         custom_request = Dict(custom_request)
         response = HTTP.patch(

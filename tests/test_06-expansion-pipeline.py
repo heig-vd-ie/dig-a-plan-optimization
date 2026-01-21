@@ -1,10 +1,8 @@
-import datetime
 import math
 import numpy as np
 import pytest
-
 from api.grid_cases import get_grid_case
-from data_model.expansion import LongTermUncertainty, SDDPConfig
+from data_model.expansion import SDDPConfig
 from pipeline_expansion.algorithm import ExpansionAlgorithm
 from data_model.sddp import RiskMeasureType
 from pipeline_reconfiguration import ADMMConfig
@@ -26,15 +24,15 @@ class ExpansionTestBase:
         self.grid = test_simple_grid
         self.seed = test_seed
         self.stu = test_short_term_uncertainty_random
-        self_net, self.grid_data = get_grid_case(
-            grid=self.grid, seed=self.seed, stu=self.stu
-        )
+        _, self.grid_data = get_grid_case(grid=self.grid, seed=self.seed, stu=self.stu)
         self.cache_dir = test_cache_dir
         self.simple_grid_groups = test_simple_grid_groups
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
             admm_config=ADMMConfig(),
             sddp_config=SDDPConfig(
+                n_stages=3,
+                n_scenarios=100,
                 n_simulations=100,
                 n_optimizations=10,
                 initial_budget=1e6,
@@ -45,16 +43,9 @@ class ExpansionTestBase:
                 expansion_transformer_cost_per_kw=1e3,
                 penalty_cost_per_consumption_kw=1e3,
                 penalty_cost_per_production_kw=1e3,
-            ),
-            long_term_uncertainty=LongTermUncertainty(
-                δ_load_var=5.0,
                 δ_b_var=1000,
-                δ_pv_var=1.0,
-                n_scenarios=100,
-                n_stages=3,
             ),
-            each_task_memory=1024,
-            time_now=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+            time_now="run_test",
             cache_dir=self.cache_dir,
             just_test=True,
         )

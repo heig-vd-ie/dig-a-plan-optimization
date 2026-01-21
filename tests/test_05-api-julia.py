@@ -14,8 +14,8 @@ from helpers.json import load_obj_from_json
 
 class TestExpansion:
     @pytest.fixture(autouse=True)
-    def setup_common_data(self):
-        self.test_cache_dir = Path(".cache/test")
+    def setup_common_data(self, test_cache_dir):
+        self.test_cache_dir = test_cache_dir
 
 
 class TestExpansionModel(TestExpansion):
@@ -45,20 +45,15 @@ class TestExpansionModel(TestExpansion):
         assert len(results.simulations) == 100
 
     def test_expansion_model_with_request(self):
-        expansion_request_data = load_obj_from_json(Path("examples/default.json"))
-        scenarios_data = load_obj_from_json(Path("examples/scenarios.json"))
+        expansion_request_data = load_obj_from_json(
+            Path("examples/payloads_jl/default.json")
+        )
+        scenarios_data = load_obj_from_json(Path("examples/payloads_jl/scenarios.json"))
         out_of_sample_scenarios_data = load_obj_from_json(
-            Path("examples/out_of_sample_scenarios.json")
+            Path("examples/payloads_jl/out_of_sample_scenarios.json")
         )
-        bender_cuts_data = load_obj_from_json(Path("examples/bender_cuts.json"))
-        expansion_request_data["planning_params"]["bender_cuts"] = str(
-            self.test_cache_dir / "bender_cuts.json"
-        )
-        expansion_request_data["scenarios"] = str(
-            self.test_cache_dir / "scenarios.json"
-        )
-        expansion_request_data["out_of_sample_scenarios"] = str(
-            self.test_cache_dir / "out_of_sample_scenarios.json"
+        bender_cuts_data = load_obj_from_json(
+            Path("examples/payloads_jl/bender_cuts.json")
         )
         expansion_request = ExpansionRequest(
             optimization=OptimizationConfig(**expansion_request_data),
@@ -68,7 +63,7 @@ class TestExpansionModel(TestExpansion):
         )
         results = run_sddp(
             expansion_request=expansion_request,
-            cache_path=Path(".cache/test"),
+            cache_path=self.test_cache_dir,
         )
         assert results is not None
         assert math.isclose(

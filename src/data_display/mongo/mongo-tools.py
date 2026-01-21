@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from konfig import settings
 
 
 def parse_args() -> argparse.Namespace:
@@ -140,7 +141,7 @@ def main() -> None:
         print(f"Database '{db_name}' deleted.")
         return
 
-    base_dir = Path(".cache/algorithm")
+    base_dir = Path(settings.cache.outputs_expansion)
     if not base_dir.exists():
         print(f"Directory {base_dir} does not exist.")
         return

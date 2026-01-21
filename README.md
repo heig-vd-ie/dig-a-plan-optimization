@@ -55,11 +55,7 @@ Contact Mohammad for getting `user@access`.
 
 ### Run the expansion problem
 
-You can run the following target to run the expansion problem:
-
-```sh
-make run-expansion PAYLOAD=examples/payloads/simple_grid.json
-```
+You can run the respected endpoint.
 
 The results will be saved in the folder of `.cache`.
 
@@ -67,7 +63,7 @@ The results will be saved in the folder of `.cache`.
 
 In the `dig-a-plan-monorepo` (one folder above this project), if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
 ```sh
-cd .. && make run-extraction
+cd .. && make run-all
 ```
 
 ### Dashboards

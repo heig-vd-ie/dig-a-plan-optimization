@@ -3,6 +3,7 @@ include Makefile.common.mak
 
 
 IMAGES := dap-py-api custom-grafana mongo:latest
+CACHE_FOLDER := .cache
 
 clean: ## Clean ignored files
 	@echo "Cleaning up ignored files..."
@@ -112,39 +113,25 @@ shutdown-prometheus: ## Shutdown Prometheus and clean up files
 	@ray metrics shutdown-prometheus || true
 	@sudo rm -rf prometheus-* || true
 
-fix-cache-permissions: ## Fix permissions of the .cache/algorithm folder
-	@echo "Fixing permissions for .cache/algorithm..."
-	@sudo chown -R $(USER):$(USER) .cache/algorithm || true
-	@sudo chmod -R 775 .cache/algorithm || true
+fix-cache-permissions: ## Fix permissions of the CACHE_FOLDER folder
+	@echo "Fixing permissions for a folder ..."
+	@sudo chown -R $(USER):$(USER) $(CACHE_FOLDER) || true
+	@sudo chmod -R 775 $(CACHE_FOLDER) || true
 	@echo "Done."
 
 permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
-run-expansion: ## Curl expansion for a payload
-	@echo "Triggering expansion..."
-	@curl -X PATCH \
-		-H "Content-Type: application/json" \
-		-d @$(PAYLOAD) \
-		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)"
-
-run-expansion-with-cut: ## Curl expansion for a payload with cut_file
-	@echo "Triggering expansion..."
-	@curl -X PATCH \
-		-H "Content-Type: application/json" \
-		--data-binary @$(PAYLOAD) \
-		"http://$(LOCAL_HOST):${SERVER_PY_PORT}/expansion?with_ray=$(USE_RAY)&cut_file=$(CUT_FILE)"
-
 # Run with: make sync-mongodb FORCE=true
 sync-mongodb: ## Sync data from MongoDB
 	@echo "Syncing data from MongoDB..."
-	@.venv/bin/python ./scripts/mongo-tools.py $(if $(FORCE),--force)
+	@.venv/bin/python ./src/data_display/mongo-tools.py $(if $(FORCE),--force)
 
 clean-mongodb:  ## Clean up MongoDB data
 	@echo "Cleaning MongoDB data..."
-	@.venv/bin/python ./scripts/mongo-tools.py --delete
+	@.venv/bin/python ./src/data_display/mongo-tools.py --delete
 
 chunk-mongodb: ## Chunk large files for MongoDB
 	@echo "Chunking large files..."
-	@.venv/bin/python ./scripts/mongo-tools.py --chunk
+	@.venv/bin/python ./src/data_display/mongo-tools.py --chunk

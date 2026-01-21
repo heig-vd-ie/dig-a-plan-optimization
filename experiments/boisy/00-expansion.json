@@ -1,0 +1,53 @@
+{
+    "grid": {
+        "name": "boisy-feeder-1",
+        "pp_file": ".cache/input/boisy/feeders/feeder_feeder_1.p",
+        "s_base": 1000000,
+        "cosφ": 0.95,
+        "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0.001
+    },
+    "profiles": {
+        "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],
+        "pv_profile": ".cache/input/boisy/pv_profiles",
+        "target_year": 2030,
+        "quarter": 1,
+        "scenario_name": "Basic"
+    },
+    "admm_config": {
+        "iterations": 5,
+        "solver_non_convex": true,
+        "time_limit": 1,
+        "groups": 10,
+        "big_m": 1000,
+        "ε": 0.0001,
+        "ρ": 2,
+        "γ_infeasibility": 1,
+        "γ_admm_penalty": 1,
+        "γ_trafo_loss": 100,
+        "μ": 10,
+        "τ_incr": 2,
+        "τ_decr": 2,
+        "voll": 6,
+        "volp": 2
+    },
+    "sddp_config": {
+        "iterations": 100,
+        "n_simulations": 5000,
+        "n_optimizations": 10,
+        "n_stages": 5,
+        "n_scenarios": 100,
+        "initial_budget": 500000,
+        "discount_rate": 0.05,
+        "years_per_stage": 5,
+        "risk_measure_type": "Expectation",
+        "risk_measure_param": 0.1,
+        "expansion_line_cost_per_km_kw": 0.2,
+        "expansion_transformer_cost_per_kw": 0.15,
+        "penalty_cost_per_consumption_kw": 6,
+        "penalty_cost_per_production_kw": 2,
+        "δ_b_var": 100000
+    },
+    "iterations": 5,
+    "seed": 42
+}
