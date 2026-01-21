@@ -21,6 +21,8 @@ class CacheFolder:
     figures: str
     outputs: str
     outputs_admm: str
+    outputs_bender: str
+    outputs_combined: str
 
 
 @dataclass

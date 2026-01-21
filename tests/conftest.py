@@ -121,4 +121,4 @@ def test_basic_grid_quick_expansion() -> Path:
 
 @pytest.fixture(scope="session")
 def test_basic_grid_quick_admm() -> Path:
-    return Path("experiments/test_networks/00-reconfiguration.json")
+    return Path("experiments/ieee_33/00-reconfiguration.json")
