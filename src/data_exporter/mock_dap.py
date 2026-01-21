@@ -4,7 +4,7 @@ import polars as pl
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from pipeline_reconfiguration import DigAPlanADMM, DigAPlanBender
+from pipeline_reconfiguration import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
 from helpers.json import load_obj_from_json
 
 def _write_parquet_any(obj, path: Path) -> None:
@@ -32,7 +32,7 @@ class DapStateSaver(Protocol):
         ...
 
 class BaseStateSaver:
-    def save_common(self, dap: DigAPlanADMM | DigAPlanBender, base_path: Path) -> None:
+    def save_common(self, dap: DigAPlanADMM | DigAPlanBender | DigAPlanCombined, base_path: Path) -> None:
         base_path.mkdir(exist_ok=True, parents=True)
 
         # Save grid data 
@@ -119,6 +119,38 @@ class BenderStateSaver(BaseStateSaver):
             json.dump(metadata, f, indent=2, default=str)
 
         print(f"DAP state saved to {base_path}")
+        
+class CombinedStateSaver(BaseStateSaver):
+    kind = "combined"
+
+    def save(self, dap: DigAPlanCombined, base_path: Path) -> None:
+        self.save_common(dap, base_path)
+
+        voltage_results = dap.result_manager.extract_node_voltage()
+        current_results = dap.result_manager.extract_edge_current()
+        tap_position = dap.result_manager.extract_transformer_tap_position()
+
+        _write_parquet_any(voltage_results, base_path / "voltage_results_0.parquet")
+        _write_parquet_any(current_results, base_path / "current_results_0.parquet")
+        _write_parquet_any(tap_position, base_path / "tap_position.parquet")
+
+        # save p_flow/q_flow 
+        if hasattr(dap.result_manager, "extract_edge_variables"):
+            for variable_name in ["p_flow", "q_flow"]:
+                edge_var = dap.result_manager.extract_edge_variables(variable_name)
+                _write_parquet_any(edge_var, base_path / f"edge_{variable_name}_results_0.parquet")
+
+        metadata = {
+            "kind": "combined",
+            "konfig": (
+                dap.konfig.__dict__ if hasattr(dap.konfig, "__dict__") else str(dap.konfig)
+            ),
+            "convergence_list": getattr(dap.model_manager, "convergence_list", []),
+        }
+
+        with open(base_path / "metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2, default=str)
+
 
 class DapStateSaverFactory:
     """Factory using a registry mapping."""
@@ -126,6 +158,7 @@ class DapStateSaverFactory:
     _registry = {
         DigAPlanADMM: ADMMStateSaver,
         DigAPlanBender: BenderStateSaver,
+        DigAPlanCombined: CombinedStateSaver,
     }
 
     @staticmethod
@@ -134,9 +167,9 @@ class DapStateSaverFactory:
             if isinstance(dap, dap_type):
                 return saver_cls()
         raise TypeError(f"Unsupported DAP pipeline type: {type(dap)}")
-    
-def save_dap_state(dap: DigAPlanADMM | DigAPlanBender, base_path=".cache/boisy_dap"):
-    """Save DAP state using factory-selected saver (same external API)."""
+
+def save_dap_state(dap: DigAPlanADMM | DigAPlanBender | DigAPlanCombined, base_path=".cache/boisy_dap"):
+    """Save DAP state using factory-selected saver."""
     base_path = Path(base_path)
     saver = DapStateSaverFactory.create(dap)
     saver.save(dap, base_path)
@@ -201,6 +234,15 @@ class MockModelManager:
         self.zδ_variable = None
         self.zζ_variable = None
         
+        
+        self.time_list = []
+        self.r_norm_list = []
+        self.s_norm_list = []
+
+        self.slave_obj_list = []
+        self.master_obj_list = []
+        self.convergence_list = []
+        
         if kind == "admm":
             
             consensus_data_zdelta = pl.read_parquet(
@@ -222,7 +264,11 @@ class MockModelManager:
             self.slave_obj_list = metadata.get("slave_obj_list", [])
             self.master_obj_list = metadata.get("master_obj_list", [])
             self.convergence_list = metadata.get("convergence_list", [])
-            return      
+            return 
+        
+        if kind == "combined":
+            self.convergence_list = metadata.get("convergence_list", [])
+            return     
         
 
 
