@@ -43,6 +43,7 @@
     ".pytest_cache": true,
     "ray": true,
     "spill": true,
+    ".mypy_cache": true
   },
   "julia.editor.formatOnSave": true,
   "julia.editor.formatOnType": true,
