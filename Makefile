@@ -75,7 +75,7 @@ make connect-ray-worker:  ## Connect to Ray worker via SSH
 
 start: ## Start all servers
 	@echo "Starting all servers..."
-	@bash ./scripts/run-servers.sh
+	@bash ./scripts/start-servers.sh
 
 build: ## Build Docker images
 	@echo "Building Docker images..."
