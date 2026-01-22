@@ -4,16 +4,6 @@ set -euo pipefail
 default_head_host_ip="100.66.5.3"
 read -r -p "Enter head host IP (e.g., ${default_head_host_ip}): " HEAD_HOST
 HEAD_HOST="${HEAD_HOST:-$default_head_host_ip}"
-export HEAD_HOST
-
-PROJECT_DIR="$HOME/projects/dig-a-plan-optimization"
-
-cd "$PROJECT_DIR" || {
-  echo "Failed to cd into project directory"
-  exit 1
-}
-
-echo "Using Head Host: $HEAD_HOST"
 
 source .venv/bin/activate
 eval "$(direnv export bash)"
