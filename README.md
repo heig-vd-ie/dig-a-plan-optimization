@@ -2,56 +2,76 @@
 
 Dig-A-Plan is a scalable optimization framework for distribution grid planning and operational reconfiguration under uncertainty.  
 It combines:
-- a **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
-- a **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
+- **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
+- **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
 
 The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
-Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
+## Requirements
+
+- **Gurobi license**: Request a (WSL) license at https://license.gurobi.com/ and save it to:
+  - `~/gurobi_license/gurobi.lic`
 
 
-## Initial Setup
 
-To install all dependencies on a new machine, run:
+## Installation
+
+1. **Clone the repository**
 ```sh
-make install-all
+   git clone <REPO_URL>
+   cd <REPO_NAME>
 ```
-
-You will need a Gurobi license to run this project. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/gurobi_license/gurobi.lic`.
-
-Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
-
-
-### Activating the Virtual Environment and Setting Environment Variables
-
-Each time you start working on the project, activate the virtual environment by running:
+2. **Install make (Ubuntu/WSL only, if not already installed)**
 ```sh
-make venv-activate
+    sudo apt update
+    sudo apt install make
 ```
+3. **Install project dependencies**
+```sh
+    make install-all
+```
+If this fails and you can’t resolve it quickly, please open an issue (or contact the maintainers)
 
 ## Run application
 
-You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
-```sh
-make build  # if it fails because of poetry, use `poetry lock`
-make start
-```
+1. **Activating the Virtual Environment and Setting Environment Variables (each time you work on the project)**
 
-### Access to worker Machine
-
-1. You need to update the following env variable (in `.envrc`) based on your IP so it detects the HEAD machine running Ray:
 ```sh
-export HEAD_HOST=10.192.189.51
+    make venv-activate
 ```
-> Note: Run `make show-current-specs` to get the ip of current machine.
+2. **Build and start all services**
 
-2. For access to the Worker machine, you need to add your ssh key in the worker machine:
+This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker processes). 
 ```sh
-ls ~/.ssh/
-ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
-ssh-copy-id -i ~/.ssh/id_rsa.pub user@address
+    make build  # if it fails because of poetry, use `poetry lock`
+    make start
 ```
-Contact Mohammad for getting `user@access`. 
+3. **Use the tmux session**
+
+make start opens a tmux session with three panes:
++--------------------------------------------------+
+| Services logs (Julia / Python / Grafana / etc.)  |
++--------------------------------------------------+
+| Ray logs / worker processes                      |
++--------------------------------------------------+
+| Interactive shell (run commands & experiments)   |
++--------------------------------------------------+
+
+Navigation: Ctrl + B, then Down Arrow → move to the next pane
+
+4. **Run an experiment (example: IEEE-33 reconfiguration)**
+From the interactive pane: 
+```sh
+    python experiments/ieee_33/01-reconfiguration-admm.py
+```
+For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/experiments/01-theory-reconfiguration.md) 
+
+
+
+
+
+
+Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
 
 ### Run the expansion problem
 
@@ -119,3 +139,19 @@ sudo tailscale up
 ```sh
 tailscale ip
 ```
+
+3. **Configure Ray Head + SSH access (if using a Worker machine)**
+
+1. You need to update the following env variable (in `.envrc`) based on your IP so it detects the HEAD machine running Ray:
+```sh
+export HEAD_HOST=10.192.189.51
+```
+> Note: Run `make show-current-specs` to get the ip of current machine.
+
+2. For access to the Worker machine, you need to add your ssh key in the worker machine:
+```sh
+ls ~/.ssh/
+ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
+ssh-copy-id -i ~/.ssh/id_rsa.pub user@address
+```
+Contact Mohammad for getting `user@access`. 
