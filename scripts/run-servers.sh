@@ -7,7 +7,7 @@ source .venv/bin/activate
 direnv allow
 
 commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization logs -f")
-commands+=("make run-ray-worker; sleep 3")
+commands+=("make connect-ray-worker; sleep 3")
 commands+=("make venv-activate; sleep 3")
 
 tmux new-session -d -s $SESSION
