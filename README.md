@@ -49,13 +49,20 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 3. **Use the tmux session**
 
 make start opens a tmux session with three panes:
-+--------------------------------------------------+
-| Services logs (Julia / Python / Grafana / etc.)  |
-+--------------------------------------------------+
-| Ray logs / worker processes                      |
-+--------------------------------------------------+
-| Interactive shell (run commands & experiments)   |
-+--------------------------------------------------+
+
+### Use the tmux session
+
+```text
++------------------------------+
+| Services logs                |
+| (Julia / Python / Grafana)   |
++------------------------------+
+| Ray logs / worker processes  |
++------------------------------+
+| Interactive shell            |
+| (run commands & experiments) |
++------------------------------+
+
 
 Navigation: Ctrl + B, then Down Arrow → move to the next pane
 
