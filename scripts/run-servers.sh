@@ -7,7 +7,7 @@ source .venv/bin/activate
 direnv allow
 
 commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization logs -f")
-commands+=("ssh -t mohammad@${WORKER_HOST} 'read -p \"Press Enter to continue...\"; mkdir -p spill; cd projects/dig-a-plan-monorepo/optimization; make run-ray-worker; bash'")
+commands+=("make run-ray-worker; sleep 3")
 commands+=("make venv-activate; sleep 3")
 
 tmux new-session -d -s $SESSION

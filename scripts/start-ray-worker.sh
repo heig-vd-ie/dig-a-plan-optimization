@@ -1,26 +1,38 @@
 #!/bin/bash
-set -e
+set -euo pipefail
+
+default_head_host_ip="100.66.5.3"
+read -r -p "Enter head host IP (e.g., ${default_head_host_ip}): " HEAD_HOST
+HEAD_HOST="${HEAD_HOST:-$default_head_host_ip}"
+export HEAD_HOST
+
+PROJECT_DIR="$HOME/projects/dig-a-plan-optimization"
+
+cd "$PROJECT_DIR" || {
+  echo "Failed to cd into project directory"
+  exit 1
+}
+
+echo "Using Head Host: $HEAD_HOST"
 
 source .venv/bin/activate
+eval "$(direnv export bash)"
 
-eval "$(direnv export bash)"  # makes .envrc variables available
-
-# Make sure Makefile-exported env vars are present
-: "${HEAD_HOST:?Need to set HEAD_HOST}"
 : "${SERVER_RAY_PORT:?Need to set SERVER_RAY_PORT}"
 : "${ALLOC_CPUS:?Need to set ALLOC_CPUS}"
 : "${ALLOC_GPUS:?Need to set ALLOC_GPUS}"
 : "${ALLOC_RAMS:?Need to set ALLOC_RAMS}"
 
-mkdir -p spill || true
+mkdir -p spill
 
-# Start Ray worker
+NODE_IP="$(hostname -I | awk '{print $1}')"
+
 POLARS_SKIP_CPU_CHECK=1 ray start \
-    --address=${HEAD_HOST}:${SERVER_RAY_PORT} \
-    --node-ip-address=$(hostname -I | awk '{print $1}') \
-    --num-cpus=${ALLOC_CPUS} \
-    --num-gpus=${ALLOC_GPUS} \
-    --memory=${ALLOC_RAMS} \
-    --object-spilling-directory=spill
+  --address="${HEAD_HOST}:${SERVER_RAY_PORT}" \
+  --node-ip-address="$NODE_IP" \
+  --num-cpus="${ALLOC_CPUS}" \
+  --num-gpus="${ALLOC_GPUS}" \
+  --memory="${ALLOC_RAMS}" \
+  --object-spilling-directory=spill
 
-watch -n 5 ray status
+exec watch -n 5 ray status
