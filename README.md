@@ -50,7 +50,7 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 
 make start opens a tmux session with three panes:
 
-### Use the tmux session
+
 
 ```text
 +------------------------------+
