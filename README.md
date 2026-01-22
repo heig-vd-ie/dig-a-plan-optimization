@@ -66,6 +66,8 @@ make start opens a tmux session with three panes:
 
 Navigation: Ctrl + B, then Down Arrow → move to the next pane
 
+```
+
 4. **Run an experiment (example: IEEE-33 reconfiguration)**
 From the interactive pane: 
 ```sh
@@ -73,18 +75,25 @@ From the interactive pane:
 ```
 For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/experiments/01-theory-reconfiguration.md) 
 
+5. **Run the expansion problem**
 
+The **expansion** solves the *long-term planning* problem: it decides which grid assets (lines/transformers) should be reinforced/expanded over multiple stages under uncertainty (load/PV scenarios).  It uses **SDDP** (served by the Julia service) and runs repeated operational checks to keep plans feasible.
+For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
 
-
-
-
-Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
-
-### Run the expansion problem
-
-You can run the respected endpoint.
-
+```sh
+    python experiments/ieee_33/04-expansion.py
+```
 The results will be saved in the folder of `.cache`.
+
+
+## Development
+
+1. Code formatting is handled automatically with `black`. Please install the **Black** extension in VS Code and enable **format on save** for consistent formatting.
+
+
+
+
+
 
 ### Run the case of Boisy & Estavayer
 
@@ -93,16 +102,12 @@ In the `dig-a-plan-monorepo` (one folder above this project), if you run the fol
 cd .. && make run-all
 ```
 
-### Dashboards
-
-1. FastAPI endpoints: [http://localhost:8000/docs#](http://localhost:8000/docs#)
-2. Ray Dashboard: [http://localhost:8265](http://localhost:8265)
-3. Grafana Dashboard [http://localhost:4000](http://localhost:4000)
-4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
-5. MongoDB GUI: `mongodb-compass` in a separate terminal
 
 
-## Development
+
+
+
+
 
 ### Unit tests
 
@@ -130,8 +135,7 @@ or
 poetry update
 ```
 
-### Julia
-For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+
 
 
 ### Add local network
@@ -146,19 +150,3 @@ sudo tailscale up
 ```sh
 tailscale ip
 ```
-
-3. **Configure Ray Head + SSH access (if using a Worker machine)**
-
-1. You need to update the following env variable (in `.envrc`) based on your IP so it detects the HEAD machine running Ray:
-```sh
-export HEAD_HOST=10.192.189.51
-```
-> Note: Run `make show-current-specs` to get the ip of current machine.
-
-2. For access to the Worker machine, you need to add your ssh key in the worker machine:
-```sh
-ls ~/.ssh/
-ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
-ssh-copy-id -i ~/.ssh/id_rsa.pub user@address
-```
-Contact Mohammad for getting `user@access`. 
