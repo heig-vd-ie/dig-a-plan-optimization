@@ -85,6 +85,13 @@ For more information regarding Julia, go to [src/model_expansion/README.md](src/
 ```
 The results will be saved in the folder of `.cache`.
 
+### Run the case of Boisy & Estavayer
+
+In the `dig-a-plan-data-processing` , if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
+```sh
+cd .. && make run-all
+```
+
 
 ## Development
 
@@ -93,14 +100,6 @@ The results will be saved in the folder of `.cache`.
 
 
 
-
-
-### Run the case of Boisy & Estavayer
-
-In the `dig-a-plan-monorepo` (one folder above this project), if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
-```sh
-cd .. && make run-all
-```
 
 
 
