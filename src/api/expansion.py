@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import datetime
-from api.grid_cases import get_grid_case
+from api.grid_cases import get_grid_case_for_expansion
 from data_model.expansion import ExpansionInput, ExpansionOutput
 from data_model.sddp import BenderCuts
 from pipeline_expansion.algorithm import ExpansionAlgorithm
@@ -25,9 +25,13 @@ def run_expansion(
         requests,
         Path(settings.cache.outputs_expansion) / time_now / INPUT_FILENAME,
     )
-    _, grid_data = get_grid_case(
-        requests.grid, seed=requests.seed, stu=requests.short_term_uncertainty
+    _, grid_data, load_potential, pv_potential = get_grid_case_for_expansion(
+        requests.grid,
+        seed=requests.seed,
+        stu=requests.short_term_uncertainty,
+        profiles=requests.profiles,
     )
+
     bender_cuts = (
         None if cut_file is None else BenderCuts(**load_obj_from_json(Path(cut_file)))
     )
@@ -36,6 +40,8 @@ def run_expansion(
         admm_config=requests.admm_config,
         sddp_config=requests.sddp_config,
         bender_cuts=bender_cuts,
+        load_potential=load_potential,
+        pv_potential=pv_potential,
         cache_dir=Path(settings.cache.outputs_expansion),
         time_now=time_now,
         iterations=requests.iterations,

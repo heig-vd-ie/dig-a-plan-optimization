@@ -90,3 +90,35 @@ def get_grid_case(
     )
 
     return net, node_edge_model
+
+
+def get_grid_case_for_expansion(
+    grid: GridCaseModel,
+    seed: int,
+    stu: ShortTermUncertaintyRandom,
+    profiles: ShortTermUncertaintyProfile | None = None,
+) -> Tuple[pp.pandapowerNet, NodeEdgeModel, dict[int, float], dict[int, float]]:
+    """
+    Load a pandapower grid and build the Dig-A-Plan NodeEdgeModel without scenarios.
+
+    - Loads .p files based on GridCase
+    - Calls pp_to_dap to:
+        * create NodeEdgeModel
+    - Cleans / normalizes edge_data columns (b_pu, r_pu, x_pu, normal_open)
+    """
+
+    net, node_edge_model = get_grid_case(
+        grid=grid,
+        seed=seed,
+        stu=stu,
+        profiles=profiles,
+    )
+
+    load_potential = {
+        node: 5.0 for node in node_edge_model.node_data["node_id"].to_list()
+    }
+    pv_potential = {
+        node: 1.0 for node in node_edge_model.node_data["node_id"].to_list()
+    }
+
+    return net, node_edge_model, load_potential, pv_potential

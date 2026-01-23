@@ -41,6 +41,8 @@ class ExpansionAlgorithm:
         grid_data: NodeEdgeModel,
         admm_config: ADMMConfig,
         sddp_config: SDDPConfig,
+        load_potential: Dict[int, float],
+        pv_potential: Dict[int, float],
         time_now: str,
         cache_dir: Path,
         bender_cuts: BenderCuts | None = None,
@@ -71,11 +73,15 @@ class ExpansionAlgorithm:
         ]
         self.scenario_data = self.create_scenario_data(
             nodes=nodes,
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number,
         )
         self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number + 1000,
         )
@@ -101,6 +107,8 @@ class ExpansionAlgorithm:
     def create_scenario_data(
         self,
         nodes: List[Node],
+        load_potential: dict[int, float],
+        pv_potential: dict[int, float],
         n_stages=3,
         seed_number=1000,
     ):
@@ -109,10 +117,8 @@ class ExpansionAlgorithm:
             n_scenarios=self.sddp_config.n_scenarios,
             n_stages=n_stages,
             nodes=nodes,
-            # TODO: make configurable based on variation of profile
-            load_potential={node.id: 5.0 for node in nodes},
-            pv_potential={node.id: 1.0 for node in nodes},
-            ########################################################
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             yearly_budget=self.sddp_config.δ_b_var,
             N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,

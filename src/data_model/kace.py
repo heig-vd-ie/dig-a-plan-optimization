@@ -43,7 +43,7 @@ class ShortTermUncertaintyProfile(ShortTermUncertintyBase):
         default="examples/ieee_33/pv_profiles",
         description="Path to PV profile directory",
     )
-    target_year: int = Field(default=2030, description="Target year for scenarios")
+    target_year: int = Field(default=2025, description="Target year for scenarios")
     quarter: int = Field(ge=1, le=4, default=1, description="Quarter of the year (1-4)")
     scenario_name: DiscreteScenario = Field(
         default=DiscreteScenario.BASIC, description="Type of discrete scenario"
