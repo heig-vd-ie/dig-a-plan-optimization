@@ -64,15 +64,18 @@ format-py: ## Format Python code using black
 format: format-jl format-py ## Format all code (Julia and Python)
 
 run-ray-worker:  ## Start Ray worker
-	@echo -n "Run Worker?..."
-	@read dummy
 	@direnv allow && \
-	echo "Starting Ray worker natively connecting to $$HEAD_HOST:$$SERVER_RAY_PORT" && \
+	echo "Starting Ray worker natively connecting to HEAD_HOST_IP:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
+
+make connect-ray-worker:  ## Connect to Ray worker via SSH
+	@direnv allow && \
+	echo "Connecting to Ray worker via SSH..." && \
+	./scripts/connect-ray-worker.sh
 
 start: ## Start all servers
 	@echo "Starting all servers..."
-	@bash ./scripts/run-servers.sh
+	@bash ./scripts/start-servers.sh
 
 build: ## Build Docker images
 	@echo "Building Docker images..."
