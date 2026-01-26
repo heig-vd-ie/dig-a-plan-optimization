@@ -1,10 +1,20 @@
 {
-    "grid": { "pp_file": "examples/ieee_33/simple_grid.p", "s_base": 1000000 },
-    "short_term_uncertainty": {
+    "grid": {
+        "name": "default",
+        "pp_file": "examples/ieee_33/simple_grid.p",
+        "s_base": 1000000,
+        "cosφ": 0.95,
+        "egid_id_mapping_file": "examples/ieee_33/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0
+    },
+    "profiles": {
+        "v_bounds": [ -0.03, 0.03 ],
         "n_scenarios": 10,
-        "p_bounds": [ -0.2, 0.2 ],
-        "q_bounds": [ -0.2, 0.2 ],
-        "v_bounds": [ -0.03, 0.03 ]
+        "load_profiles": [ "examples/ieee_33/load_profiles" ],
+        "pv_profile": "examples/ieee_33/pv_profiles",
+        "target_year": 2025,
+        "quarter": 1,
+        "scenario_name": "Basic"
     },
     "admm_config": {
         "iterations": 5,

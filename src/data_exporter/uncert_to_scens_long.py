@@ -34,20 +34,24 @@ class ScenarioPotentials:
 
     def map_to_potential_dict(self, df: pl.DataFrame) -> dict[int, float]:
         self.net.load["index"] = self.net.load.index
+        df_temp = df.join(self.egid_id_mapping, on="egid", how="full").select(
+            "egid", "capacity", "index"
+        )
+        all_nodes = self.net.bus.index.to_list()
         df_temp = (
-            (
-                df.join(self.egid_id_mapping, on="egid", how="full").join(
-                    pl.from_pandas(self.net.load),
-                    on="index",
-                    how="full",
-                )
+            df_temp.join(
+                pl.from_pandas(self.net.load),
+                on="index",
+                how="full",
             )
             .drop_nulls("bus")
             .select("bus", "capacity")
             .group_by("bus")
             .sum()
         )
-        return pl_to_dict(df_temp.select("bus", "capacity"))
+        cap_dict = pl_to_dict(df_temp.select("bus", "capacity"))
+        cap_dict_full = {node: cap_dict.get(node, 0.0) for node in all_nodes}
+        return cap_dict_full
 
     def compute_potential(self, profile_path: str):
         profile_path_typed = Path(profile_path)

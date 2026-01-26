@@ -11,7 +11,7 @@ if __name__ == "__main__":
         ## TO DEBUG LOCALLY WITHOUT API CALL ##
         from api.expansion import run_expansion
 
-        results = run_expansion(request)
+        results = run_expansion(request, with_ray=False)
         ######################################
     else:
         response = requests.patch(
