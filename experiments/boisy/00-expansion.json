@@ -17,7 +17,7 @@
     "admm_config": {
         "iterations": 5,
         "solver_non_convex": 2,
-        "time_limit": 1,
+        "time_limit": 10,
         "groups": 30,
         "big_m": 1000,
         "ε": 0.0001,
