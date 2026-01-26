@@ -33,7 +33,7 @@
     },
     "sddp_config": {
         "iterations": 100,
-        "n_simulations": 5000,
+        "n_simulations": 500,
         "n_optimizations": 10,
         "n_stages": 5,
         "n_scenarios": 100,
