@@ -6,6 +6,7 @@ from typing import Tuple
 from data_exporter.pp_to_dap import (
     pp_to_dap,
 )
+from data_exporter.uncert_to_scens_long import generate_scenario_potentials
 from data_exporter.uncert_to_scens_prof import (
     generate_profile_based_load_scenarios,
 )
@@ -114,11 +115,8 @@ def get_grid_case_for_expansion(
         profiles=profiles,
     )
 
-    load_potential = {
-        node: 5.0 for node in node_edge_model.node_data["node_id"].to_list()
-    }
-    pv_potential = {
-        node: 1.0 for node in node_edge_model.node_data["node_id"].to_list()
-    }
+    load_potential, pv_potential = generate_scenario_potentials(
+        grid=grid, profiles=profiles
+    )
 
     return net, node_edge_model, load_potential, pv_potential
