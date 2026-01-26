@@ -10,15 +10,15 @@
     "profiles": {
         "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],
         "pv_profile": ".cache/input/boisy/pv_profiles",
-        "target_year": 2030,
+        "target_year": 2025,
         "quarter": 1,
         "scenario_name": "Basic"
     },
     "admm_config": {
         "iterations": 5,
-        "solver_non_convex": true,
+        "solver_non_convex": 2,
         "time_limit": 1,
-        "groups": 10,
+        "groups": 30,
         "big_m": 1000,
         "ε": 0.0001,
         "ρ": 2,

@@ -10,15 +10,15 @@
     "profiles": {
         "load_profiles": [ ".cache/input/estavayer/load_profiles/centre_ville" ],
         "pv_profile": ".cache/input/estavayer/pv_profiles",
-        "target_year": 2030,
+        "target_year": 2025,
         "quarter": 1,
         "scenario_name": "Basic"
     },
     "admm_config": {
         "iterations": 5,
-        "solver_non_convex": true,
-        "time_limit": 1,
-        "groups": 10,
+        "solver_non_convex": 2,
+        "time_limit": 10,
+        "groups": 30,
         "big_m": 1000,
         "ε": 0.0001,
         "ρ": 2,
