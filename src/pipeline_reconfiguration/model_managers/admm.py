@@ -78,7 +78,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
         self.zζ = {(tr, tap): 1.0 for tr, tap in self.tr_taps}
         self.λζ = {(ω, tr, tap): 0.0 for ω in self.Ω for tr, tap in self.tr_taps}
 
-        δ_map_lin, ζ_map_lin = self.__solve_model(self.admm_linear_model_instance)
+        δ_map, ζ_map = self.__solve_model(self.admm_linear_model_instance)
 
         self.time_list.append(time.process_time())
         # ADMM iterations
@@ -96,8 +96,8 @@ class PipelineModelManagerADMM(PipelineModelManager):
                 ω: ζ_map for ω in self.Ω
             }
             δ_by_sc, ζ_by_sc, δ_map, ζ_map = self.solve_admm_inner_loop(
-                δ_map=δ_map_lin,
-                ζ_map=ζ_map_lin,
+                δ_map=δ_map,
+                ζ_map=ζ_map,
                 δ_by_sc=δ_by_sc,
                 ζ_by_sc=ζ_by_sc,
                 zδ_old=zδ_old,
@@ -272,7 +272,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
             for s in self.switch_list:
-                rows.append((ω, s, float(δ_map[s])))
+                try:
+                    rows.append((ω, s, float(δ_map[s])))
+                except:
+                    log.error(f"None value in δ_map[{s}]")
         self.δ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "S", "δ_variable"],
@@ -286,7 +289,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             ζ_map = m.ζ.extract_values()  # type: ignore
             for tr, tap in self.zζ.keys():
-                rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+                try:
+                    rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+                except:
+                    log.error(f"None value in ζ_map[{tr}, {tap}]")
         self.ζ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "TR", "TAP", "ζ_variable"],
