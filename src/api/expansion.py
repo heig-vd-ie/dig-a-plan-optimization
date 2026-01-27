@@ -41,6 +41,7 @@ def run_expansion(
         sddp_config=requests.sddp_config,
         bender_cuts=bender_cuts,
         load_potential=load_potential,
+        each_task_memory=requests.each_task_memory,
         pv_potential=pv_potential,
         cache_dir=Path(settings.cache.outputs_expansion),
         time_now=time_now,

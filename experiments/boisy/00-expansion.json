@@ -15,7 +15,7 @@
         "scenario_name": "Basic"
     },
     "admm_config": {
-        "iterations": 5,
+        "max_iters": 1,
         "solver_non_convex": 2,
         "time_limit": 10,
         "groups": 30,
@@ -49,5 +49,6 @@
         "δ_b_var": 100000
     },
     "iterations": 5,
+    "each_task_memory": 5000000000,
     "seed": 42
 }

@@ -33,11 +33,13 @@ class ExpansionTestBase:
         self.pv_potential = {
             node: 1.0 for node in self.grid_data.node_data["node_id"].to_list()
         }
+        self.each_task_memory = 1e8
 
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
             load_potential=self.load_potential,
             pv_potential=self.pv_potential,
+            each_task_memory=self.each_task_memory,
             admm_config=ADMMConfig(),
             sddp_config=SDDPConfig(
                 n_stages=3,

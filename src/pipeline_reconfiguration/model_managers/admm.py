@@ -133,6 +133,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             for m in self.admm_model_instances.values():
                 getattr(m, "ρ").set_value(self.konfig.ρ)
 
+        print("admm is finished.")
         # Refresh δ table after final iterate
         self.__get_δ_map()
         self.__get_ζ_map()

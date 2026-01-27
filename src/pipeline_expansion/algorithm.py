@@ -31,7 +31,6 @@ from data_model.sddp import (
     Simulation,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
-from konfig import settings
 
 
 class ExpansionAlgorithm:
@@ -45,6 +44,7 @@ class ExpansionAlgorithm:
         pv_potential: Dict[int, float],
         time_now: str,
         cache_dir: Path,
+        each_task_memory: float,
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
@@ -62,6 +62,7 @@ class ExpansionAlgorithm:
         self.seed_number = seed_number
         self.with_ray = with_ray
         self.s_base = s_base
+        self.each_task_memory = each_task_memory
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -210,7 +211,7 @@ class ExpansionAlgorithm:
         if self.with_ray:
             init_ray()
             check_ray(self.with_ray)
-            heavy_task_remote = ray.remote(memory=settings.EACH_TASK_MEMORY)(heavy_task)
+            heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
