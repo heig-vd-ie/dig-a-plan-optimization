@@ -267,7 +267,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
             for s in self.switch_list:
-                rows.append((ω, s, float(δ_map[s])))
+                rows.append((ω, s, float(δ_map[s] if δ_map[s] else 0)))
         self.δ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "S", "δ_variable"],
@@ -281,7 +281,9 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             ζ_map = m.ζ.extract_values()  # type: ignore
             for tr, tap in self.zζ.keys():
-                rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+                rows.append(
+                    (ω, tr, tap, float(ζ_map[(tr, tap)] if ζ_map[(tr, tap)] else 0))
+                )
         self.ζ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "TR", "TAP", "ζ_variable"],
