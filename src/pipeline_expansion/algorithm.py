@@ -232,27 +232,29 @@ class ExpansionAlgorithm:
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
-            future_results = {
-                (ω, stage): ray.get(futures[self._cut_number(ι, stage, ω)])
-                for stage in self._range(self.n_stages)
-                for ω in self._range(self.sddp_config.n_optimizations)
-            }
-            for (ω, stage), result in future_results.items():
-                print(result)
-                print(f"ADMM Result (ω={ω}, stage={stage}): {result.admm_results}")
-                print(f"Bender Cut (ω={ω}, stage={stage}): {result.bender_cut}")
-            bender_cuts = BenderCuts(
-                cuts={
-                    self._cut_number(ι, stage, ω): future_results[(ω, stage)].bender_cut
-                    for stage in self._range(self.n_stages)
-                    for ω in self._range(self.sddp_config.n_optimizations)
-                }
-            )
-            admm_results = {
-                self._cut_number(ι, stage, ω): future_results[(ω, stage)].admm_results
-                for stage in self._range(self.n_stages)
-                for ω in self._range(self.sddp_config.n_optimizations)
-            }
+            future_results = {}
+            for stage in self._range(self.n_stages):
+                for ω in self._range(self.sddp_config.n_optimizations):
+                    try:
+                        future_results[(ω, stage)] = ray.get(
+                            futures[self._cut_number(ι, stage, ω)]
+                        )
+                    except:
+                        print(f"ERROR in [{ω}, {stage}]!!!")
+            cuts = {}
+            admm_results = {}
+            for stage in self._range(self.n_stages):
+                for ω in self._range(self.sddp_config.n_optimizations):
+                    try:
+                        cuts[self._cut_number(ι, stage, ω)] = future_results[
+                            (ω, stage)
+                        ].bender_cut
+                        admm_results[self._cut_number(ι, stage, ω)] = future_results[
+                            (ω, stage)
+                        ].admm_results
+                    except:
+                        print(f"ERROR in retrieving data for [{ω}, {stage}]!!!")
+            bender_cuts = BenderCuts(cuts=cuts)
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
@@ -263,28 +265,34 @@ class ExpansionAlgorithm:
                 ):
                     rand_ω = random.randint(0, self.sddp_config.n_optimizations - 1)
                     sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
-                    heavy_task_output = heavy_task(
-                        sddp_simulation=sddp_simulation,
-                        admm=admm,
-                        node_ids=self.node_ids,
-                        edge_ids=self.edge_ids,
-                        fixed_switches=fixed_switches,
-                    )
-                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
-                        heavy_task_output.bender_cut
-                    )
-                    admm_results[self._cut_number(ι, stage, ω)] = (
-                        heavy_task_output.admm_results
-                    )
+                    try:
+                        heavy_task_output = heavy_task(
+                            sddp_simulation=sddp_simulation,
+                            admm=admm,
+                            node_ids=self.node_ids,
+                            edge_ids=self.edge_ids,
+                            fixed_switches=fixed_switches,
+                        )
+                        bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
+                            heavy_task_output.bender_cut
+                        )
+                        admm_results[self._cut_number(ι, stage, ω)] = (
+                            heavy_task_output.admm_results
+                        )
+                    except:
+                        print(f"ERROR in [{ω}, {stage}] without ray!!!")
 
         for stage in self._range(self.n_stages):
             for ω in self._range(self.sddp_config.n_optimizations):
-                save_obj_to_json(
-                    obj=admm_results[self._cut_number(ι, stage, ω)],
-                    path_filename=self.cache_dir_run
-                    / "admm"
-                    / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
-                )
+                try:
+                    save_obj_to_json(
+                        obj=admm_results[self._cut_number(ι, stage, ω)],
+                        path_filename=self.cache_dir_run
+                        / "admm"
+                        / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
+                    )
+                except:
+                    print(f"ERROR in writing [{ω}, {stage}]!!!")
 
         return bender_cuts
 
@@ -396,4 +404,7 @@ def heavy_task(
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
-    return HeavyTaskOutput(bender_cut=bender_cut, admm_results=admm_results.results)
+    result_heavy_task = HeavyTaskOutput(
+        bender_cut=bender_cut, admm_results=admm_results.results
+    )
+    return result_heavy_task
