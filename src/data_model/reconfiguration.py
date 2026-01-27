@@ -69,6 +69,7 @@ class ADMMConfig(PipelineConfig):
     ε_primal: float = 1e-3
     ε_dual: float = 1e-3
     κ: float = 0.1
+    fixed_switches: bool = False
 
 
 class ReconfigurationOutput(BaseModel):

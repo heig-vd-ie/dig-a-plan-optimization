@@ -42,6 +42,7 @@ def run_expansion(
         bender_cuts=bender_cuts,
         load_potential=load_potential,
         each_task_memory=requests.each_task_memory,
+        fixed_switches=requests.admm_config.fixed_switches,
         pv_potential=pv_potential,
         cache_dir=Path(settings.cache.outputs_expansion),
         time_now=time_now,

@@ -136,11 +136,11 @@ class ADMM:
 
         return results
 
-    def solve(self) -> ADMMResult:
+    def solve(self, fixed_switches: bool = False) -> ADMMResult:
         """Solve the optimization problem using ADMM."""
         self.dap = DigAPlanADMM(konfig=self.konfig)
         self.dap.add_grid_data(grid_data=self.grid_data)
-        self.dap.solve_model(extract_duals=True)
+        self.dap.solve_model(extract_duals=True, fixed_switches=fixed_switches)
         duals = self.dap.result_manager.extract_duals_for_expansion()
         θs = self.dap.result_manager.extract_reconfiguration_θ()
         load0 = self.dap.data_manager.node_data[["node_id", "cons_installed"]]

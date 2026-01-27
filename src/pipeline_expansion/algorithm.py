@@ -45,6 +45,7 @@ class ExpansionAlgorithm:
         time_now: str,
         cache_dir: Path,
         each_task_memory: float,
+        fixed_switches: bool = False,
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
@@ -63,6 +64,7 @@ class ExpansionAlgorithm:
         self.with_ray = with_ray
         self.s_base = s_base
         self.each_task_memory = each_task_memory
+        self.fixed_switches = fixed_switches
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -204,7 +206,9 @@ class ExpansionAlgorithm:
         """Run the SDDP algorithm with the given expansion request."""
         return run_sddp(self.expansion_request, self.cache_dir_run)
 
-    def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
+    def run_admm(
+        self, sddp_response: ExpansionResponse, ι: int, fixed_switches: bool
+    ) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(grid_data=self.grid_data, konfig=self.admm_config)
         (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
@@ -223,6 +227,7 @@ class ExpansionAlgorithm:
                     admm_ref,
                     node_ids_ref,
                     edge_ids_ref,
+                    fixed_switches,
                 )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
@@ -263,6 +268,7 @@ class ExpansionAlgorithm:
                         admm=admm,
                         node_ids=self.node_ids,
                         edge_ids=self.edge_ids,
+                        fixed_switches=fixed_switches,
                     )
                     bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
                         heavy_task_output.bender_cut
@@ -292,7 +298,9 @@ class ExpansionAlgorithm:
         ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
-            admm_response = self.run_admm(sddp_response=sddp_response, ι=ι)
+            admm_response = self.run_admm(
+                sddp_response=sddp_response, ι=ι, fixed_switches=self.fixed_switches
+            )
             self.record_update_cache(
                 sddp_response=sddp_response, admm_response=admm_response, ι=ι
             )
@@ -372,6 +380,7 @@ def heavy_task(
     admm: ADMM,
     node_ids: List[int],
     edge_ids: List[int],
+    fixed_switches: bool,
 ) -> HeavyTaskOutput:
     import os
 
@@ -383,7 +392,7 @@ def heavy_task(
         δ_cap=sddp_simulation.δ_cap,
         edge_ids=edge_ids,
     )
-    admm_results = admm.solve()
+    admm_results = admm.solve(fixed_switches=fixed_switches)
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
