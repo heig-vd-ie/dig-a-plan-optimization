@@ -31,6 +31,9 @@ import click
     """,
 )
 @click.option("--riskmeasureparam", type=int, help="Risk measure parameter", default=-1)
+@click.option(
+    "--cachename", type=str, help="Name of folder in cache directory", default="-n"
+)
 def expansion_planning_script(
     kace: str,
     withapi: bool,
@@ -38,6 +41,7 @@ def expansion_planning_script(
     admmiter: int,
     riskmeasuretype: str,
     riskmeasureparam: int,
+    cachename: str,
 ):
     # KACE
     match kace:
@@ -78,12 +82,18 @@ def expansion_planning_script(
         from api.expansion import run_expansion
 
         request = ExpansionInput.model_validate(payload)
-        results = run_expansion(request, with_ray=False)
+        results = run_expansion(
+            request, with_ray=False, time_now=None if cachename == "-n" else cachename
+        )
         print(results)
         ######################################
     else:
         response = requests.patch(
-            f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray=true",
+            (
+                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray=true" + ""
+                if cachename == "-n"
+                else cachename
+            ),
             json=payload,
         )
         print("Response status code:", response.status_code)

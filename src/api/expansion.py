@@ -15,9 +15,13 @@ def get_session_name() -> str:
 
 
 def run_expansion(
-    requests: ExpansionInput, with_ray: bool, cut_file: None | str = None
+    requests: ExpansionInput,
+    with_ray: bool,
+    cut_file: None | str = None,
+    time_now: str | None = None,
 ) -> ExpansionOutput:
-    time_now = get_session_name()
+    if not time_now:
+        time_now = get_session_name()
     (Path(settings.cache.outputs_expansion) / time_now).mkdir(
         parents=True, exist_ok=True
     )

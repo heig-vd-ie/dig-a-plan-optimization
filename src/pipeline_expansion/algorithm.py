@@ -22,6 +22,7 @@ from data_model.sddp import (
     BenderCut,
     BenderCuts,
     Cut,
+    HeavyTaskConfig,
     Node,
     ExpansionRequest,
     LongTermScenarioRequest,
@@ -220,7 +221,9 @@ class ExpansionAlgorithm:
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
-                self._cut_number(ι, stage, ω): heavy_task_remote.remote(
+                _cut_number(
+                    ι, stage, ω, self.sddp_config.n_optimizations, self.n_stages
+                ): heavy_task_remote.remote(
                     sddp_response.simulations[
                         random.randint(0, self.sddp_config.n_optimizations - 1)
                     ][stage - 1],
@@ -228,6 +231,14 @@ class ExpansionAlgorithm:
                     node_ids_ref,
                     edge_ids_ref,
                     fixed_switches,
+                    HeavyTaskConfig(
+                        ι=ι,
+                        stage=stage,
+                        ω=ω,
+                        n_optimizations=self.sddp_config.n_optimizations,
+                        n_stages=self.n_stages,
+                        cache_dir_run=str(self.cache_dir_run),
+                    ),
                 )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
@@ -237,7 +248,15 @@ class ExpansionAlgorithm:
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         future_results[(ω, stage)] = ray.get(
-                            futures[self._cut_number(ι, stage, ω)]
+                            futures[
+                                _cut_number(
+                                    ι,
+                                    stage,
+                                    ω,
+                                    self.sddp_config.n_optimizations,
+                                    self.n_stages,
+                                )
+                            ]
                         )
                     except:
                         print(f"ERROR in [{ω}, {stage}]!!!")
@@ -246,12 +265,24 @@ class ExpansionAlgorithm:
             for stage in self._range(self.n_stages):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
-                        cuts[self._cut_number(ι, stage, ω)] = future_results[
-                            (ω, stage)
-                        ].bender_cut
-                        admm_results[self._cut_number(ι, stage, ω)] = future_results[
-                            (ω, stage)
-                        ].admm_results
+                        cuts[
+                            _cut_number(
+                                ι,
+                                stage,
+                                ω,
+                                self.sddp_config.n_optimizations,
+                                self.n_stages,
+                            )
+                        ] = future_results[(ω, stage)].bender_cut
+                        admm_results[
+                            _cut_number(
+                                ι,
+                                stage,
+                                ω,
+                                self.sddp_config.n_optimizations,
+                                self.n_stages,
+                            )
+                        ] = future_results[(ω, stage)].admm_results
                     except:
                         print(f"ERROR in retrieving data for [{ω}, {stage}]!!!")
             bender_cuts = BenderCuts(cuts=cuts)
@@ -272,33 +303,27 @@ class ExpansionAlgorithm:
                             node_ids=self.node_ids,
                             edge_ids=self.edge_ids,
                             fixed_switches=fixed_switches,
+                            heavy_task_config=HeavyTaskConfig(
+                                ι=ι,
+                                stage=stage,
+                                ω=ω,
+                                n_optimizations=self.sddp_config.n_optimizations,
+                                n_stages=self.n_stages,
+                                cache_dir_run=str(self.cache_dir_run),
+                            ),
                         )
-                        bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
-                            heavy_task_output.bender_cut
-                        )
-                        admm_results[self._cut_number(ι, stage, ω)] = (
-                            heavy_task_output.admm_results
-                        )
+                        bender_cuts.cuts[
+                            _cut_number(
+                                ι,
+                                stage,
+                                ω,
+                                self.sddp_config.n_optimizations,
+                                self.n_stages,
+                            )
+                        ] = heavy_task_output.bender_cut
                     except:
                         print(f"ERROR in [{ω}, {stage}] without ray!!!")
-
-        for stage in self._range(self.n_stages):
-            for ω in self._range(self.sddp_config.n_optimizations):
-                try:
-                    save_obj_to_json(
-                        obj=admm_results[self._cut_number(ι, stage, ω)],
-                        path_filename=self.cache_dir_run
-                        / "admm"
-                        / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
-                    )
-                except:
-                    print(f"ERROR in writing [{ω}, {stage}]!!!")
-
         return bender_cuts
-
-    def _cut_number(self, ι: int, stage: int, ω: int) -> str:
-        """Generate a cut number based on the iteration, stage, and scenario."""
-        return f"{(ι - 1) * self.sddp_config.n_optimizations * self.n_stages + (stage - 1) * self.sddp_config.n_optimizations + ω}"
 
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
@@ -380,7 +405,6 @@ class HeavyTaskOutput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     bender_cut: BenderCut
-    admm_results: Dict
 
 
 def heavy_task(
@@ -389,9 +413,18 @@ def heavy_task(
     node_ids: List[int],
     edge_ids: List[int],
     fixed_switches: bool,
+    heavy_task_config: HeavyTaskConfig,
 ) -> HeavyTaskOutput:
     import os
 
+    ι, stage, ω, n_optimizations, n_stages, cache_dir_run = (
+        heavy_task_config.ι,
+        heavy_task_config.stage,
+        heavy_task_config.ω,
+        heavy_task_config.n_optimizations,
+        heavy_task_config.n_stages,
+        heavy_task_config.cache_dir_run,
+    )
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
     admm.update_grid_data(
         δ_load=sddp_simulation.δ_load,
@@ -404,7 +437,24 @@ def heavy_task(
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
-    result_heavy_task = HeavyTaskOutput(
-        bender_cut=bender_cut, admm_results=admm_results.results
-    )
+    try:
+        save_obj_to_json(
+            obj=admm_results.results[
+                _cut_number(ι, stage, ω, n_optimizations, n_stages)
+            ],
+            path_filename=Path(cache_dir_run)
+            / "admm"
+            / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
+        )
+    except:
+        print(
+            f"admm_result_iter{ι}_stage{stage}_scen{ω}.json cannot be written in desired location {cache_dir_run}"
+        )
+
+    result_heavy_task = HeavyTaskOutput(bender_cut=bender_cut)
     return result_heavy_task
+
+
+def _cut_number(ι: int, stage: int, ω: int, n_optimizations: int, n_stages: int) -> str:
+    """Generate a cut number based on the iteration, stage, and scenario."""
+    return f"{(ι - 1) * n_optimizations * n_stages + (stage - 1) * n_optimizations + ω}"

@@ -151,3 +151,12 @@ class ExpansionResponse(BaseModel):
     simulations: List[List[Simulation]]
     out_of_sample_simulations: List[List[Simulation]]
     out_of_sample_objectives: List[float]
+
+
+class HeavyTaskConfig(BaseModel):
+    cache_dir_run: str
+    ι: int
+    stage: int
+    ω: int
+    n_optimizations: int
+    n_stages: int
