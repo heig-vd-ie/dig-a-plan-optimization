@@ -60,7 +60,7 @@ class ExpansionAlgorithm:
         self.grid_data = grid_data
         self.admm_config = admm_config
         self.sddp_config = sddp_config
-        self.cache_dir = PROJECT_ROOT / cache_dir
+        self.cache_dir = cache_dir
         self.iterations = iterations
         self.just_test = just_test
         self.seed_number = seed_number
@@ -425,7 +425,8 @@ def heavy_task(
     print("_________________________________________")
     save_obj_to_json(
         obj=admm_results.results,
-        path_filename=Path(cache_dir_run)
+        path_filename=PROJECT_ROOT
+        / cache_dir_run
         / "admm"
         / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
     )
