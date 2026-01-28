@@ -118,6 +118,8 @@ Or use the helper comment:
     make run-ray-worker
 ```
 
+For full setup details (Tailscale, SSH keys, troubleshooting), see [here](docs/ops/ray-worker.md) 
+
 ## Development
 
 1. Code formatting is handled automatically with `black`. Please install the **Black** extension in VS Code and enable **format on save** for consistent formatting.
@@ -160,17 +162,3 @@ poetry update
 ```
 
 
-
-
-### Add local network
-On linux:
-```sh
-# Add Tailscale repo
-curl -fsSL https://tailscale.com/install.sh | sh
-# Start Tailscale
-sudo tailscale up
-```
-
-```sh
-tailscale ip
-```
