@@ -31,7 +31,7 @@ import click
     """,
 )
 @click.option("--riskmeasureparam", type=int, help="Risk measure parameter", default=-1)
-def expansion_planning(
+def expansion_planning_script(
     kace: str,
     withapi: bool,
     fixedswitches: bool,
@@ -91,4 +91,4 @@ def expansion_planning(
 
 
 if __name__ == "__main__":
-    expansion_planning()
+    expansion_planning_script()
