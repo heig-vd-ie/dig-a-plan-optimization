@@ -51,6 +51,9 @@ class ExpansionInput(BaseModel):
     )
     admm_config: ADMMConfig = Field(description="ADMM configuration")
     sddp_config: SDDPConfig = Field(description="SDDP configuration")
+    each_task_memory: float = Field(
+        default=1e8, description="Memory required for running the admm"
+    )
     iterations: int = Field(default=10, description="Pipeline iteration numbers")
     seed: int = Field(default=42, description="Random seed")
 

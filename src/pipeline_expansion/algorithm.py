@@ -22,6 +22,7 @@ from data_model.sddp import (
     BenderCut,
     BenderCuts,
     Cut,
+    HeavyTaskConfig,
     Node,
     ExpansionRequest,
     LongTermScenarioRequest,
@@ -31,7 +32,7 @@ from data_model.sddp import (
     Simulation,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
-from konfig import settings
+from konfig import PROJECT_ROOT
 
 
 class ExpansionAlgorithm:
@@ -41,8 +42,12 @@ class ExpansionAlgorithm:
         grid_data: NodeEdgeModel,
         admm_config: ADMMConfig,
         sddp_config: SDDPConfig,
+        load_potential: Dict[int, float],
+        pv_potential: Dict[int, float],
         time_now: str,
         cache_dir: Path,
+        each_task_memory: float,
+        fixed_switches: bool = False,
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
@@ -51,6 +56,7 @@ class ExpansionAlgorithm:
         s_base: float = 1e6,
         with_ray: bool = False,
     ):
+
         self.grid_data = grid_data
         self.admm_config = admm_config
         self.sddp_config = sddp_config
@@ -60,6 +66,8 @@ class ExpansionAlgorithm:
         self.seed_number = seed_number
         self.with_ray = with_ray
         self.s_base = s_base
+        self.each_task_memory = each_task_memory
+        self.fixed_switches = fixed_switches
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -71,11 +79,15 @@ class ExpansionAlgorithm:
         ]
         self.scenario_data = self.create_scenario_data(
             nodes=nodes,
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number,
         )
         self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number + 1000,
         )
@@ -101,6 +113,8 @@ class ExpansionAlgorithm:
     def create_scenario_data(
         self,
         nodes: List[Node],
+        load_potential: dict[int, float],
+        pv_potential: dict[int, float],
         n_stages=3,
         seed_number=1000,
     ):
@@ -109,10 +123,8 @@ class ExpansionAlgorithm:
             n_scenarios=self.sddp_config.n_scenarios,
             n_stages=n_stages,
             nodes=nodes,
-            # TODO: make configurable based on variation of profile
-            load_potential={node.id: 5.0 for node in nodes},
-            pv_potential={node.id: 1.0 for node in nodes},
-            ########################################################
+            load_potential=load_potential,
+            pv_potential=pv_potential,
             yearly_budget=self.sddp_config.δ_b_var,
             N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,
@@ -197,87 +209,108 @@ class ExpansionAlgorithm:
         """Run the SDDP algorithm with the given expansion request."""
         return run_sddp(self.expansion_request, self.cache_dir_run)
 
-    def run_admm(self, sddp_response: ExpansionResponse, ι: int) -> BenderCuts:
+    def run_admm(
+        self, sddp_response: ExpansionResponse, ι: int, fixed_switches: bool
+    ) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(grid_data=self.grid_data, konfig=self.admm_config)
         (self.cache_dir_run / "admm").mkdir(parents=True, exist_ok=True)
         if self.with_ray:
             init_ray()
             check_ray(self.with_ray)
-            heavy_task_remote = ray.remote(memory=settings.EACH_TASK_MEMORY)(heavy_task)
+            heavy_task_remote = ray.remote(memory=self.each_task_memory)(heavy_task)
             admm_ref = ray.put(admm)
             node_ids_ref = ray.put(self.node_ids)
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
-                self._cut_number(ι, stage, ω): heavy_task_remote.remote(
+                _cut_number(
+                    ι, stage, ω, self.sddp_config.n_optimizations, self.n_stages
+                ): heavy_task_remote.remote(
                     sddp_response.simulations[
                         random.randint(0, self.sddp_config.n_optimizations - 1)
                     ][stage - 1],
                     admm_ref,
                     node_ids_ref,
                     edge_ids_ref,
+                    fixed_switches,
+                    HeavyTaskConfig(
+                        ι=ι,
+                        stage=stage,
+                        ω=ω,
+                        cache_dir_run=str(self.cache_dir_run),
+                    ),
                 )
                 for stage in self._range(self.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
-            future_results = {
-                (ω, stage): ray.get(futures[self._cut_number(ι, stage, ω)])
-                for stage in self._range(self.n_stages)
-                for ω in self._range(self.sddp_config.n_optimizations)
-            }
-            for (ω, stage), result in future_results.items():
-                print(result)
-                print(f"ADMM Result (ω={ω}, stage={stage}): {result.admm_results}")
-                print(f"Bender Cut (ω={ω}, stage={stage}): {result.bender_cut}")
-            bender_cuts = BenderCuts(
-                cuts={
-                    self._cut_number(ι, stage, ω): future_results[(ω, stage)].bender_cut
-                    for stage in self._range(self.n_stages)
-                    for ω in self._range(self.sddp_config.n_optimizations)
-                }
-            )
-            admm_results = {
-                self._cut_number(ι, stage, ω): future_results[(ω, stage)].admm_results
-                for stage in self._range(self.n_stages)
-                for ω in self._range(self.sddp_config.n_optimizations)
-            }
+            future_results = {}
+            for stage in self._range(self.n_stages):
+                for ω in self._range(self.sddp_config.n_optimizations):
+                    try:
+                        future_results[(ω, stage)] = ray.get(
+                            futures[
+                                _cut_number(
+                                    ι,
+                                    stage,
+                                    ω,
+                                    self.sddp_config.n_optimizations,
+                                    self.n_stages,
+                                )
+                            ]
+                        )
+                    except:
+                        print(f"ERROR in [{ω}, {stage}]!!!")
+            cuts = {}
+            for stage in self._range(self.n_stages):
+                for ω in self._range(self.sddp_config.n_optimizations):
+                    try:
+                        cuts[
+                            _cut_number(
+                                ι,
+                                stage,
+                                ω,
+                                self.sddp_config.n_optimizations,
+                                self.n_stages,
+                            )
+                        ] = future_results[(ω, stage)].bender_cut
+                    except:
+                        print(f"ERROR in retrieving data for [{ω}, {stage}]!!!")
+            bender_cuts = BenderCuts(cuts=cuts)
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
-            admm_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
                 ):
                     rand_ω = random.randint(0, self.sddp_config.n_optimizations - 1)
                     sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
-                    heavy_task_output = heavy_task(
-                        sddp_simulation=sddp_simulation,
-                        admm=admm,
-                        node_ids=self.node_ids,
-                        edge_ids=self.edge_ids,
-                    )
-                    bender_cuts.cuts[self._cut_number(ι, stage, ω)] = (
-                        heavy_task_output.bender_cut
-                    )
-                    admm_results[self._cut_number(ι, stage, ω)] = (
-                        heavy_task_output.admm_results
-                    )
-
-        for stage in self._range(self.n_stages):
-            for ω in self._range(self.sddp_config.n_optimizations):
-                save_obj_to_json(
-                    obj=admm_results[self._cut_number(ι, stage, ω)],
-                    path_filename=self.cache_dir_run
-                    / "admm"
-                    / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
-                )
-
+                    try:
+                        heavy_task_output = heavy_task(
+                            sddp_simulation=sddp_simulation,
+                            admm=admm,
+                            node_ids=self.node_ids,
+                            edge_ids=self.edge_ids,
+                            fixed_switches=fixed_switches,
+                            heavy_task_config=HeavyTaskConfig(
+                                ι=ι,
+                                stage=stage,
+                                ω=ω,
+                                cache_dir_run=str(self.cache_dir_run),
+                            ),
+                        )
+                        bender_cuts.cuts[
+                            _cut_number(
+                                ι,
+                                stage,
+                                ω,
+                                self.sddp_config.n_optimizations,
+                                self.n_stages,
+                            )
+                        ] = heavy_task_output.bender_cut
+                    except:
+                        print(f"ERROR in [{ω}, {stage}] without ray!!!")
         return bender_cuts
-
-    def _cut_number(self, ι: int, stage: int, ω: int) -> str:
-        """Generate a cut number based on the iteration, stage, and scenario."""
-        return f"{(ι - 1) * self.sddp_config.n_optimizations * self.n_stages + (stage - 1) * self.sddp_config.n_optimizations + ω}"
 
     def run_pipeline(self) -> ExpansionResponse:
         """Run the entire expansion pipeline."""
@@ -285,7 +318,9 @@ class ExpansionAlgorithm:
         ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
-            admm_response = self.run_admm(sddp_response=sddp_response, ι=ι)
+            admm_response = self.run_admm(
+                sddp_response=sddp_response, ι=ι, fixed_switches=self.fixed_switches
+            )
             self.record_update_cache(
                 sddp_response=sddp_response, admm_response=admm_response, ι=ι
             )
@@ -357,7 +392,6 @@ class HeavyTaskOutput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     bender_cut: BenderCut
-    admm_results: Dict
 
 
 def heavy_task(
@@ -365,9 +399,17 @@ def heavy_task(
     admm: ADMM,
     node_ids: List[int],
     edge_ids: List[int],
+    fixed_switches: bool,
+    heavy_task_config: HeavyTaskConfig,
 ) -> HeavyTaskOutput:
     import os
 
+    ι, stage, ω, cache_dir_run = (
+        heavy_task_config.ι,
+        heavy_task_config.stage,
+        heavy_task_config.ω,
+        heavy_task_config.cache_dir_run,
+    )
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
     admm.update_grid_data(
         δ_load=sddp_simulation.δ_load,
@@ -376,8 +418,27 @@ def heavy_task(
         δ_cap=sddp_simulation.δ_cap,
         edge_ids=edge_ids,
     )
-    admm_results = admm.solve()
+    admm_results = admm.solve(fixed_switches=fixed_switches)
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
-    return HeavyTaskOutput(bender_cut=bender_cut, admm_results=admm_results.results)
+    print("_________________________________________")
+    save_obj_to_json(
+        obj=admm_results.results,
+        path_filename=PROJECT_ROOT
+        / cache_dir_run
+        / "admm"
+        / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
+    )
+    print(
+        f"admm_result_iter{ι}_stage{stage}_scen{ω}.json is written in desired location {cache_dir_run}"
+    )
+    print("_________________________________________")
+
+    result_heavy_task = HeavyTaskOutput(bender_cut=bender_cut)
+    return result_heavy_task
+
+
+def _cut_number(ι: int, stage: int, ω: int, n_optimizations: int, n_stages: int) -> str:
+    """Generate a cut number based on the iteration, stage, and scenario."""
+    return f"{(ι - 1) * n_optimizations * n_stages + (stage - 1) * n_optimizations + ω}"

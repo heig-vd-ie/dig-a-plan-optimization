@@ -57,12 +57,20 @@ function stochastic_planning(
         model_builder(m, grid, stage, scenarios, params)
     end
 
+    print("Training started.")
+
     SDDP.train(model, risk_measure = risk_measure, iteration_limit = iteration_limit)
+
+    println("Training has been completed.")
 
     in_sample_simulations, in_sample_objectives = in_sample_analysis(model, n_simulations, seed)
 
+    println("In sample simulations generated.")
+
     out_of_sample_simulations, out_of_sample_objectives =
         out_of_sample_analysis(model, out_of_sample_scenarios, n_simulations, seed)
+
+    println("Out sample simulations generated.")
 
     return in_sample_simulations,
     in_sample_objectives,

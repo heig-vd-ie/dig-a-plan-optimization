@@ -133,6 +133,7 @@ class PipelineModelManagerADMM(PipelineModelManager):
             for m in self.admm_model_instances.values():
                 getattr(m, "ρ").set_value(self.konfig.ρ)
 
+        log.info("admm is finished.")
         # Refresh δ table after final iterate
         self.__get_δ_map()
         self.__get_ζ_map()
@@ -198,37 +199,42 @@ class PipelineModelManagerADMM(PipelineModelManager):
         Dict[str, float],
         Dict[Tuple[str, str], float],
     ]:
-        for ω, g in itertools.product(
-            self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
-        ):
-            m = self.admm_model_instances[ω]  # type: ignore
-            selected_switches = self.__fix_switches(m, δ_map, g)
+        try:
+            for ω, g in itertools.product(
+                self.Ω, range(self.number_of_groups) if not fixed_switches else [None]
+            ):
+                m = self.admm_model_instances[ω]  # type: ignore
+                selected_switches = self.__fix_switches(m, δ_map, g)
 
-            δ_map, ζ_map = self.__solve_model(m, δ_map, ζ_map, selected_switches, k=k)
-            δ_by_sc[ω] = δ_map
-            ζ_by_sc[ω] = ζ_map
-
-            # ---- z-update (per switch) ----
-            for s in self.switch_list:
-                self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / len(self.Ω)
-            # ---- zζ-update (per transformer tap) ----
-            for tr, tap in self.zζ.keys():
-                self.zζ[(tr, tap)] = sum(ζ_by_sc[ω][(tr, tap)] for ω in self.Ω) / len(
-                    self.Ω
+                δ_map, ζ_map = self.__solve_model(
+                    m, δ_map, ζ_map, selected_switches, k=k
                 )
+                δ_by_sc[ω] = δ_map
+                ζ_by_sc[ω] = ζ_map
 
-            # ---- residuals (after all scenarios solved) ----
-            self.r_norm, self.s_norm = self.__calculate_residuals(
-                δ_by_sc=δ_by_sc,
-                zδ=self.zδ,
-                zδ_old=zδ_old,
-                ζ_by_sc=ζ_by_sc,
-                zζ=self.zζ,
-                zζ_old=zζ_old,
-            )
-            self.r_norm_list.append(self.r_norm)
-            self.s_norm_list.append(self.s_norm)
-            self.time_list.append(time.process_time())
+                # ---- z-update (per switch) ----
+                for s in self.switch_list:
+                    self.zδ[s] = (sum(δ_by_sc[ω][s] for ω in self.Ω)) / len(self.Ω)
+                # ---- zζ-update (per transformer tap) ----
+                for tr, tap in self.zζ.keys():
+                    self.zζ[(tr, tap)] = sum(
+                        ζ_by_sc[ω][(tr, tap)] for ω in self.Ω
+                    ) / len(self.Ω)
+
+                # ---- residuals (after all scenarios solved) ----
+                self.r_norm, self.s_norm = self.__calculate_residuals(
+                    δ_by_sc=δ_by_sc,
+                    zδ=self.zδ,
+                    zδ_old=zδ_old,
+                    ζ_by_sc=ζ_by_sc,
+                    zζ=self.zζ,
+                    zζ_old=zζ_old,
+                )
+                self.r_norm_list.append(self.r_norm)
+                self.s_norm_list.append(self.s_norm)
+                self.time_list.append(time.process_time())
+        except:
+            log.error("Error running ADMM")
         return δ_by_sc, ζ_by_sc, δ_map, ζ_map
 
     def _set_zδ_from_zδ(self) -> None:
@@ -266,7 +272,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             δ_map = m.δ.extract_values()  # type: ignore
             for s in self.switch_list:
-                rows.append((ω, s, float(δ_map[s])))
+                try:
+                    rows.append((ω, s, float(δ_map[s])))
+                except:
+                    log.error(f"None value in δ_map[{s}]")
         self.δ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "S", "δ_variable"],
@@ -280,7 +289,10 @@ class PipelineModelManagerADMM(PipelineModelManager):
             m = self.admm_model_instances[ω]
             ζ_map = m.ζ.extract_values()  # type: ignore
             for tr, tap in self.zζ.keys():
-                rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+                try:
+                    rows.append((ω, tr, tap, float(ζ_map[(tr, tap)])))
+                except:
+                    log.error(f"None value in ζ_map[{tr}, {tap}]")
         self.ζ_variable = pl.DataFrame(
             rows,
             schema=["SCEN", "TR", "TAP", "ζ_variable"],

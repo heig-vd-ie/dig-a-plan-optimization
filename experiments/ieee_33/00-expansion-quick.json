@@ -17,8 +17,8 @@
         "scenario_name": "Basic"
     },
     "admm_config": {
-        "iterations": 10,
-        "solver_non_convex": true,
+        "max_iters": 10,
+        "solver_non_convex": 2,
         "time_limit": 1,
         "groups": {
             "0": [ 19, 20, 21, 29, 32, 35 ],

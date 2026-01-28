@@ -6522,4 +6522,4 @@ internal = []
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12,<3.14"
-content-hash = "88766b78a1660c34569ceda4b1d1547fda49570ca2a9d104d5695b3f4aede08e"
+content-hash = "f41dc7cf6f51ab6b644aa08efc9686d8357445b57555c3fe54222640189f95e0"

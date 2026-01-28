@@ -6,6 +6,7 @@ from typing import Tuple
 from data_exporter.pp_to_dap import (
     pp_to_dap,
 )
+from data_exporter.uncert_to_scens_long import generate_scenario_potentials
 from data_exporter.uncert_to_scens_prof import (
     generate_profile_based_load_scenarios,
 )
@@ -90,3 +91,32 @@ def get_grid_case(
     )
 
     return net, node_edge_model
+
+
+def get_grid_case_for_expansion(
+    grid: GridCaseModel,
+    seed: int,
+    stu: ShortTermUncertaintyRandom,
+    profiles: ShortTermUncertaintyProfile | None = None,
+) -> Tuple[pp.pandapowerNet, NodeEdgeModel, dict[int, float], dict[int, float]]:
+    """
+    Load a pandapower grid and build the Dig-A-Plan NodeEdgeModel without scenarios.
+
+    - Loads .p files based on GridCase
+    - Calls pp_to_dap to:
+        * create NodeEdgeModel
+    - Cleans / normalizes edge_data columns (b_pu, r_pu, x_pu, normal_open)
+    """
+
+    net, node_edge_model = get_grid_case(
+        grid=grid,
+        seed=seed,
+        stu=stu,
+        profiles=profiles,
+    )
+
+    load_potential, pv_potential = generate_scenario_potentials(
+        grid=grid, profiles=profiles
+    )
+
+    return net, node_edge_model, load_potential, pv_potential

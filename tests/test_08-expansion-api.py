@@ -20,7 +20,7 @@ class TestExpansionApi(ExpansionApiTestBase):
         """Test the expansion API with the provided payload."""
         response = requests.patch(
             f"http://{os.getenv('LOCAL_HOST')}:{os.getenv('SERVER_PY_PORT', os.getenv('SERVER_PY_PORT'))}/expansion",
-            params={"with_ray": "true"},
+            params={"with_ray": "true", "time_now": "run_test_api"},
             json=self.payload,
         )
         assert response.status_code == 200

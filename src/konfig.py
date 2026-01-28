@@ -16,7 +16,6 @@ class CacheFolder:
 @dataclass
 class Settings:
     cache: CacheFolder
-    EACH_TASK_MEMORY: float = 1e8  # in bytes
 
 
 settings_not_casted = Dynaconf(
@@ -29,3 +28,5 @@ settings = cast(
     Settings,
     settings_not_casted,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]

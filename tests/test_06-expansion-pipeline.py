@@ -27,8 +27,19 @@ class ExpansionTestBase:
         _, self.grid_data = get_grid_case(grid=self.grid, seed=self.seed, stu=self.stu)
         self.cache_dir = test_cache_dir
         self.simple_grid_groups = test_simple_grid_groups
+        self.load_potential = {
+            node: 5.0 for node in self.grid_data.node_data["node_id"].to_list()
+        }
+        self.pv_potential = {
+            node: 1.0 for node in self.grid_data.node_data["node_id"].to_list()
+        }
+        self.each_task_memory = 1e8
+
         self.expansion_algorithm = ExpansionAlgorithm(
             grid_data=self.grid_data,
+            load_potential=self.load_potential,
+            pv_potential=self.pv_potential,
+            each_task_memory=self.each_task_memory,
             admm_config=ADMMConfig(),
             sddp_config=SDDPConfig(
                 n_stages=3,
@@ -78,10 +89,14 @@ class TestExpansionDataExporter(ExpansionTestBase):
         self.expansion_algorithm.create_planning_params(n_stages=5)
         self.expansion_algorithm.scenario_data = self.expansion_algorithm.create_scenario_data(
             nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
+            load_potential=self.load_potential,
+            pv_potential=self.pv_potential,
             n_stages=5,
         )
         self.expansion_algorithm.out_of_sample_scenarios = self.expansion_algorithm.create_scenario_data(
             nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
+            load_potential=self.load_potential,
+            pv_potential=self.pv_potential,
             n_stages=5,
         )
         self.expansion_algorithm.create_expansion_request()
