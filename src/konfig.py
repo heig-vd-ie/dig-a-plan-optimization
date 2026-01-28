@@ -28,3 +28,5 @@ settings = cast(
     Settings,
     settings_not_casted,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]

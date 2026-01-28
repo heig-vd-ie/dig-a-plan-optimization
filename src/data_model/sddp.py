@@ -158,5 +158,3 @@ class HeavyTaskConfig(BaseModel):
     ι: int
     stage: int
     ω: int
-    n_optimizations: int
-    n_stages: int

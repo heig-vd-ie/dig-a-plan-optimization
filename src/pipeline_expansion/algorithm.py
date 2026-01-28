@@ -32,6 +32,7 @@ from data_model.sddp import (
     Simulation,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
+from konfig import PROJECT_ROOT
 
 
 class ExpansionAlgorithm:
@@ -55,10 +56,11 @@ class ExpansionAlgorithm:
         s_base: float = 1e6,
         with_ray: bool = False,
     ):
+
         self.grid_data = grid_data
         self.admm_config = admm_config
         self.sddp_config = sddp_config
-        self.cache_dir = cache_dir
+        self.cache_dir = PROJECT_ROOT / cache_dir
         self.iterations = iterations
         self.just_test = just_test
         self.seed_number = seed_number
@@ -235,8 +237,6 @@ class ExpansionAlgorithm:
                         ι=ι,
                         stage=stage,
                         ω=ω,
-                        n_optimizations=self.sddp_config.n_optimizations,
-                        n_stages=self.n_stages,
                         cache_dir_run=str(self.cache_dir_run),
                     ),
                 )
@@ -261,7 +261,6 @@ class ExpansionAlgorithm:
                     except:
                         print(f"ERROR in [{ω}, {stage}]!!!")
             cuts = {}
-            admm_results = {}
             for stage in self._range(self.n_stages):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
@@ -274,22 +273,12 @@ class ExpansionAlgorithm:
                                 self.n_stages,
                             )
                         ] = future_results[(ω, stage)].bender_cut
-                        admm_results[
-                            _cut_number(
-                                ι,
-                                stage,
-                                ω,
-                                self.sddp_config.n_optimizations,
-                                self.n_stages,
-                            )
-                        ] = future_results[(ω, stage)].admm_results
                     except:
                         print(f"ERROR in retrieving data for [{ω}, {stage}]!!!")
             bender_cuts = BenderCuts(cuts=cuts)
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
-            admm_results = {}
             for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
@@ -307,8 +296,6 @@ class ExpansionAlgorithm:
                                 ι=ι,
                                 stage=stage,
                                 ω=ω,
-                                n_optimizations=self.sddp_config.n_optimizations,
-                                n_stages=self.n_stages,
                                 cache_dir_run=str(self.cache_dir_run),
                             ),
                         )
@@ -417,12 +404,10 @@ def heavy_task(
 ) -> HeavyTaskOutput:
     import os
 
-    ι, stage, ω, n_optimizations, n_stages, cache_dir_run = (
+    ι, stage, ω, cache_dir_run = (
         heavy_task_config.ι,
         heavy_task_config.stage,
         heavy_task_config.ω,
-        heavy_task_config.n_optimizations,
-        heavy_task_config.n_stages,
         heavy_task_config.cache_dir_run,
     )
     os.environ["GRB_LICENSE_FILE"] = os.environ["HOME"] + "/gurobi_license/gurobi.lic"
@@ -437,19 +422,17 @@ def heavy_task(
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
-    try:
-        save_obj_to_json(
-            obj=admm_results.results[
-                _cut_number(ι, stage, ω, n_optimizations, n_stages)
-            ],
-            path_filename=Path(cache_dir_run)
-            / "admm"
-            / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
-        )
-    except:
-        print(
-            f"admm_result_iter{ι}_stage{stage}_scen{ω}.json cannot be written in desired location {cache_dir_run}"
-        )
+    print("_________________________________________")
+    save_obj_to_json(
+        obj=admm_results.results,
+        path_filename=Path(cache_dir_run)
+        / "admm"
+        / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
+    )
+    print(
+        f"admm_result_iter{ι}_stage{stage}_scen{ω}.json is written in desired location {cache_dir_run}"
+    )
+    print("_________________________________________")
 
     result_heavy_task = HeavyTaskOutput(bender_cut=bender_cut)
     return result_heavy_task
