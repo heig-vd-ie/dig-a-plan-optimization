@@ -99,9 +99,15 @@ This project can run heavy tasks on a **remote Ray worker**. The default setup a
 ```sh
    make start
 ```
+This typically:
+
+starts Docker services (Python/FastAPI, Julia SDDP service, Grafana/Prometheus/Mongo),
+
+opens a tmux session with panes for logs and an interactive shell.
+
 2. Connect to the worker machine with ssh:
 ```sh
-    ssh `user@worker-host` or `user@<worker-ip>`
+    ssh `user@worker-host` or `user@<worker-Tailscale IP>`
 ```
 Or use the helper comment:
 ```sh
