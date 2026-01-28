@@ -48,8 +48,7 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 ```
 3. **Use the tmux session**
 
-make start opens a tmux session with three panes:
-
+**make start** opens a tmux session with three panes:
 
 
 ```text
@@ -92,6 +91,26 @@ In the `dig-a-plan-data-processing` , if you run the following target, you will 
 cd .. && make run-all
 ```
 
+## Ray worker
+
+This project can run heavy tasks on a **remote Ray worker**. The default setup assumes machines are connected via **Tailscale** (virtual network).
+
+1. Start the stack on the **head** machine:
+```sh
+   make start
+```
+2. Connect to the worker machine with ssh:
+```sh
+    ssh `user@worker-host` or `user@<worker-ip>`
+```
+Or use the helper comment:
+```sh
+    make connect-ray-worker
+```
+3. On the worker machine, start the Ray worker and connect it to the head:
+```sh
+    make run-ray-worker
+```
 
 ## Development
 
