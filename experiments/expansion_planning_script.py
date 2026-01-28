@@ -90,9 +90,8 @@ def expansion_planning_script(
     else:
         response = requests.patch(
             (
-                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray=true" + ""
-                if cachename == "-n"
-                else cachename
+                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray=true"
+                + ("" if cachename == "-n" else f"&time_now={cachename}")
             ),
             json=payload,
         )
