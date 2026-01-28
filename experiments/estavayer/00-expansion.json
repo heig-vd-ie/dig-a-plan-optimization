@@ -29,8 +29,7 @@
         "τ_incr": 2,
         "τ_decr": 2,
         "voll": 6,
-        "volp": 2,
-        "fixed_switches": true
+        "volp": 2
     },
     "sddp_config": {
         "iterations": 100,

@@ -29,8 +29,7 @@
         "τ_incr": 2,
         "τ_decr": 2,
         "voll": 6,
-        "volp": 2,
-        "fixed_switches": true
+        "volp": 2
     },
     "sddp_config": {
         "iterations": 100,
@@ -50,6 +49,6 @@
         "δ_b_var": 100000
     },
     "iterations": 5,
-    "each_task_memory": 2000000000,
+    "each_task_memory": 5000000000,
     "seed": 42
 }
