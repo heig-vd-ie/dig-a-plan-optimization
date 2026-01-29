@@ -184,20 +184,36 @@ class ExpansionAlgorithm:
         """Update Bender cuts with new values."""
         if self.just_test:
             return None
-        save_obj_to_json(sddp_response, self.cache_dir_run / f"sddp_response_{ι}.json", large_file_expected=True)
-        save_obj_to_json(admm_response, self.cache_dir_run / f"bender_cuts_{ι}.json", large_file_expected=True)
+        save_obj_to_json(
+            sddp_response,
+            self.cache_dir_run / f"sddp_response_{ι}.json",
+            large_file_expected=True,
+        )
+        save_obj_to_json(
+            admm_response,
+            self.cache_dir_run / f"bender_cuts_{ι}.json",
+            large_file_expected=True,
+        )
         current_cuts = BenderCuts(
             **load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
         )
         final_cuts = BenderCuts(cuts={**current_cuts.cuts, **admm_response.cuts})
-        save_obj_to_json(final_cuts, self.cache_dir_run / f"bender_cuts.json", large_file_expected=True)
+        save_obj_to_json(
+            final_cuts,
+            self.cache_dir_run / f"bender_cuts.json",
+            large_file_expected=True,
+        )
         opt_config = OptimizationConfig(
             **load_obj_from_json(self.cache_dir_run / "optimization_config.json")
         )
         opt_config.grid.cuts = opt_config.grid.cuts + [
             Cut(id=int(cut_id)) for cut_id in admm_response.cuts.keys()
         ]
-        save_obj_to_json(opt_config, self.cache_dir_run / "optimization_config.json", large_file_expected=True)
+        save_obj_to_json(
+            opt_config,
+            self.cache_dir_run / "optimization_config.json",
+            large_file_expected=True,
+        )
         self.expansion_request = ExpansionRequest(
             optimization=opt_config,
             scenarios=self.expansion_request.scenarios,
