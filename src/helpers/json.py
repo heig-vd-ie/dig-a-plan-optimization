@@ -18,7 +18,9 @@ def serialize_obj(obj):
     return obj
 
 
-def save_obj_to_json(obj: BaseModel | Dict, path_filename: Path, large_file_expected: bool=False):
+def save_obj_to_json(
+    obj: BaseModel | Dict, path_filename: Path, large_file_expected: bool = True
+):
     if large_file_expected:
         gc.collect()
     json.dump(
