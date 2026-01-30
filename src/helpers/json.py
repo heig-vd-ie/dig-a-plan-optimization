@@ -21,14 +21,19 @@ def serialize_obj(obj):
 def save_obj_to_json(
     obj: BaseModel | Dict, path_filename: Path, large_file_expected: bool = True
 ):
-    if large_file_expected:
-        gc.collect()
-    json.dump(
-        serialize_obj(obj),
-        open(path_filename, "w"),
-        indent=4,
-        ensure_ascii=False,
-    )
+    serialized = serialize_obj(obj)
+
+    with open(path_filename, "w", encoding="utf-8") as f:
+        if large_file_expected and isinstance(serialized, dict):
+            # Write key by key for very large dicts
+            f.write("{\n")
+            for i, (k, v) in enumerate(serialized.items()):
+                json.dump({k: v}, f, ensure_ascii=False, indent=4)
+                if i != len(serialized) - 1:
+                    f.write(",\n")
+            f.write("\n}")
+        else:
+            json.dump(serialized, f, ensure_ascii=False, indent=4)
 
 
 def load_obj_from_json(path_filename: Path) -> Dict:
