@@ -1,4 +1,4 @@
-FROM julia@sha256:09aba3b03f60dc888a571fb5796a7d1c62c93db515a4ac38f5a8fd5aab85baf3
+FROM julia:1.12
 
 WORKDIR /app
 
@@ -6,7 +6,7 @@ WORKDIR /app
 COPY src/model_expansion /app/src/model_expansion
 
 # Install dependencies
-RUN julia --project=/app/src/model_expansion/. -e 'using Pkg; Pkg.instantiate()'
+RUN julia --project=/app/src/model_expansion/. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile(force=true)'
 
 # Expose the port (documentation purposes)
 ARG SERVER_JL_PORT=8000
