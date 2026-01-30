@@ -6,7 +6,7 @@ WORKDIR /app
 COPY src/model_expansion /app/src/model_expansion
 
 # Install dependencies
-RUN julia --project=/app/src/model_expansion/. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile(force=true)'
+RUN julia --project=/app/src/model_expansion/. -e 'using Pkg; Pkg.instantiate()'
 
 # Expose the port (documentation purposes)
 ARG SERVER_JL_PORT=8000
