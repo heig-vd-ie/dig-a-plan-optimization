@@ -22,9 +22,9 @@ def save_obj_to_json(
 ):
     serialized = serialize_obj(obj)
 
-    with open(path_filename, "w", encoding="utf-8") as f:
+    with open(path_filename, "w") as f:
         if large_file_expected:
-            print(serialized)
+            print("\n".join(str(serialized).splitlines()[:1000]))
         json.dump(serialized, f, ensure_ascii=False, indent=4)
 
 
