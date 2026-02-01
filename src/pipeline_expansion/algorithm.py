@@ -240,11 +240,11 @@ class ExpansionAlgorithm:
                         cache_dir_run=str(self.cache_dir_run),
                     ),
                 )
-                for stage in self._range(self.n_stages)
+                for stage in self._range(min([self.n_stages, ι + 1]))
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
             future_results = {}
-            for stage in self._range(self.n_stages):
+            for stage in self._range(min([self.n_stages, ι + 1])):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         future_results[(ω, stage)] = ray.get(
@@ -261,7 +261,7 @@ class ExpansionAlgorithm:
                     except:
                         print(f"ERROR in [{ω}, {stage}]!!!")
             cuts = {}
-            for stage in self._range(self.n_stages):
+            for stage in self._range(min([self.n_stages, ι + 1])):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         cuts[
@@ -279,7 +279,9 @@ class ExpansionAlgorithm:
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
-            for stage in tqdm.tqdm(self._range(self.n_stages), desc="stages"):
+            for stage in tqdm.tqdm(
+                self._range(min([self.n_stages, ι + 1])), desc="stages"
+            ):
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
                 ):
