@@ -16,6 +16,12 @@ import click
     help="Run with api call or debug locally without api call and ray",
 )
 @click.option(
+    "--withray",
+    type=bool,
+    default=True,
+    help="Run with ray or not",
+)
+@click.option(
     "--fixedswitches",
     type=bool,
     default=False,
@@ -37,6 +43,7 @@ import click
 def expansion_planning_script(
     kace: str,
     withapi: bool,
+    withray: bool,
     fixedswitches: bool,
     admmiter: int,
     riskmeasuretype: str,
@@ -90,7 +97,7 @@ def expansion_planning_script(
     else:
         response = requests.patch(
             (
-                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray=true"
+                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray={withray}"
                 + ("" if cachename == "-n" else f"&time_now={cachename}")
             ),
             json=payload,
