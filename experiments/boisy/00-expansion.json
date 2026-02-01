@@ -18,7 +18,7 @@
         "max_iters": 5,
         "solver_non_convex": 2,
         "time_limit": 10,
-        "groups": 30,
+        "groups": 20,
         "big_m": 1000,
         "ε": 0.0001,
         "ρ": 2,
@@ -32,11 +32,11 @@
         "volp": 2
     },
     "sddp_config": {
-        "iterations": 100,
+        "iterations": 50,
         "n_simulations": 100,
         "n_optimizations": 10,
         "n_stages": 5,
-        "n_scenarios": 100,
+        "n_scenarios": 10,
         "initial_budget": 500000,
         "discount_rate": 0.05,
         "years_per_stage": 5,
