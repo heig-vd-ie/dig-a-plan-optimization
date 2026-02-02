@@ -22,7 +22,8 @@ To achieve this, Dig-A-Plan uses a **planning–operations loop** coordinated by
 
 ### Planning ↔ Operations feedback loop
 
-![expnasion](docs/images/expansion-loop.png)
+![Planning–operations feedback loop (SDDP ↔ ADMM via cuts)](../images/expansion-loop.png)
+
 
 *The API sits between SDDP and ADMM: SDDP sends candidate expansion decisions to ADMM for feasibility checks, and ADMM returns cutting-plane feedback (cuts) that refines the next SDDP iteration.*
 
