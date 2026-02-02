@@ -9,6 +9,8 @@ It combines:
 
 The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: `docs/experiments/02-theory-expansion-sddp-admm.md`
+
 ## Requirements
 
 - **Gurobi license**: Request a (WSL) license at https://license.gurobi.com/ and save it to:
@@ -85,10 +87,16 @@ Run an example (IEEE-33):
 ```sh
 python experiments/expansion_planning_script.py --kace ieee_33 --cachename run_ieee33
 ```
+To see all available options:
+```sh
+python experiments/expansion_planning_script.py --help
+```
 
-For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+- Results are saved under .cache/.
 
-The results will be saved in the folder of `.cache`.
+- For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+
+
 
 ### Run the case of Boisy & Estavayer
 
@@ -130,14 +138,14 @@ For full setup details (Tailscale, SSH keys, troubleshooting), see [here](docs/o
 
 1. Code formatting is handled automatically with `black`. Please install the **Black** extension in VS Code and enable **format on save** for consistent formatting.
 
-
-
-
-
-
-
-
-
+2. Updating the Virtual Environment or Packages: If you need to update packages listed in `pyproject.toml`, use:
+```sh
+make poetry-update
+```
+or
+```sh
+poetry update
+```
 
 
 
@@ -156,15 +164,6 @@ make venv-activate
 make run-tests
 ```
 
-### Updating the Virtual Environment or Packages
 
-If you need to update packages listed in `pyproject.toml`, use:
-```sh
-make poetry-update
-```
-or
-```sh
-poetry update
-```
 
 
