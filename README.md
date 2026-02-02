@@ -1,5 +1,7 @@
 # Dig-A-Plan Optimization
 
+![Alt text](docs/images/grid.jpg)
+
 Dig-A-Plan is a scalable optimization framework for distribution grid planning and operational reconfiguration under uncertainty.  
 It combines:
 - **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
