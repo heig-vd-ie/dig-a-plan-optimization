@@ -9,7 +9,7 @@ It combines:
 
 The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
-For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: `docs/experiments/02-theory-expansion-sddp-admm.md`
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/experiments/02-theory-expansion-sddp-admm.md)
 
 ## Requirements
 
