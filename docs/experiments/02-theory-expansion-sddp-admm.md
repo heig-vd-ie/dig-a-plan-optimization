@@ -22,7 +22,7 @@ To achieve this, Dig-A-Plan uses a **planning–operations loop** coordinated by
 
 ### Planning ↔ Operations feedback loop
 
-![Planning–operations feedback loop (SDDP ↔ ADMM via cuts)](docs/images/expansion-loop.png)
+![Alt text](docs/images/expansion-loop.png)
 
 *The API sits between SDDP and ADMM: SDDP sends candidate expansion decisions to ADMM for feasibility checks, and ADMM returns cutting-plane feedback (cuts) that refines the next SDDP iteration.*
 
@@ -85,19 +85,19 @@ python experiments/expansion_planning_script.py --kace ieee_33 --cachename run_i
 
 Useful options:
 
---withapi false
+- withapi false:
 Run locally without calling the FastAPI server (useful for debugging).
 
---admmiter <n>
+- admmiter <n>:
 Override admm_config.max_iters to speed up tests (fewer ADMM iterations).
 
---riskmeasuretype <Expectation|Entropic|Wasserstein|CVaR|WorstCase>
+- riskmeasuretype <Expectation|Entropic|Wasserstein|CVaR|WorstCase>:
 Select the SDDP risk measure.
 
---riskmeasureparam <value>
+- riskmeasureparam <value>:
 Set the risk-measure parameter used by SDDP.
 
---fixedswitches true|false
+- fixedswitches true|false:
 If true, ADMM treats switches as fixed (no switching optimization).
 
 Outputs are saved under .cache/.
