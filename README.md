@@ -76,12 +76,16 @@ For details about reconfiguration runs (per Benders / combined / ADMM), see [her
 
 5. **Run the expansion problem**
 
-The **expansion** solves the *long-term planning* problem: it decides which grid assets (lines/transformers) should be reinforced/expanded over multiple stages under uncertainty (load/PV scenarios).  It uses **SDDP** (served by the Julia service) and runs repeated operational checks to keep plans feasible.
+The **expansion** computes a multi-stage reinforcement plan (lines/transformers) under uncertainty (load/PV scenarios).  
+It is solved with **SDDP** (Julia service). After each SDDP iteration, the pipeline runs **ADMM** (Python) as an operational feasibility check and uses the results to generate cuts that guide the next planning iteration.
+
+Run an example (IEEE-33):
+```sh
+python experiments/expansion_planning_script.py --kace ieee_33 --cachename run_ieee33
+```
+
 For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
 
-```sh
-    python experiments/ieee_33/04-expansion.py
-```
 The results will be saved in the folder of `.cache`.
 
 ### Run the case of Boisy & Estavayer
