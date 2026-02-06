@@ -12,7 +12,7 @@ Dig-A-Plan is a scalable optimization tool designed for distribution grid planni
 
 The proposed tool is designed to handle large real-world distribution networks (from 33-bus test systems up to 1'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
-For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/ops/theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=5968040). 
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/ops/theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5968040). 
 
 ## Requirements
 
