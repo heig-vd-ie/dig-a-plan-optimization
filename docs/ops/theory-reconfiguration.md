@@ -64,7 +64,17 @@ It has three main blocks:
 ```
 
 - Load and PV profiles define **scenario time series**.
-- `target_year`, `quarter`, `scenario_name` choose a slice of the scenario dataset.
+- `target_year`, `quarter`, `scenario_name` choose a slice of the scenario dataset. 
+- These files are in parqut and each scenario has following structure `Basic_year.parquet:
+
+```
+┌────────┬─────┬─────┬─────┬───┬───────┬───────┬───────┬───────┐
+│ egid   ┆ _0  ┆ _1  ┆ _2  ┆ … ┆ _8757 ┆ _8758 ┆ _8759 ┆ _1998 │
+│ ---    ┆ --- ┆ --- ┆ --- ┆   ┆ ---   ┆ ---   ┆ ---   ┆ ---   │
+│ str    ┆ f64 ┆ f64 ┆ f64 ┆   ┆ f64   ┆ f64   ┆ f64   ┆ f64   │
+╞════════╪═════╪═════╪═════╪═══╪═══════╪═══════╪═══════╪═══════╡
+│ 883806 ┆ 0.0 ┆ 0.0 ┆ 0.0 ┆ … ┆ 0.0   ┆ 0.0   ┆ 0.0   ┆ 0.0   │
+```
 
 ### 2.3 `konfig`
 

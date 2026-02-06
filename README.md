@@ -12,7 +12,7 @@ Dig-A-Plan is a scalable optimization tool designed for distribution grid planni
 
 The proposed tool is designed to handle large real-world distribution networks (from 33-bus test systems up to 1'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
-For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/experiments/02-theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=5968040). 
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/ops/theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=5968040). 
 
 ## Requirements
 
@@ -76,7 +76,7 @@ From the interactive pane:
 ```sh
     python experiments/ieee_33/01-reconfiguration-admm.py
 ```
-For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/experiments/01-theory-reconfiguration.md) 
+For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/ops/theory-reconfiguration.md) 
 
 5. **Run the expansion problem**
 
@@ -94,7 +94,7 @@ python experiments/expansion_planning_script.py --help
 
 - Results are saved under .cache/output_expansion`
 
-- For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+- For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
 
 
 ### Run the case of Boisy & Estavayer [It needs access to confidential data]

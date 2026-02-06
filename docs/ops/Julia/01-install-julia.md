@@ -1,8 +1,8 @@
 # Install Julia
 
 ## In WSL
-### ✅ Step-by-Step Setup: Julia in VS Code on WSL
-#### 🧱 Prerequisites
+### Step-by-Step Setup: Julia in VS Code on WSL
+#### Prerequisites
 
 WSL installed (preferably WSL2)
 
@@ -10,7 +10,7 @@ Ubuntu (or other Linux) running on WSL
 
 VS Code with the Remote - WSL extension
 
-#### ✅ Step 1: Install Julia inside WSL
+#### Step 1: Install Julia inside WSL
 Open your WSL terminal (e.g., Ubuntu):
 
 ```sh
@@ -30,7 +30,7 @@ julia --version
 ```
 
 
-#### ✅ Step 2: Install Julia Extension in VS Code (WSL)
+#### Step 2: Install Julia Extension in VS Code (WSL)
 Inside VS Code (running in WSL), go to Extensions (Ctrl+Shift+X)
 
 Install the "Julia" extension (by Julia Computing)
