@@ -8,7 +8,7 @@
 
 project = "Dig-A-Plan-Optimization"
 copyright = "2025, HEIG-VD (Institute of Energies)"
-author = "Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
+author = "Institute of Energies"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -27,6 +27,10 @@ extensions = [
     "pydata_sphinx_theme",
 ]
 
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 autosectionlabel_prefix_document = True
 
