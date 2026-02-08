@@ -1,10 +1,8 @@
 # Dig-A-Plan Planning Tool
 
-<p align="center">
-  <img src="docs/images/grid.jpg" width="300" alt="Description">
-  <br>
-  <em>© HEIG-VD, 2025</em>
-</p>
+![Description](docs/images/grid.jpg)
+
+*© HEIG-VD, 2025*
 
 Dig-A-Plan is a scalable optimization tool designed for distribution grid planning and operational reconfiguration. It bridges the gap between long-term investment and short-term operational flexibility under uncertainty by combining two core modules:
 - **Multistage Expansion Planning (Long-term).** This module optimizes the long-term expansion of physical infrastructure, such as cables and transformers. It utilizes Stochastic Dual Dynamic Programming (SDDP) to handle complex, multistage decision-making processes over long horizons while accounting for uncertainty.
@@ -94,7 +92,7 @@ python experiments/expansion_planning_script.py --help
 
 - Results are saved under .cache/output_expansion`
 
-- For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
+- For more information regarding Julia, go to [docs/ops/Julia/expansion-planning.md](docs/ops/Julia/expansion-planning.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
 
 
 ### Run the case of Boisy & Estavayer [It needs access to confidential data]

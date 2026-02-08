@@ -12,16 +12,17 @@ Dig-A-Plan-Optimization is a Python package for optimizing distribution grid rei
    :maxdepth: 2
    :caption: Contents:
 
-   README
+   intro.md
+   introduction
    data_schema
    master_model
    slave_model
    pipeline
-   ops/ray-worker
-   ops/theory-expansion-sddp-admm
-   ops/theory-reconfiguration
-   ops/Julia/01-install-julia
-   ops/Julia/02-create-julia-projects
-   ops/Julia/03-hydro-thermal-sddp
-
+   ops/ray-worker.md
+   ops/theory-expansion-sddp-admm.md
+   ops/theory-reconfiguration.md
+   ops/Julia/01-install-julia.md
+   ops/Julia/02-create-julia-projects.md
+   ops/Julia/03-hydro-thermal-sddp.md
+   ops/Julia/expansion-planning.md
 

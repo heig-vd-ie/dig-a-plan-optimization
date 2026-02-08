@@ -60,3 +60,15 @@ mathjax3_config = {
         "useLabelIds": True,  # Add labels to elements
     },
 }
+import re
+from pathlib import Path
+
+
+def fix_readme_links():
+    readme = Path("../README.md").read_text()
+    # Adjust relative links
+    readme = re.sub(r"\]\(docs/", r"](", readme)
+    Path("intro.md").write_text(readme)
+
+
+fix_readme_links()
