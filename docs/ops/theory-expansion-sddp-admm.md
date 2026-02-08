@@ -252,5 +252,3 @@ Typical roles:
 
 - `iterations`: number of iteration of the loop (c).
 - `seed`: Seed number.
-
----

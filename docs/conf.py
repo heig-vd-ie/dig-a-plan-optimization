@@ -60,6 +60,18 @@ mathjax3_config = {
         "useLabelIds": True,  # Add labels to elements
     },
 }
+
+html_sidebars = {
+    "**": [
+        # "globaltoc.html",  # This shows the full table of contents
+    ]
+}
+html_theme_options = {
+    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    "show_toc_level": 2,  # How many levels to show in right TOC
+    "navigation_depth": 4,  # How deep the left navigation goes
+}
+
 import re
 from pathlib import Path
 

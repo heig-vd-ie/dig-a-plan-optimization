@@ -142,5 +142,3 @@ Single integrated (baseline) approach; the script filters/overrides `konfig` for
 ```text
 PATCH http://{LOCALHOST}:{PY_PORT}/reconfiguration/combined
 ```
-
----
