@@ -7,11 +7,6 @@
    :hidden:
    :titlesonly:
    
-   introduction
-   data_schema
-   master_model
-   slave_model
-   pipeline
    ops/ray-worker.md
    ops/theory-expansion-sddp-admm.md
    ops/theory-reconfiguration.md

@@ -24,7 +24,6 @@ extensions = [
     "nbsphinx",
     "myst_parser",
     "sphinx_copybutton",
-    "pydata_sphinx_theme",
 ]
 
 source_suffix = {
@@ -42,7 +41,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 html_static_path = ["_static"]
 
 html_css_files = [
@@ -61,16 +60,14 @@ mathjax3_config = {
     },
 }
 
-html_sidebars = {
-    "**": [
-        # "globaltoc.html",  # This shows the full table of contents
-    ]
-}
 html_theme_options = {
-    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
-    "show_toc_level": 2,  # How many levels to show in right TOC
-    "navigation_depth": 4,  # How deep the left navigation goes
-    "pygment_light_style": "default",  # Code highlighting style for light mode
+    "light_css_variables": {
+        "color-brand-primary": "#336790",
+        "color-brand-content": "#336790",
+    },
+    # Optional: customize sidebar and navigation
+    "sidebar_hide_name": False,  # Show project name in sidebar
+    "navigation_with_keys": True,  # Enable keyboard navigation
 }
 
 import re
