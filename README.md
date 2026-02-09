@@ -1,29 +1,30 @@
-# Dig-A-Plan Optimization
+# Dig-A-Plan Planning Tool
 
-![Alt text](docs/images/grid.jpg)
+![Description](docs/images/grid.jpg)
 
-Dig-A-Plan is a scalable optimization framework for distribution grid planning and operational reconfiguration under uncertainty.  
-It combines:
-- **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
-- **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
+*© HEIG-VD, 2025*
 
-The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
+Dig-A-Plan is a scalable optimization tool designed for distribution grid planning and operational reconfiguration. It bridges the gap between long-term investment and short-term operational flexibility under uncertainty by combining two core modules:
+- **Multistage Expansion Planning (Long-term).** This module optimizes the long-term expansion of physical infrastructure, such as cables and transformers. It utilizes Stochastic Dual Dynamic Programming (SDDP) to handle complex, multistage decision-making processes over long horizons while accounting for uncertainty.
+- **Switching Reconfiguration Planning (Operational).** This module performs operational feasibility checks and manages network topology through switching and OLTC (On-Load Tap Changer) control. It evaluates numerous load and PV scenarios using a Scenario-based ADMM (Alternating Direction Method of Multipliers) approach to ensure the grid remains stable and efficient across varying conditions.
 
-For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/experiments/02-theory-expansion-sddp-admm.md)
+The proposed tool is designed to handle large real-world distribution networks (from 33-bus test systems up to 1'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
+
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/ops/theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5968040). 
 
 ## Requirements
 
+- Linux or WSL on windows.
+- Common tools such as `make`, `docker`, `tmux`, `julia`, and `python 3.12`.
 - **Gurobi license**: Request a (WSL) license at https://license.gurobi.com/ and save it to:
   - `~/gurobi_license/gurobi.lic`
-
-
 
 ## Installation
 
 1. **Clone the repository**
 ```sh
-   git clone <REPO_URL>
-   cd <REPO_NAME>
+   git clone https://github.com/heig-vd-ie/dig-a-plan-optimization
+   cd dig-a-plan-optimization
 ```
 2. **Install make (Ubuntu/WSL only, if not already installed)**
 ```sh
@@ -54,7 +55,6 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 
 **make start** opens a tmux session with three panes:
 
-
 ```text
 +------------------------------+
 | Services logs                |
@@ -66,9 +66,7 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 | (run commands & experiments) |
 +------------------------------+
 
-
 Navigation: Ctrl + B, then Down Arrow → move to the next pane
-
 ```
 
 4. **Run an experiment (example: IEEE-33 reconfiguration)**
@@ -76,7 +74,7 @@ From the interactive pane:
 ```sh
     python experiments/ieee_33/01-reconfiguration-admm.py
 ```
-For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/experiments/01-theory-reconfiguration.md) 
+For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/ops/theory-reconfiguration.md).
 
 5. **Run the expansion problem**
 
@@ -92,15 +90,14 @@ To see all available options:
 python experiments/expansion_planning_script.py --help
 ```
 
-- Results are saved under .cache/.
+- Results are saved under .cache/output_expansion`
 
-- For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
+- For more information regarding Julia, go to [docs/ops/Julia/expansion-planning.md](docs/ops/Julia/expansion-planning.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
 
 
+### Run the case of Boisy & Estavayer [It needs access to confidential data]
 
-### Run the case of Boisy & Estavayer
-
-In the `dig-a-plan-data-processing` , if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
+In the `dig-a-plan-data-processing`, if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
 ```sh
 cd .. && make run-all
 ```
@@ -147,8 +144,6 @@ or
 poetry update
 ```
 
-
-
 ### Unit tests
 
 In a shell, run `make start`.
@@ -163,7 +158,3 @@ Or do the following for testsing both:
 make venv-activate
 make run-tests
 ```
-
-
-
-

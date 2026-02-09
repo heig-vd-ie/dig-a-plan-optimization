@@ -50,7 +50,6 @@ You will get an IP like 100.xx.yy.zz. When starting the Ray worker, use the head
 
 ### On the worker machine
 - You can SSH into the worker from the head machine. For this, you need an address like `user@worker-host` or `user@<worker-ip>`.
-If you don’t know the correct address, ask the admin (Mohammad)
 
 ### Required environment variable
 - `SERVER_RAY_PORT` must be set (usually via **.envrc**). If you use **direnv**, run:

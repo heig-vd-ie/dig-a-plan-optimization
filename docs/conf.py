@@ -8,7 +8,7 @@
 
 project = "Dig-A-Plan-Optimization"
 copyright = "2025, HEIG-VD (Institute of Energies)"
-author = "Mokhles-Gerami Adeleh, Tomasini Luca, Rayati Mohammad, Bozorg Mokhtar"
+author = "Institute of Energies"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -24,9 +24,12 @@ extensions = [
     "nbsphinx",
     "myst_parser",
     "sphinx_copybutton",
-    "pydata_sphinx_theme",
 ]
 
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 autosectionlabel_prefix_document = True
 
@@ -38,7 +41,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 html_static_path = ["_static"]
 
 html_css_files = [
@@ -56,3 +59,26 @@ mathjax3_config = {
         "useLabelIds": True,  # Add labels to elements
     },
 }
+
+html_theme_options = {
+    "light_css_variables": {
+        "color-brand-primary": "#336790",
+        "color-brand-content": "#336790",
+    },
+    # Optional: customize sidebar and navigation
+    "sidebar_hide_name": False,  # Show project name in sidebar
+    "navigation_with_keys": True,  # Enable keyboard navigation
+}
+
+import re
+from pathlib import Path
+
+
+def fix_readme_links():
+    readme = Path("../README.md").read_text()
+    # Adjust relative links
+    readme = re.sub(r"\]\(docs/", r"](", readme)
+    Path("intro.md").write_text(readme)
+
+
+fix_readme_links()
