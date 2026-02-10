@@ -123,7 +123,7 @@ function define_subsequent_stage_constraints!(
     @constraint(
         m,
         [cut in grid.cuts],
-        params.γ_cuts * (vars.θ[cut] - params.bender_cuts[cut].θ) >=
+        params.γ_cuts * (vars.θ[cut] - params.bender_cuts[cut].θ) + vars.slack[cut] >=
         sum(
             (states.actual_load[node].out - params.bender_cuts[cut].load0[node]) *
             params.bender_cuts[cut].λ_load[node] +
@@ -163,7 +163,7 @@ function define_objective!(
             sum(vars.θ[cut] for cut in grid.cuts) *
             params.penalty_costs_infeasibility *
             8760 / params.n_cut_scenarios
-        )
+        ) + (sum(vars.slack[cut] for cut in grid.cuts) * params.cut_slack_penalty)
     )
     return nothing
 end

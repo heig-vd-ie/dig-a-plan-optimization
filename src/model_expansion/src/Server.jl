@@ -250,6 +250,7 @@ function handle_stochastic_planning(req::HTTP.Request)
         bender_cuts,
         years_per_stage,
         n_cut_scenarios,
+        1000000.0,  # cut_slack_penalty
     )
 
     iteration_limit = additional_params["iteration_limit"]
