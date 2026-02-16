@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Local file chunker for large SDDP files.
-This script chunks large SDDP files locally in the cache folder before MongoDB import.
-"""
-
 import json
 import math
 import os
@@ -51,17 +45,19 @@ def chunk_sddp_file(
     if file_size_mb <= max_file_size_mb:
         return False
 
-    print(f"Chunking large file: {file_path} ({file_size_mb:.1f} MB)")
+    print(f"\033[32mChunking large file: {file_path} ({file_size_mb:.1f} MB)\033[0m")
 
     try:
         with file_path.open() as f:
             data = json.load(f)
     except (json.JSONDecodeError, MemoryError) as e:
-        print(f"Error loading {file_path}: {e}")
+        print(f"\033[31mError loading {file_path}: {e}\033[0m")
         return False
 
     if not is_sddp_response_file(data):
-        print(f"File {file_path} is not an SDDP response file, skipping chunking")
+        print(
+            f"\033[31mFile {file_path} is not an SDDP response file, skipping chunking\033[0m"
+        )
         return False
 
     simulations = data["simulations"]
@@ -134,14 +130,13 @@ def chunk_directory(directory: Path, chunk_size: int = 500, max_file_size_mb: in
     print(f"Chunked {chunked_count} large files")
 
 
-def main():
+def chunk_files():
     """Main function to chunk files in settings.cache.outputs_expansion directory."""
     base_dir = Path(settings.cache.outputs_expansion)
 
     if not base_dir.exists():
         print(f"Directory {base_dir} does not exist")
-        return
-
+        exit(1)
     # Default settings
     chunk_size = int(os.getenv("CHUNK_SIZE", "500"))
     max_file_size_mb = int(os.getenv("MAX_FILE_SIZE_MB", "15"))
@@ -153,7 +148,3 @@ def main():
     chunk_directory(base_dir, chunk_size, max_file_size_mb)
 
     print("\nChunking complete! You can now run mongo-tools.py to import the data.")
-
-
-if __name__ == "__main__":
-    main()
