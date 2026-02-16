@@ -25,7 +25,7 @@ def init_ray() -> Dict[str, Any]:
         address=SERVER_RAY_ADDRESS,
         runtime_env={
             "working_dir": os.getcwd(),
-            "excludes": ["**/*.parquet", ".cache/outputs**", ".cache/mongo**"],
+            "excludes": ["**/*.parquet", ".cache/outputs**", ".cache/pg**"],
         },
     )
     return {

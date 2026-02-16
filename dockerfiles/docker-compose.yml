@@ -1,16 +1,5 @@
 # syntax=docker/dockerfile:1.4
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: mongo-db
-    network_mode: host
-    ports:
-      - "${SERVER_MONGODB_PORT}:${SERVER_MONGODB_PORT}"
-    volumes:
-      - ../.cache/mongo:/data/mongo
-    command: --port ${SERVER_MONGODB_PORT}
-    restart: unless-stopped
-
   renderer:
     image: grafana/grafana-image-renderer:latest
 
@@ -99,3 +88,17 @@ services:
     restart: unless-stopped
     depends_on:
       - grafana
+
+  db:
+    image: postgres:15
+    container_name: sim_db
+    network_mode: host
+    restart: always
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    ports:
+      - "${SERVER_PG_PORT}:${SERVER_PG_PORT}"
+    volumes:
+      - /var/lib/postgresql/data

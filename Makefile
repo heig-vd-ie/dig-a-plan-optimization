@@ -2,7 +2,7 @@
 include Makefile.common.mak
 
 
-IMAGES := dap-py-api custom-grafana mongo:latest
+IMAGES := dap-py-api custom-grafana
 CACHE_FOLDER := .cache
 
 clean: ## Clean ignored files
@@ -17,19 +17,11 @@ install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-grafana
 	@$(MAKE) install-jl
 	@$(MAKE) install-docker
-	@$(MAKE) install-mongodb-gui
 
 install-grafana: ## Install Grafana
 	@echo "Installing Grafana..."
 	@sudo apt update
 	@sudo apt install -y grafana
-
-install-mongodb-gui: ## Install MongoDB GUI (MongoDB Compass)
-	@echo "Installing MongoDB Compass..."
-	@wget https://downloads.mongodb.com/compass/mongodb-compass_1.46.8_amd64.deb
-	@sudo dpkg -i mongodb-compass_1.46.8_amd64.deb
-	@sudo apt-get install -f
-	@rm mongodb-compass_1.46.8_amd64.deb
 
 install-jl:  ## Install Julia
 	@echo "Installing Julia..."
@@ -126,9 +118,8 @@ permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
-sync-mongodb: ## Sync data from MongoDB
-	@echo "Syncing data from MongoDB..."
+sync-pg: ## Sync data from PostgreSQL
+	@echo "Syncing data from PostgreSQL..."
 	$(MAKE) fix-cache-permissions
-	@.venv/bin/python ./src/data_display/mongo/tools.py --delete
-	@.venv/bin/python ./src/data_display/mongo/tools.py --chunk
-	@.venv/bin/python ./src/data_display/mongo/tools.py --sync --force
+	@.venv/bin/python ./src/data_display/pg/tools.py --reset
+	@.venv/bin/python ./src/data_display/pg/tools.py --sync --force
