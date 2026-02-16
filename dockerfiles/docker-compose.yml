@@ -11,6 +11,9 @@ services:
     command: --port ${SERVER_MONGODB_PORT}
     restart: unless-stopped
 
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+
   grafana:
     build:
       context: ./grafana
@@ -19,6 +22,8 @@ services:
     network_mode: host
     environment:
       - GF_SERVER_HTTP_PORT=${GRAFANA_PORT}
+      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://localhost:${GRAFANA_PORT}
     restart: unless-stopped
 
   python-api:
