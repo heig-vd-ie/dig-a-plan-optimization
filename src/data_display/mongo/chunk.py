@@ -3,6 +3,8 @@ import math
 import os
 from pathlib import Path
 from typing import Dict, Any
+
+from tqdm import tqdm
 from konfig import settings
 
 
@@ -74,7 +76,11 @@ def chunk_sddp_file(
     print(f"Creating {total_chunks} chunks with {chunk_size} simulations each")
 
     # Create chunks
-    for i in range(0, total_simulations, chunk_size):
+    for i in tqdm(
+        range(0, total_simulations, chunk_size),
+        total=total_chunks,
+        desc="Creating chunks",
+    ):
         end_idx = min(i + chunk_size, total_simulations)
         chunk_index = i // chunk_size
 
@@ -89,8 +95,6 @@ def chunk_sddp_file(
         with chunk_file.open("w") as f:
             json.dump(chunk_data, f)
 
-        print(f"  Created chunk {chunk_index}: {chunk_file}")
-
     # Create metadata file
     metadata = {
         "original_file": str(file_path),
@@ -104,8 +108,8 @@ def chunk_sddp_file(
     with metadata_file.open("w") as f:
         json.dump(metadata, f, indent=2)
 
-    print(f"  Created metadata: {metadata_file}")
-    print(f"Successfully chunked {file_path} into {total_chunks} files")
+    print(f"\033[32m  Created metadata: {metadata_file}\033[0m")
+    print(f"\033[32mSuccessfully chunked {file_path} into {total_chunks} files\033[0m")
 
     return True
 
@@ -113,10 +117,10 @@ def chunk_sddp_file(
 def chunk_directory(directory: Path, chunk_size: int = 500, max_file_size_mb: int = 15):
     """Chunk all large SDDP files in a directory."""
     if not directory.exists():
-        print(f"Directory {directory} does not exist")
+        print(f"\033[31mDirectory {directory} does not exist\033[0m")
         return
 
-    print(f"Scanning {directory} for large SDDP files...")
+    print(f"\033[32mScanning {directory} for large SDDP files...\033[0m")
 
     chunked_count = 0
     for json_file in directory.rglob("*.json"):
@@ -127,7 +131,7 @@ def chunk_directory(directory: Path, chunk_size: int = 500, max_file_size_mb: in
         if chunk_sddp_file(json_file, chunk_size, max_file_size_mb):
             chunked_count += 1
 
-    print(f"Chunked {chunked_count} large files")
+    print(f"\033[32mChunked {chunked_count} large files\033[0m")
 
 
 def chunk_files():
@@ -135,16 +139,14 @@ def chunk_files():
     base_dir = Path(settings.cache.outputs_expansion)
 
     if not base_dir.exists():
-        print(f"Directory {base_dir} does not exist")
+        print(f"\033[31mDirectory {base_dir} does not exist\033[0m")
         exit(1)
     # Default settings
     chunk_size = int(os.getenv("CHUNK_SIZE", "500"))
     max_file_size_mb = int(os.getenv("MAX_FILE_SIZE_MB", "15"))
 
     print(
-        f"Chunking files larger than {max_file_size_mb}MB with {chunk_size} simulations per chunk"
+        f"\033[32mChunking files larger than {max_file_size_mb}MB with {chunk_size} simulations per chunk\033[0m"
     )
 
     chunk_directory(base_dir, chunk_size, max_file_size_mb)
-
-    print("\nChunking complete! You can now run mongo-tools.py to import the data.")
