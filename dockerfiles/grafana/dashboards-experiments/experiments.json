@@ -98,23 +98,8 @@
                     "format": "table",
                     "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS Iteration5\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_5%'",
+                    "rawSql": "SELECT \n  (value)::float AS Iteration4\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_4%'",
                     "refId": "D",
-                    "sql": {
-                        "columns": [{ "parameters": [], "type": "function" }],
-                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                        "limit": 50
-                    }
-                },
-                {
-                    "dataset": "public",
-                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                    "editorMode": "code",
-                    "format": "table",
-                    "hide": false,
-                    "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS Iteration10\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_10%'",
-                    "refId": "E",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
                         "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
@@ -275,36 +260,34 @@
             "datasource": { "uid": "afdfds4gcs45ca" },
             "fieldConfig": {
                 "defaults": {
-                    "color": { "mode": "palette-classic" },
-                    "custom": {
-                        "fillOpacity": 20,
-                        "gradientMode": "none",
-                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                        "lineWidth": 2,
-                        "stacking": { "group": "A", "mode": "none" }
-                    },
+                    "color": { "mode": "thresholds" },
                     "mappings": [],
                     "thresholds": {
                         "mode": "absolute",
-                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "blue", "value": 80 }]
                     }
                 },
-                "overrides": []
+                "overrides": [
+                    {
+                        "matcher": { "id": "byName", "options": "< 80" },
+                        "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" }}]
+                    }
+                ]
             },
-            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 6 },
-            "id": 3,
+            "gridPos": { "h": 6, "w": 11, "x": 0, "y": 6 },
+            "id": 5,
             "options": {
-                "bucketCount": 50,
-                "combine": false,
-                "legend": {
-                    "calcs": [],
-                    "displayMode": "list",
-                    "placement": "bottom",
-                    "showLegend": true,
-                    "sortBy": "Name",
-                    "sortDesc": false
-                },
-                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+                "displayMode": "basic",
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "top",
+                "orientation": "horizontal",
+                "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
             },
             "pluginVersion": "12.3.3",
             "targets": [
@@ -313,23 +296,8 @@
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "rawSql": "SELECT \n  t1.val AS \"${Table1}\",\n  t2.val AS \"${Table2}\"\nFROM (\n  SELECT val::float, row_number() OVER () as idx\n  FROM $Table1, jsonb_array_elements_text(data->'objectives') AS val\n  WHERE source_file LIKE '%sddp_response_${iteration_number}%'\n) t1\nJOIN (\n  SELECT val::float, row_number() OVER () as idx\n  FROM $Table2, jsonb_array_elements_text(data->'objectives') AS val\n  WHERE source_file LIKE '%sddp_response_${iteration_number}%'\n) t2 ON t1.idx = t2.idx\nORDER BY t1.idx",
                     "refId": "A",
-                    "sql": {
-                        "columns": [{ "parameters": [], "type": "function" }],
-                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                        "limit": 50
-                    }
-                },
-                {
-                    "dataset": "public",
-                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                    "editorMode": "code",
-                    "format": "table",
-                    "hide": false,
-                    "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
-                    "refId": "B",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
                         "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
@@ -337,9 +305,9 @@
                     }
                 }
             ],
-            "title": "$Table1 (In sample vs out of sample)",
+            "title": "$Table1 vs $Table2",
             "transparent": true,
-            "type": "histogram"
+            "type": "bargauge"
         },
         {
             "datasource": { "uid": "afdfds4gcs45ca" },
@@ -398,7 +366,7 @@
                     "format": "table",
                     "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM(simulation_delta_sum) AS \"δ_cap\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Summing the δ_cap list inside the Simulation object\n    (SELECT SUM(val::float) FROM jsonb_array_elements_text(sim_obj->'δ_cap') AS val) AS simulation_delta_sum\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS flattened_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC",
                     "refId": "B",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -410,6 +378,76 @@
             "title": "$Table1",
             "transparent": true,
             "type": "xychart"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "fillOpacity": 20,
+                        "gradientMode": "none",
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "lineWidth": 2,
+                        "stacking": { "group": "A", "mode": "none" }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 12 },
+            "id": 3,
+            "options": {
+                "bucketCount": 50,
+                "combine": false,
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true,
+                    "sortBy": "Name",
+                    "sortDesc": false
+                },
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "$Table1 (In sample vs out of sample)",
+            "transparent": true,
+            "type": "histogram"
         }
     ],
     "preload": false,
