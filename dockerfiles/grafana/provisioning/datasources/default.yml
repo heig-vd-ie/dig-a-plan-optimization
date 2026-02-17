@@ -6,4 +6,18 @@ datasources:
   name: Prometheus
   secureJsonData: {}
   type: prometheus
-  url: http://localhost:9090
+  apiVersion: 1
+- name: PostgreSQL
+  type: postgres
+  uid: "afdfds4gcs45ca"
+  access: proxy
+  url: localhost:5432
+  user: postgres
+  database: experiments
+  editable: true
+  postgresVersion: 15
+  jsonData:
+    sslmode: "disable"
+    timescaledb: false
+  secureJsonData:
+    password: "postgres"
