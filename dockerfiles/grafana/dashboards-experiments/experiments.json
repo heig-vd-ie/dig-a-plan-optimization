@@ -350,8 +350,9 @@
                     "dataset": "public",
                     "editorMode": "code",
                     "format": "table",
+                    "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  -- Extracting the nested fields\n  (sim_obj->>'node_index')::int AS node_index,\n  (sim_obj->>'stage_objective')::float AS stage_objective\nFROM \n  $Table1,\n  -- Step 1: Flatten the outer list (List[List[Simulation]])\n  jsonb_array_elements(data->'simulations') AS sub_list,\n  -- Step 2: Flatten the inner list (List[Simulation])\n  jsonb_array_elements(sub_list) AS sim_obj\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "rawSql": "SELECT \n  -- Extracting the nested fields\n  (sim_obj->>'node_index')::int AS node_index,\n  (sim_obj->>'stage_objective')::float AS stage_objective,\n  ((sim_obj->>'investment_cost')::float * 1000) AS investment_cost\nFROM \n  $Table1,\n  -- Step 1: Flatten the outer list (List[List[Simulation]])\n  jsonb_array_elements(data->'simulations') AS sub_list,\n  -- Step 2: Flatten the inner list (List[Simulation])\n  jsonb_array_elements(sub_list) AS sim_obj\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -364,10 +365,25 @@
                     "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
-                    "hide": false,
+                    "hide": true,
                     "rawQuery": true,
                     "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM(simulation_delta_sum) AS \"δ_cap\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Summing the δ_cap list inside the Simulation object\n    (SELECT SUM(val::float) FROM jsonb_array_elements_text(sim_obj->'δ_cap') AS val) AS simulation_delta_sum\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS flattened_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC",
                     "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": true,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM((unmet_item->>'out')::float) AS \"Total_Unmet_Load_Out\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Expanding the list of StateVar objects\n    jsonb_array_elements(sim_obj->'total_unmet_pv') AS unmet_item\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS expanded_unmet_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC;",
+                    "refId": "C",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
                         "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
