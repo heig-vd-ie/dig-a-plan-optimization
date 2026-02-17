@@ -107,29 +107,24 @@ def ensure_table(cur, table_name: str):
     )
 
 
-def chunk_dict(data, chunk_size=5000):
+def chunk_sddp_response(data: list[dict], divided_by: int = 10) -> list:
     """
-    If a dict contains a very long list, break it into a list of smaller dicts.
+    Docstring for chunk_sddp_response
+
+    :param data: Description
+    :type data: dict | list
+    :param chunk_size: Description
     """
-    # Find the largest list in the dictionary to split it
-    large_key = None
-    for key, value in data.items():
-        if isinstance(value, list) and len(value) > chunk_size:
-            large_key = key
-            break
-
-    if not large_key:
-        return [data]  # Can't chunk effectively, return as is
-
-    original_list = data[large_key]
-    chunks = []
-    for i in range(0, len(original_list), chunk_size):
-        new_chunk = data.copy()
-        new_chunk[large_key] = original_list[i : i + chunk_size]
-        new_chunk["_chunk_index"] = i // chunk_size
-        chunks.append(new_chunk)
-
-    return chunks
+    if len(data) == 0:
+        return data
+    final_results = []
+    for i in range(divided_by):
+        chunk = {}
+        for key, value in data[0].items():
+            chunk_size = len(value) // divided_by
+            chunk[key] = value[i * chunk_size : (i + 1) * chunk_size]
+        final_results.append(chunk)
+    return final_results
 
 
 def import_file(path: Path, table_name: str, conn, force: bool) -> None:
@@ -147,12 +142,6 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
     raw_json_str = json.dumps(data)
     data_to_upload = [data]
 
-    if len(raw_json_str) > 250_000_000:  # 250MB Safety threshold
-        print(
-            f"{ORANGE}File {path.name} too large ({len(raw_json_str)} bytes). Chunking...{RESET}"
-        )
-        data_to_upload = chunk_dict(data)
-
     cur = conn.cursor()
     try:
         for entry in data_to_upload:
@@ -168,8 +157,24 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
         # Specific check for the Postgres Size Error
         if "total size of jsonb object elements exceeds the maximum" in str(e):
             print(
-                f"{ORANGE}Error: File {path.name} still too large after chunking. Check nested structures.{RESET}"
+                f"{ORANGE}File {path.name} too large ({len(raw_json_str)} bytes). Chunking...{RESET}"
             )
+            data_to_upload = chunk_sddp_response(data_to_upload, divided_by=10)
+            for idx, entry in enumerate(
+                tqdm(data_to_upload, desc=f"Chunking {path.name}")
+            ):
+                try:
+                    unique_path = f"{path}_part_{idx}"
+                    cur.execute(
+                        sql.SQL(
+                            "INSERT INTO {} (source_file, data) VALUES (%s, %s)"
+                        ).format(sql.Identifier(table_name)),
+                        (unique_path, json.dumps(entry)),
+                    )
+                    conn.commit()
+                except Exception as e2:
+                    conn.rollback()
+                    print(f"\033[31mError inserting {path} after chunking: {e2}\033[0m")
         else:
             print(f"\033[31mError inserting {path}: {e}\033[0m")
     finally:
