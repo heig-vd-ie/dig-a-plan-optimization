@@ -525,6 +525,67 @@
             "title": "$Table1",
             "transparent": true,
             "type": "xychart"
+        },
+        {
+            "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "circle",
+                        "pointSize": { "fixed": 1, "max": 40, "min": 0.001 },
+                        "pointStrokeWidth": 1,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+            "id": 7,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "frame": { "matcher": { "id": "byIndex", "options": 0 }},
+                        "size": { "matcher": { "id": "byName", "options": "capacity" }},
+                        "x": { "matcher": { "id": "byName", "options": "latitude" }},
+                        "y": { "matcher": { "id": "byName", "options": "longitude" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "experiments",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    (item->'p_max_pu')::numeric AS \"capacity\"\nFROM \n    $Table1 AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file = 'net';",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "New panel",
+            "type": "xychart"
         }
     ],
     "preload": false,
