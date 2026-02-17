@@ -63,7 +63,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -78,7 +78,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -93,7 +93,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -108,7 +108,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -123,7 +123,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -138,7 +138,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -153,7 +153,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -168,7 +168,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -183,7 +183,7 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
@@ -243,7 +243,7 @@
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS $Table1\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_4%'",
+                    "rawSql": "SELECT \n  (value)::float AS $Table1\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -253,12 +253,12 @@
                 },
                 {
                     "dataset": "public",
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                     "editorMode": "code",
                     "format": "table",
                     "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS $Table2\nFROM \n  $Table2, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_4%'",
+                    "rawSql": "SELECT \n  (value)::float AS $Table2\nFROM \n  $Table2, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
                     "refId": "B",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -279,7 +279,7 @@
         "list": [
             {
                 "current": { "text": "run_ieee33", "value": "run_ieee33" },
-                "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                 "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
                 "name": "Table1",
                 "options": [],
@@ -290,7 +290,7 @@
             },
             {
                 "current": { "text": "run_deleteit", "value": "run_deleteit" },
-                "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                 "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
                 "name": "Table2",
                 "options": [],
@@ -300,7 +300,7 @@
                 "type": "query"
             },
             {
-                "current": { "text": "1", "value": "1" },
+                "current": { "text": "5", "value": "5" },
                 "name": "iteration_number",
                 "options": [
                     { "selected": true, "text": "1", "value": "1" },
