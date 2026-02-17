@@ -1,4 +1,5 @@
 import os
+import json
 from pydantic import BaseModel, ConfigDict
 import patito as pt
 import ray
@@ -420,6 +421,16 @@ def heavy_task(
         δ_cap=sddp_simulation.δ_cap,
         edge_ids=edge_ids,
     )
+    recorded_edge_data = admm.grid_data.edge_data.to_dicts()
+    with open(
+        PROJECT_ROOT
+        / cache_dir_run
+        / "admm"
+        / f"recorded_edge_data_iter{ι}_stage{stage}_scen{ω}.json",
+        "w",
+    ) as f:
+        json.dump(recorded_edge_data, f, indent=2)
+
     admm_results = admm.solve(fixed_switches=fixed_switches)
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
