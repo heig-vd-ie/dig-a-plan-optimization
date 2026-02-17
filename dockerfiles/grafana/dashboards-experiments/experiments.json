@@ -543,10 +543,10 @@
                         "axisColorMode": "text",
                         "axisLabel": "",
                         "axisPlacement": "auto",
-                        "fillOpacity": 50,
+                        "fillOpacity": 61,
                         "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                         "pointShape": "circle",
-                        "pointSize": { "fixed": 1, "max": 40, "min": 0.001 },
+                        "pointSize": { "fixed": 2, "max": 40, "min": 0.001 },
                         "pointStrokeWidth": 1,
                         "scaleDistribution": { "type": "linear" },
                         "show": "points"
@@ -562,8 +562,8 @@
             "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
             "id": 7,
             "options": {
-                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                "mapping": "auto",
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+                "mapping": "manual",
                 "series": [
                     {
                         "frame": { "matcher": { "id": "byIndex", "options": 0 }},
@@ -581,7 +581,7 @@
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    (item->'p_max_pu')::numeric AS \"capacity\"\nFROM \n    $Table1 AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file = 'net';",
+                    "rawSql": "SELECT \n    -- 1. Flexible Regex: 'iter' followed by any non-digits, then capturing the digits\n    (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int AS iteration,\n    \n    -- 2. Flexible Regex: Handles 'stage' or 'st' if the name varies\n    (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int AS stage,\n    \n    -- 3. Flexible Regex: Handles 'scen' or 'scenario'\n    (substring(t.source_file FROM 'scen[^0-9]*(\\d+)'))::int AS scenario,\n\n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    AVG((item->'p_max_pu')::numeric) AS \"capacity\"\nFROM \n    $Table1 AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file ILIKE '%recorded_edge_data_iter%'\n    AND (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int = $iteration_number\n    AND (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int = $stage\nGROUP BY 1,2,3,4,5,6,7;",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -637,6 +637,19 @@
                     { "selected": false, "text": "10", "value": "10" }
                 ],
                 "query": "1,2,3,4,5,6,7,8,9,10",
+                "type": "custom"
+            },
+            {
+                "current": { "text": "1", "value": "1" },
+                "name": "stage",
+                "options": [
+                    { "selected": true, "text": "1", "value": "1" },
+                    { "selected": false, "text": "2", "value": "2" },
+                    { "selected": false, "text": "3", "value": "3" },
+                    { "selected": false, "text": "4", "value": "4" },
+                    { "selected": false, "text": "5", "value": "5" }
+                ],
+                "query": "1,2,3,4,5",
                 "type": "custom"
             }
         ]
