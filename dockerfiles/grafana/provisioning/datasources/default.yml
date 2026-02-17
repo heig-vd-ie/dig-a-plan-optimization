@@ -1,23 +1,26 @@
 apiVersion: 1
 datasources:
-- access: proxy
-  isDefault: true
-  jsonData: {}
-  name: Prometheus
-  secureJsonData: {}
-  type: prometheus
-  apiVersion: 1
-- name: PostgreSQL
-  type: postgres
-  uid: "afdfds4gcs45ca"
-  access: proxy
-  url: localhost:5432
-  user: postgres
-  database: experiments
-  editable: true
-  postgresVersion: 15
-  jsonData:
-    sslmode: "disable"
-    timescaledb: false
-  secureJsonData:
-    password: "postgres"
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # Use localhost because of network_mode: host
+    url: http://localhost:9090 
+    isDefault: false
+    editable: true
+
+  - name: PostgreSQL
+    type: postgres
+    uid: "afdfds4gcs45ca"
+    access: proxy
+    # Use localhost because of network_mode: host
+    url: localhost:5432 
+    user: postgres
+    database: experiments
+    isDefault: true # This makes Postgres your primary source
+    editable: true
+    jsonData:
+      sslmode: "disable"
+      postgresVersion: 15
+      timescaledb: false
+    secureJsonData:
+      password: "postgres"

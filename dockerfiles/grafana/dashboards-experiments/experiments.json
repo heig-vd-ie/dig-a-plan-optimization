@@ -22,6 +22,189 @@
             "datasource": { "uid": "afdfds4gcs45ca" },
             "fieldConfig": {
                 "defaults": {
+                    "color": { "mode": "thresholds" },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "blue", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 6, "w": 11, "x": 0, "y": 0 },
+            "id": 2,
+            "options": {
+                "displayMode": "basic",
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+                "maxVizHeight": 300,
+                "minVizHeight": 16,
+                "minVizWidth": 8,
+                "namePlacement": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": false },
+                "showUnfilled": true,
+                "sizing": "auto",
+                "valueMode": "color"
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration1\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_1%'",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration2\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_2%'",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration3\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_3%'",
+                    "refId": "C",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration5\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_5%'",
+                    "refId": "D",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration10\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_10%'",
+                    "refId": "E",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration5\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_5%'",
+                    "refId": "F",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration6\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_6%'",
+                    "refId": "G",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration7\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_7%'",
+                    "refId": "H",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration8\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_8%'",
+                    "refId": "I",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS Iteration9\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_9%'",
+                    "refId": "J",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "$Table1",
+            "transparent": true,
+            "type": "bargauge"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
                     "color": { "mode": "palette-classic" },
                     "custom": {
                         "fillOpacity": 20,
@@ -38,7 +221,7 @@
                 },
                 "overrides": []
             },
-            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 0 },
+            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 6 },
             "id": 1,
             "options": {
                 "bucketCount": 50,
@@ -85,6 +268,7 @@
                 }
             ],
             "title": "",
+            "transparent": true,
             "type": "histogram"
         }
     ],
@@ -114,11 +298,29 @@
                 "refresh": 1,
                 "regex": "",
                 "type": "query"
+            },
+            {
+                "current": { "text": "1", "value": "1" },
+                "name": "iteration_number",
+                "options": [
+                    { "selected": true, "text": "1", "value": "1" },
+                    { "selected": false, "text": "2", "value": "2" },
+                    { "selected": false, "text": "3", "value": "3" },
+                    { "selected": false, "text": "4", "value": "4" },
+                    { "selected": false, "text": "5", "value": "5" },
+                    { "selected": false, "text": "6", "value": "6" },
+                    { "selected": false, "text": "7", "value": "7" },
+                    { "selected": false, "text": "8", "value": "8" },
+                    { "selected": false, "text": "9", "value": "9" },
+                    { "selected": false, "text": "10", "value": "10" }
+                ],
+                "query": "1,2,3,4,5,6,7,8,9,10",
+                "type": "custom"
             }
         ]
     },
     "time": { "from": "now-6h", "to": "now" },
-    "timepicker": {},
+    "timepicker": { "hidden": true },
     "timezone": "browser",
     "title": "Experiments",
     "uid": "adg7cw7",

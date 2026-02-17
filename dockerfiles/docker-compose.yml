@@ -13,6 +13,7 @@ services:
       - GF_SERVER_HTTP_PORT=${GRAFANA_PORT}
       - GF_RENDERING_SERVER_URL=http://renderer:8081/render
       - GF_RENDERING_CALLBACK_URL=http://localhost:${GRAFANA_PORT}
+      - GF_USERS_DEFAULT_THEME=light # Options: dark, light, or system
     restart: unless-stopped
 
   python-api:
