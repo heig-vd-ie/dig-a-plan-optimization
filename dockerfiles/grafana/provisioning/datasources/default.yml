@@ -19,6 +19,7 @@ datasources:
     isDefault: true # This makes Postgres your primary source
     editable: true
     jsonData:
+      database: "experiments"
       sslmode: "disable"
       postgresVersion: 15
       timescaledb: false

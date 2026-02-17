@@ -221,7 +221,7 @@
                 },
                 "overrides": []
             },
-            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 6 },
+            "gridPos": { "h": 9, "w": 11, "x": 12, "y": 0 },
             "id": 1,
             "options": {
                 "bucketCount": 50,
@@ -267,7 +267,77 @@
                     }
                 }
             ],
-            "title": "",
+            "title": "$Table1 vs $Table2",
+            "transparent": true,
+            "type": "histogram"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "fillOpacity": 20,
+                        "gradientMode": "none",
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "lineWidth": 2,
+                        "stacking": { "group": "A", "mode": "none" }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 6 },
+            "id": 3,
+            "options": {
+                "bucketCount": 50,
+                "combine": false,
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true,
+                    "sortBy": "Name",
+                    "sortDesc": false
+                },
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Table1, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "$Table1 (In sample vs out of sample)",
             "transparent": true,
             "type": "histogram"
         }
