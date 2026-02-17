@@ -22,7 +22,7 @@ import click
     help="Run with ray or not",
 )
 @click.option(
-    "--fixedswitches",
+    "--fixed_switches",
     type=bool,
     default=False,
     help="ADMM optimization consider switches are fixed or try to optimize it",
@@ -47,7 +47,7 @@ def expansion_planning_script(
     kace: str,
     withapi: bool,
     withray: bool,
-    fixedswitches: bool,
+    fixed_switches: bool,
     admmiter: int,
     riskmeasuretype: str,
     riskmeasureparam: int,
@@ -70,10 +70,10 @@ def expansion_planning_script(
     payload = json.load(open(payload_file, "r"))
 
     # FIXEDSWITCHES
-    if fixedswitches:
-        payload["admm_config"]["fixedswitches"] = True
+    if fixed_switches:
+        payload["admm_config"]["fixed_switches"] = True
     else:
-        payload["admm_config"]["fixedswitches"] = False
+        payload["admm_config"]["fixed_switches"] = False
 
     # ADMMITER
     if admmiter != -1:

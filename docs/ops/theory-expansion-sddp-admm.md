@@ -98,7 +98,7 @@ Select the SDDP risk measure.
 - riskmeasureparam <value>:
 Set the risk-measure parameter used by SDDP.
 
-- fixedswitches true|false:
+- fixed_switches true|false:
 If true, ADMM treats switches as fixed (no switching optimization).
 
 Outputs are saved under .cache/.
