@@ -464,6 +464,97 @@
             "title": "$Table1 (In sample vs out of sample)",
             "transparent": true,
             "type": "histogram"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "circle",
+                        "pointSize": { "fixed": 5 },
+                        "pointStrokeWidth": 1,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 9, "w": 11, "x": 12, "y": 18 },
+            "id": 6,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "x": { "matcher": { "id": "byName", "options": "stage" }},
+                        "y": { "matcher": { "id": "byName", "options": "v_pu" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "WITH extracted_data AS (\n    SELECT \n      -- Using negative indices to count from the end of the filename string\n      REPLACE(split_part(t.source_file, '_', -3), 'iter', '')::int AS iteration,\n      REPLACE(split_part(t.source_file, '_', -2), 'stage', '')::int AS stage,\n      REPLACE(REPLACE(split_part(t.source_file, '_', -1), 'scen', ''), '.json', '')::int AS scenario,\n      v.internal_scen,\n      (node_data->>'node_id')::int AS node_id,\n      (node_data->>'v_pu')::float AS v_pu\n    FROM \n      $Table1 t\n    LEFT JOIN LATERAL jsonb_each(t.data->'voltage') AS v(internal_scen, node_list) ON TRUE\n    LEFT JOIN LATERAL jsonb_array_elements(v.node_list) AS node_data ON TRUE\n    WHERE \n      t.source_file ILIKE '%admm_result_iter%'\n)\nSELECT * FROM extracted_data\nWHERE iteration = (SELECT MAX(iteration) FROM extracted_data)\nORDER BY stage, scenario, internal_scen, node_id;",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": true,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM(simulation_delta_sum) AS \"δ_cap\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Summing the δ_cap list inside the Simulation object\n    (SELECT SUM(val::float) FROM jsonb_array_elements_text(sim_obj->'δ_cap') AS val) AS simulation_delta_sum\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS flattened_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": true,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM((unmet_item->>'out')::float) AS \"Total_Unmet_Load_Out\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Expanding the list of StateVar objects\n    jsonb_array_elements(sim_obj->'total_unmet_pv') AS unmet_item\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS expanded_unmet_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC;",
+                    "refId": "C",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "$Table1",
+            "transparent": true,
+            "type": "xychart"
         }
     ],
     "preload": false,
