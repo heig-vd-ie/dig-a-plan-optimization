@@ -94,6 +94,8 @@ python experiments/expansion_planning_script.py --help
 
 - For more information regarding Julia, go to [docs/ops/Julia/expansion-planning.md](docs/ops/Julia/expansion-planning.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
 
+- For more information regarding looking at results, go to [docs/ops/figures.md](docs/ops/figures.md).
+
 
 ### Run the case of Boisy & Estavayer [It needs access to confidential data]
 
