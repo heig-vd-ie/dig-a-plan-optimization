@@ -1,81 +1,148 @@
-# Dig-A-Plan Optimization
+# Dig-A-Plan Planning Tool
 
-Dig-A-Plan is a scalable optimization framework for distribution grid planning and operational reconfiguration under uncertainty.  
-It combines:
-- a **multistage expansion model** (SDDP) for long-term reinforcement planning, and  
-- a **scenario-based ADMM solver** for operational feasibility checks, network reconfiguration (switching), and OLTC tap control across many load and PV scenarios.
+![Description](docs/images/grid.jpg)
 
-The framework is designed to handle large real-world distribution networks (from 33-bus test systems up to 10'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
+*© HEIG-VD, 2025*
 
-Common commands are available in the `Makefile`. To view available options, simply run `make` in your shell.
+Dig-A-Plan is a scalable optimization tool designed for distribution grid planning and operational reconfiguration. It bridges the gap between long-term investment and short-term operational flexibility under uncertainty by combining two core modules:
+- **Multistage Expansion Planning (Long-term).** This module optimizes the long-term expansion of physical infrastructure, such as cables and transformers. It utilizes Stochastic Dual Dynamic Programming (SDDP) to handle complex, multistage decision-making processes over long horizons while accounting for uncertainty.
+- **Switching Reconfiguration Planning (Operational).** This module performs operational feasibility checks and manages network topology through switching and OLTC (On-Load Tap Changer) control. It evaluates numerous load and PV scenarios using a Scenario-based ADMM (Alternating Direction Method of Multipliers) approach to ensure the grid remains stable and efficient across varying conditions.
 
+The proposed tool is designed to handle large real-world distribution networks (from 33-bus test systems up to 1'000+ nodes) and ensures that long-term planning decisions remain operationally feasible under realistic uncertainty.
 
-## Initial Setup
+For the theory behind the **SDDP ↔ ADMM** coupling (cuts, planning/operation loop), see: [here](docs/ops/theory-expansion-sddp-admm.md). There is also a publication explaining the method behind using ADMM for switching reconfiguration planning, see [here](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5968040). 
 
-To install all dependencies on a new machine, run:
+## Requirements
+
+- Linux or WSL on windows.
+- Common tools such as `make`, `docker`, `tmux`, `julia`, and `python 3.12`.
+- **Gurobi license**: Request a (WSL) license at https://license.gurobi.com/ and save it to:
+  - `~/gurobi_license/gurobi.lic`
+
+## Installation
+
+1. **Clone the repository**
 ```sh
-make install-all
+   git clone https://github.com/heig-vd-ie/dig-a-plan-optimization
+   cd dig-a-plan-optimization
 ```
-
-You will need a Gurobi license to run this project. Visit [https://license.gurobi.com/](https://license.gurobi.com/), request a new WSL license for your machine, and save it to `~/gurobi_license/gurobi.lic`.
-
-Code formatting is handled automatically with `black`. Please install the Black extension in VS Code and enable it for consistent formatting.
-
-
-### Activating the Virtual Environment and Setting Environment Variables
-
-Each time you start working on the project, activate the virtual environment by running:
+2. **Install make (Ubuntu/WSL only, if not already installed)**
 ```sh
-make venv-activate
+    sudo apt update
+    sudo apt install make
 ```
+3. **Install project dependencies**
+```sh
+    make install-all
+```
+If this fails and you can’t resolve it quickly, please open an issue (or contact the maintainers)
 
 ## Run application
 
-You can run the following to run all existing servers (Julia, Python, RAY, GRAFANA, and Worker). 
+1. **Activating the Virtual Environment and Setting Environment Variables (each time you work on the project)**
+
 ```sh
-make build  # if it fails because of poetry, use `poetry lock`
-make start
+    make venv-activate
+```
+2. **Build and start all services**
+
+This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker processes). 
+```sh
+    make build  # if it fails because of poetry, use `poetry lock`
+    make start
+```
+3. **Use the tmux session**
+
+**make start** opens a tmux session with three panes:
+
+```text
++------------------------------+
+| Services logs                |
+| (Julia / Python / Grafana)   |
++------------------------------+
+| Ray logs / worker processes  |
++------------------------------+
+| Interactive shell            |
+| (run commands & experiments) |
++------------------------------+
+
+Navigation: Ctrl + B, then Down Arrow → move to the next pane
 ```
 
-### Access to worker Machine
-
-1. You need to update the following env variable (in `.envrc`) based on your IP so it detects the HEAD machine running Ray:
+4. **Run an experiment (example: IEEE-33 reconfiguration)**
+From the interactive pane: 
 ```sh
-export HEAD_HOST=10.192.189.51
+    python experiments/ieee_33/01-reconfiguration-admm.py
 ```
-> Note: Run `make show-current-specs` to get the ip of current machine.
+For details about reconfiguration runs (per Benders / combined / ADMM), see [here](docs/ops/theory-reconfiguration.md).
 
-2. For access to the Worker machine, you need to add your ssh key in the worker machine:
+5. **Run the expansion problem**
+
+The **expansion** computes a multi-stage reinforcement plan (lines/transformers) under uncertainty (load/PV scenarios).  
+It is solved with **SDDP** (Julia service). After each SDDP iteration, the pipeline runs **ADMM** (Python) as an operational feasibility check and uses the results to generate cuts that guide the next planning iteration.
+
+Run an example (IEEE-33):
 ```sh
-ls ~/.ssh/
-ssh-keygen -y -f ~/.ssh/id_rsa > ~/.ssh/id_rsa.pub
-ssh-copy-id -i ~/.ssh/id_rsa.pub user@address
+python experiments/expansion_planning_script.py --kace ieee_33 --cachename run_ieee33
 ```
-Contact Mohammad for getting `user@access`. 
+To see all available options:
+```sh
+python experiments/expansion_planning_script.py --help
+```
 
-### Run the expansion problem
+- Results are saved under .cache/output_expansion`
 
-You can run the respected endpoint.
+- For more information regarding Julia, go to [docs/ops/Julia/expansion-planning.md](docs/ops/Julia/expansion-planning.md) and check following doc [here](docs/ops/Julia/01-install-julia.md).
 
-The results will be saved in the folder of `.cache`.
 
-### Run the case of Boisy & Estavayer
+### Run the case of Boisy & Estavayer [It needs access to confidential data]
 
-In the `dig-a-plan-monorepo` (one folder above this project), if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
+In the `dig-a-plan-data-processing`, if you run the following target, you will get the data needed for boisy and Estavayer in `.cache` folder of this project.
 ```sh
 cd .. && make run-all
 ```
 
-### Dashboards
+## Ray worker
 
-1. FastAPI endpoints: [http://localhost:8000/docs#](http://localhost:8000/docs#)
-2. Ray Dashboard: [http://localhost:8265](http://localhost:8265)
-3. Grafana Dashboard [http://localhost:4000](http://localhost:4000)
-4. Prometheous Dashboard: [http://localhost:9090](http://localhost:9090)
-5. MongoDB GUI: `mongodb-compass` in a separate terminal
+This project can run heavy tasks on a **remote Ray worker**. The default setup assumes machines are connected via **Tailscale** (virtual network).
 
+1. Start the stack on the **head** machine:
+```sh
+   make start
+```
+This typically:
+
+starts Docker services (Python/FastAPI, Julia SDDP service, Grafana/Prometheus/Mongo),
+
+opens a tmux session with panes for logs and an interactive shell.
+
+2. Connect to the worker machine with ssh:
+```sh
+    ssh `user@worker-host` or `user@<worker-Tailscale IP>`
+```
+Or use the helper comment:
+```sh
+    make connect-ray-worker
+```
+3. On the worker machine, start the Ray worker and connect it to the head:
+```sh
+    make run-ray-worker
+```
+
+For full setup details (Tailscale, SSH keys, troubleshooting), see [here](docs/ops/ray-worker.md) 
 
 ## Development
+
+1. Code formatting is handled automatically with `black`. Please install the **Black** extension in VS Code and enable **format on save** for consistent formatting.
+
+2. Updating the Virtual Environment or Packages: If you need to update packages listed in `pyproject.toml`, use:
+```sh
+make poetry-update
+```
+or
+```sh
+poetry update
+```
 
 ### Unit tests
 
@@ -90,32 +157,4 @@ Or do the following for testsing both:
 ```sh
 make venv-activate
 make run-tests
-```
-
-### Updating the Virtual Environment or Packages
-
-If you need to update packages listed in `pyproject.toml`, use:
-```sh
-make poetry-update
-```
-or
-```sh
-poetry update
-```
-
-### Julia
-For more information regarding Julia, go to [src/model_expansion/README.md](src/model_expansion/README.md) and check following doc [here](docs/Julia/01-install-julia.md).
-
-
-### Add local network
-On linux:
-```sh
-# Add Tailscale repo
-curl -fsSL https://tailscale.com/install.sh | sh
-# Start Tailscale
-sudo tailscale up
-```
-
-```sh
-tailscale ip
 ```

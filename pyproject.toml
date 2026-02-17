@@ -48,6 +48,7 @@ numpy = "<2.0.0"
 pylint = "^4.0.4"
 mypy = "^1.19.1"
 click = "^8.3.1"
+furo = "^2025.12.19"
 
 
 [tool.poetry.group.dev.dependencies]

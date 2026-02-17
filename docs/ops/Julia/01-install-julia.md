@@ -1,8 +1,8 @@
 # Install Julia
 
 ## In WSL
-### ✅ Step-by-Step Setup: Julia in VS Code on WSL
-#### 🧱 Prerequisites
+### Step-by-Step Setup: Julia in VS Code on WSL
+#### Prerequisites
 
 WSL installed (preferably WSL2)
 

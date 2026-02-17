@@ -37,7 +37,7 @@ using JuMP, SDDP, Plots
 println("Everything is ready!")
 ```
 
-🧠 This ensures your script can be run from anywhere and still use the local project environment.
+- This ensures your script can be run from anywhere and still use the local project environment.
 
 3. Run Your Script (Anywhere, Any Time)
 From WSL or terminal:

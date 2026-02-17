@@ -14,9 +14,3 @@ This project provides a stochastic programming framework for expansion, reinforc
    ```
    This ensures all modules in `src/` are available to the example and any additional scripts you include.
 
-## Documentation
-- See the `docs/` folder for installation and project guides.
-
-   - [docs/Julia/01-install-julia.md]()
-   - [docs/Julia/02-create-julia-projects]()
-   - [docs/Julia/03-hydro-thermal-sddp.md]()
