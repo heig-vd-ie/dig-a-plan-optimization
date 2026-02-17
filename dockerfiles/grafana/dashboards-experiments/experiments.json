@@ -322,9 +322,9 @@
                         "axisPlacement": "auto",
                         "fillOpacity": 50,
                         "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                        "pointShape": "circle",
-                        "pointSize": { "fixed": 5 },
-                        "pointStrokeWidth": 1,
+                        "pointShape": "square",
+                        "pointSize": { "fixed": 5, "max": 10 },
+                        "pointStrokeWidth": 0,
                         "scaleDistribution": { "type": "linear" },
                         "show": "points"
                     },
@@ -341,7 +341,13 @@
             "options": {
                 "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
                 "mapping": "auto",
-                "series": [{}],
+                "series": [
+                    {
+                        "frame": { "matcher": { "id": "byIndex", "options": 0 }},
+                        "size": { "matcher": { "id": "byName", "options": "percentage" }},
+                        "y": { "matcher": { "id": "byName", "options": "total_cost" }}
+                    }
+                ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
             "pluginVersion": "12.3.3",
@@ -352,7 +358,7 @@
                     "format": "table",
                     "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  -- Extracting the nested fields\n  (sim_obj->>'node_index')::int AS node_index,\n  (sim_obj->>'stage_objective')::float AS stage_objective,\n  ((sim_obj->>'investment_cost')::float * 1000) AS investment_cost\nFROM \n  $Table1,\n  -- Step 1: Flatten the outer list (List[List[Simulation]])\n  jsonb_array_elements(data->'simulations') AS sub_list,\n  -- Step 2: Flatten the inner list (List[Simulation])\n  jsonb_array_elements(sub_list) AS sim_obj\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "rawSql": "WITH calculated_data AS (\n  SELECT \n    (sim_obj->>'node_index')::float AS stage,\n    -- Calculate Total Cost (NPV adjusted per your formula)\n    ((sim_obj->>'obj')::float) / (1 / (1 + 0.05))^((sim_obj->>'node_index')::float * 5 - 1) AS total_cost,\n    ((sim_obj->>'investment_cost')::float) AS investment_cost\n  FROM \n    $Table1,\n    jsonb_array_elements(data->'simulations') AS sub_list,\n    jsonb_array_elements(sub_list) AS sim_obj\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n)\nSELECT\n  stage,\n  investment_cost / (total_cost+0.001) AS percentage,\n  total_cost\nFROM calculated_data\nORDER BY stage ASC;",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -391,7 +397,7 @@
                     }
                 }
             ],
-            "title": "$Table1",
+            "title": "$Table1 stage1",
             "transparent": true,
             "type": "xychart"
         },
