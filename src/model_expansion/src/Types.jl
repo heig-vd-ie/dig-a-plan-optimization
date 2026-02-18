@@ -59,6 +59,7 @@ struct PlanningParams
     bender_cuts::Dict{Cut, BenderCut}
     years_per_stage::Int
     n_cut_scenarios::Int
+    cut_slack_penalty::Float64
 end
 
 end
