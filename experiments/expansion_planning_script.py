@@ -22,7 +22,7 @@ import click
     help="Run with ray or not",
 )
 @click.option(
-    "--fixedswitches",
+    "--fixed_switches",
     type=bool,
     default=False,
     help="ADMM optimization consider switches are fixed or try to optimize it",
@@ -38,16 +38,20 @@ import click
 )
 @click.option("--riskmeasureparam", type=int, help="Risk measure parameter", default=-1)
 @click.option(
+    "--feedername", type=str, help="Name of feeder for that specific grid", default="-n"
+)
+@click.option(
     "--cachename", type=str, help="Name of folder in cache directory", default="-n"
 )
 def expansion_planning_script(
     kace: str,
     withapi: bool,
     withray: bool,
-    fixedswitches: bool,
+    fixed_switches: bool,
     admmiter: int,
     riskmeasuretype: str,
     riskmeasureparam: int,
+    feedername: str,
     cachename: str,
 ):
     # KACE
@@ -66,10 +70,10 @@ def expansion_planning_script(
     payload = json.load(open(payload_file, "r"))
 
     # FIXEDSWITCHES
-    if fixedswitches:
-        payload["admm_config"]["fixedswitches"] = True
+    if fixed_switches:
+        payload["admm_config"]["fixed_switches"] = True
     else:
-        payload["admm_config"]["fixedswitches"] = False
+        payload["admm_config"]["fixed_switches"] = False
 
     # ADMMITER
     if admmiter != -1:
@@ -82,6 +86,20 @@ def expansion_planning_script(
     # RISKMEASUREPARAM
     if riskmeasureparam != -1:
         payload["sddp_config"]["risk_measure_param"] = riskmeasureparam
+
+    if feedername != "-n":
+        payload["grid"]["name"] = f"{kace}_{feedername}"
+
+        current_pp = payload["grid"]["pp_file"]
+        base_dir = current_pp.split("/feeders/")[0]
+        payload["grid"]["pp_file"] = os.path.join(
+            base_dir, "feeders", f"feeder_{feedername}.p"
+        )
+
+        current_lp = payload["profiles"]["load_profiles"][0]  # Get the first element
+        lp_base = current_lp.split("/load_profiles/")[0]
+        new_lp_path = os.path.join(lp_base, "load_profiles", feedername)
+        payload["profiles"]["load_profiles"] = [new_lp_path]  # Keep it as a list
 
     # WITHAPI
     if not withapi:

@@ -37,7 +37,7 @@
         "n_optimizations": 10,
         "n_stages": 5,
         "n_scenarios": 10,
-        "initial_budget": 500000,
+        "initial_budget": 5000000,
         "discount_rate": 0.05,
         "years_per_stage": 5,
         "risk_measure_type": "Expectation",
@@ -46,7 +46,7 @@
         "expansion_transformer_cost_per_kw": 0.15,
         "penalty_cost_per_consumption_kw": 6,
         "penalty_cost_per_production_kw": 2,
-        "δ_b_var": 100000
+        "δ_b_var": 1000000
     },
     "iterations": 5,
     "each_task_memory": 3000000000,
