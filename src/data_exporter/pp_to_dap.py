@@ -13,7 +13,6 @@ from helpers import (
     pl_to_dict,
 )
 from data_exporter import validate_data
-from pyproj import Transformer
 
 
 def pp_to_dap(
@@ -407,7 +406,6 @@ def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict)
 
 def _handle_coords_edge_element_from_geo(edge_element: pl.DataFrame):
     """Extract coordinates from WKT geometry and transform them to lat/lon if necessary."""
-    transformer = Transformer.from_crs("EPSG:2056", "EPSG:4326", always_xy=True)
 
     def extract_and_transform(wkt_str):
         if not wkt_str:
@@ -422,10 +420,7 @@ def _handle_coords_edge_element_from_geo(edge_element: pl.DataFrame):
             start_pt = line.centroid.coords[0]  # (E, N)
             end_pt = line.centroid.coords[0]  # (E, N)
 
-        start_lon, start_lat = transformer.transform(start_pt[0], start_pt[1])
-        end_lon, end_lat = transformer.transform(end_pt[0], end_pt[1])
-
-        return [start_lon, start_lat, end_lon, end_lat]
+        return [start_pt[0], start_pt[1], end_pt[0], end_pt[1]]
 
     edge_element = edge_element.with_columns(
         pl.col("geo")
