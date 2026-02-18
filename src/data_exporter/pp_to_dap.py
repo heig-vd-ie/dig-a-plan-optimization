@@ -127,6 +127,8 @@ def pp_to_dap(
     # --- STATIC EDGE DATA ---
     # ------------------------
     line: pl.DataFrame = pl.from_pandas(net.line)
+    if not "geo" in line.columns:
+        line = line.with_columns(pl.lit(None).alias("geo"))
     line = (
         line.with_columns(
             c("from_bus").cast(pl.Int32).alias("u_of_edge"),
@@ -142,6 +144,7 @@ def pp_to_dap(
         .select(
             "u_of_edge",
             "v_of_edge",
+            "geo",
             (c("name") if "eq_fk" not in line.columns else c("eq_fk")).alias("eq_fk"),
             (c("r_ohm_per_km") * c("length_km") / c("z_base")).alias("r_pu"),
             (c("x_ohm_per_km") * c("length_km") / c("z_base")).alias("x_pu"),
@@ -160,6 +163,8 @@ def pp_to_dap(
     trafo: pl.DataFrame = pl.from_pandas(net.trafo)
     if "name" in trafo.columns and "eq_fk" not in trafo.columns:
         trafo = trafo.rename({"name": "eq_fk"})
+    if not "geo" in trafo.columns:
+        trafo = trafo.with_columns(pl.lit(None).alias("geo"))
 
     trafo = trafo.with_columns(
         (
@@ -223,6 +228,7 @@ def pp_to_dap(
         .select(
             "u_of_edge",
             "v_of_edge",
+            "geo",
             (c("name") if "eq_fk" not in trafo.columns else c("eq_fk")).alias("eq_fk"),
             (c("r") / c("z_base")).alias("r_pu"),
             (c("x") / c("z_base")).alias("x_pu"),
@@ -254,11 +260,14 @@ def pp_to_dap(
     switch: pl.DataFrame = pl.from_pandas(net.switch)
     if "name" in switch.columns and "eq_fk" not in switch.columns:
         switch = switch.rename({"name": "eq_fk"})
+    if not "geo" in switch.columns:
+        switch = switch.with_columns(pl.lit(None).alias("geo"))
 
     switch = switch.select(
         (c("name") if "eq_fk" not in switch.columns else c("eq_fk")).alias("eq_fk"),
         c("bus").cast(pl.Int32).alias("u_of_edge"),
         c("element").cast(pl.Int32).alias("v_of_edge"),
+        c("geo"),
         (~c("closed").cast(pl.Boolean)).alias("normal_open"),
         pl.lit("switch").alias("type"),
         pl.lit([100]).alias("taps"),
@@ -286,15 +295,15 @@ def pp_to_dap(
 
     node_data = node_data.join(coord_mapping_pl, on="node_id", how="left")
 
-    if not "geo" in line.columns:
+    if line.get_column("geo").is_null().any():
         line = _handle_coords_edge_element(line, coord_mapping)
     else:
         line = _handle_coords_edge_element_from_geo(line)
-    if not "geo" in trafo.columns:
+    if trafo.get_column("geo").is_null().any():
         trafo = _handle_coords_edge_element(trafo, coord_mapping)
     else:
         trafo = _handle_coords_edge_element_from_geo(trafo)
-    if not "geo" in switch.columns:
+    if switch.get_column("geo").is_null().any():
         switch = _handle_coords_edge_element(switch, coord_mapping)
     else:
         switch = _handle_coords_edge_element_from_geo(switch)
@@ -313,7 +322,7 @@ def pp_to_dap(
         pl.struct(["eq_fk", "type", "edge_id"]).map_elements(
             lambda x: x["eq_fk"] if x["eq_fk"] else f"{x["type"]}_{x["edge_id"]}"
         )
-    )
+    ).drop("geo")
 
     node_data_validated = validate_data(node_data, NodeData)
     edge_data_validated = validate_data(edge_data, EdgeData)
@@ -405,8 +414,13 @@ def _handle_coords_edge_element_from_geo(edge_element: pl.DataFrame):
             return None
 
         line = from_wkt(wkt_str)
-        start_pt = line.coords[0]  # (E, N)
-        end_pt = line.coords[-1]  # (E, N)
+
+        if line.geom_type == "LineString":
+            start_pt = line.coords[0]  # (E, N)
+            end_pt = line.coords[-1]  # (E, N)
+        else:
+            start_pt = line.centroid.coords[0]  # (E, N)
+            end_pt = line.centroid.coords[0]  # (E, N)
 
         start_lon, start_lat = transformer.transform(start_pt[0], start_pt[1])
         end_lon, end_lat = transformer.transform(end_pt[0], end_pt[1])
