@@ -31,7 +31,21 @@
             "fieldConfig": {
                 "defaults": {
                     "color": { "mode": "palette-classic" },
-                    "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false }},
+                    "custom": {
+                        "axisBorderShow": true,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisGridShow": true,
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 48,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "circle",
+                        "pointSize": { "fixed": 5 },
+                        "pointStrokeWidth": 1,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
                     "fieldMinMax": false,
                     "mappings": [],
                     "thresholds": {
@@ -41,64 +55,19 @@
                 },
                 "overrides": []
             },
-            "gridPos": { "h": 10, "w": 23, "x": 0, "y": 1 },
+            "gridPos": { "h": 10, "w": 24, "x": 0, "y": 1 },
             "id": 7,
             "options": {
-                "basemap": {
-                    "config": { "server": "streets", "showLabels": true, "theme": "auto" },
-                    "layer-tooltip": true,
-                    "name": "Layer 0",
-                    "noRepeat": false,
-                    "opacity": 0.1,
-                    "type": "osm-standard"
-                },
-                "controls": {
-                    "mouseWheelZoom": true,
-                    "showAttribution": true,
-                    "showDebug": false,
-                    "showMeasure": false,
-                    "showScale": false,
-                    "showZoom": true
-                },
-                "layers": [
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
                     {
-                        "config": {
-                            "showLegend": true,
-                            "style": {
-                                "color": { "fixed": "blue" },
-                                "opacity": 1,
-                                "rotation": { "fixed": 0, "max": 360, "min": -360, "mode": "mod" },
-                                "size": { "field": "capacity", "fixed": 5, "max": 15, "min": 2 },
-                                "symbol": { "fixed": "img/icons/marker/circle.svg", "mode": "fixed" },
-                                "symbolAlign": { "horizontal": "center", "vertical": "center" },
-                                "textConfig": {
-                                    "fontSize": 12,
-                                    "offsetX": 0,
-                                    "offsetY": 0,
-                                    "textAlign": "center",
-                                    "textBaseline": "middle"
-                                }
-                            }
-                        },
-                        "layer-tooltip": false,
-                        "location": { "mode": "auto" },
-                        "name": "Capacity",
-                        "tooltip": true,
-                        "type": "markers"
+                        "size": { "matcher": { "id": "byName", "options": "capacity" }},
+                        "x": { "matcher": { "id": "byName", "options": "latitude" }},
+                        "y": { "matcher": { "id": "byName", "options": "longitude" }}
                     }
                 ],
-                "tooltip": { "mode": "details" },
-                "view": {
-                    "allLayers": true,
-                    "id": "fit",
-                    "lastOnly": false,
-                    "lat": 0,
-                    "layer": "Layer 1",
-                    "lon": 0,
-                    "noRepeat": false,
-                    "shared": false,
-                    "zoom": 15
-                }
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
             "pluginVersion": "12.3.3",
             "targets": [
@@ -118,7 +87,7 @@
             ],
             "title": "Expansion",
             "transparent": true,
-            "type": "geomap"
+            "type": "xychart"
         },
         {
             "datasource": { "uid": "afdfds4gcs45ca" },
@@ -141,7 +110,7 @@
                 },
                 "overrides": []
             },
-            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 11 },
+            "gridPos": { "h": 9, "w": 12, "x": 0, "y": 11 },
             "id": 3,
             "options": {
                 "bucketCount": 50,
@@ -206,7 +175,7 @@
                 },
                 "overrides": []
             },
-            "gridPos": { "h": 9, "w": 12, "x": 11, "y": 11 },
+            "gridPos": { "h": 9, "w": 12, "x": 12, "y": 11 },
             "id": 2,
             "maxPerRow": 6,
             "options": {
