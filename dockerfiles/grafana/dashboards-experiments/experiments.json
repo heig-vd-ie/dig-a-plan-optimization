@@ -200,7 +200,7 @@
                     "format": "table",
                     "hide": false,
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  -- Extracts the digits (\\d+) immediately following 'sddp_response_'\n  'Iteration ' || substring(source_file from 'sddp_response_(\\d+)') AS metric,\n  AVG((value)::float) AS iteration_value\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE ANY (ARRAY['%sddp_response_1%', '%sddp_response_2%', '%sddp_response_3%', '%sddp_response_4%', '%sddp_response_5%', '%sddp_response_6%', '%sddp_response_7%', '%sddp_response_8%', '%sddp_response_9%', '%sddp_response_10%'])\nGROUP BY metric\nORDER BY metric ASC",
+                    "rawSql": "SELECT \n  -- Extracts the digits (\\d+) immediately following 'sddp_response_'\n  'Iteration ' || substring(source_file from 'sddp_response_(\\d+)') AS metric,\n  AVG((value)::float) AS iteration_value\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE ANY (ARRAY['%sddp_response_1%', '%sddp_response_2%', '%sddp_response_3%', '%sddp_response_4%', '%sddp_response_5%'])\nGROUP BY metric\nORDER BY metric ASC",
                     "refId": "E",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
