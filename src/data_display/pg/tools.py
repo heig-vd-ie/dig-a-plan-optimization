@@ -232,9 +232,14 @@ if __name__ == "__main__":
         for root, _, files in os.walk(base_dir):
             rel = Path(root).relative_to(base_dir)
             # Use top-level folder as table name
-            run_name = (
-                "base_run" if rel == Path(".") else sanitize_table_name(rel.parts[0])
-            )
+            if rel in [
+                Path("."),
+                Path("base_run"),
+                Path("run_test"),
+                Path("run_test_api"),
+            ]:
+                continue  # Skip the base_run folder itself
+            run_name = sanitize_table_name(rel.parts[0])
 
             # Filter based on selected experiment if not "all"
             if args.experiment != "all" and run_name != sanitize_table_name(
