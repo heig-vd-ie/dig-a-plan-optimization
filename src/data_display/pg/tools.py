@@ -31,6 +31,7 @@ class Args:
     backup: bool
     restore: str
     sync: bool
+    experiment: str = "all"
 
 
 def parse_args() -> Args:
@@ -48,8 +49,9 @@ def parse_args() -> Args:
         "--restore", type=str, help="Restore the database from a .sql file"
     )
     parser.add_argument("--sync", action="store_true", help="Sync folders to tables")
+    parser.add_argument("--experiment", type=str, help="Experiment name to process")
     ns = parser.parse_args()
-    return Args(ns.force, ns.reset, ns.backup, ns.restore, ns.sync)
+    return Args(ns.force, ns.reset, ns.backup, ns.restore, ns.sync, ns.experiment)
 
 
 def get_connection():
@@ -185,7 +187,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Handle Delete / Create DB logic
-    if args.reset:
+    if args.reset and args.experiment == "all":
         conn = get_connection()
         conn.autocommit = True
         cur = conn.cursor()
@@ -216,6 +218,12 @@ if __name__ == "__main__":
             run_name = (
                 "base_run" if rel == Path(".") else sanitize_table_name(rel.parts[0])
             )
+
+            # Filter based on selected experiment if not "all"
+            if args.experiment != "all" and run_name != sanitize_table_name(
+                args.experiment
+            ):
+                continue
 
             with conn.cursor() as cur:
                 ensure_table(cur, run_name)

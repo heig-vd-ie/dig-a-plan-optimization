@@ -118,8 +118,9 @@ permit-remote-ray-port: ## Permit remote access to Ray server
 	@echo "Permitting remote access to Ray server on port $(SERVER_RAY_PORT)..."
 	sudo ufw allow $(SERVER_RAY_PORT)
 
+EXPERIMENT := all
+
 sync-pg: ## Sync data from PostgreSQL
 	@echo "Syncing data from PostgreSQL..."
 	$(MAKE) fix-cache-permissions
-	@.venv/bin/python ./src/data_display/pg/tools.py --reset
-	@.venv/bin/python ./src/data_display/pg/tools.py --sync --force
+	@.venv/bin/python ./src/data_display/pg/tools.py --reset --sync --force --experiment $(EXPERIMENT)
