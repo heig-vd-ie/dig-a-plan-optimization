@@ -38,10 +38,10 @@
                         "axisGridShow": true,
                         "axisLabel": "",
                         "axisPlacement": "auto",
-                        "fillOpacity": 48,
+                        "fillOpacity": 53,
                         "hideFrom": { "legend": false, "tooltip": false, "viz": false },
                         "pointShape": "circle",
-                        "pointSize": { "fixed": 5 },
+                        "pointSize": { "fixed": 3, "max": 40 },
                         "pointStrokeWidth": 1,
                         "scaleDistribution": { "type": "linear" },
                         "show": "points"
