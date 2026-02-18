@@ -50,7 +50,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 10, "w": 22, "x": 0, "y": 1 },
+                    "gridPos": { "h": 10, "w": 23, "x": 0, "y": 1 },
                     "id": 7,
                     "options": {
                         "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
@@ -105,7 +105,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 38 },
+                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 36 },
                     "id": 3,
                     "options": {
                         "bucketCount": 50,
@@ -170,7 +170,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 9, "w": 12, "x": 11, "y": 38 },
+                    "gridPos": { "h": 9, "w": 12, "x": 11, "y": 36 },
                     "id": 2,
                     "maxPerRow": 6,
                     "options": {
@@ -244,7 +244,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 47 },
+                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 2 },
                     "id": 6,
                     "options": {
                         "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -305,7 +305,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 47 },
+                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 2 },
                     "id": 4,
                     "options": {
                         "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -367,7 +367,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
                     "id": 8,
                     "options": {
                         "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -429,7 +429,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
                     "id": 9,
                     "options": {
                         "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
@@ -469,117 +469,118 @@
             "type": "row"
         },
         {
-            "collapsed": false,
+            "collapsed": true,
             "gridPos": { "h": 1, "w": 24, "x": 0, "y": 2 },
             "id": 11,
-            "panels": [],
+            "panels": [
+                {
+                    "datasource": { "uid": "afdfds4gcs45ca" },
+                    "fieldConfig": {
+                        "defaults": {
+                            "color": { "mode": "palette-classic" },
+                            "custom": {
+                                "fillOpacity": 20,
+                                "gradientMode": "none",
+                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                                "lineWidth": 2,
+                                "stacking": { "group": "A", "mode": "none" }
+                            },
+                            "mappings": [],
+                            "thresholds": {
+                                "mode": "absolute",
+                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                            }
+                        },
+                        "overrides": []
+                    },
+                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 3 },
+                    "id": 1,
+                    "options": {
+                        "bucketCount": 50,
+                        "combine": false,
+                        "legend": {
+                            "calcs": [],
+                            "displayMode": "list",
+                            "placement": "bottom",
+                            "showLegend": true,
+                            "sortBy": "Name",
+                            "sortDesc": false
+                        },
+                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+                    },
+                    "pluginVersion": "12.3.3",
+                    "targets": [
+                        {
+                            "dataset": "public",
+                            "editorMode": "code",
+                            "format": "table",
+                            "rawQuery": true,
+                            "rawSql": "CREATE OR REPLACE FUNCTION get_all_experiments(iter text)\nRETURNS TABLE(value float, experiment text) AS $$\nDECLARE\n  tbl text;\nBEGIN\n  FOREACH tbl IN ARRAY ARRAY[$Experiments]\n  LOOP\n    RETURN QUERY EXECUTE format(\n      'SELECT (v)::float, %L FROM %I, \n       jsonb_array_elements_text(data->''objectives'') AS v\n       WHERE source_file LIKE %L',\n      tbl, tbl, '%sddp_response_' || iter || '%'\n    );\n  END LOOP;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT value, experiment \nFROM get_all_experiments('${iteration_number}') ORDER BY experiment",
+                            "refId": "A",
+                            "sql": {
+                                "columns": [{ "parameters": [], "type": "function" }],
+                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                                "limit": 50
+                            }
+                        }
+                    ],
+                    "title": "",
+                    "transformations": [
+                        { "id": "partitionByValues", "options": { "fields": [ "experiment" ], "keepFields": false }}
+                    ],
+                    "transparent": true,
+                    "type": "histogram"
+                },
+                {
+                    "datasource": { "uid": "afdfds4gcs45ca" },
+                    "fieldConfig": {
+                        "defaults": {
+                            "color": { "mode": "palette-classic" },
+                            "fieldMinMax": false,
+                            "mappings": [],
+                            "min": 0,
+                            "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }]}
+                        },
+                        "overrides": []
+                    },
+                    "gridPos": { "h": 8, "w": 13, "x": 11, "y": 3 },
+                    "id": 5,
+                    "options": {
+                        "displayMode": "basic",
+                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+                        "maxVizHeight": 300,
+                        "minVizHeight": 16,
+                        "minVizWidth": 8,
+                        "namePlacement": "top",
+                        "orientation": "horizontal",
+                        "reduceOptions": { "calcs": [ "mean" ], "fields": "", "values": true },
+                        "showUnfilled": true,
+                        "sizing": "auto",
+                        "valueMode": "color"
+                    },
+                    "pluginVersion": "12.3.3",
+                    "targets": [
+                        {
+                            "dataset": "experiments",
+                            "editorMode": "code",
+                            "format": "table",
+                            "rawQuery": true,
+                            "rawSql": "-- 1. Remove the old version entirely\nDROP FUNCTION IF EXISTS query_all_experiments(TEXT[]);\n\n-- 2. Create the new version\nCREATE OR REPLACE FUNCTION query_all_experiments(experiment_names TEXT[])\nRETURNS TABLE(tbl_name TEXT, result_val NUMERIC) AS $$\nDECLARE\n    final_query TEXT;\nBEGIN\n    SELECT string_agg(\n        format(\n            'SELECT %L, (val)::numeric FROM %I, jsonb_array_elements_text(data -> %L) AS val WHERE source_file LIKE %L', \n            t,                      -- %L: The table name as a text string\n            t,                      -- %I: The actual table to query\n            'objectives',           -- %L: The JSON key\n            '%sddp_response_$iteration_number%'      -- %L: The LIKE pattern (Note: variables like iteration_number should be passed here if dynamic)\n        ), \n        ' UNION ALL '\n    )\n    INTO final_query\n    FROM unnest(experiment_names) AS t;\n\n    RETURN QUERY EXECUTE final_query;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT \n    tbl_name, \n    AVG(result_val) AS average_score\nFROM query_all_experiments(ARRAY[$Experiments]) -- Replace with your array variable\nGROUP BY tbl_name\nORDER BY tbl_name;",
+                            "refId": "A",
+                            "sql": {
+                                "columns": [{ "parameters": [], "type": "function" }],
+                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                                "limit": 50
+                            }
+                        }
+                    ],
+                    "title": "",
+                    "transparent": true,
+                    "type": "bargauge"
+                }
+            ],
             "title": "$Experiments",
             "type": "row"
-        },
-        {
-            "datasource": { "uid": "afdfds4gcs45ca" },
-            "fieldConfig": {
-                "defaults": {
-                    "color": { "mode": "palette-classic" },
-                    "custom": {
-                        "fillOpacity": 20,
-                        "gradientMode": "none",
-                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                        "lineWidth": 2,
-                        "stacking": { "group": "A", "mode": "none" }
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 3 },
-            "id": 1,
-            "options": {
-                "bucketCount": 50,
-                "combine": false,
-                "legend": {
-                    "calcs": [],
-                    "displayMode": "list",
-                    "placement": "bottom",
-                    "showLegend": true,
-                    "sortBy": "Name",
-                    "sortDesc": false
-                },
-                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-            },
-            "pluginVersion": "12.3.3",
-            "targets": [
-                {
-                    "dataset": "public",
-                    "editorMode": "code",
-                    "format": "table",
-                    "rawQuery": true,
-                    "rawSql": "CREATE OR REPLACE FUNCTION get_all_experiments(iter text)\nRETURNS TABLE(value float, experiment text) AS $$\nDECLARE\n  tbl text;\nBEGIN\n  FOREACH tbl IN ARRAY ARRAY[$Experiments]\n  LOOP\n    RETURN QUERY EXECUTE format(\n      'SELECT (v)::float, %L FROM %I, \n       jsonb_array_elements_text(data->''objectives'') AS v\n       WHERE source_file LIKE %L',\n      tbl, tbl, '%sddp_response_' || iter || '%'\n    );\n  END LOOP;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT value, experiment \nFROM get_all_experiments('${iteration_number}') ORDER BY experiment",
-                    "refId": "A",
-                    "sql": {
-                        "columns": [{ "parameters": [], "type": "function" }],
-                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                        "limit": 50
-                    }
-                }
-            ],
-            "title": "",
-            "transformations": [
-                { "id": "partitionByValues", "options": { "fields": [ "experiment" ], "keepFields": false }}
-            ],
-            "transparent": true,
-            "type": "histogram"
-        },
-        {
-            "datasource": { "uid": "afdfds4gcs45ca" },
-            "fieldConfig": {
-                "defaults": {
-                    "color": { "mode": "palette-classic" },
-                    "fieldMinMax": false,
-                    "mappings": [],
-                    "min": 0,
-                    "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }]}
-                },
-                "overrides": []
-            },
-            "gridPos": { "h": 8, "w": 13, "x": 11, "y": 3 },
-            "id": 5,
-            "options": {
-                "displayMode": "basic",
-                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
-                "maxVizHeight": 300,
-                "minVizHeight": 16,
-                "minVizWidth": 8,
-                "namePlacement": "top",
-                "orientation": "horizontal",
-                "reduceOptions": { "calcs": [ "mean" ], "fields": "", "values": true },
-                "showUnfilled": true,
-                "sizing": "auto",
-                "valueMode": "color"
-            },
-            "pluginVersion": "12.3.3",
-            "targets": [
-                {
-                    "dataset": "experiments",
-                    "editorMode": "code",
-                    "format": "table",
-                    "rawQuery": true,
-                    "rawSql": "-- 1. Remove the old version entirely\nDROP FUNCTION IF EXISTS query_all_experiments(TEXT[]);\n\n-- 2. Create the new version\nCREATE OR REPLACE FUNCTION query_all_experiments(experiment_names TEXT[])\nRETURNS TABLE(tbl_name TEXT, result_val NUMERIC) AS $$\nDECLARE\n    final_query TEXT;\nBEGIN\n    SELECT string_agg(\n        format(\n            'SELECT %L, (val)::numeric FROM %I, jsonb_array_elements_text(data -> %L) AS val WHERE source_file LIKE %L', \n            t,                      -- %L: The table name as a text string\n            t,                      -- %I: The actual table to query\n            'objectives',           -- %L: The JSON key\n            '%sddp_response_$iteration_number%'      -- %L: The LIKE pattern (Note: variables like iteration_number should be passed here if dynamic)\n        ), \n        ' UNION ALL '\n    )\n    INTO final_query\n    FROM unnest(experiment_names) AS t;\n\n    RETURN QUERY EXECUTE final_query;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT \n    tbl_name, \n    AVG(result_val) AS average_score\nFROM query_all_experiments(ARRAY[$Experiments]) -- Replace with your array variable\nGROUP BY tbl_name\nORDER BY tbl_name;",
-                    "refId": "A",
-                    "sql": {
-                        "columns": [{ "parameters": [], "type": "function" }],
-                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                        "limit": 50
-                    }
-                }
-            ],
-            "title": "",
-            "transparent": true,
-            "type": "bargauge"
         }
     ],
     "preload": false,
@@ -592,18 +593,6 @@
                 "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
                 "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
                 "name": "Experiment",
-                "options": [],
-                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
-                "refresh": 1,
-                "regex": "",
-                "type": "query"
-            },
-            {
-                "current": { "text": [ "ieee33_worst_case" ], "value": [ "ieee33_worst_case" ]},
-                "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
-                "multi": true,
-                "name": "Experiments",
                 "options": [],
                 "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
                 "refresh": 1,
@@ -640,6 +629,18 @@
                 ],
                 "query": "1,2,3,4,5",
                 "type": "custom"
+            },
+            {
+                "current": { "text": [ "ieee33_worst_case" ], "value": [ "ieee33_worst_case" ]},
+                "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "multi": true,
+                "name": "Experiments",
+                "options": [],
+                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "refresh": 1,
+                "regex": "",
+                "type": "query"
             }
         ]
     },
