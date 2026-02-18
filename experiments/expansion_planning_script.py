@@ -93,7 +93,7 @@ def expansion_planning_script(
         current_pp = payload["grid"]["pp_file"]
         base_dir = current_pp.split("/feeders/")[0]
         payload["grid"]["pp_file"] = os.path.join(
-            base_dir, "feeders", f"feeder_{feedername}.json"
+            base_dir, "feeders", f"feeder_{feedername}.p"
         )
 
         current_lp = payload["profiles"]["load_profiles"][0]  # Get the first element
