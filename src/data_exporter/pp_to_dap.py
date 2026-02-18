@@ -294,18 +294,9 @@ def pp_to_dap(
 
     node_data = node_data.join(coord_mapping_pl, on="node_id", how="left")
 
-    if line.get_column("geo").is_null().any():
-        line = _handle_coords_edge_element(line, coord_mapping)
-    else:
-        line = _handle_coords_edge_element_from_geo(line)
-    if trafo.get_column("geo").is_null().any():
-        trafo = _handle_coords_edge_element(trafo, coord_mapping)
-    else:
-        trafo = _handle_coords_edge_element_from_geo(trafo)
-    if switch.get_column("geo").is_null().any():
-        switch = _handle_coords_edge_element(switch, coord_mapping)
-    else:
-        switch = _handle_coords_edge_element_from_geo(switch)
+    line = _handle_coords_edge_element(line, coord_mapping)
+    trafo = _handle_coords_edge_element(trafo, coord_mapping)
+    switch = _handle_coords_edge_element(switch, coord_mapping)
     ###
 
     edge_data = (
