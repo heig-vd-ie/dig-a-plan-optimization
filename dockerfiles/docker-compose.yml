@@ -103,4 +103,4 @@ services:
     ports:
       - "${SERVER_PG_PORT}:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ../.cache/pg:/var/lib/postgresql/data

@@ -2,7 +2,8 @@ import polars as pl
 import patito as pt
 from polars import col as c
 from shapely import from_geojson
-from data_model import NodeData, EdgeData, LoadData, NodeEdgeModel
+from shapely.wkt import loads as from_wkt
+from data_model import NodeData, EdgeData, NodeEdgeModel
 import numpy as np
 import pandapower as pp
 from typing import Tuple
@@ -12,6 +13,7 @@ from helpers import (
     pl_to_dict,
 )
 from data_exporter import validate_data
+from pyproj import Transformer
 
 
 def pp_to_dap(
@@ -284,9 +286,18 @@ def pp_to_dap(
 
     node_data = node_data.join(coord_mapping_pl, on="node_id", how="left")
 
-    line = _handle_coords_edge_element(line, coord_mapping)
-    trafo = _handle_coords_edge_element(trafo, coord_mapping)
-    switch = _handle_coords_edge_element(switch, coord_mapping)
+    if not "geo" in line.columns:
+        line = _handle_coords_edge_element(line, coord_mapping)
+    else:
+        line = _handle_coords_edge_element_from_geo(line)
+    if not "geo" in trafo.columns:
+        trafo = _handle_coords_edge_element(trafo, coord_mapping)
+    else:
+        trafo = _handle_coords_edge_element_from_geo(trafo)
+    if not "geo" in switch.columns:
+        switch = _handle_coords_edge_element(switch, coord_mapping)
+    else:
+        switch = _handle_coords_edge_element_from_geo(switch)
     ###
 
     edge_data = (
@@ -383,3 +394,44 @@ def _handle_coords_edge_element(edge_element: pl.DataFrame, coord_mapping: dict)
             ),
         )
     )
+
+
+def _handle_coords_edge_element_from_geo(edge_element: pl.DataFrame):
+    """Extract coordinates from WKT geometry and transform them to lat/lon if necessary."""
+    transformer = Transformer.from_crs("EPSG:2056", "EPSG:4326", always_xy=True)
+
+    def extract_and_transform(wkt_str):
+        if not wkt_str:
+            return None
+
+        line = from_wkt(wkt_str)
+        start_pt = line.coords[0]  # (E, N)
+        end_pt = line.coords[-1]  # (E, N)
+
+        start_lon, start_lat = transformer.transform(start_pt[0], start_pt[1])
+        end_lon, end_lat = transformer.transform(end_pt[0], end_pt[1])
+
+        return [start_lon, start_lat, end_lon, end_lat]
+
+    edge_element = edge_element.with_columns(
+        pl.col("geo")
+        .map_elements(extract_and_transform, return_dtype=pl.List(pl.Float64))
+        .alias("_temp_coords")
+    )
+
+    edge_element = edge_element.with_columns(
+        pl.concat_list(
+            (pl.col("_temp_coords").list.get(0) + pl.col("_temp_coords").list.get(2))
+            / 2,
+            (pl.col("_temp_coords").list.get(1) + pl.col("_temp_coords").list.get(3))
+            / 2,
+        ).alias("coords"),
+        pl.concat_list(
+            pl.col("_temp_coords").list.get(0), pl.col("_temp_coords").list.get(2)
+        ).alias("x_coords"),
+        pl.concat_list(
+            pl.col("_temp_coords").list.get(1), pl.col("_temp_coords").list.get(3)
+        ).alias("y_coords"),
+    ).drop("_temp_coords")
+
+    return edge_element
