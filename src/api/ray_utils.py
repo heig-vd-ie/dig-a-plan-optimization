@@ -25,7 +25,12 @@ def init_ray() -> Dict[str, Any]:
         address=SERVER_RAY_ADDRESS,
         runtime_env={
             "working_dir": os.getcwd(),
-            "excludes": ["**/*.parquet", ".cache/outputs**", ".cache/pg**"],
+            "excludes": [
+                "**/*.parquet",
+                ".cache/outputs**",
+                ".cache/pg**",
+                "**/postgres_data/**",
+            ],
         },
     )
     return {
