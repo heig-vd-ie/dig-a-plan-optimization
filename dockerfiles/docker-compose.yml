@@ -102,4 +102,7 @@ services:
     ports:
       - "${SERVER_PG_PORT}:${SERVER_PG_PORT}"
     volumes:
-      - /var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
