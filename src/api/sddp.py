@@ -21,7 +21,7 @@ class ExpansionModel:
     def __init__(self):
         """Initialize the ExpansionModel."""
 
-        SERVER_BASE_URL = f"http://{os.environ.get("LOCAL_HOST", "localhost")}:{os.environ.get("SERVER_JL_PORT", 8081)}"
+        SERVER_BASE_URL = f"http://{os.environ.get("LOCAL_HOST", "localhost")}:{os.environ.get("SERVER_JL_PORT", 8082)}"
         self.base_url = SERVER_BASE_URL
         logger.info(f"Expansion API server at: {SERVER_BASE_URL}")
 

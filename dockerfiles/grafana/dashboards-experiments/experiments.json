@@ -19,458 +19,488 @@
     "links": [],
     "panels": [
         {
-            "collapsed": true,
+            "collapsed": false,
             "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
             "id": 10,
-            "panels": [
-                {
-                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "axisBorderShow": false,
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "fillOpacity": 61,
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "pointShape": "circle",
-                                "pointSize": { "fixed": 2, "max": 40, "min": 0.001 },
-                                "pointStrokeWidth": 1,
-                                "scaleDistribution": { "type": "linear" },
-                                "show": "points"
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                            }
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 10, "w": 23, "x": 0, "y": 1 },
-                    "id": 7,
-                    "options": {
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
-                        "mapping": "manual",
-                        "series": [
-                            {
-                                "frame": { "matcher": { "id": "byIndex", "options": 0 }},
-                                "size": { "matcher": { "id": "byName", "options": "capacity" }},
-                                "x": { "matcher": { "id": "byName", "options": "latitude" }},
-                                "y": { "matcher": { "id": "byName", "options": "longitude" }}
-                            }
-                        ],
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "experiments",
-                            "editorMode": "code",
-                            "format": "table",
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n    -- 1. Flexible Regex: 'iter' followed by any non-digits, then capturing the digits\n    (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int AS iteration,\n    \n    -- 2. Flexible Regex: Handles 'stage' or 'st' if the name varies\n    (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int AS stage,\n    \n    -- 3. Flexible Regex: Handles 'scen' or 'scenario'\n    (substring(t.source_file FROM 'scen[^0-9]*(\\d+)'))::int AS scenario,\n\n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    AVG((item->'p_max_pu')::numeric) AS \"capacity\"\nFROM \n    $Experiment AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file ILIKE '%recorded_edge_data_iter%'\n    AND (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int = $iteration_number\n    AND (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int = $stage\nGROUP BY 1,2,3,4,5,6,7;",
-                            "refId": "A",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "Expansion",
-                    "transparent": true,
-                    "type": "xychart"
-                },
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "fillOpacity": 20,
-                                "gradientMode": "none",
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "lineWidth": 2,
-                                "stacking": { "group": "A", "mode": "none" }
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                            }
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 36 },
-                    "id": 3,
-                    "options": {
-                        "bucketCount": 50,
-                        "combine": false,
-                        "legend": {
-                            "calcs": [],
-                            "displayMode": "list",
-                            "placement": "bottom",
-                            "showLegend": true,
-                            "sortBy": "Name",
-                            "sortDesc": false
-                        },
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "public",
-                            "editorMode": "code",
-                            "format": "table",
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
-                            "refId": "A",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        },
-                        {
-                            "dataset": "public",
-                            "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
-                            "refId": "B",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "In sample vs out of sample",
-                    "transparent": true,
-                    "type": "histogram"
-                },
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "thresholds" },
-                            "mappings": [],
-                            "min": 0,
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "blue", "value": 80 }]
-                            },
-                            "unit": "currencyUSD"
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 9, "w": 12, "x": 11, "y": 36 },
-                    "id": 2,
-                    "maxPerRow": 6,
-                    "options": {
-                        "displayMode": "basic",
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
-                        "maxVizHeight": 300,
-                        "minVizHeight": 8,
-                        "minVizWidth": 8,
-                        "namePlacement": "top",
-                        "orientation": "horizontal",
-                        "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": true },
-                        "showUnfilled": true,
-                        "sizing": "manual",
-                        "valueMode": "color"
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "experiments",
-                            "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n  -- Extracts the digits (\\d+) immediately following 'sddp_response_'\n  'Iteration ' || substring(source_file from 'sddp_response_(\\d+)') AS metric,\n  AVG((value)::float) AS iteration_value\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE ANY (ARRAY['%sddp_response_1%', '%sddp_response_2%', '%sddp_response_3%', '%sddp_response_4%', '%sddp_response_5%', '%sddp_response_6%', '%sddp_response_7%', '%sddp_response_8%', '%sddp_response_9%', '%sddp_response_10%'])\nGROUP BY metric\nORDER BY metric ASC",
-                            "refId": "E",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "",
-                    "transparent": true,
-                    "type": "bargauge"
-                }
-            ],
+            "panels": [],
             "title": "$Experiment, iteration $iteration_number, stage $stage",
             "type": "row"
         },
         {
-            "collapsed": true,
-            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 1 },
-            "id": 12,
-            "panels": [
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "axisBorderShow": false,
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "fillOpacity": 50,
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "pointShape": "circle",
-                                "pointSize": { "fixed": 5 },
-                                "pointStrokeWidth": 1,
-                                "scaleDistribution": { "type": "linear" },
-                                "show": "points"
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                            }
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 2 },
-                    "id": 6,
-                    "options": {
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                        "mapping": "auto",
-                        "series": [
-                            {
-                                "x": { "matcher": { "id": "byName", "options": "stage" }},
-                                "y": { "matcher": { "id": "byName", "options": "v_pu" }}
-                            }
-                        ],
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "public",
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "WITH extracted_data AS (\n    SELECT \n      -- Using negative indices to count from the end of the filename string\n      REPLACE(split_part(t.source_file, '_', -3), 'iter', '')::int AS iteration,\n      REPLACE(split_part(t.source_file, '_', -2), 'stage', '')::int AS stage,\n      REPLACE(REPLACE(split_part(t.source_file, '_', -1), 'scen', ''), '.json', '')::int AS scenario,\n      v.internal_scen,\n      (node_data->>'node_id')::int AS node_id,\n      (node_data->>'v_pu')::float AS v_pu\n    FROM \n      $Experiment t\n    LEFT JOIN LATERAL jsonb_each(t.data->'voltage') AS v(internal_scen, node_list) ON TRUE\n    LEFT JOIN LATERAL jsonb_array_elements(v.node_list) AS node_data ON TRUE\n    WHERE \n      t.source_file ILIKE '%admm_result_iter%'\n)\nSELECT * FROM extracted_data\nWHERE iteration = (SELECT MAX(iteration) FROM extracted_data)\nORDER BY stage, scenario, internal_scen, node_id;",
-                            "refId": "A",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "",
-                    "transparent": true,
-                    "type": "xychart"
+            "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false }},
+                    "fieldMinMax": false,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
                 },
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "axisBorderShow": false,
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "fillOpacity": 50,
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "pointShape": "square",
-                                "pointSize": { "fixed": 5, "max": 10 },
-                                "pointStrokeWidth": 0,
-                                "scaleDistribution": { "type": "linear" },
-                                "show": "points"
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                            }
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 2 },
-                    "id": 4,
-                    "options": {
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                        "mapping": "auto",
-                        "series": [
-                            {
-                                "frame": { "matcher": { "id": "byIndex", "options": 0 }},
-                                "size": { "matcher": { "id": "byName", "options": "percentage" }},
-                                "y": { "matcher": { "id": "byName", "options": "total_cost" }}
-                            }
-                        ],
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "public",
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "WITH calculated_data AS (\n  SELECT \n    (sim_obj->>'node_index')::float AS stage,\n    -- Calculate Total Cost (NPV adjusted per your formula)\n    ((sim_obj->>'obj')::float) / (1 / (1 + 0.05))^((sim_obj->>'node_index')::float * 5 - 1) AS total_cost,\n    ((sim_obj->>'investment_cost')::float) AS investment_cost\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') AS sub_list,\n    jsonb_array_elements(sub_list) AS sim_obj\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n)\nSELECT\n  stage,\n  investment_cost / (total_cost+0.001) AS percentage,\n  total_cost\nFROM calculated_data\nORDER BY stage ASC;",
-                            "refId": "A",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "",
-                    "transparent": true,
-                    "type": "xychart"
+                "overrides": []
+            },
+            "gridPos": { "h": 10, "w": 23, "x": 0, "y": 1 },
+            "id": 7,
+            "options": {
+                "basemap": {
+                    "config": { "server": "streets", "showLabels": true, "theme": "auto" },
+                    "layer-tooltip": true,
+                    "name": "Layer 0",
+                    "noRepeat": false,
+                    "opacity": 0.1,
+                    "type": "osm-standard"
                 },
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "axisBorderShow": false,
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "fillOpacity": 50,
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "pointShape": "square",
-                                "pointSize": { "fixed": 5, "max": 10 },
-                                "pointStrokeWidth": 0,
-                                "scaleDistribution": { "type": "linear" },
-                                "show": "points"
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
-                            }
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
-                    "id": 8,
-                    "options": {
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                        "mapping": "auto",
-                        "series": [
-                            {
-                                "frame": { "matcher": { "id": "byIndex", "options": 0 }},
-                                "y": { "matcher": { "id": "byName", "options": "δ_cap" }}
-                            }
-                        ],
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "public",
-                            "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM(simulation_delta_sum) AS \"δ_cap\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Summing the δ_cap list inside the Simulation object\n    (SELECT SUM(val::float) FROM jsonb_array_elements_text(sim_obj->'δ_cap') AS val) AS simulation_delta_sum\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS flattened_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC",
-                            "refId": "B",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "",
-                    "transparent": true,
-                    "type": "xychart"
+                "controls": {
+                    "mouseWheelZoom": true,
+                    "showAttribution": true,
+                    "showDebug": false,
+                    "showMeasure": false,
+                    "showScale": false,
+                    "showZoom": true
                 },
-                {
-                    "datasource": { "uid": "afdfds4gcs45ca" },
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": { "mode": "palette-classic" },
-                            "custom": {
-                                "axisBorderShow": false,
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "fillOpacity": 50,
-                                "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                                "pointShape": "square",
-                                "pointSize": { "fixed": 5, "max": 10 },
-                                "pointStrokeWidth": 0,
-                                "scaleDistribution": { "type": "linear" },
-                                "show": "points"
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                "layers": [
+                    {
+                        "config": {
+                            "showLegend": true,
+                            "style": {
+                                "color": { "fixed": "blue" },
+                                "opacity": 1,
+                                "rotation": { "fixed": 0, "max": 360, "min": -360, "mode": "mod" },
+                                "size": { "field": "capacity", "fixed": 5, "max": 15, "min": 2 },
+                                "symbol": { "fixed": "img/icons/marker/circle.svg", "mode": "fixed" },
+                                "symbolAlign": { "horizontal": "center", "vertical": "center" },
+                                "textConfig": {
+                                    "fontSize": 12,
+                                    "offsetX": 0,
+                                    "offsetY": 0,
+                                    "textAlign": "center",
+                                    "textBaseline": "middle"
+                                }
                             }
                         },
-                        "overrides": []
-                    },
-                    "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
-                    "id": 9,
-                    "options": {
-                        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                        "mapping": "auto",
-                        "series": [
-                            {
-                                "frame": { "matcher": { "id": "byIndex", "options": 0 }},
-                                "y": { "matcher": { "id": "byName", "options": "Total_Unmet_Load_Out" }}
-                            }
-                        ],
-                        "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
-                    },
-                    "pluginVersion": "12.3.3",
-                    "targets": [
-                        {
-                            "dataset": "public",
-                            "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                            "editorMode": "code",
-                            "format": "table",
-                            "hide": false,
-                            "rawQuery": true,
-                            "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM((unmet_item->>'out')::float) AS \"Total_Unmet_Load_Out\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Expanding the list of StateVar objects\n    jsonb_array_elements(sim_obj->'total_unmet_pv') AS unmet_item\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS expanded_unmet_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC;",
-                            "refId": "C",
-                            "sql": {
-                                "columns": [{ "parameters": [], "type": "function" }],
-                                "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
-                                "limit": 50
-                            }
-                        }
-                    ],
-                    "title": "",
-                    "transparent": true,
-                    "type": "xychart"
+                        "layer-tooltip": false,
+                        "location": { "mode": "auto" },
+                        "name": "Capacity",
+                        "tooltip": true,
+                        "type": "markers"
+                    }
+                ],
+                "tooltip": { "mode": "details" },
+                "view": {
+                    "allLayers": true,
+                    "id": "fit",
+                    "lastOnly": false,
+                    "lat": 0,
+                    "layer": "Layer 1",
+                    "lon": 0,
+                    "noRepeat": false,
+                    "shared": false,
+                    "zoom": 15
+                }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "experiments",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n    -- 1. Flexible Regex: 'iter' followed by any non-digits, then capturing the digits\n    (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int AS iteration,\n    \n    -- 2. Flexible Regex: Handles 'stage' or 'st' if the name varies\n    (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int AS stage,\n    \n    -- 3. Flexible Regex: Handles 'scen' or 'scenario'\n    (substring(t.source_file FROM 'scen[^0-9]*(\\d+)'))::int AS scenario,\n\n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    AVG((item->'p_max_pu')::numeric) AS \"capacity\"\nFROM \n    $Experiment AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file ILIKE '%recorded_edge_data_iter%'\n    AND (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int = $iteration_number\n    AND (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int = $stage\nGROUP BY 1,2,3,4,5,6,7;",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
                 }
             ],
+            "title": "Expansion",
+            "transparent": true,
+            "type": "geomap"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "fillOpacity": 20,
+                        "gradientMode": "none",
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "lineWidth": 2,
+                        "stacking": { "group": "A", "mode": "none" }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 9, "w": 11, "x": 0, "y": 11 },
+            "id": 3,
+            "options": {
+                "bucketCount": 50,
+                "combine": false,
+                "legend": {
+                    "calcs": [],
+                    "displayMode": "list",
+                    "placement": "bottom",
+                    "showLegend": true,
+                    "sortBy": "Name",
+                    "sortDesc": false
+                },
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                },
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "In sample vs out of sample",
+            "transparent": true,
+            "type": "histogram"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "thresholds" },
+                    "mappings": [],
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "blue", "value": 80 }]
+                    },
+                    "unit": "currencyUSD"
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 9, "w": 12, "x": 11, "y": 11 },
+            "id": 2,
+            "maxPerRow": 6,
+            "options": {
+                "displayMode": "basic",
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": false },
+                "maxVizHeight": 300,
+                "minVizHeight": 8,
+                "minVizWidth": 8,
+                "namePlacement": "top",
+                "orientation": "horizontal",
+                "reduceOptions": { "calcs": [ "lastNotNull" ], "fields": "", "values": true },
+                "showUnfilled": true,
+                "sizing": "manual",
+                "valueMode": "color"
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "experiments",
+                    "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  -- Extracts the digits (\\d+) immediately following 'sddp_response_'\n  'Iteration ' || substring(source_file from 'sddp_response_(\\d+)') AS metric,\n  AVG((value)::float) AS iteration_value\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE ANY (ARRAY['%sddp_response_1%', '%sddp_response_2%', '%sddp_response_3%', '%sddp_response_4%', '%sddp_response_5%', '%sddp_response_6%', '%sddp_response_7%', '%sddp_response_8%', '%sddp_response_9%', '%sddp_response_10%'])\nGROUP BY metric\nORDER BY metric ASC",
+                    "refId": "E",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "",
+            "transparent": true,
+            "type": "bargauge"
+        },
+        {
+            "collapsed": false,
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+            "id": 12,
+            "panels": [],
             "title": "Trends ($Experiment)",
             "type": "row"
         },
         {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "circle",
+                        "pointSize": { "fixed": 5 },
+                        "pointStrokeWidth": 1,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+            "id": 6,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "x": { "matcher": { "id": "byName", "options": "stage" }},
+                        "y": { "matcher": { "id": "byName", "options": "v_pu" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "WITH extracted_data AS (\n    SELECT \n      -- Using negative indices to count from the end of the filename string\n      REPLACE(split_part(t.source_file, '_', -3), 'iter', '')::int AS iteration,\n      REPLACE(split_part(t.source_file, '_', -2), 'stage', '')::int AS stage,\n      REPLACE(REPLACE(split_part(t.source_file, '_', -1), 'scen', ''), '.json', '')::int AS scenario,\n      v.internal_scen,\n      (node_data->>'node_id')::int AS node_id,\n      (node_data->>'v_pu')::float AS v_pu\n    FROM \n      $Experiment t\n    LEFT JOIN LATERAL jsonb_each(t.data->'voltage') AS v(internal_scen, node_list) ON TRUE\n    LEFT JOIN LATERAL jsonb_array_elements(v.node_list) AS node_data ON TRUE\n    WHERE \n      t.source_file ILIKE '%admm_result_iter%'\n)\nSELECT * FROM extracted_data\nWHERE iteration = (SELECT MAX(iteration) FROM extracted_data)\nORDER BY stage, scenario, internal_scen, node_id;",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "",
+            "transparent": true,
+            "type": "xychart"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "square",
+                        "pointSize": { "fixed": 5, "max": 10 },
+                        "pointStrokeWidth": 0,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+            "id": 4,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "frame": { "matcher": { "id": "byIndex", "options": 0 }},
+                        "size": { "matcher": { "id": "byName", "options": "percentage" }},
+                        "y": { "matcher": { "id": "byName", "options": "total_cost" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "WITH calculated_data AS (\n  SELECT \n    (sim_obj->>'node_index')::float AS stage,\n    -- Calculate Total Cost (NPV adjusted per your formula)\n    ((sim_obj->>'obj')::float) / (1 / (1 + 0.05))^((sim_obj->>'node_index')::float * 5 - 1) AS total_cost,\n    ((sim_obj->>'investment_cost')::float) AS investment_cost\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') AS sub_list,\n    jsonb_array_elements(sub_list) AS sim_obj\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n)\nSELECT\n  stage,\n  investment_cost / (total_cost+0.001) AS percentage,\n  total_cost\nFROM calculated_data\nORDER BY stage ASC;",
+                    "refId": "A",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "",
+            "transparent": true,
+            "type": "xychart"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "square",
+                        "pointSize": { "fixed": 5, "max": 10 },
+                        "pointStrokeWidth": 0,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 29 },
+            "id": 8,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "frame": { "matcher": { "id": "byIndex", "options": 0 }},
+                        "y": { "matcher": { "id": "byName", "options": "δ_cap" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM(simulation_delta_sum) AS \"δ_cap\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Summing the δ_cap list inside the Simulation object\n    (SELECT SUM(val::float) FROM jsonb_array_elements_text(sim_obj->'δ_cap') AS val) AS simulation_delta_sum\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS flattened_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC",
+                    "refId": "B",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "",
+            "transparent": true,
+            "type": "xychart"
+        },
+        {
+            "datasource": { "uid": "afdfds4gcs45ca" },
+            "fieldConfig": {
+                "defaults": {
+                    "color": { "mode": "palette-classic" },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "fillOpacity": 50,
+                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+                        "pointShape": "square",
+                        "pointSize": { "fixed": 5, "max": 10 },
+                        "pointStrokeWidth": 0,
+                        "scaleDistribution": { "type": "linear" },
+                        "show": "points"
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                    }
+                },
+                "overrides": []
+            },
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+            "id": 9,
+            "options": {
+                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+                "mapping": "auto",
+                "series": [
+                    {
+                        "frame": { "matcher": { "id": "byIndex", "options": 0 }},
+                        "y": { "matcher": { "id": "byName", "options": "Total_Unmet_Load_Out" }}
+                    }
+                ],
+                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+            },
+            "pluginVersion": "12.3.3",
+            "targets": [
+                {
+                    "dataset": "public",
+                    "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
+                    "editorMode": "code",
+                    "format": "table",
+                    "hide": false,
+                    "rawQuery": true,
+                    "rawSql": "SELECT \n  stage_id AS \"Stage\",\n  SUM((unmet_item->>'out')::float) AS \"Total_Unmet_Load_Out\"\nFROM (\n  SELECT \n    p_idx AS path_id,\n    s_idx AS stage_id,\n    -- Expanding the list of StateVar objects\n    jsonb_array_elements(sim_obj->'total_unmet_pv') AS unmet_item\n  FROM \n    $Experiment,\n    jsonb_array_elements(data->'simulations') WITH ORDINALITY AS p(sub_list, p_idx),\n    jsonb_array_elements(sub_list) WITH ORDINALITY AS s(sim_obj, s_idx)\n  WHERE \n    source_file LIKE '%sddp_response_${iteration_number}%'\n) AS expanded_unmet_data\nGROUP BY \n  path_id, stage_id\nORDER BY \n  path_id, stage_id ASC;",
+                    "refId": "C",
+                    "sql": {
+                        "columns": [{ "parameters": [], "type": "function" }],
+                        "groupBy": [{ "property": { "type": "string" }, "type": "groupBy" }],
+                        "limit": 50
+                    }
+                }
+            ],
+            "title": "",
+            "transparent": true,
+            "type": "xychart"
+        },
+        {
             "collapsed": true,
-            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 2 },
+            "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
             "id": 11,
             "panels": [
                 {
@@ -493,7 +523,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 3 },
+                    "gridPos": { "h": 9, "w": 11, "x": 0, "y": 38 },
                     "id": 1,
                     "options": {
                         "bucketCount": 50,
@@ -543,7 +573,7 @@
                         },
                         "overrides": []
                     },
-                    "gridPos": { "h": 8, "w": 13, "x": 11, "y": 3 },
+                    "gridPos": { "h": 8, "w": 13, "x": 11, "y": 38 },
                     "id": 5,
                     "options": {
                         "displayMode": "basic",

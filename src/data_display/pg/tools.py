@@ -205,6 +205,23 @@ if __name__ == "__main__":
             cur.close()
             conn.close()
 
+    if args.experiment != "all" and args.reset:
+        conn = get_connection()
+        conn.autocommit = True
+        cur = conn.cursor()
+        table_name = sanitize_table_name(args.experiment)
+        try:
+            print(f"\033[33mDropping table '{table_name}'...\033[0m")
+            cur.execute(
+                sql.SQL("DROP TABLE IF EXISTS {}").format(sql.Identifier(table_name))
+            )
+            print(f"\033[32mTable '{table_name}' dropped from '{DB_NAME}'.\033[0m")
+        except Exception as e:
+            print(f"\033[31mError dropping table '{table_name}': {e}\033[0m")
+        finally:
+            cur.close()
+            conn.close()
+
     if args.backup:
         backup_db()
 

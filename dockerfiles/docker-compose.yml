@@ -2,6 +2,7 @@
 services:
   renderer:
     image: grafana/grafana-image-renderer:latest
+    network_mode: host
 
   grafana:
     build:
@@ -11,7 +12,7 @@ services:
     network_mode: host
     environment:
       - GF_SERVER_HTTP_PORT=${GRAFANA_PORT}
-      - GF_RENDERING_SERVER_URL=http://renderer:8081/render
+      - GF_RENDERING_SERVER_URL=http://localhost:8081/render
       - GF_RENDERING_CALLBACK_URL=http://localhost:${GRAFANA_PORT}
       - GF_USERS_DEFAULT_THEME=light # Options: dark, light, or system
     restart: unless-stopped
@@ -100,9 +101,6 @@ services:
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_DB: ${PG_DB}
     ports:
-      - "${SERVER_PG_PORT}:${SERVER_PG_PORT}"
+      - "${SERVER_PG_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+      - ./postgres_data:/var/lib/postgresql/data
