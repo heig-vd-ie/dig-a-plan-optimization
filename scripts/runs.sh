@@ -1,19 +1,29 @@
 #!/bin/sh
 
+echo "Start Run"
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --fixed_switches true --cachename boisy_feeder_1
+echo "Finished feeder_1"
 sleep 10
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --fixed_switches true --cachename boisy_feeder_2
+echo "Finished feeder_2"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --fixed_switches true --cachename estavayer_aumont
+echo "Finished aumont"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername autoroutes --fixed_switches true --cachename estavayer_autoroutes
+echo "Finished autoroutes"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername bel-air --fixed_switches true --cachename estavayer_bel-air
+echo "Finished bel-air"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville
+echo "Finished centre_ville"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername st-aubin --fixed_switches true --cachename estavayer_st-aubin
+echo "Finished st-aubin"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername tout_vent --fixed_switches true --cachename estavayer_tout_vent
+echo "Finished tout_vent"
 sleep 10
 python experiments/expansion_planning_script.py --kace estavayer --feedername zone_industrielle --fixed_switches true --cachename estavayer_zone_industrielle
+echo "Finished zone_industrielle"
