@@ -215,35 +215,22 @@ function handle_stochastic_planning(req::HTTP.Request)
 
     next!(p)
 
+    edge_ids = Dict(e => string(e.id) for e in edges)
+    node_ids = Dict(n => string(n.id) for n in nodes)
     # Generate simple Bender cuts (you may need to adjust this based on your needs)
     bender_cuts = Dict(
-        cut => ExpansionModel.Types.BenderCut(
-            bender_cuts_data["cuts"][string(cut.id)]["θ"],
-            Dict(
-                edge => bender_cuts_data["cuts"][string(cut.id)]["λ_cap"][string(edge.id)]
-                for edge in edges
-            ),
-            Dict(
-                node => bender_cuts_data["cuts"][string(cut.id)]["λ_load"][string(node.id)]
-                for node in nodes
-            ),
-            Dict(
-                node => bender_cuts_data["cuts"][string(cut.id)]["λ_pv"][string(node.id)]
-                for node in nodes
-            ),
-            Dict(
-                edge => bender_cuts_data["cuts"][string(cut.id)]["cap0"][string(edge.id)]
-                for edge in edges
-            ),
-            Dict(
-                node => bender_cuts_data["cuts"][string(cut.id)]["load0"][string(node.id)]
-                for node in nodes
-            ),
-            Dict(
-                node => bender_cuts_data["cuts"][string(cut.id)]["pv0"][string(node.id)] for
-                node in nodes
-            ),
-        ) for cut in cuts
+        cut => begin
+            data = bender_cuts_data["cuts"][string(cut.id)]
+            ExpansionModel.Types.BenderCut(
+                data["θ"],
+                Dict(edge => data["λ_cap"][edge_ids[edge]] for edge in edges),
+                Dict(node => data["λ_load"][node_ids[node]] for node in nodes),
+                Dict(node => data["λ_pv"][node_ids[node]] for node in nodes),
+                Dict(edge => data["cap0"][edge_ids[edge]] for edge in edges),
+                Dict(node => data["load0"][node_ids[node]] for node in nodes),
+                Dict(node => data["pv0"][node_ids[node]] for node in nodes),
+            )
+        end for cut in cuts
     )
     next!(p)
 
@@ -383,6 +370,8 @@ function compare_plot(req::HTTP.Request)
 
     # Save the plot
     isdir(".cache") || mkpath(".cache")
+    isdir(".cache/outputs_expansion") || mkpath(".cache/outputs_expansion")
+    isdir(".cache/outputs_expansion/run_test") || mkpath(".cache/outputs_expansion/run_test")
     savefig(get(body, :plot_saved, ".cache/outputs_expansion/run_test/objective_histogram.pdf"))
 
     println("[$(log_datetime())] Comparison plot completed and saved")
