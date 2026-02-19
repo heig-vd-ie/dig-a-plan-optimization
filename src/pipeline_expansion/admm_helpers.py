@@ -107,6 +107,7 @@ class ADMM:
             "reactive_power": {},
             "switches": self.dap.result_manager.extract_switch_status().to_dicts(),
             "taps": self.dap.result_manager.extract_transformer_tap_position().to_dicts(),
+            "objectives": self.dap.result_manager.extract_reconfiguration_θ().to_dicts(),
             "r_norm": self.dap.model_manager.r_norm_list,
             "s_norm": self.dap.model_manager.s_norm_list,
         }
