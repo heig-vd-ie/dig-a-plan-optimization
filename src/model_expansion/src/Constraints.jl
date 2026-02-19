@@ -161,8 +161,7 @@ function define_objective!(
             params.γ_cuts *
             params.years_per_stage *
             sum(vars.θ[cut] for cut in grid.cuts) *
-            params.penalty_costs_infeasibility *
-            8760 / params.n_cut_scenarios
+            params.penalty_costs_infeasibility / params.n_cut_scenarios
         ) + (sum(vars.slack[cut] for cut in grid.cuts) * params.cut_slack_penalty)
     )
     return nothing
