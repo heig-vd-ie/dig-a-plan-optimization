@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Set this variable to true to run only the first four experiments
-FIRST_ONLY=${FIRST_ONLY:-false}
-DELAY_TIME=10
+FIRST_ONLY=${1:-false}
+DELAY_TIME=${2:-10} # Default delay time of 60 seconds between experiments
 
-echo "Start Run"
+echo "Start Run with FIRST_ONLY=$FIRST_ONLY and DELAY_TIME=$DELAY_TIME seconds between experiments."
 
 # First experiment
 python experiments/expansion_planning_script.py --kace ieee_33 --fixed_switches true --cachename ieee33_fixed_switches
