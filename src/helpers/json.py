@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Dict
 from enum import Enum
 import json
+import os
 
 
 def serialize_obj(obj):
@@ -17,15 +18,16 @@ def serialize_obj(obj):
     return obj
 
 
-def save_obj_to_json(
-    obj: BaseModel | Dict, path_filename: Path, large_file_expected: bool = True
-):
+def save_obj_to_json(obj: BaseModel | Dict, path_filename: Path):
     serialized = serialize_obj(obj)
 
-    with open(path_filename, "w") as f:
-        if large_file_expected:
-            print("\n".join(str(serialized).splitlines()[:1000]))
-        json.dump(serialized, f, ensure_ascii=False, indent=4)
+    tmp_path = path_filename.with_suffix(path_filename.suffix + ".tmp")
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(serialized, f, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+
+    os.replace(tmp_path, path_filename)
 
 
 def load_obj_from_json(path_filename: Path) -> Dict:
