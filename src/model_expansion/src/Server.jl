@@ -43,12 +43,14 @@ function handle_generate_scenarios(req::HTTP.Request)
     nodes = Vector{ExpansionModel.Types.Node}()
     load_potential, pv_potential =
         Dict{ExpansionModel.Types.Node, Float64}(), Dict{ExpansionModel.Types.Node, Float64}()
-    @showprogress 1 "Processing nodes..." for node_data in _nodes
+    p2 = Progress(length(_nodes), dt = 0.01, desc = "Processing nodes...")
+    for node_data in _nodes
         node = ExpansionModel.Types.Node(node_data["id"])
         node_id_str = string(node_data["id"])
         push!(nodes, node)
         load_potential[node] = Float64(_load_potential[node_id_str])
         pv_potential[node] = Float64(_pv_potential[node_id_str])
+        next!(p2)
     end
 
     min_load = Float64(get(body, "min_load", 1.0))
@@ -77,14 +79,15 @@ function handle_generate_scenarios(req::HTTP.Request)
 end
 
 function handle_stochastic_planning(req::HTTP.Request)
-    println("[$(log_datetime())] Processing stochastic planning request...")
+    p = Progress(15, dt = 0.01, desc = "Processing stochastic planning request...")
+    println("\n[$(log_datetime())] Processing stochastic planning request...")
 
     # Parse the JSON body
     body = String(req.body)
 
     # Handle empty body case
     if isempty(body)
-        println("[$(log_datetime())] Empty request body, using all defaults")
+        println("\n[$(log_datetime())] Empty request body, using all defaults")
         body = Dict()
     else
         body = JSON3.read(body)
@@ -111,36 +114,43 @@ function handle_stochastic_planning(req::HTTP.Request)
     # Algorithm parameters with defaults
     additional_params = get(body, "additional_params", default["additional_params"])
 
-    println("[$(log_datetime())] Running SDDP parameters initialization...")
+    println("\n[$(log_datetime())] Running SDDP parameters initialization...")
 
+    next!(p)
     # Construct data structures from parsed parameters
     # Create nodes, edges, and cuts
 
     nodes, edges, cuts = [], [], []
     initial_cap_dict, load_dict, pv_dict = Dict(), Dict(), Dict()
 
-    @showprogress 1 "Processing nodes..." for node_data in grid_data["nodes"]
+    p2 = Progress(length(grid_data["nodes"]), dt = 0.01, desc = "Processing nodes...")
+    for node_data in grid_data["nodes"]
         node_id_str = string(node_data["id"])
         node = ExpansionModel.Types.Node(node_data["id"])
         push!(nodes, node)
         load_dict[node] = grid_data["load"][node_id_str]
         pv_dict[node] = grid_data["pv"][node_id_str]
+        next!(p2)
     end
 
-    @showprogress 1 "Processing edges..." for edge_data in grid_data["edges"]
+    p2 = Progress(length(grid_data["edges"]), dt = 0.01, desc = "Processing edges...")
+    for edge_data in grid_data["edges"]
         edge_id_str = string(edge_data["id"])
         edge =
             ExpansionModel.Types.Edge(edge_data["id"], edge_data["source"], edge_data["target"])
         push!(edges, edge)
         initial_cap_dict[edge] = grid_data["initial_cap"][edge_id_str]
+        next!(p2)
     end
 
-    @showprogress 1 "Processing cuts..." for cut_data in grid_data["cuts"]
+    p2 = Progress(length(grid_data["cuts"]), dt = 0.01, desc = "Processing cuts...")
+    for cut_data in grid_data["cuts"]
         push!(cuts, ExpansionModel.Types.Cut(cut_data["id"]))
+        next!(p2)
     end
     external_grid = ExpansionModel.Types.Node(grid_data["external_grid"])
 
-    println("[$(log_datetime())] Running SDDP parameters initialization5...")
+    next!(p)
 
     Ω = [
         [
@@ -151,18 +161,18 @@ function handle_stochastic_planning(req::HTTP.Request)
             ) for scenario1 in scenario2
         ] for scenario2 in scenarios_data["Ω"]
     ]
-    println("[$(log_datetime())] Running SDDP parameters initialization6...")
+    next!(p)
 
     P = [scenarios_data["P"][i] for i in 1:length(scenarios_data["P"])]
-    println("[$(log_datetime())] Running SDDP parameters initialization7...")
+    next!(p)
 
     scenarios = ExpansionModel.Types.Scenarios(Ω, P)
-    println("[$(log_datetime())] Running SDDP parameters initialization8...")
+    next!(p)
 
     out_of_sample_scenarios_data = JSON3.read(
         read(joinpath(@__DIR__, "..", "..", "..", out_of_sample_scenarios_folder), String),
     )
-    println("[$(log_datetime())] Running SDDP parameters initialization9...")
+    next!(p)
 
     Ω_out = [
         [
@@ -173,22 +183,22 @@ function handle_stochastic_planning(req::HTTP.Request)
             ) for scenario1 in scenario2
         ] for scenario2 in out_of_sample_scenarios_data["Ω"]
     ]
-    println("[$(log_datetime())] Running SDDP parameters initialization10...")
+    next!(p)
 
     P_out = [
         out_of_sample_scenarios_data["P"][i] for
         i in 1:length(out_of_sample_scenarios_data["P"])
     ]
-    println("[$(log_datetime())] Running SDDP parameters initialization11...")
+    next!(p)
     out_of_sample_scenarios = ExpansionModel.Types.Scenarios(Ω_out, P_out)
-    println("[$(log_datetime())] Running SDDP parameters initialization12...")
+    next!(p)
 
     n_stages = planning_params["n_stages"]
     years_per_stage = planning_params["years_per_stage"]
     n_cut_scenarios = planning_params["n_cut_scenarios"]
     initial_budget = planning_params["initial_budget"]
     γ_cuts = planning_params["γ_cuts"]
-    println("[$(log_datetime())] Running SDDP parameters initialization13...")
+    next!(p)
     investment_costs =
         Dict(edge => grid_data["investment_costs"][string(edge.id)] for edge in edges)
     penalty_costs_load =
@@ -197,13 +207,13 @@ function handle_stochastic_planning(req::HTTP.Request)
         Dict(node => grid_data["penalty_costs_pv"][string(node.id)] for node in nodes)
     penalty_costs_infeasibility = grid_data["penalty_costs_infeasibility"]
 
-    println("[$(log_datetime())] Running SDDP parameters initialization14...")
+    next!(p)
 
     discount_rate = planning_params["discount_rate"]
     bender_cuts_data =
         JSON3.read(read(joinpath(@__DIR__, "..", "..", "..", bender_cuts_folder), String))
 
-    println("[$(log_datetime())] Running SDDP parameters initialization15...")
+    next!(p)
 
     # Generate simple Bender cuts (you may need to adjust this based on your needs)
     bender_cuts = Dict(
@@ -235,7 +245,7 @@ function handle_stochastic_planning(req::HTTP.Request)
             ),
         ) for cut in cuts
     )
-    println("[$(log_datetime())] Running SDDP parameters initialization16...")
+    next!(p)
 
     # Create PlanningParams
     params = ExpansionModel.Types.PlanningParams(
@@ -258,7 +268,7 @@ function handle_stochastic_planning(req::HTTP.Request)
     risk_measure_type = additional_params["risk_measure_type"]
     risk_measure_param = additional_params["risk_measure_param"]
 
-    println("[$(log_datetime())] Running SDDP parameters initialization17...")
+    next!(p)
 
     # Create risk measure
     risk_measure = if risk_measure_type == "Expectation"
@@ -274,8 +284,8 @@ function handle_stochastic_planning(req::HTTP.Request)
     else
         SDDP.Expectation()  # default
     end
-
-    println("[$(log_datetime())] Running SDDP optimization...")
+    next!(p)
+    println("\n[$(log_datetime())] Running SDDP optimization...")
     # Call your stochastic_planning function
     grid = ExpansionModel.Types.Grid(
         nodes,
