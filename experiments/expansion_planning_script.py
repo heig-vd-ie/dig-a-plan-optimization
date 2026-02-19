@@ -1,5 +1,8 @@
 from experiments import *
 import click
+from helpers import generate_log
+
+log = generate_log(name=__name__)
 
 
 @click.command()
@@ -63,7 +66,7 @@ def expansion_planning_script(
         case "ieee_33":
             payload_file = PROJECT_ROOT / "experiments/ieee_33/00-expansion.json"
         case _:
-            print(
+            log.info(
                 f"none of boisy, estavayer, ieee_33 is selected, probably refers to payload_file={kace}"
             )
             payload_file = kace
@@ -110,8 +113,7 @@ def expansion_planning_script(
         results = run_expansion(
             request, with_ray=False, time_now=None if cachename == "-n" else cachename
         )
-        print(results)
-        ######################################
+        log.info(f"Results: {results}")
     else:
         response = requests.patch(
             (
@@ -120,7 +122,7 @@ def expansion_planning_script(
             ),
             json=payload,
         )
-        print("Response status code:", response.status_code)
+        log.info(f"Response status code: {response.status_code}")
 
 
 if __name__ == "__main__":

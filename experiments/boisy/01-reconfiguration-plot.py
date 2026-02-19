@@ -11,9 +11,9 @@ results = load_obj_from_json(OUTPUT_ADMM_PATH / f"{GRID_NAME}_result.json")
 
 
 # %% Inspect consensus and per-scenario deltas
-print("\n=== ADMM consensus switch states (z) ===")
-print(dap.model_manager.zδ_variable)
-print(dap.model_manager.zζ_variable)
+LOG.info("\n=== ADMM consensus switch states (z) ===")
+LOG.info(dap.model_manager.zδ_variable)
+LOG.info(dap.model_manager.zζ_variable)
 
 # %% Plot Distribution
 nodal_variables = ["voltage", "p_curt_cons", "p_curt_prod"]

@@ -15,6 +15,9 @@ from data_model import GridCaseModel, ShortTermUncertaintyProfile, LoadData
 from data_model.kace import (
     DiscreteScenario,
 )
+from helpers import generate_log
+
+log = generate_log(__name__)
 
 
 class ReductionStrategy(ABC):
@@ -95,7 +98,7 @@ class ScenarioPipelineProfile:
         # C. Run Strategy (Numpy -> Indices)
         indices = self.reducer.get_representative_indices(X, self.ksop.n_scenarios)
 
-        print(f"Selected scenario indices: {indices}")
+        log.info(f"Selected scenario indices: {indices}")
         # D. Reconstruction (Indices -> Polars)
         # We select the rows matching the indices
         self.desired_cols = ["egid"] + [col_names[i] for i in indices]
@@ -281,4 +284,4 @@ if __name__ == "__main__":
         seed=42,
     )
 
-    print(final_scenarios)
+    log.info(f"Final scenarios: {final_scenarios}")

@@ -9,6 +9,7 @@ import psycopg2
 from psycopg2 import sql
 from tqdm import tqdm
 from konfig import settings
+from helpers import generate_log
 
 # Database connection - Adjust based on your Docker env vars
 DB_CONFIG = {
@@ -19,9 +20,7 @@ DB_CONFIG = {
 }
 
 DB_NAME = os.getenv("PG_DB", "experiments")
-# ANSI Color for Orange
-ORANGE = "\033[38;5;208m"
-RESET = "\033[0m"
+LOG = generate_log(__name__)
 
 
 @dataclass
@@ -86,7 +85,7 @@ def backup_db() -> None:
         check=True,
         env=env,
     )
-    print(f"\033[32mDatabase backed up to {out_file}\033[0m")
+    LOG.info(f"Database backed up to {out_file}")
 
 
 def sanitize_table_name(name: str) -> str:
@@ -137,7 +136,7 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
         with path.open() as fh:
             data = json.load(fh)
     except Exception as e:
-        print(f"\033[93mSkipping {path}: {e}\033[0m")
+        LOG.warning(f"Skipping {path}: {e}")
         return
 
     # Check if the raw string size is approaching the 255MB limit
@@ -158,8 +157,8 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
         conn.rollback()
         # Specific check for the Postgres Size Error
         if "total size of jsonb object elements exceeds the maximum" in str(e):
-            print(
-                f"{ORANGE}File {path.name} too large ({len(raw_json_str)} bytes). Chunking...{RESET}"
+            LOG.warning(
+                f"File {path.name} too large ({len(raw_json_str)} bytes). Chunking..."
             )
             data_to_upload = chunk_sddp_response(data_to_upload, divided_by=10)
             for idx, entry in enumerate(
@@ -176,9 +175,9 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
                     conn.commit()
                 except Exception as e2:
                     conn.rollback()
-                    print(f"\033[31mError inserting {path} after chunking: {e2}\033[0m")
+                    LOG.error(f"Error inserting {path} after chunking: {e2}")
         else:
-            print(f"\033[31mError inserting {path}: {e}\033[0m")
+            LOG.error(f"Error inserting {path}: {e}")
     finally:
         cur.close()
 
@@ -192,15 +191,15 @@ if __name__ == "__main__":
         conn.autocommit = True
         cur = conn.cursor()
         try:
-            print(f"\033[33mWiping all tables in database '{DB_NAME}'...\033[0m")
+            LOG.info(f"Wiping all tables in database '{DB_NAME}'...")
             # Dropping the schema 'public' deletes all tables instantly
             cur.execute("DROP SCHEMA public CASCADE;")
             cur.execute("CREATE SCHEMA public;")
             # Grant permissions back if necessary (usually default for owner)
             cur.execute("GRANT ALL ON SCHEMA public TO public;")
-            print(f"\033[32mAll tables removed from '{DB_NAME}'.\033[0m")
+            LOG.info(f"All tables removed from '{DB_NAME}'")
         except Exception as e:
-            print(f"\033[31mError clearing tables: {e}\033[0m")
+            LOG.error(f"Error clearing tables: {e}")
         finally:
             cur.close()
             conn.close()
@@ -211,13 +210,13 @@ if __name__ == "__main__":
         cur = conn.cursor()
         table_name = sanitize_table_name(args.experiment)
         try:
-            print(f"\033[33mDropping table '{table_name}'...\033[0m")
+            LOG.info(f"Dropping table '{table_name}'...")
             cur.execute(
                 sql.SQL("DROP TABLE IF EXISTS {}").format(sql.Identifier(table_name))
             )
-            print(f"\033[32mTable '{table_name}' dropped from '{DB_NAME}'.\033[0m")
+            LOG.info(f"Table '{table_name}' dropped from '{DB_NAME}'.")
         except Exception as e:
-            print(f"\033[31mError dropping table '{table_name}': {e}\033[0m")
+            LOG.error(f"Error dropping table '{table_name}': {e}")
         finally:
             cur.close()
             conn.close()
@@ -256,4 +255,4 @@ if __name__ == "__main__":
                 import_file(Path(root) / file, run_name, conn, args.force)
 
         conn.close()
-        print(f"\033[32mSync complete for '{DB_NAME}'\033[0m")
+        LOG.info(f"Sync complete for '{DB_NAME}'")

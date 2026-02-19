@@ -10,11 +10,9 @@ from data_model.sddp import (
     LongTermScenarioRequest,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
+from helpers import generate_log
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+log = generate_log(name=__name__)
 
 
 class ExpansionModel:
@@ -23,7 +21,7 @@ class ExpansionModel:
 
         SERVER_BASE_URL = f"http://{os.environ.get("LOCAL_HOST", "localhost")}:{os.environ.get("SERVER_JL_PORT", 8082)}"
         self.base_url = SERVER_BASE_URL
-        logger.info(f"Expansion API server at: {SERVER_BASE_URL}")
+        log.info(f"Expansion API server at: {SERVER_BASE_URL}")
 
     def get_server_config(self):
         """Get the server configuration."""
@@ -45,7 +43,7 @@ class ExpansionModel:
                     / "payloads_jl"
                     / "default.json"
                 )
-                logger.info(f"Using data path: {data_path}")
+                log.info(f"Using data path: {data_path}")
                 request_data = load_obj_from_json(data_path)
 
             response = requests.patch(
@@ -54,10 +52,10 @@ class ExpansionModel:
                 json=request_data,
             )
             if response.status_code != 200:
-                logger.error(f"✗ Request failed with status {response.status_code}")
-                logger.error(f"Response: {response.text}")
+                log.error(f"✗ Request failed with status {response.status_code}")
+                log.error(f"Response: {response.text}")
             else:
-                logger.info(f"🎉 Response status: {response.status_code}")
+                log.info(f"🎉 Response status: {response.status_code}")
             return response
         except FileNotFoundError:
             raise FileNotFoundError(f"✗ Could not find data file at {data_path}")
@@ -80,10 +78,10 @@ class ExpansionModel:
                 json=request_data,
             )
             if response.status_code != 200:
-                logger.error(f"✗ Request failed with status {response.status_code}")
-                logger.error(f"Response: {response.text}")
+                log.error(f"✗ Request failed with status {response.status_code}")
+                log.error(f"Response: {response.text}")
             else:
-                logger.info(f"🎉 Response status: {response.status_code}")
+                log.info(f"🎉 Response status: {response.status_code}")
             return response
         except json.JSONDecodeError as e:
             raise ValueError(f"✗ Error parsing JSON: {e}")

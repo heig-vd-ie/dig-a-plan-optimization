@@ -18,5 +18,5 @@ if __name__ == "__main__":
             f"http://{LOCALHOST}:{PY_PORT}/reconfiguration/admm",
             json=payload,
         )
-        print("Response status code:", response.status_code)
-        print("Response JSON:", response.json())
+        LOG.info(f"Response status code: {response.status_code}")
+        LOG.info(f"Response JSON: {response.json()}")

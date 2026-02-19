@@ -3,6 +3,9 @@ import polars as pl
 from polars import col as c
 from helpers import pl_to_dict
 from pipeline_reconfiguration import DigAPlanADMM, DigAPlanBender, DigAPlanCombined
+from helpers import generate_log
+
+log = generate_log(__name__)
 
 
 def compare_dig_a_plan_with_pandapower(
@@ -78,7 +81,7 @@ def compare_dig_a_plan_with_pandapower(
         .with_columns((c("i_pp") - c("i_pu")).abs().alias("i_diff"))
     )
 
-    print(f"Max voltage difference: {node_voltage["v_diff"].max():.1E} pu")
-    print(f"Max current difference: {edge_current["i_diff"].max():.1E} pu")
+    log.info(f"Max voltage difference: {node_voltage['v_diff'].max():.1E} pu")
+    log.info(f"Max current difference: {edge_current['i_diff'].max():.1E} pu")
 
     return node_voltage, edge_current

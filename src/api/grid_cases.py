@@ -2,7 +2,7 @@ import pandapower as pp
 import polars as pl
 from polars import col as c
 from typing import Tuple
-
+from helpers import generate_log
 from data_exporter.pp_to_dap import (
     pp_to_dap,
 )
@@ -17,6 +17,8 @@ from data_model import (
     ShortTermUncertaintyRandom,
     ShortTermUncertaintyProfile,
 )
+
+log = generate_log(__name__)
 
 
 def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
@@ -35,7 +37,7 @@ def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
     for k, idx in enumerate(idxs):
         net.bus.at[idx, "geo"] = f'{{"type":"Point","coordinates":[{float(k)},{0.0}]}}'
 
-    print("Filled missing geo:", len(idxs))
+    log.warning("Filled missing geo:", len(idxs))
     return net
 
 

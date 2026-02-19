@@ -20,7 +20,6 @@ if __name__ == "__main__":
             factor_v=1.0,
             factor_i=1e-3,
             master_relaxed=False,
-
         )
     )
     payload["konfig"] = konfig_filtered
@@ -32,7 +31,7 @@ if __name__ == "__main__":
         from api.bender import run_bender
 
         results = run_bender(request)
-        print(results)
+        LOG.info(results)
         ######################################
     else:
         # Adjust endpoint if your API uses a different route
@@ -40,5 +39,5 @@ if __name__ == "__main__":
             f"http://{LOCALHOST}:{PY_PORT}/reconfiguration/bender",
             json=payload,
         )
-        print("Response status code:", response.status_code)
-        print("Response JSON:", response.json())
+        LOG.info(f"Response status code: {response.status_code}")
+        LOG.info(f"Response JSON: {response.json()}")
