@@ -37,7 +37,7 @@ def fill_missing_bus_geo(net: pp.pandapowerNet) -> pp.pandapowerNet:
     for k, idx in enumerate(idxs):
         net.bus.at[idx, "geo"] = f'{{"type":"Point","coordinates":[{float(k)},{0.0}]}}'
 
-    log.warning("Filled missing geo:", len(idxs))
+    log.warning(f"Filled missing geo for buses: {idxs.to_list()}")
     return net
 
 
