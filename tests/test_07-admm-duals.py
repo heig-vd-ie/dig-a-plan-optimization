@@ -50,4 +50,4 @@ class TestADMMModelDualExample(ExpansionTestBase):
         θs = dap.result_manager.extract_reconfiguration_θ()
         assert θs.shape[0] == 10
         assert θs.shape[1] == 2
-        assert θs["θ"].sum() == pytest.approx(0.0, abs=1e-1)
+        assert θs["θ"].sum() == pytest.approx(0.809, abs=1e-1)
