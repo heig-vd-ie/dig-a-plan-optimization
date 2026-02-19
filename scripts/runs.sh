@@ -1,6 +1,18 @@
 #!/bin/sh
 
 echo "Start Run"
+python experiments/expansion_planning_script.py --kace ieee_33 --fixed_switches true --cachename ieee33_fixed_switches
+echo "Finished ieee33 fixed switches"
+sleep 10
+python experiments/expansion_planning_script.py --kace ieee_33 --cachename ieee33_expectation
+echo "Finished ieee33"
+sleep 10
+python experiments/expansion_planning_script.py --kace ieee_33 --riskmeasuretype Wasserstein --cachename ieee33_wasserstein
+echo "Finished ieee33 wasserstein"
+sleep 10
+python experiments/expansion_planning_script.py --kace ieee_33 --riskmeasuretype WorstCase --cachename ieee33_worstcase
+echo "Finished ieee33 worstcase"
+sleep 10
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --fixed_switches true --cachename boisy_feeder_1
 echo "Finished feeder_1"
 sleep 10

@@ -121,7 +121,6 @@ def expansion_planning_script(
             json=payload,
         )
         print("Response status code:", response.status_code)
-        print("Response JSON:", response.json())
 
 
 if __name__ == "__main__":
