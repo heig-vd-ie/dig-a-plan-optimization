@@ -192,6 +192,7 @@ if __name__ == "__main__":
         record_all()
         conn = get_connection()
         with conn.cursor() as cur:
+            cur.execute("DROP TABLE IF EXISTS geolocations;")
             ensure_table(cur, "geolocations")
             for file in (PROJECT_ROOT / settings.cache.figures / "geolocations").glob(
                 "*.json"

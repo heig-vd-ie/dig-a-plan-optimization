@@ -32,11 +32,11 @@
         "volp": 2
     },
     "sddp_config": {
-        "iterations": 50,
+        "iterations": 200,
         "n_simulations": 100,
         "n_optimizations": 10,
         "n_stages": 5,
-        "n_scenarios": 10,
+        "n_scenarios": 20,
         "initial_budget": 5000000,
         "discount_rate": 0.05,
         "years_per_stage": 5,

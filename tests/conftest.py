@@ -89,7 +89,6 @@ def test_combined_config() -> CombinedConfig:
         threads=1,
         big_m=1e2,
         γ_infeasibility=1.0,
-        γ_admm_penalty=0.0,
         factor_v=1,
         factor_i=1e-3,
     )

@@ -68,8 +68,7 @@ def combined_model_common_constraints(model: pyo.AbstractModel) -> pyo.AbstractM
     model.current_limit_tr = pyo.Constraint(model.CtΩ, rule=optimal_current_limit_rule)
     model.objective = pyo.Objective(rule=objective_rule_combined, sense=pyo.minimize)
     model.objective_output = pyo.Constraint(
-        rule=lambda m: m.θ
-        == objective_rule_loss(m) + objective_rule_infeasibility(m) * m.γ_infeasibility
+        rule=lambda m: m.θ == objective_rule_output(m)
     )
     model.voltage_upper_limits = pyo.Constraint(
         model.NΩ, rule=optimal_voltage_upper_limits_rule

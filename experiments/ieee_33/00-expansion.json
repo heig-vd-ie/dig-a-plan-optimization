@@ -40,7 +40,7 @@
         "volp": 2
     },
     "sddp_config": {
-        "iterations": 100,
+        "iterations": 300,
         "n_simulations": 5000,
         "n_optimizations": 10,
         "n_stages": 5,

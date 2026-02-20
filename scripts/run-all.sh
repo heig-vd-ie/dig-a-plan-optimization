@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Set this variable to true to run only the first four experiments
-BREAK_POINT=${1:-1}
+BREAK_POINT=${1:-3} # Default is 3, which means run all experiments
 DELAY_TIME=${2:-10} # Default delay time of 60 seconds between experiments
 
 echo "Start Run with BREAK_POINT=$BREAK_POINT and DELAY_TIME=$DELAY_TIME seconds between experiments."
