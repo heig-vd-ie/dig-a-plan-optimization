@@ -4,6 +4,7 @@ from typing import Dict
 from enum import Enum
 import json
 import os
+import ijson
 
 
 def serialize_obj(obj):
@@ -22,8 +23,13 @@ def save_obj_to_json(obj: BaseModel | Dict, path_filename: Path):
     serialized = serialize_obj(obj)
 
     tmp_path = path_filename.with_suffix(path_filename.suffix + ".tmp")
+
+    encoder = json.JSONEncoder(ensure_ascii=False, indent=4)
     with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(serialized, f, ensure_ascii=False)
+
+        for chunk in encoder.iterencode(serialized):
+            f.write(chunk)
+
         f.flush()
         os.fsync(f.fileno())
 
@@ -31,4 +37,15 @@ def save_obj_to_json(obj: BaseModel | Dict, path_filename: Path):
 
 
 def load_obj_from_json(path_filename: Path) -> Dict:
-    return json.load(open(path_filename, "r"))
+    """
+    Uses ijson to parse the file. Note: ijson.kvitems is excellent
+    for large dictionaries to avoid loading the whole tree at once.
+    """
+    with open(path_filename, "rb") as f:
+        # ijson works best with binary mode ('rb')
+        # This reconstructs the dictionary iteratively.
+        # For a standard dict, we use ijson.items with an empty prefix ''
+        parser = ijson.items(f, "")
+        for obj in parser:
+            return obj
+    return {}
