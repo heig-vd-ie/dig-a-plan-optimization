@@ -30,27 +30,20 @@
             "datasource": { "type": "grafana-postgresql-datasource", "uid": "afdfds4gcs45ca" },
             "fieldConfig": {
                 "defaults": {
-                    "color": { "mode": "palette-classic" },
-                    "custom": {
-                        "axisBorderShow": true,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisGridShow": true,
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "fillOpacity": 53,
-                        "hideFrom": { "legend": false, "tooltip": false, "viz": false },
-                        "pointShape": "circle",
-                        "pointSize": { "fixed": 3, "max": 40 },
-                        "pointStrokeWidth": 1,
-                        "scaleDistribution": { "type": "linear" },
-                        "show": "points"
-                    },
+                    "color": { "mode": "thresholds" },
+                    "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false }},
                     "fieldMinMax": false,
                     "mappings": [],
                     "thresholds": {
-                        "mode": "absolute",
-                        "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
+                        "mode": "percentage",
+                        "steps": [
+                            { "color": "blue", "value": 0 },
+                            { "color": "purple", "value": 20 },
+                            { "color": "green", "value": 40 },
+                            { "color": "yellow", "value": 59.9997 },
+                            { "color": "orange", "value": 79.9999 },
+                            { "color": "red", "value": 100 }
+                        ]
                     }
                 },
                 "overrides": []
@@ -58,16 +51,65 @@
             "gridPos": { "h": 10, "w": 24, "x": 0, "y": 1 },
             "id": 7,
             "options": {
-                "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
-                "mapping": "auto",
-                "series": [
+                "basemap": {
+                    "config": { "server": "streets", "showLabels": true, "theme": "auto" },
+                    "name": "Layer 0",
+                    "noRepeat": false,
+                    "opacity": 0.7,
+                    "type": "osm-standard"
+                },
+                "controls": {
+                    "mouseWheelZoom": true,
+                    "showAttribution": true,
+                    "showDebug": false,
+                    "showMeasure": false,
+                    "showScale": false,
+                    "showZoom": true
+                },
+                "layers": [
                     {
-                        "size": { "matcher": { "id": "byName", "options": "capacity" }},
-                        "x": { "matcher": { "id": "byName", "options": "latitude" }},
-                        "y": { "matcher": { "id": "byName", "options": "longitude" }}
+                        "config": {
+                            "showLegend": true,
+                            "style": {
+                                "color": { "field": "capacity", "fixed": "dark-green" },
+                                "opacity": 1,
+                                "rotation": { "fixed": 0, "max": 360, "min": -360, "mode": "clamped" },
+                                "size": { "field": "capacity", "fixed": 10, "max": 20, "min": 5 },
+                                "symbol": {
+                                    "field": "",
+                                    "fixed": "img/icons/unicons/compress-lines.svg",
+                                    "mode": "fixed"
+                                },
+                                "symbolAlign": { "horizontal": "center", "vertical": "center" },
+                                "textConfig": {
+                                    "fontSize": 12,
+                                    "offsetX": 0,
+                                    "offsetY": 0,
+                                    "textAlign": "center",
+                                    "textBaseline": "middle"
+                                }
+                            }
+                        },
+                        "filterData": { "id": "byRefId", "options": "A" },
+                        "layer-tooltip": false,
+                        "location": { "mode": "auto" },
+                        "name": "LineCapacity",
+                        "tooltip": true,
+                        "type": "markers"
                     }
                 ],
-                "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
+                "tooltip": { "mode": "details" },
+                "view": {
+                    "allLayers": false,
+                    "id": "fit",
+                    "lastOnly": false,
+                    "lat": 46.527844,
+                    "layer": "LineCapacity",
+                    "lon": 6.627218,
+                    "noRepeat": false,
+                    "padding": 10,
+                    "zoom": 15
+                }
             },
             "pluginVersion": "12.3.3",
             "targets": [
@@ -76,7 +118,7 @@
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n    -- 1. Flexible Regex: 'iter' followed by any non-digits, then capturing the digits\n    (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int AS iteration,\n    \n    -- 2. Flexible Regex: Handles 'stage' or 'st' if the name varies\n    (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int AS stage,\n    \n    -- 3. Flexible Regex: Handles 'scen' or 'scenario'\n    (substring(t.source_file FROM 'scen[^0-9]*(\\d+)'))::int AS scenario,\n\n    item->>'eq_fk' AS uuid,\n    item->>'edge_id' AS edge_id,\n    (item->'coords'->>0)::numeric AS \"longitude\",\n    (item->'coords'->>2)::numeric AS \"latitude\",\n    AVG((item->'p_max_pu')::numeric) AS \"capacity\"\nFROM \n    $Experiment AS t,\n    jsonb_array_elements(t.data) AS item\nWHERE \n    t.source_file ILIKE '%recorded_edge_data_iter%'\n    AND (substring(t.source_file FROM 'iter[^0-9]*(\\d+)'))::int = $iteration_number\n    AND (substring(t.source_file FROM 'stage[^0-9]*(\\d+)'))::int = $stage\nGROUP BY 1,2,3,4,5,6,7;",
+                    "rawSql": "WITH QUERY1 AS (\n  SELECT\n    '$Experiment' AS name1,\n    item ->> 'eq_fk' AS uuid,\n    item ->> 'edge_id' AS edge_id,\n    (item -> 'coords' ->> 0) :: numeric AS \"longitude1\",\n    (item -> 'coords' ->> 2) :: numeric AS \"latitude1\",\n    MAX((item -> 'p_max_pu') :: numeric) AS \"capacity\"\n  FROM\n    $Experiment AS t,\n    jsonb_array_elements(t.data) AS item\n  WHERE\n    t.source_file ILIKE '%recorded_edge_data_iter%'\n    AND (substring(t.source_file FROM 'iter[^0-9]*(\\d+)')) :: int = $iteration_number\n    AND (substring(t.source_file FROM 'stage[^0-9]*(\\d+)')) :: int = $stage\n  GROUP BY 1,2,3,4,5\n),\nQUERY2 AS (\n  SELECT\n      item ->> 'eq_fk' AS uuid2,\n      (item ->> 'lat')::numeric AS latitude2,\n      (item ->> 'lon'):: numeric AS longitude2,\n      t.source_file AS name2\n  FROM geolocations AS t\n  CROSS JOIN LATERAL jsonb_array_elements(t.data -> 'geolocations') AS item\n)\nSELECT \n  q1.uuid,\n  q1.edge_id,\n  q1.capacity,\n  COALESCE(q2.longitude2, q1.longitude1) AS longitude,\n  COALESCE(q2.latitude2, q1.latitude1) AS latitude \nFROM QUERY1 q1 JOIN QUERY2 q2 ON q1.uuid = q2.uuid2 \n--WHERE q2.name2 ILIKE '%' || '$geo' || '%' OR q2.name2 ILIKE '%' || q1.name1 || '%'\n;",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -87,7 +129,7 @@
             ],
             "title": "Expansion",
             "transparent": true,
-            "type": "xychart"
+            "type": "geomap"
         },
         {
             "datasource": { "uid": "afdfds4gcs45ca" },
@@ -594,10 +636,10 @@
             {
                 "current": { "text": "ieee33", "value": "ieee33" },
                 "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE' \nAND table_name != 'geolocations';",
                 "name": "Experiment",
                 "options": [],
-                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE' \nAND table_name != 'geolocations';",
                 "refresh": 1,
                 "regex": "",
                 "type": "query"
@@ -636,11 +678,11 @@
             {
                 "current": { "text": [ "ieee33_worst_case" ], "value": [ "ieee33_worst_case" ]},
                 "datasource": { "type": "postgres", "uid": "afdfds4gcs45ca" },
-                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "definition": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE' AND table_name != 'geolocations';",
                 "multi": true,
                 "name": "Experiments",
                 "options": [],
-                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE';",
+                "query": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'public' \n  AND table_type = 'BASE TABLE' AND table_name != 'geolocations';",
                 "refresh": 1,
                 "regex": "",
                 "type": "query"

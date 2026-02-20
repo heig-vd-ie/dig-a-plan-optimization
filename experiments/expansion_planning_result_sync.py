@@ -10,6 +10,7 @@ from psycopg2 import sql
 from tqdm import tqdm
 from konfig import settings
 from helpers import generate_log
+from experiments import PROJECT_ROOT
 
 # Database connection - Adjust based on your Docker env vars
 DB_CONFIG = {
@@ -184,6 +185,20 @@ def import_file(path: Path, table_name: str, conn, force: bool) -> None:
 
 if __name__ == "__main__":
     args = parse_args()
+
+    if args.experiment == "geolocations":
+        from experiments.common_files_recording import record_all
+
+        record_all()
+        conn = get_connection()
+        with conn.cursor() as cur:
+            ensure_table(cur, "geolocations")
+            for file in (PROJECT_ROOT / settings.cache.figures / "geolocations").glob(
+                "*.json"
+            ):
+                import_file(file, "geolocations", conn, args.force)
+        conn.commit()
+        exit(0)
 
     # Handle Delete / Create DB logic
     if args.reset and args.experiment == "all":
