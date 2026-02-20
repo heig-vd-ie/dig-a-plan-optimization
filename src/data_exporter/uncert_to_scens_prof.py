@@ -284,4 +284,4 @@ if __name__ == "__main__":
         seed=42,
     )
 
-    log.info(f"Final scenarios: {final_scenarios}")
+    log.info(f"Final scenarios generated.")
