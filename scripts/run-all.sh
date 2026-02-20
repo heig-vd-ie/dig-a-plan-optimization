@@ -32,19 +32,18 @@ fi
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --fixed_switches true --cachename boisy_feeder_1_fixed_switches
 echo "Finished feeder_1_fixed_switches"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --admmiter 3 --cachename boisy_feeder_1_expectation
-echo "Finished feeder_1_expectation"
-sleep $DELAY_TIME
-
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --fixed_switches true --cachename boisy_feeder_2_fixed_switches
 echo "Finished feeder_2_fixed_switches"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --admmiter 3 --cachename boisy_feeder_2_expectation
-echo "Finished feeder_2_expectation"
-sleep $DELAY_TIME
-
 python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville_fixed_switches
 echo "Finished estavayer_centre_ville_fixed_switches"
+sleep $DELAY_TIME
+
+python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --admmiter 3 --cachename boisy_feeder_1_expectation
+echo "Finished feeder_1_expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --admmiter 3 --cachename boisy_feeder_2_expectation
+echo "Finished feeder_2_expectation"
 sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --admmiter 3 --cachename estavayer_centre_ville_expectation
 echo "Finished estavayer_centre_ville_expectation"
@@ -55,20 +54,38 @@ if [ "$BREAK_POINT" = 2 ]; then
     exit 0
 fi
 
-python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --fixed_switches true --cachename estavayer_aumont
+python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --fixed_switches true --cachename estavayer_aumont_fixed_switches
 echo "Finished aumont"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername autoroutes --fixed_switches true --cachename estavayer_autoroutes
+python experiments/expansion_planning_script.py --kace estavayer --feedername autoroutes --fixed_switches true --cachename estavayer_autoroutes_fixed_switches
 echo "Finished autoroutes"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername bel-air --fixed_switches true --cachename estavayer_bel-air
+python experiments/expansion_planning_script.py --kace estavayer --feedername bel-air --fixed_switches true --cachename estavayer_bel-air_fixed_switches
 echo "Finished bel-air"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername tout_vent --fixed_switches true --cachename estavayer_tout_vent
+python experiments/expansion_planning_script.py --kace estavayer --feedername tout_vent --fixed_switches true --cachename estavayer_tout_vent_fixed_switches
 echo "Finished tout_vent"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername zone_industrielle --fixed_switches true --cachename estavayer_zone_industrielle
+python experiments/expansion_planning_script.py --kace estavayer --feedername zone_industrielle --fixed_switches true --cachename estavayer_zone_industrielle_fixed_switches
 echo "Finished zone_industrielle"
-python experiments/expansion_planning_script.py --kace estavayer --feedername st-aubin --fixed_switches true --cachename estavayer_st-aubin
+python experiments/expansion_planning_script.py --kace estavayer --feedername st-aubin --fixed_switches true --cachename estavayer_st-aubin_fixed_switches
 echo "Finished st-aubin"
 sleep $DELAY_TIME
+
+python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --admmiter 3 --cachename estavayer_aumont_expectation
+echo "Finished aumont expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername autoroutes --admmiter 3 --cachename estavayer_autoroutes_expectation
+echo "Finished autoroutes expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername bel-air --admmiter 3 --cachename estavayer_bel-air_expectation
+echo "Finished bel-air expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername tout_vent --admmiter 3 --cachename estavayer_tout_vent_expectation
+echo "Finished tout_vent expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername zone_industrielle --admmiter 3 --cachename estavayer_zone_industrielle_expectation
+echo "Finished zone_industrielle expectation"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername st-aubin --admmiter 3 --cachename estavayer_st-aubin_expectation
+echo "Finished st-aubin expectation"    
