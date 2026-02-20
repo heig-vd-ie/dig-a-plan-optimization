@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Set this variable to true to run only the first four experiments
-FIRST_ONLY=${1:-false}
+BREAK_POINT=${1:-1}
 DELAY_TIME=${2:-10} # Default delay time of 60 seconds between experiments
 
-echo "Start Run with FIRST_ONLY=$FIRST_ONLY and DELAY_TIME=$DELAY_TIME seconds between experiments."
+echo "Start Run with BREAK_POINT=$BREAK_POINT and DELAY_TIME=$DELAY_TIME seconds between experiments."
 
 # First experiment
 python experiments/expansion_planning_script.py --kace ieee_33 --fixed_switches true --cachename ieee33_fixed_switches
@@ -22,8 +22,8 @@ sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace ieee_33 --riskmeasuretype WorstCase --cachename ieee33_worstcase
 echo "Finished ieee33 worstcase"
 sleep $DELAY_TIME
-# If FIRST_ONLY is true, exit here
-if [ "$FIRST_ONLY" = true ]; then
+# If BREAK_POINT is 1, exit here
+if [ "$BREAK_POINT" = 1 ]; then
     echo "stopping after first four experiments."
     exit 0
 fi
@@ -43,6 +43,18 @@ python experiments/expansion_planning_script.py --kace boisy --feedername feeder
 echo "Finished feeder_2_expectation"
 sleep $DELAY_TIME
 
+python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville_fixed_switches
+echo "Finished estavayer_centre_ville_fixed_switches"
+sleep $DELAY_TIME
+python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --admmiter 3 --cachename estavayer_centre_ville_expectation
+echo "Finished estavayer_centre_ville_expectation"
+sleep $DELAY_TIME
+
+if [ "$BREAK_POINT" = 2 ]; then
+    echo "stopping after first six experiments."
+    exit 0
+fi
+
 python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --fixed_switches true --cachename estavayer_aumont
 echo "Finished aumont"
 sleep $DELAY_TIME
@@ -51,9 +63,6 @@ echo "Finished autoroutes"
 sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace estavayer --feedername bel-air --fixed_switches true --cachename estavayer_bel-air
 echo "Finished bel-air"
-sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville
-echo "Finished centre_ville"
 sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace estavayer --feedername tout_vent --fixed_switches true --cachename estavayer_tout_vent
 echo "Finished tout_vent"
