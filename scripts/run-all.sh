@@ -12,7 +12,7 @@ echo "Finished ieee33 fixed switches"
 sleep $DELAY_TIME
 # Second experiment
 python experiments/expansion_planning_script.py --kace ieee_33 --cachename ieee33_expectation
-echo "Finished ieee33"
+echo "Finished ieee33_expectation"
 sleep $DELAY_TIME
 # Third experiment
 python experiments/expansion_planning_script.py --kace ieee_33 --riskmeasuretype Wasserstein --cachename ieee33_wasserstein
@@ -35,9 +35,6 @@ sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --fixed_switches true --cachename boisy_feeder_2_fixed_switches
 echo "Finished feeder_2_fixed_switches"
 sleep $DELAY_TIME
-python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville_fixed_switches
-echo "Finished estavayer_centre_ville_fixed_switches"
-sleep $DELAY_TIME
 
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --admmiter 3 --cachename boisy_feeder_1_expectation
 echo "Finished feeder_1_expectation"
@@ -45,12 +42,22 @@ sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --admmiter 3 --cachename boisy_feeder_2_expectation
 echo "Finished feeder_2_expectation"
 sleep $DELAY_TIME
+
+if [ "$BREAK_POINT" = 2 ]; then
+    echo "stopping after first six experiments."
+    exit 0
+fi
+
+
+python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville_fixed_switches
+echo "Finished estavayer_centre_ville_fixed_switches"
+sleep $DELAY_TIME
 python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --admmiter 3 --cachename estavayer_centre_ville_expectation
 echo "Finished estavayer_centre_ville_expectation"
 sleep $DELAY_TIME
 
-if [ "$BREAK_POINT" = 2 ]; then
-    echo "stopping after first six experiments."
+if [ "$BREAK_POINT" = 3 ]; then
+    echo "stopping after first seven experiments."
     exit 0
 fi
 

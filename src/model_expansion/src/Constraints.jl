@@ -101,7 +101,7 @@ function define_subsequent_stage_constraints!(
         ) - sum(
             vars.flow[Edge(edge.id, node.id, edge.source)] for
             edge in grid.edges if edge.target == node.id
-        ) == states.actual_load[node].out - vars.external_flow
+        ) == states.actual_load[node].out - states.actual_pv[node].out - vars.external_flow
     )
     # Internal nodes: flow conservation with respect to actual load
     # and no external generation
@@ -114,7 +114,7 @@ function define_subsequent_stage_constraints!(
         ) - sum(
             vars.flow[Edge(edge.id, node.id, edge.source)] for
             edge in grid.edges if edge.target == node.id
-        ) == states.actual_load[node].out
+        ) == states.actual_load[node].out - states.actual_pv[node].out
     )
     # Edge capacity constraints: sum of actual expansions at connected nodes
     @constraint(m, [edge in grid.edges], states.cap[edge].out >= vars.flow[edge])
@@ -147,7 +147,8 @@ function define_objective!(
     stage::Int,
 )
     # Objective: investment + penalties for unmet demand, discounted to present value
-    discount_factor = (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1)
+    discount_factor =
+        (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1) * 8.76 # Convert from annual to per-stage discounting
     @constraint(
         m,
         vars.obj ==
