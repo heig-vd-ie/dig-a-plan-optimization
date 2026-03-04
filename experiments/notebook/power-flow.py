@@ -16,6 +16,7 @@ from data_model.kace import (
     DiscreteScenario,
 )
 from data_exporter.pp_to_dap import pp_to_dap
+from experiments.notebook.Scenario_PP import apply_profile_scenario_to_pandapower
 
 # %% ============================================================
 # 2) Load JSON config file
@@ -68,4 +69,14 @@ rand_scenarios = generate_profile_based_load_scenarios(
     seed=seed,
 )
 
-# %%
+# %% ============================================================
+# Apply scenario ω to pandapower net (load + sgen)
+# ===============================================================
+for scen_key, scen_df in rand_scenarios.items():
+    net_case = apply_profile_scenario_to_pandapower(net0, scen_df, grid.s_base)
+    pp.runpp(net_case, check_connectivity=True, init="auto")
+    print(
+        scen_key,
+        net_case.res_line["loading_percent"].max() if len(net_case.res_line) else np.nan,
+        net_case.res_bus["vm_pu"].min() if len(net_case.res_bus) else np.nan,
+    )
