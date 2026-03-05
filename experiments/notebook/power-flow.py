@@ -76,170 +76,103 @@ rand_scenarios = generate_profile_based_load_scenarios(
 )
 
 # %% ============================================================
-# 8) Test helpers on all scenarios + one-step reinforcement
+# Reinforce iteratively (20% step) until congestion is zero
 # ===============================================================
 LIMIT = 100.0
-VMIN = 0.95
-VMAX = 1.05
 STEP = 20.0
+MAX_ROUNDS = 30  # safety stop
 
 results = []
-details = {}  # store detailed outputs per scenario (optional)
+logs_by_scenario = {}
 
 for scen_key, scen_df in rand_scenarios.items():
-    # 1) Apply scenario -> pandapower net
     net_case = apply_profile_scenario_to_pandapower(net0, scen_df, grid.s_base)
 
-    # 2) Run PF (BEFORE)
-    try:
-        pp.runpp(net_case, check_connectivity=True, init="auto")
-        pf_before_ok = True
-    except Exception as e:
-        pf_before_ok = False
-        results.append({
-            "scenario": scen_key,
-            "status": f"PF failed before: {e}",
-            "max_line_loading_before": np.nan,
-            "max_trafo_loading_before": np.nan,
-            "min_vm_pu_before": np.nan,
-            "max_vm_pu_before": np.nan,
-            "n_congested_lines_before": np.nan,
-            "n_congested_trafos_before": np.nan,
-            "n_undervoltage_before": np.nan,
-            "n_overvoltage_before": np.nan,
-            "reinforced_lines": "",
-            "reinforced_trafos": "",
-            "max_line_loading_after": np.nan,
-            "max_trafo_loading_after": np.nan,
-            "min_vm_pu_after": np.nan,
-            "max_vm_pu_after": np.nan,
-            "n_congested_lines_after": np.nan,
-            "n_congested_trafos_after": np.nan,
-            "n_undervoltage_after": np.nan,
-            "n_overvoltage_after": np.nan,
+    reinforced_lines_all = set()
+    reinforced_trafos_all = set()
+
+    round_log = []
+
+    converged = False
+    for r in range(MAX_ROUNDS):
+        # 1) PF
+        try:
+            pp.runpp(net_case, check_connectivity=True, init="auto")
+        except Exception as e:
+            round_log.append({
+                "round": r,
+                "status": f"PF failed: {e}",
+                "n_congested_lines": None,
+                "n_congested_trafos": None,
+                "max_line_loading": None,
+                "max_trafo_loading": None,
+            })
+            break
+
+        # 2) detect congestion
+        cong_lines = check_line_loading(net_case, limit_percent=LIMIT)
+        cong_trafos = check_trafo_loading(net_case, limit_percent=LIMIT)
+
+        nL = len(cong_lines)
+        nT = len(cong_trafos)
+
+        max_line = net_case.res_line["loading_percent"].max() if len(net_case.res_line) else np.nan
+        max_trafo = net_case.res_trafo["loading_percent"].max() if len(net_case.res_trafo) else np.nan
+
+        round_log.append({
+            "round": r,
+            "status": "OK",
+            "n_congested_lines": nL,
+            "n_congested_trafos": nT,
+            "max_line_loading": float(max_line) if max_line == max_line else np.nan,
+            "max_trafo_loading": float(max_trafo) if max_trafo == max_trafo else np.nan,
         })
-        continue
 
-    # 3) Use helper functions (BEFORE)
-    ranked_lines_before = check_line_loading(net_case, limit_percent=None)
-    ranked_trafos_before = check_trafo_loading(net_case, limit_percent=None)
+        # 3) stop condition
+        if nL == 0 and nT == 0:
+            converged = True
+            break
 
-    congested_lines_before = check_line_loading(net_case, limit_percent=LIMIT)
-    congested_trafos_before = check_trafo_loading(net_case, limit_percent=LIMIT)
+        # 4) reinforce congested assets by +20%
+        if nL > 0:
+            for lid in cong_lines["line_idx"].tolist():
+                lid = int(lid)
+                reinforced_lines_all.add(lid)
+                reinforce_line_one_step(net_case, lid, step_percent=STEP)
 
-    uv_before, ov_before = check_voltage_violations(net_case, vmin_pu=VMIN, vmax_pu=VMAX)
+        if nT > 0:
+            for tid in cong_trafos["trafo_idx"].tolist():
+                tid = int(tid)
+                reinforced_trafos_all.add(tid)
+                reinforce_trafo_one_step(net_case, tid, step_percent=STEP)
 
-    max_line_before = net_case.res_line["loading_percent"].max() if len(net_case.res_line) else np.nan
-    max_trafo_before = net_case.res_trafo["loading_percent"].max() if len(net_case.res_trafo) else np.nan
-    min_vm_before = net_case.res_bus["vm_pu"].min() if len(net_case.res_bus) else np.nan
-    max_vm_before = net_case.res_bus["vm_pu"].max() if len(net_case.res_bus) else np.nan
-
-    # 4) Reinforce congested assets ONCE
-    reinforced_line_ids = congested_lines_before["line_idx"].tolist() if "line_idx" in congested_lines_before.columns else []
-    reinforced_trafo_ids = congested_trafos_before["trafo_idx"].tolist() if "trafo_idx" in congested_trafos_before.columns else []
-
-    for lid in reinforced_line_ids:
-        reinforce_line_one_step(net_case, int(lid), step_percent=STEP)
-
-    for tid in reinforced_trafo_ids:
-        reinforce_trafo_one_step(net_case, int(tid), step_percent=STEP)
-
-    # 5) Run PF (AFTER)
-    try:
+    # final PF (optional, ensures results are fresh if converged)
+    if converged:
         pp.runpp(net_case, check_connectivity=True, init="auto")
-        pf_after_ok = True
-    except Exception as e:
-        pf_after_ok = False
-        results.append({
-            "scenario": scen_key,
-            "status": f"PF failed after: {e}",
-            "max_line_loading_before": max_line_before,
-            "max_trafo_loading_before": max_trafo_before,
-            "min_vm_pu_before": min_vm_before,
-            "max_vm_pu_before": max_vm_before,
-            "n_congested_lines_before": len(congested_lines_before),
-            "n_congested_trafos_before": len(congested_trafos_before),
-            "n_undervoltage_before": len(uv_before),
-            "n_overvoltage_before": len(ov_before),
-            "reinforced_lines": ",".join(map(str, reinforced_line_ids)),
-            "reinforced_trafos": ",".join(map(str, reinforced_trafo_ids)),
-            "max_line_loading_after": np.nan,
-            "max_trafo_loading_after": np.nan,
-            "min_vm_pu_after": np.nan,
-            "max_vm_pu_after": np.nan,
-            "n_congested_lines_after": np.nan,
-            "n_congested_trafos_after": np.nan,
-            "n_undervoltage_after": np.nan,
-            "n_overvoltage_after": np.nan,
-        })
-        continue
 
-    # 6) Use helper functions (AFTER)
-    ranked_lines_after = check_line_loading(net_case, limit_percent=None)
-    ranked_trafos_after = check_trafo_loading(net_case, limit_percent=None)
+    final_cong_lines = check_line_loading(net_case, limit_percent=LIMIT)
+    final_cong_trafos = check_trafo_loading(net_case, limit_percent=LIMIT)
 
-    congested_lines_after = check_line_loading(net_case, limit_percent=LIMIT)
-    congested_trafos_after = check_trafo_loading(net_case, limit_percent=LIMIT)
-
-    uv_after, ov_after = check_voltage_violations(net_case, vmin_pu=VMIN, vmax_pu=VMAX)
-
-    max_line_after = net_case.res_line["loading_percent"].max() if len(net_case.res_line) else np.nan
-    max_trafo_after = net_case.res_trafo["loading_percent"].max() if len(net_case.res_trafo) else np.nan
-    min_vm_after = net_case.res_bus["vm_pu"].min() if len(net_case.res_bus) else np.nan
-    max_vm_after = net_case.res_bus["vm_pu"].max() if len(net_case.res_bus) else np.nan
-
-    # 7) Save summary row
     results.append({
         "scenario": scen_key,
-        "status": "OK",
-        "max_line_loading_before": max_line_before,
-        "max_trafo_loading_before": max_trafo_before,
-        "min_vm_pu_before": min_vm_before,
-        "max_vm_pu_before": max_vm_before,
-        "n_congested_lines_before": len(congested_lines_before),
-        "n_congested_trafos_before": len(congested_trafos_before),
-        "n_undervoltage_before": len(uv_before),
-        "n_overvoltage_before": len(ov_before),
-        "reinforced_lines": ",".join(map(str, reinforced_line_ids)),
-        "reinforced_trafos": ",".join(map(str, reinforced_trafo_ids)),
-        "max_line_loading_after": max_line_after,
-        "max_trafo_loading_after": max_trafo_after,
-        "min_vm_pu_after": min_vm_after,
-        "max_vm_pu_after": max_vm_after,
-        "n_congested_lines_after": len(congested_lines_after),
-        "n_congested_trafos_after": len(congested_trafos_after),
-        "n_undervoltage_after": len(uv_after),
-        "n_overvoltage_after": len(ov_after),
+        "converged_to_zero": converged,
+        "rounds_used": len(round_log),
+        "final_n_congested_lines": len(final_cong_lines),
+        "final_n_congested_trafos": len(final_cong_trafos),
+        "final_max_line_loading": net_case.res_line["loading_percent"].max() if len(net_case.res_line) else np.nan,
+        "final_max_trafo_loading": net_case.res_trafo["loading_percent"].max() if len(net_case.res_trafo) else np.nan,
+        "reinforced_lines": ",".join(map(str, sorted(reinforced_lines_all))),
+        "reinforced_trafos": ",".join(map(str, sorted(reinforced_trafos_all))),
     })
 
-    # 8) Store detailed tables (optional, helpful for debugging/reporting)
-    details[scen_key] = {
-        "ranked_lines_before": ranked_lines_before,
-        "ranked_trafos_before": ranked_trafos_before,
-        "congested_lines_before": congested_lines_before,
-        "congested_trafos_before": congested_trafos_before,
-        "uv_before": uv_before,
-        "ov_before": ov_before,
-        "ranked_lines_after": ranked_lines_after,
-        "ranked_trafos_after": ranked_trafos_after,
-        "congested_lines_after": congested_lines_after,
-        "congested_trafos_after": congested_trafos_after,
-        "uv_after": uv_after,
-        "ov_after": ov_after,
-    }
+    logs_by_scenario[scen_key] = pd.DataFrame(round_log)
 
     print(
-        f"Scenario {scen_key}: "
-        f"maxLineBefore={max_line_before:.2f}%, "
-        f"minVBefore={min_vm_before:.4f}, "
-        f"congLinesBefore={len(congested_lines_before)}, "
-        f"congTrafosBefore={len(congested_trafos_before)} -> "
-        f"maxLineAfter={max_line_after:.2f}%, "
-        f"minVAfter={min_vm_after:.4f}, "
-        f"congLinesAfter={len(congested_lines_after)}, "
-        f"congTrafosAfter={len(congested_trafos_after)}"
+        f"Scenario {scen_key}: converged={converged}, "
+        f"rounds={len(round_log)}, "
+        f"final cong lines={len(final_cong_lines)}, "
+        f"final cong trafos={len(final_cong_trafos)}"
     )
 
 summary_df = pd.DataFrame(results)
-print("Final summary:")
 display(summary_df)  # type: ignore
