@@ -32,7 +32,7 @@
         "volp": 2
     },
     "sddp_config": {
-        "iterations": 200,
+        "iterations": 50,
         "n_simulations": 100,
         "n_optimizations": 10,
         "n_stages": 5,
@@ -48,7 +48,7 @@
         "penalty_cost_per_production_kw": 2,
         "δ_b_var": 1000000
     },
-    "iterations": 5,
+    "iterations": 10,
     "each_task_memory": 5000000000,
     "seed": 42
 }
