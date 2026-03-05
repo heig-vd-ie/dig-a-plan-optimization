@@ -9,11 +9,11 @@
     },
     "profiles": {
         "v_bounds": [ -0.03, 0.03 ],
-        "n_scenarios": 3,
+        "n_scenarios": 50,
         "load_profiles": [ "examples/ieee_33/load_profiles" ],
         "pv_profile": "examples/ieee_33/pv_profiles",
         "target_year": 2050,
-        "quarter": 1,
+        "quarter": 4,
         "scenario_name": "Full"
     },
     "iterations": 1,
