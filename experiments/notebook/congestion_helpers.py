@@ -4,40 +4,64 @@ import pandas as pd
 import pandapower as pp
 
 
-def check_congested_lines(
+def check_line_loading(
     net: pp.pandapowerNet,
-    limit_percent: float = 100.0,
+    limit_percent: float | None = None,
 ) -> pd.DataFrame:
     """
-    Return lines whose loading_percent exceeds the given limit.
+    Returns a line table sorted by pandapower res_line.loading_percent.
+
+    - If limit_percent is None: returns ALL lines ranked (most loaded first).
+    - If limit_percent is a number (e.g., 100): returns only lines with
+      loading_percent > limit_percent (congested lines).
+
+    Note: pandapower loading_percent accounts for max_i_ka, df, and parallel.
     """
     if len(net.line) == 0 or len(net.res_line) == 0:
         return pd.DataFrame()
 
+    res_cols = [c for c in ["loading_percent", "i_from_ka", "i_to_ka"] if c in net.res_line.columns]
+
     df = net.line.copy()
-    df = df.join(net.res_line, how="left", rsuffix="_res")
+    df = df.join(net.res_line[res_cols], how="left")
     df["line_idx"] = df.index
-    df = df[df["loading_percent"] > limit_percent].copy()
 
-    return df.sort_values("loading_percent", ascending=False)
+    df = df[df["loading_percent"].notna()]
+    df = df.sort_values("loading_percent", ascending=False)
+
+    if limit_percent is not None:
+        df = df[df["loading_percent"] > limit_percent].copy()
+
+    return df
 
 
-def check_congested_trafos(
+def check_trafo_loading(
     net: pp.pandapowerNet,
-    limit_percent: float = 100.0,
+    limit_percent: float | None = None,
 ) -> pd.DataFrame:
     """
-    Return transformers whose loading_percent exceeds the given limit.
+    Returns a transformer table sorted by pandapower res_trafo.loading_percent.
+
+    - If limit_percent is None: returns ALL trafos ranked (most loaded first).
+    - If limit_percent is a number (e.g., 100): returns only trafos with
+      loading_percent > limit_percent (congested trafos).
     """
     if len(net.trafo) == 0 or len(net.res_trafo) == 0:
         return pd.DataFrame()
 
-    df = net.trafo.copy()
-    df = df.join(net.res_trafo, how="left", rsuffix="_res")
-    df["trafo_idx"] = df.index
-    df = df[df["loading_percent"] > limit_percent].copy()
+    res_cols = [c for c in ["loading_percent"] if c in net.res_trafo.columns]
 
-    return df.sort_values("loading_percent", ascending=False)
+    df = net.trafo.copy()
+    df = df.join(net.res_trafo[res_cols], how="left")
+    df["trafo_idx"] = df.index
+
+    df = df[df["loading_percent"].notna()]
+    df = df.sort_values("loading_percent", ascending=False)
+
+    if limit_percent is not None:
+        df = df[df["loading_percent"] > limit_percent].copy()
+
+    return df
 
 
 def check_voltage_violations(
@@ -46,7 +70,7 @@ def check_voltage_violations(
     vmax_pu: float = 1.05,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Return undervoltage and overvoltage bus tables.
+    Return undervoltage and overvoltage bus tables based on res_bus.vm_pu.
     """
     if len(net.res_bus) == 0:
         return pd.DataFrame(), pd.DataFrame()
@@ -55,38 +79,12 @@ def check_voltage_violations(
     bus_df = bus_df.join(net.res_bus, how="left", rsuffix="_res")
     bus_df["bus_idx"] = bus_df.index
 
-    undervoltage = (
-        bus_df[bus_df["vm_pu"] < vmin_pu]
-        .copy()
-        .sort_values("vm_pu", ascending=True)
-    )
-    overvoltage = (
-        bus_df[bus_df["vm_pu"] > vmax_pu]
-        .copy()
-        .sort_values("vm_pu", ascending=False)
-    )
+    bus_df = bus_df[bus_df["vm_pu"].notna()]
+
+    undervoltage = bus_df[bus_df["vm_pu"] < vmin_pu].copy().sort_values("vm_pu", ascending=True)
+    overvoltage  = bus_df[bus_df["vm_pu"] > vmax_pu].copy().sort_values("vm_pu", ascending=False)
 
     return undervoltage, overvoltage
-
-
-def get_line_current_margins(net: pp.pandapowerNet) -> pd.DataFrame:
-    """
-    Return line current utilization table sorted from highest to lowest.
-    """
-    if len(net.line) == 0 or len(net.res_line) == 0:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(index=net.line.index)
-    df["from_bus"] = net.line["from_bus"]
-    df["to_bus"] = net.line["to_bus"]
-    df["name"] = net.line["name"] if "name" in net.line.columns else ""
-    df["max_i_ka"] = net.line["max_i_ka"]
-    df["i_from_ka"] = net.res_line["i_from_ka"]
-    df["i_to_ka"] = net.res_line["i_to_ka"]
-    df["i_max_ka"] = df[["i_from_ka", "i_to_ka"]].max(axis=1)
-    df["utilization_percent"] = 100.0 * df["i_max_ka"] / df["max_i_ka"]
-
-    return df.sort_values("utilization_percent", ascending=False)
 
 
 def reinforce_line_one_step(
@@ -109,9 +107,5 @@ def reinforce_trafo_one_step(
     """
     Increase transformer capacity by increasing sn_mva.
     """
-    if (
-        len(net.trafo) > 0
-        and "sn_mva" in net.trafo.columns
-        and pd.notna(net.trafo.at[trafo_idx, "sn_mva"])
-    ):
+    if "sn_mva" in net.trafo.columns and pd.notna(net.trafo.at[trafo_idx, "sn_mva"]):
         net.trafo.at[trafo_idx, "sn_mva"] *= (1.0 + step_percent / 100.0)

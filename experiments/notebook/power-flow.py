@@ -18,10 +18,8 @@ from data_model.kace import (
 from data_exporter.pp_to_dap import pp_to_dap
 from experiments.notebook.Scenario_PP import apply_profile_scenario_to_pandapower
 from experiments.notebook.congestion_helpers import (
-    check_congested_lines,
-    check_congested_trafos,
+    check_line_loading, check_trafo_loading,
     check_voltage_violations,
-    get_line_current_margins,
     reinforce_line_one_step,
     reinforce_trafo_one_step,
 )
