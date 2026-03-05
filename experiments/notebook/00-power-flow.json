@@ -1,20 +1,18 @@
 {
     "grid": {
-        "name": "default",
-        "pp_file": "examples/ieee_33/simple_grid.p",
+        "name": "boisy-feeder-1",
+        "pp_file": ".cache/input/boisy/feeders/feeder_feeder_1.p",
         "s_base": 1000000,
         "cosφ": 0.95,
-        "egid_id_mapping_file": "examples/ieee_33/consumer_egid_idx_mapping.csv",
-        "minimum_impedance": 0
+        "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.csv",
+        "minimum_impedance": 0.001
     },
     "profiles": {
-        "v_bounds": [ -0.03, 0.03 ],
-        "n_scenarios": 50,
-        "load_profiles": [ "examples/ieee_33/load_profiles" ],
-        "pv_profile": "examples/ieee_33/pv_profiles",
-        "target_year": 2050,
-        "quarter": 4,
-        "scenario_name": "Full"
+        "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],
+        "pv_profile": ".cache/input/boisy/pv_profiles",
+        "target_year": 2025,
+        "quarter": 1,
+        "scenario_name": "Basic"
     },
     "iterations": 1,
     "seed": 42
