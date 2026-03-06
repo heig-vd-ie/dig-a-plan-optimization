@@ -34,6 +34,9 @@ from data_model.sddp import (
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
 from konfig import PROJECT_ROOT
+from helpers import generate_log
+
+log = generate_log(name=__name__)
 
 
 class ExpansionAlgorithm:
@@ -259,8 +262,8 @@ class ExpansionAlgorithm:
                                 )
                             ]
                         )
-                    except:
-                        print(f"ERROR in [{ω}, {stage}]!!!")
+                    except Exception as e:
+                        log.error(f"ERROR in [{ω}, {stage}]!!! Exception: {e}")
             cuts = {}
             for stage in self._range(min([self.n_stages, ι + 1])):
                 for ω in self._range(self.sddp_config.n_optimizations):
@@ -274,8 +277,10 @@ class ExpansionAlgorithm:
                                 self.n_stages,
                             )
                         ] = future_results[(ω, stage)].bender_cut
-                    except:
-                        print(f"ERROR in retrieving data for [{ω}, {stage}]!!!")
+                    except Exception as e:
+                        log.error(
+                            f"ERROR in retrieving data for [{ω}, {stage}]!!! Exception: {e}"
+                        )
             bender_cuts = BenderCuts(cuts=cuts)
             shutdown_ray()
         else:
@@ -311,8 +316,10 @@ class ExpansionAlgorithm:
                                 self.n_stages,
                             )
                         ] = heavy_task_output.bender_cut
-                    except:
-                        print(f"ERROR in [{ω}, {stage}] without ray!!!")
+                    except Exception as e:
+                        log.error(
+                            f"ERROR in [{ω}, {stage}] without ray!!! Exception: {e}"
+                        )
         return bender_cuts
 
     def run_pipeline(self) -> ExpansionResponse:
@@ -435,7 +442,6 @@ def heavy_task(
     edges = admm.grid_data.edge_data
     bender_cut = _transform_admm_result_into_bender_cuts(admm_results, edges)
 
-    print("_________________________________________")
     save_obj_to_json(
         obj=admm_results.results,
         path_filename=PROJECT_ROOT
@@ -443,10 +449,9 @@ def heavy_task(
         / "admm"
         / f"admm_result_iter{ι}_stage{stage}_scen{ω}.json",
     )
-    print(
+    log.info(
         f"admm_result_iter{ι}_stage{stage}_scen{ω}.json is written in desired location {cache_dir_run}"
     )
-    print("_________________________________________")
 
     result_heavy_task = HeavyTaskOutput(bender_cut=bender_cut)
     return result_heavy_task

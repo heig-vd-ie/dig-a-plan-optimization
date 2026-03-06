@@ -31,15 +31,15 @@ if __name__ == "__main__":
         from api.combined import run_combined
 
         results = run_combined(request)
-        print(results)
+        LOG.info(results)
         ######################################
     else:
         response = requests.patch(
             f"http://{LOCALHOST}:{PY_PORT}/reconfiguration/combined",
             json=payload,
         )
-        print("Response status code:", response.status_code)
+        LOG.info(f"Response status code: {response.status_code}")
         try:
-            print("Response JSON:", response.json())
+            LOG.info(f"Response JSON: {response.json()}")
         except Exception:
-            print("Response text:", response.text)
+            LOG.info(f"Response text: {response.text}")

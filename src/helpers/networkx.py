@@ -96,7 +96,6 @@ def generate_tree_graph_from_edge_data(
     ... })
     >>> slack_node_id = "A"
     >>> tree_graph = generate_tree_graph_from_edge_data(edge_data, slack_node_id)
-    >>> print(tree_graph.edges(data=True))
     [("A", "B", {"weight": 1}), ("B", "C", {"weight": 2}), ("C", "D", {"weight": 3})]
     """
     if data_name is None:

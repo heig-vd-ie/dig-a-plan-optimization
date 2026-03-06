@@ -108,8 +108,11 @@ def generate_scenario_potentials(
 
 
 if __name__ == "__main__":
+    from helpers import generate_log
+
+    log = generate_log(__name__)
     grid = GridCaseModel()
     load_potential, pv_potential = generate_scenario_potentials(
         grid=grid, profiles=ShortTermUncertaintyProfile()
     )
-    print("Succeeded!")
+    log.info("Scenario potentials generated successfully.")

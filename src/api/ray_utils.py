@@ -2,7 +2,9 @@ import os
 import socket
 from typing import Any, Dict
 import ray
+from helpers import generate_log
 
+log = generate_log(__name__)
 
 SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
 
@@ -62,6 +64,6 @@ def check_ray(with_ray: bool) -> None:
         ray_available = False
 
     if ray_available and with_ray and ray.is_initialized():
-        print("Running Pipeline with Ray")
+        log.info("Running Pipeline with Ray")
     else:
-        print("Running Pipeline without Ray")
+        log.info("Running Pipeline without Ray")

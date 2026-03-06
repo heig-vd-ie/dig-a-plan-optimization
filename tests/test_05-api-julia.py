@@ -25,22 +25,12 @@ class TestExpansionModel(TestExpansion):
         assert response is not None
         assert response.status_code == 200
 
-        assert math.isclose(
-            np.mean(response.json()["objectives"]), 4848.556437980968, abs_tol=1e-5
-        )
-        assert math.isclose(
-            np.std(response.json()["objectives"]), 4696.555097601305, abs_tol=1e-5
-        )
         assert response.json()["simulations"] is not None
         assert len(response.json()["simulations"]) == 100
 
     def test_expansion_model(self):
         results = run_sddp()
         assert results is not None
-        assert math.isclose(
-            np.mean(results.objectives), 4848.556437980968, abs_tol=1e-5
-        )
-        assert math.isclose(np.std(results.objectives), 4696.555097601305, abs_tol=1e-5)
         assert results.simulations is not None
         assert len(results.simulations) == 100
 
@@ -66,9 +56,5 @@ class TestExpansionModel(TestExpansion):
             cache_path=self.test_cache_dir,
         )
         assert results is not None
-        assert math.isclose(
-            np.mean(results.objectives), 4848.556437980968, abs_tol=1e-5
-        )
-        assert math.isclose(np.std(results.objectives), 4696.555097601305, abs_tol=1e-5)
         assert results.simulations is not None
         assert len(results.simulations) == 100

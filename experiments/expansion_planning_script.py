@@ -1,5 +1,24 @@
 from experiments import *
 import click
+from helpers import generate_log
+
+log = generate_log(name=__name__)
+
+
+def replace_feeder_in_payload(payload: dict, kace: str, feedername: str):
+    payload["grid"]["name"] = f"{kace}_{feedername}"
+
+    current_pp = payload["grid"]["pp_file"]
+    base_dir = current_pp.split("/feeders/")[0]
+    payload["grid"]["pp_file"] = os.path.join(
+        base_dir, "feeders", f"feeder_{feedername}.p"
+    )
+
+    current_lp = payload["profiles"]["load_profiles"][0]  # Get the first element
+    lp_base = current_lp.split("/load_profiles/")[0]
+    new_lp_path = os.path.join(lp_base, "load_profiles", feedername)
+    payload["profiles"]["load_profiles"] = [new_lp_path]  # Keep it as a list
+    return payload
 
 
 @click.command()
@@ -63,7 +82,7 @@ def expansion_planning_script(
         case "ieee_33":
             payload_file = PROJECT_ROOT / "experiments/ieee_33/00-expansion.json"
         case _:
-            print(
+            log.info(
                 f"none of boisy, estavayer, ieee_33 is selected, probably refers to payload_file={kace}"
             )
             payload_file = kace
@@ -88,18 +107,7 @@ def expansion_planning_script(
         payload["sddp_config"]["risk_measure_param"] = riskmeasureparam
 
     if feedername != "-n":
-        payload["grid"]["name"] = f"{kace}_{feedername}"
-
-        current_pp = payload["grid"]["pp_file"]
-        base_dir = current_pp.split("/feeders/")[0]
-        payload["grid"]["pp_file"] = os.path.join(
-            base_dir, "feeders", f"feeder_{feedername}.p"
-        )
-
-        current_lp = payload["profiles"]["load_profiles"][0]  # Get the first element
-        lp_base = current_lp.split("/load_profiles/")[0]
-        new_lp_path = os.path.join(lp_base, "load_profiles", feedername)
-        payload["profiles"]["load_profiles"] = [new_lp_path]  # Keep it as a list
+        payload = replace_feeder_in_payload(payload, kace, feedername)
 
     # WITHAPI
     if not withapi:
@@ -110,8 +118,7 @@ def expansion_planning_script(
         results = run_expansion(
             request, with_ray=False, time_now=None if cachename == "-n" else cachename
         )
-        print(results)
-        ######################################
+        log.info(f"Results: {results}")
     else:
         response = requests.patch(
             (
@@ -120,8 +127,7 @@ def expansion_planning_script(
             ),
             json=payload,
         )
-        print("Response status code:", response.status_code)
-        print("Response JSON:", response.json())
+        log.info(f"Response status code: {response.status_code}")
 
 
 if __name__ == "__main__":

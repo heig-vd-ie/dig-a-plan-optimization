@@ -17,8 +17,8 @@
     "admm_config": {
         "max_iters": 5,
         "solver_non_convex": 2,
-        "time_limit": 20,
-        "groups": 20,
+        "time_limit": 10,
+        "groups": 40,
         "big_m": 1000,
         "ε": 0.0001,
         "ρ": 2,
@@ -34,9 +34,9 @@
     "sddp_config": {
         "iterations": 50,
         "n_simulations": 100,
-        "n_optimizations": 5,
+        "n_optimizations": 10,
         "n_stages": 5,
-        "n_scenarios": 10,
+        "n_scenarios": 20,
         "initial_budget": 5000000,
         "discount_rate": 0.05,
         "years_per_stage": 5,
@@ -48,7 +48,7 @@
         "penalty_cost_per_production_kw": 2,
         "δ_b_var": 1000000
     },
-    "iterations": 5,
+    "iterations": 10,
     "each_task_memory": 5000000000,
     "seed": 42
 }

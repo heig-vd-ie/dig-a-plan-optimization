@@ -56,12 +56,12 @@ from data_model.reconfiguration import CombinedInput, ADMMInput, BenderInput
 from data_model.expansion import ExpansionInput
 from helpers.json import load_obj_from_json
 from data_display.admm_convergence import plot_admm_convergence
+from helpers import generate_log
 
+LOG = generate_log(name=__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCALHOST = os.getenv("LOCAL_HOST")
 PY_PORT = os.getenv("SERVER_PY_PORT")
 OUTPUT_ADMM_PATH = Path(settings.cache.outputs_admm)
 OUTPUT_BENDER_PATH = Path(settings.cache.outputs_bender)
 OUTPUT_COMBINED_PATH = Path(settings.cache.outputs_combined)
-
-
