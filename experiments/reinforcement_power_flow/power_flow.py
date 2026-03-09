@@ -16,8 +16,8 @@ from data_model.kace import (
     DiscreteScenario,
 )
 from data_exporter.pp_to_dap import pp_to_dap
-from experiments.notebook.Scenario_PP import apply_profile_scenario_to_pandapower
-from experiments.notebook.congestion_helpers import (
+from experiments.reinforcement_power_flow.scenario_PP import apply_profile_scenario_to_pandapower
+from experiments.reinforcement_power_flow.congestion_helpers import (
     check_line_loading, check_trafo_loading,
     check_voltage_violations,
     reinforce_line_one_step,
