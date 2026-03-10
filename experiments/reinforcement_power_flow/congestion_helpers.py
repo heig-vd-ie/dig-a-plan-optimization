@@ -8,13 +8,8 @@ def check_line_loading(
 ) -> pd.DataFrame:
     """
     Returns a line table sorted by pandapower res_line.loading_percent.
-
-    - If limit_percent is None: returns ALL lines ranked (most loaded first).
-    - If limit_percent is a number (e.g., 100): returns only lines with
-      loading_percent > limit_percent (congested lines).
-
-    Note: pandapower loading_percent accounts for max_i_ka, df, and parallel.
     """
+    
     if len(net.line) == 0 or len(net.res_line) == 0:
         return pd.DataFrame()
 
@@ -27,8 +22,7 @@ def check_line_loading(
     df = df[df["loading_percent"].notna()]
     df = df.sort_values("loading_percent", ascending=False)
 
-    if limit_percent is not None:
-        df = df[df["loading_percent"] > limit_percent].copy()
+    df = df[df["loading_percent"] >= limit_percent].copy()
 
     return df
 
@@ -39,10 +33,6 @@ def check_trafo_loading(
 ) -> pd.DataFrame:
     """
     Returns a transformer table sorted by pandapower res_trafo.loading_percent.
-
-    - If limit_percent is None: returns ALL trafos ranked (most loaded first).
-    - If limit_percent is a number (e.g., 100): returns only trafos with
-      loading_percent > limit_percent (congested trafos).
     """
     if len(net.trafo) == 0 or len(net.res_trafo) == 0:
         return pd.DataFrame()
@@ -56,8 +46,7 @@ def check_trafo_loading(
     df = df[df["loading_percent"].notna()]
     df = df.sort_values("loading_percent", ascending=False)
 
-    if limit_percent is not None:
-        df = df[df["loading_percent"] > limit_percent].copy()
+    df = df[df["loading_percent"] >= limit_percent].copy()
 
     return df
 
@@ -93,8 +82,8 @@ def reinforce_line_one_step(
     """
     Increase line thermal capacity by increasing max_i_ka.
     """
-    if "max_i_ka" in net.line.columns and pd.notna(net.line.at[line_idx, "max_i_ka"]):
-        net.line.at[line_idx, "max_i_ka"] *= (1.0 + step_percent / 100.0)
+
+    net.line.at[line_idx, "max_i_ka"] *= (1.0 + step_percent / 100.0)
 
 
 def reinforce_trafo_one_step(
@@ -105,5 +94,5 @@ def reinforce_trafo_one_step(
     """
     Increase transformer capacity by increasing sn_mva.
     """
-    if "sn_mva" in net.trafo.columns and pd.notna(net.trafo.at[trafo_idx, "sn_mva"]):
-        net.trafo.at[trafo_idx, "sn_mva"] *= (1.0 + step_percent / 100.0)
+
+    net.trafo.at[trafo_idx, "sn_mva"] *= (1.0 + step_percent / 100.0)
