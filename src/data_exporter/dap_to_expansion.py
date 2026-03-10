@@ -14,7 +14,7 @@ from data_model.sddp import (
     PlanningParams,
     AdditionalParams,
     Scenarios,
-    ExpansionRequest,
+    SddpRequest,
 )
 from data_model import NodeEdgeModel
 from helpers.json import save_obj_to_json
@@ -76,8 +76,6 @@ def dig_a_plan_to_expansion(
     grid_data: NodeEdgeModel,
     planning_params: PlanningParams,
     additional_params: AdditionalParams,
-    scenarios_data: Scenarios,
-    out_of_sample_scenarios: Scenarios,
     s_base: float = 1e6,
     expansion_transformer_cost_per_kw: int | float = 1000,
     expansion_line_cost_per_km_kw: int | float = 1000,
@@ -88,7 +86,7 @@ def dig_a_plan_to_expansion(
     out_of_sample_scenarios_cache: Path | None = None,
     bender_cuts_cache: Path | None = None,
     optimization_config_cache: Path | None = None,
-) -> ExpansionRequest:
+) -> SddpRequest:
     """Convert Dig-A-Plan data model to expansion request."""
     nodes = [
         Node(id=node["node_id"]) for node in grid_data.node_data.iter_rows(named=True)
@@ -182,9 +180,4 @@ def dig_a_plan_to_expansion(
     if optimization_config_cache:
         save_obj_to_json(optimization_config, optimization_config_cache)
 
-    return ExpansionRequest(
-        optimization=optimization_config,
-        scenarios=scenarios_data,
-        out_of_sample_scenarios=out_of_sample_scenarios,
-        bender_cuts=bender_cuts if bender_cuts is not None else BenderCuts(cuts={}),
-    )
+    return SddpRequest(optimization=optimization_config)

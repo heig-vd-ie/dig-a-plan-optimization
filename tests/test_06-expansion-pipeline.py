@@ -1,5 +1,3 @@
-import math
-import numpy as np
 import pytest
 from api.grid_cases import get_grid_case
 from data_model.expansion import SDDPConfig
@@ -67,28 +65,32 @@ class TestExpansionDataExporter(ExpansionTestBase):
 
     def test_expansion_data_exporter(self):
         """Test the basic expansion data export functionality."""
-        self.expansion_algorithm.create_expansion_request()
+        self.expansion_algorithm.create_sddp_request()
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None
 
     def test_expansion_with_different_stages(self):
         """Test expansion with different number of stages."""
-        self.expansion_algorithm.create_expansion_request()
+        self.expansion_algorithm.create_sddp_request()
         self.expansion_algorithm.create_planning_params(n_stages=5)
-        self.expansion_algorithm.scenario_data = self.expansion_algorithm.create_scenario_data(
-            nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
-            load_potential=self.load_potential,
-            pv_potential=self.pv_potential,
-            n_stages=5,
+        self.expansion_algorithm.scenario_data = (
+            self.expansion_algorithm.create_scenario_data(
+                nodes=self.expansion_algorithm.sddp_request.optimization.grid.nodes,
+                load_potential=self.load_potential,
+                pv_potential=self.pv_potential,
+                n_stages=5,
+            )
         )
-        self.expansion_algorithm.out_of_sample_scenarios = self.expansion_algorithm.create_scenario_data(
-            nodes=self.expansion_algorithm.expansion_request.optimization.grid.nodes,
-            load_potential=self.load_potential,
-            pv_potential=self.pv_potential,
-            n_stages=5,
+        self.expansion_algorithm.out_of_sample_scenarios = (
+            self.expansion_algorithm.create_scenario_data(
+                nodes=self.expansion_algorithm.sddp_request.optimization.grid.nodes,
+                load_potential=self.load_potential,
+                pv_potential=self.pv_potential,
+                n_stages=5,
+            )
         )
-        self.expansion_algorithm.create_expansion_request()
+        self.expansion_algorithm.create_sddp_request()
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None
@@ -98,7 +100,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
         """Test expansion with different initial budget."""
         self.expansion_algorithm.sddp_config.initial_budget = 50000
         self.expansion_algorithm.create_planning_params()
-        self.expansion_algorithm.create_expansion_request()
+        self.expansion_algorithm.create_sddp_request()
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None
@@ -110,7 +112,7 @@ class TestExpansionDataExporter(ExpansionTestBase):
                 risk_measure_type=RiskMeasureType.CVAR, risk_measure_param=0.95
             )
         )
-        self.expansion_algorithm.create_expansion_request()
+        self.expansion_algorithm.create_sddp_request()
         results = self.expansion_algorithm.run_sddp()
 
         assert results is not None

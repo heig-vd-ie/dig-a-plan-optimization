@@ -100,13 +100,9 @@ class OptimizationConfig(BaseModel):
     additional_params: AdditionalParams
 
 
-class ExpansionRequest(BaseModel):
+class SddpRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
-
     optimization: OptimizationConfig
-    scenarios: Scenarios
-    out_of_sample_scenarios: Scenarios
-    bender_cuts: BenderCuts
 
 
 class LongTermScenarioRequest(BaseModel):
@@ -146,7 +142,7 @@ class Simulation(BaseModel):
     δ_b: float
 
 
-class ExpansionResponse(BaseModel):
+class SddpResponse(BaseModel):
     objectives: List[float]
     simulations: List[List[Simulation]]
     out_of_sample_simulations: List[List[Simulation]]
