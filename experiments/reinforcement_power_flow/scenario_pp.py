@@ -4,22 +4,58 @@ import pandapower as pp
 import polars as pl
 import copy
 
+def build_snapshot_from_wide_profile(
+    profile_df: pl.DataFrame,
+    tcol: str,
+    mapping_bus: pd.DataFrame,
+    cosphi: float,
+    s_base: float,
+) -> pl.DataFrame:
+    load_t = profile_df.select(["egid", tcol]).to_pandas()
+    load_t = load_t.rename(columns={tcol: "p_kw"})
+    load_t = load_t.dropna(subset=["egid", "p_kw"])
+    load_t["egid"] = load_t["egid"].astype(int)
+
+    snapshot = load_t.merge(
+        mapping_bus[["egid", "bus"]],
+        on="egid",
+        how="inner"
+    )
+
+    snapshot = (
+        snapshot.groupby("bus", as_index=False)["p_kw"]
+        .sum()
+        .rename(columns={"bus": "node_id"})
+    )
+
+    s_base_mva = float(s_base) / 1e6
+
+    snapshot["p_mw"] = snapshot["p_kw"] / 1000.0
+    snapshot["p_cons_pu"] = snapshot["p_mw"] / s_base_mva
+
+    tan_phi = np.tan(np.arccos(cosphi))
+    snapshot["q_cons_pu"] = snapshot["p_cons_pu"] * tan_phi
+
+    snapshot["p_prod_pu"] = 0.0
+    snapshot["q_prod_pu"] = 0.0
+
+    snapshot = snapshot[[
+        "node_id",
+        "p_cons_pu",
+        "q_cons_pu",
+        "p_prod_pu",
+        "q_prod_pu",
+    ]]
+
+    return pl.from_pandas(snapshot)
+
 def apply_profile_scenario_to_pandapower(
     net0: pp.pandapowerNet,
     scenario_df: pl.DataFrame,
     s_base: float,
 ) -> pp.pandapowerNet:
-    """
-    Writes one generated scenario into pandapower:
-      - net.load: consumption
-      - net.sgen: production (PV)
-
-    Assumptions:
-      - scenario_df has columns:
-            node_id, p_cons_pu, q_cons_pu, p_prod_pu, q_prod_pu
-      - node_id == pandapower bus index
-      - p/q values are in pu on base s_base VA 
-    """
+    
+# this function is the bridge between the snapshot table and the pandapower network tables net.load and net.sgen 
     required_cols = {"node_id", "p_cons_pu", "q_cons_pu", "p_prod_pu", "q_prod_pu"}
     missing = required_cols - set(scenario_df.columns)
     if missing:
@@ -31,7 +67,7 @@ def apply_profile_scenario_to_pandapower(
     if len(net.switch) > 0 and "closed" in net.switch.columns:
         net.switch["closed"] = True
 
-    s_base_mva = float(s_base) / 1e6  # VA -> MVA
+    s_base_mva = float(s_base) / 1e6  
 
     # Ensure columns exist
     if "q_mvar" not in net.load.columns:
