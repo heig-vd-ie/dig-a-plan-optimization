@@ -190,14 +190,16 @@ class ExpansionAlgorithm:
         save_obj_to_json(sddp_response, self.cache_dir_run / f"sddp_response_{ι}.json")
         save_obj_to_json(admm_response, self.cache_dir_run / f"bender_cuts_{ι}.json")
         current_cuts = load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
-        final_cuts = {**current_cuts["cuts"], **admm_response.cuts}
+        final_cuts = BenderCuts(cuts={**current_cuts["cuts"], **admm_response.cuts})
         save_obj_to_json(final_cuts, self.cache_dir_run / f"bender_cuts.json")
-        opt_config = load_obj_from_json(self.cache_dir_run / "optimization_config.json")
-        opt_config["grid"]["cuts"] = opt_config["grid"]["cuts"] + [
+        opt_config = OptimizationConfig(
+            **load_obj_from_json(self.cache_dir_run / "optimization_config.json")
+        )
+        opt_config.grid.cuts = opt_config.grid.cuts + [
             Cut(id=int(cut_id)) for cut_id in admm_response.cuts.keys()
         ]
         save_obj_to_json(opt_config, self.cache_dir_run / "optimization_config.json")
-        self.sddp_request = SddpRequest(optimization=OptimizationConfig(**opt_config))
+        self.sddp_request = SddpRequest(optimization=opt_config)
 
     def run_sddp(self) -> SddpResponse:
         """Run the SDDP algorithm with the given expansion request."""
