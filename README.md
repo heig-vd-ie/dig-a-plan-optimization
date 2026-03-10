@@ -58,9 +58,10 @@ This starts the full stack (Julia, Python/FastAPI, Ray Head, Grafana, and worker
 ```text
 +------------------------------+
 | Services logs                |
-| (Julia / Python / Grafana)   |
+| (Python)                     |
 +------------------------------+
-| Ray logs / worker processes  |
+| Services logs                |
+| (Julia)                      |
 +------------------------------+
 | Interactive shell            |
 | (run commands & experiments) |
@@ -118,7 +119,7 @@ starts Docker services (Python/FastAPI, Julia SDDP service, Grafana/Prometheus/M
 
 opens a tmux session with panes for logs and an interactive shell.
 
-2. Connect to the worker machine with ssh:
+2. Connect to the worker machine with ssh in a separate pane or terminal:
 ```sh
     ssh `user@worker-host` or `user@<worker-Tailscale IP>`
 ```
