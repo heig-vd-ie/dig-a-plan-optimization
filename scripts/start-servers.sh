@@ -7,7 +7,7 @@ source .venv/bin/activate
 direnv allow
 
 commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization && docker logs -f dap-py-api")
-commands+=("sleep 1 & cd dockerfiles && docker logs -f dap-jl-api")
+commands+=("sleep 1 && docker logs -f dap-jl-api")
 commands+=("make venv-activate; sleep 3")
 
 tmux new-session -d -s $SESSION
