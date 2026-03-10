@@ -80,14 +80,19 @@ class TestExpansionDataExporter(ExpansionTestBase):
                 load_potential=self.load_potential,
                 pv_potential=self.pv_potential,
                 n_stages=5,
+                seed_number=1000,
+                file_name="scenarios.json",
             )
         )
+
         self.expansion_algorithm.out_of_sample_scenarios = (
             self.expansion_algorithm.create_scenario_data(
                 nodes=self.expansion_algorithm.sddp_request.optimization.grid.nodes,
                 load_potential=self.load_potential,
                 pv_potential=self.pv_potential,
                 n_stages=5,
+                seed_number=2000,
+                file_name="out_of_sample_scenarios.json",
             )
         )
         self.expansion_algorithm.create_sddp_request()

@@ -66,7 +66,9 @@ class SddpModel:
     def run_sddp(self, expansion_request: SddpRequest) -> SddpResponse:
         """Run the SDDP algorithm."""
         response = self.run_sddp_native(
-            request_data=expansion_request.optimization.model_dump(by_alias=True)
+            request_data=expansion_request.optimization.model_dump(
+                by_alias=True, mode="json"
+            )
         )
         return SddpResponse(**response.json())
 

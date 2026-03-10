@@ -65,6 +65,7 @@ class ExpansionAlgorithm:
         self.admm_config = admm_config
         self.sddp_config = sddp_config
         self.cache_dir = cache_dir
+        self.cache_dir_run = self.cache_dir / time_now
         self.iterations = iterations
         self.just_test = just_test
         self.seed_number = seed_number
@@ -89,6 +90,7 @@ class ExpansionAlgorithm:
             pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number,
+            file_name="scenarios.json",
         )
         self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
@@ -96,10 +98,10 @@ class ExpansionAlgorithm:
             pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number + 1000,
+            file_name="out_of_sample_scenarios.json",
         )
 
         self.create_bender_cuts(bender_cuts=bender_cuts)
-        self.cache_dir_run = self.cache_dir / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):
@@ -121,8 +123,9 @@ class ExpansionAlgorithm:
         nodes: List[Node],
         load_potential: dict[int, float],
         pv_potential: dict[int, float],
-        n_stages=3,
-        seed_number=1000,
+        file_name: str,
+        n_stages: int,
+        seed_number: int,
     ):
         """Generate long-term scenarios with configurable parameters."""
         ltm_scenarios = LongTermScenarioRequest(
@@ -135,7 +138,9 @@ class ExpansionAlgorithm:
             N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,
         )
-        return self.expansion_model.run_generate_scenarios(ltm_scenarios)
+        scenarios = self.expansion_model.run_generate_scenarios(ltm_scenarios)
+        save_obj_to_json(scenarios, self.cache_dir_run / file_name)
+        return scenarios
 
     def create_additional_params(self, sddp_config: SDDPConfig):
         """Create additional parameters with default or custom values."""
