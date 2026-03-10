@@ -155,6 +155,7 @@ class ExpansionAlgorithm:
     def create_bender_cuts(self, bender_cuts: BenderCuts | None):
         """Create Bender cuts with default or custom values."""
         self.bender_cuts = BenderCuts(cuts={}) if bender_cuts is None else bender_cuts
+        save_obj_to_json(self.bender_cuts, self.cache_dir_run / "bender_cuts.json")
 
     def create_sddp_request(self):
         """Create expansion request with provided or default parameters."""

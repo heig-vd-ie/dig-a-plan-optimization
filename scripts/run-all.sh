@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DELAY_TIME=${1:-10} # Default delay time
+DELAY_TIME=${1:-1} # Default delay time
 
 # Each experiment: "description|command" (no leading blank line)
 EXPERIMENTS="ieee33 fixed switches|python experiments/expansion_planning_script.py --kace ieee_33 --fixed_switches true --cachename ieee33_fixed_switches
