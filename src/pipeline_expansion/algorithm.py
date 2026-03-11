@@ -178,16 +178,40 @@ class ExpansionAlgorithm:
         self.node_ids = [node.id for node in self.sddp_request.optimization.grid.nodes]
         self.edge_ids = [edge.id for edge in self.sddp_request.optimization.grid.edges]
 
-    def record_update_cache(
-        self,
-        sddp_response: SddpResponse,
-        admm_response: BenderCuts,
-        ι: int,
-    ):
+    def record_batch_sddp(self, sddp_response: SddpResponse, ι: int):
+        if len(sddp_response.objectives) == 0:
+            return
+        single_row = SddpResponse(
+            objectives=[sddp_response.objectives[0]],
+            simulations=[sddp_response.simulations[0]],
+            out_of_sample_simulations=[sddp_response.out_of_sample_simulations[0]],
+            out_of_sample_objectives=[sddp_response.out_of_sample_objectives[0]],
+        )
+
+        size_bytes = len(json.dumps(single_row.model_dump(mode="json")).encode("utf-8"))
+        max_memory_bytes = 20 * 1024 * 1024
+        batch_size = max(1, max_memory_bytes // size_bytes)
+        n = len(sddp_response.objectives)
+        for i in range(0, n, batch_size):
+            batch = SddpResponse(
+                objectives=sddp_response.objectives[i : i + batch_size],
+                simulations=sddp_response.simulations[i : i + batch_size],
+                out_of_sample_simulations=sddp_response.out_of_sample_simulations[
+                    i : i + batch_size
+                ],
+                out_of_sample_objectives=sddp_response.out_of_sample_objectives[
+                    i : i + batch_size
+                ],
+            )
+            save_obj_to_json(
+                batch,
+                self.cache_dir_run / f"sddp_response_{ι}_{i//batch_size}.json",
+            )
+
+    def record_update_cache(self, admm_response: BenderCuts, ι: int):
         """Update Bender cuts with new values."""
         if self.just_test:
             return None
-        save_obj_to_json(sddp_response, self.cache_dir_run / f"sddp_response_{ι}.json")
         save_obj_to_json(admm_response, self.cache_dir_run / f"bender_cuts_{ι}.json")
         current_cuts = load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
         final_cuts = BenderCuts(cuts={**current_cuts["cuts"], **admm_response.cuts})
@@ -327,9 +351,8 @@ class ExpansionAlgorithm:
             admm_response = self.run_admm(
                 sddp_response=sddp_response, ι=ι, fixed_switches=self.fixed_switches
             )
-            self.record_update_cache(
-                sddp_response=sddp_response, admm_response=admm_response, ι=ι
-            )
+            self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+            self.record_update_cache(admm_response=admm_response, ι=ι)
         sddp_response = self.run_sddp()
         save_obj_to_json(
             sddp_response, self.cache_dir_run / f"sddp_response_{ι+1}.json"
