@@ -354,9 +354,7 @@ class ExpansionAlgorithm:
             self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
             self.record_update_cache(admm_response=admm_response, ι=ι)
         sddp_response = self.run_sddp()
-        save_obj_to_json(
-            sddp_response, self.cache_dir_run / f"sddp_response_{ι+1}.json"
-        )
+        self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
         return sddp_response
 
 
