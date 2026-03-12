@@ -207,6 +207,10 @@ class ExpansionAlgorithm:
                 batch,
                 self.cache_dir_run / f"sddp_response_{ι}_{i//batch_size}.json",
             )
+        del sddp_response
+        import gc
+
+        gc.collect()
 
     def record_update_cache(self, admm_response: BenderCuts, ι: int):
         """Update Bender cuts with new values."""
@@ -230,7 +234,7 @@ class ExpansionAlgorithm:
         return self.expansion_model.run_sddp(self.sddp_request)
 
     def run_admm(
-        self, sddp_response: SddpResponse, ι: int, fixed_switches: bool
+        self, needed_simulations: Dict, ι: int, fixed_switches: bool
     ) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(grid_data=self.grid_data, konfig=self.admm_config)
@@ -250,9 +254,7 @@ class ExpansionAlgorithm:
                     self.sddp_config.n_optimizations,
                     self.sddp_config.n_stages,
                 ): heavy_task_remote.remote(
-                    sddp_response.simulations[
-                        random.randint(0, self.sddp_config.n_optimizations - 1)
-                    ][stage - 1],
+                    needed_simulations[(stage, ω)],
                     admm_ref,
                     node_ids_ref,
                     edge_ids_ref,
@@ -302,6 +304,16 @@ class ExpansionAlgorithm:
                             f"ERROR in retrieving data for [{ω}, {stage}]!!! Exception: {e}"
                         )
             bender_cuts = BenderCuts(cuts=cuts)
+            del admm_ref
+            del node_ids_ref
+            del edge_ids_ref
+            del futures
+            del future_results
+            del needed_simulations
+            import gc
+
+            gc.collect()
+
             shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
@@ -311,8 +323,7 @@ class ExpansionAlgorithm:
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
                 ):
-                    rand_ω = random.randint(0, self.sddp_config.n_optimizations - 1)
-                    sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
+                    sddp_simulation = needed_simulations[(stage, ω)]
                     try:
                         heavy_task_output = heavy_task(
                             sddp_simulation=sddp_simulation,
@@ -348,13 +359,23 @@ class ExpansionAlgorithm:
         ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
-            admm_response = self.run_admm(
-                sddp_response=sddp_response, ι=ι, fixed_switches=self.fixed_switches
-            )
+            needed_simulations = {
+                (stage, ω): sddp_response.simulations[
+                    random.randint(0, self.sddp_config.n_optimizations - 1)
+                ][stage - 1]
+                for stage in self._range(min([self.sddp_config.n_stages, ι + 1]))
+                for ω in self._range(self.sddp_config.n_optimizations)
+            }
             self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+            admm_response = self.run_admm(
+                needed_simulations=needed_simulations,
+                ι=ι,
+                fixed_switches=self.fixed_switches,
+            )
             self.record_update_cache(admm_response=admm_response, ι=ι)
         sddp_response = self.run_sddp()
         self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+
         return sddp_response
 
 
