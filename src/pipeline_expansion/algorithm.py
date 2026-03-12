@@ -238,7 +238,15 @@ class ExpansionAlgorithm:
             f"PRE-SDDP | process RSS: {mem_mb:.1f} MB | request payload: {request_size_mb:.1f} MB"
         )
 
-        return self.expansion_model.run_sddp(self.sddp_request)
+        response = self.expansion_model.run_sddp(self.sddp_request)
+
+        mem_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        response_size_mb = len(response.model_dump_json().encode()) / 1024 / 1024
+        log.info(
+            f"POST-SDDP | RSS: {mem_after:.1f} MB | response: {response_size_mb:.1f} MB | delta: {mem_after - mem_mb:.1f} MB"
+        )
+
+        return response
 
     def run_admm(
         self, needed_simulations: Dict, ι: int, fixed_switches: bool
