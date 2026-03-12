@@ -227,6 +227,17 @@ class ExpansionAlgorithm:
 
     def run_sddp(self) -> SddpResponse:
         """Run the SDDP algorithm with the given expansion request."""
+        import resource, gc
+
+        gc.collect()
+        mem_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        request_size_mb = (
+            len(self.sddp_request.model_dump_json().encode()) / 1024 / 1024
+        )
+        log.info(
+            f"PRE-SDDP | process RSS: {mem_mb:.1f} MB | request payload: {request_size_mb:.1f} MB"
+        )
+
         return self.expansion_model.run_sddp(self.sddp_request)
 
     def run_admm(
