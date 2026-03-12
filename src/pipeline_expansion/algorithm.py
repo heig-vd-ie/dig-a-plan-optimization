@@ -207,10 +207,6 @@ class ExpansionAlgorithm:
                 batch,
                 self.cache_dir_run / f"sddp_response_{ι}_{i//batch_size}.json",
             )
-        del sddp_response
-        import gc
-
-        gc.collect()
 
     def record_update_cache(self, admm_response: BenderCuts, ι: int):
         """Update Bender cuts with new values."""
@@ -310,9 +306,6 @@ class ExpansionAlgorithm:
             del futures
             del future_results
             del needed_simulations
-            import gc
-
-            gc.collect()
 
             shutdown_ray()
         else:
@@ -367,6 +360,7 @@ class ExpansionAlgorithm:
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
             self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+            del sddp_response
             admm_response = self.run_admm(
                 needed_simulations=needed_simulations,
                 ι=ι,
