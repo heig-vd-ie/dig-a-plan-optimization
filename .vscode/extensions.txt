@@ -1,0 +1,6 @@
+ms-python.black-formatter
+ms-python.debugpy
+ms-python.python
+mkhl.direnv
+julialang.language-julia
+GamemodeOne.json-compact-prettier
