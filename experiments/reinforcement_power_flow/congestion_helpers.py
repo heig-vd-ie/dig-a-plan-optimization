@@ -46,27 +46,6 @@ def check_trafo_loading(
     return df
 
 
-def check_voltage_violations(
-    net: pp.pandapowerNet,
-    vmin_pu: float = 0.95,
-    vmax_pu: float = 1.05,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Return undervoltage and overvoltage bus tables based on res_bus.vm_pu.
-    """
-
-    bus_df = net.bus.copy()
-    bus_df = bus_df.join(net.res_bus, how="left", rsuffix="_res")
-    bus_df["bus_idx"] = bus_df.index
-
-    bus_df = bus_df[bus_df["vm_pu"].notna()]
-
-    undervoltage = bus_df[bus_df["vm_pu"] < vmin_pu].copy().sort_values("vm_pu", ascending=True)
-    overvoltage  = bus_df[bus_df["vm_pu"] > vmax_pu].copy().sort_values("vm_pu", ascending=False)
-
-    return undervoltage, overvoltage
-
-
 def reinforce_line_one_step(
     net: pp.pandapowerNet,
     line_idx: int,
