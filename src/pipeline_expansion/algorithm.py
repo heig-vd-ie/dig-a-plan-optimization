@@ -319,6 +319,8 @@ class ExpansionAlgorithm:
                             f"ERROR in retrieving data for [{ω}, {stage}]!!! Exception: {e}"
                         )
             bender_cuts = BenderCuts(cuts=cuts)
+
+            shutdown_ray(futures=list(futures.values()))
             del admm_ref
             del node_ids_ref
             del edge_ids_ref
@@ -326,7 +328,6 @@ class ExpansionAlgorithm:
             del future_results
             del needed_simulations
 
-            shutdown_ray()
         else:
             bender_cuts = BenderCuts(cuts={})
             for stage in tqdm.tqdm(

@@ -43,12 +43,24 @@ def init_ray() -> Dict[str, Any]:
     }
 
 
-def shutdown_ray() -> Dict[str, str]:
-    """
-    Shutdown Ray cleanly.
-    """
-    ray.shutdown()
-    return {"message": "Ray shutdown"}
+def shutdown_ray(futures=None) -> Dict[str, str]:
+    """Shutdown Ray cleanly."""
+    if futures:
+        for fut in futures:
+            try:
+                ray.cancel(fut, force=True)
+            except Exception:
+                pass
+
+    try:
+        ray.shutdown()
+        return {"message": "Ray shutdown"}
+    except Exception as e:
+        import subprocess, time
+
+        subprocess.run(["pkill", "-f", "ray::"], capture_output=True)
+        time.sleep(2)
+        return {"message": f"Ray forced shutdown after error: {e}"}
 
 
 def check_ray(with_ray: bool) -> None:
