@@ -9,9 +9,6 @@ def check_line_loading(
     """
     Returns a line table sorted by pandapower res_line.loading_percent.
     """
-    
-    if len(net.line) == 0 or len(net.res_line) == 0:
-        return pd.DataFrame()
 
     res_cols = [c for c in ["loading_percent", "i_from_ka", "i_to_ka"] if c in net.res_line.columns]
 
@@ -34,8 +31,6 @@ def check_trafo_loading(
     """
     Returns a transformer table sorted by pandapower res_trafo.loading_percent.
     """
-    if len(net.trafo) == 0 or len(net.res_trafo) == 0:
-        return pd.DataFrame()
 
     res_cols = [c for c in ["loading_percent"] if c in net.res_trafo.columns]
 
@@ -59,8 +54,6 @@ def check_voltage_violations(
     """
     Return undervoltage and overvoltage bus tables based on res_bus.vm_pu.
     """
-    if len(net.res_bus) == 0:
-        return pd.DataFrame(), pd.DataFrame()
 
     bus_df = net.bus.copy()
     bus_df = bus_df.join(net.res_bus, how="left", rsuffix="_res")
