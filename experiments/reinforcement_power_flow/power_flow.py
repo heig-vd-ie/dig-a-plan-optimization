@@ -10,8 +10,7 @@ import polars as pl
 
 from data_model import GridCaseModel, ShortTermUncertaintyProfile
 from data_model.kace import DiscreteScenario
-from experiments.reinforcement_power_flow.scenario_pp import (apply_profile_scenario_to_pandapower
-, build_snapshot_from_wide_profile)
+from experiments.reinforcement_power_flow.scenario_pp import apply_profile_scenario_to_pandapower
 from experiments.reinforcement_power_flow.congestion_helpers import (
     check_line_loading, check_trafo_loading,
     reinforce_line_one_step,
@@ -59,26 +58,15 @@ map_df = pd.read_csv(mapping_file)
 egid_col = "egid"
 load_idx_col = "index"
 
-mapping_load = map_df[[egid_col, load_idx_col]].copy()
-mapping_load = mapping_load.dropna(subset=[egid_col, load_idx_col])
-
-mapping_load[egid_col] = mapping_load[egid_col].astype(int)
-mapping_load[load_idx_col] = mapping_load[load_idx_col].astype(int)
-
-# %% egid -> load_idx -> bus mapping
-load_to_bus = (
-    net0.load.reset_index()[["index", "bus"]]
-    .rename(columns={"index": "load_idx"})
+mapping_load = (
+    map_df[[egid_col, load_idx_col]]
+    .dropna(subset=[egid_col, load_idx_col])
+    .rename(columns={load_idx_col: "load_idx"})
     .copy()
 )
 
-load_to_bus["load_idx"] = load_to_bus["load_idx"].astype(int)
-load_to_bus["bus"] = load_to_bus["bus"].astype(int)
-
-mapping_bus = (
-    mapping_load.rename(columns={load_idx_col: "load_idx"})
-    .merge(load_to_bus, on="load_idx", how="inner")
-)
+mapping_load["egid"] = mapping_load["egid"].astype(int)
+mapping_load["load_idx"] = mapping_load["load_idx"].astype(int)
 
 # %% Reinforcement planning 
 results = []
@@ -94,15 +82,14 @@ for year in stage_years:
 
     # Main loop over timestamps
     for tcol in time_cols:
-        scen_df = build_snapshot_from_wide_profile(
+
+        net_case = apply_profile_scenario_to_pandapower(
+            net0=net_plan,
             profile_df=df,
             tcol=tcol,
-            mapping_bus=mapping_bus,
+            mapping_load=mapping_load,
             cosphi=grid.cosφ,
-            s_base=grid.s_base,
         )
-
-        net_case = apply_profile_scenario_to_pandapower(net_plan, scen_df, grid.s_base)
 
         # initial capacities before reinforcement
         line_max_i_init = (
@@ -150,12 +137,12 @@ for year in stage_years:
 
             for lid in cong_lines["line_idx"].tolist():
                 lid = int(lid)
-                reinforce_line_one_step(net_case, lid, step_percent=STEP)
+                net_case= reinforce_line_one_step(net_case, lid, step_percent=STEP)
                 reinforced_lines_all.add(lid)
 
             for tid in cong_trafos["trafo_idx"].tolist():
                 tid = int(tid)
-                reinforce_trafo_one_step(net_case, tid, step_percent=STEP)
+                net_case= reinforce_trafo_one_step(net_case, tid, step_percent=STEP)
                 reinforced_trafos_all.add(tid)
 
             pp.runpp(net_case)

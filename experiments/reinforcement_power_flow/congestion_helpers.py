@@ -50,21 +50,22 @@ def reinforce_line_one_step(
     net: pp.pandapowerNet,
     line_idx: int,
     step_percent: float = 20.0,
-) -> None:
+) -> pp.pandapowerNet:
     """
     Increase line thermal capacity by increasing max_i_ka.
     """
 
     net.line.at[line_idx, "max_i_ka"] *= (1.0 + step_percent / 100.0)
-
+    return net
 
 def reinforce_trafo_one_step(
     net: pp.pandapowerNet,
     trafo_idx: int,
     step_percent: float = 20.0,
-) -> None:
+) -> pp.pandapowerNet:
     """
     Increase transformer capacity by increasing sn_mva.
     """
 
     net.trafo.at[trafo_idx, "sn_mva"] *= (1.0 + step_percent / 100.0)
+    return net
