@@ -174,24 +174,22 @@ for year in stage_years:
         final_cong_rate_lines = final_n_cong_lines / n_lines_total if n_lines_total > 0 else 0.0
         final_cong_rate_trafos = final_n_cong_trafos / n_trafos_total if n_trafos_total > 0 else 0.0
 
-        if len(net_case.line) > 0:
-            delta_i_ka = (net_case.line["max_i_ka"] - line_max_i_init).fillna(0.0)
-            lengths_km = (net_case.line["length_km"] if "length_km" in net_case.line.columns
-                    else pd.Series(1.0, index=net_case.line.index)).fillna(1.0)
-            from_bus_v_kv = net_case.line["from_bus"].map(net_case.bus["vn_kv"]).fillna(0.0)
-            delta_line_kva = np.sqrt(3.0) * from_bus_v_kv * delta_i_ka * 1000.0
-            delta_line_kw = delta_line_kva * grid.cosφ
-            cost_lines = float((delta_line_kw * lengths_km * LINE_COST_PER_KM_KW).sum())
-        else:
-            cost_lines = 0.0
+        
+        delta_i_ka = (net_case.line["max_i_ka"] - line_max_i_init).fillna(0.0)
+        lengths_km = (net_case.line["length_km"] if "length_km" in net_case.line.columns
+                else pd.Series(1.0, index=net_case.line.index)).fillna(1.0)
+        from_bus_v_kv = net_case.line["from_bus"].map(net_case.bus["vn_kv"]).fillna(0.0)
+        delta_line_kva = np.sqrt(3.0) * from_bus_v_kv * delta_i_ka * 1000.0
+        delta_line_kw = delta_line_kva * grid.cosφ
+        cost_lines = float((delta_line_kw * lengths_km * LINE_COST_PER_KM_KW).sum())
+        
 
-        if len(net_case.trafo) > 0:
-            delta_sn_mva = (net_case.trafo["sn_mva"] - trafo_sn_init).fillna(0.0)
-            delta_trafo_kva = delta_sn_mva * 1000.0
-            delta_trafo_kw = delta_trafo_kva * grid.cosφ
-            cost_trafos = float((delta_trafo_kw * TRAFO_COST_PER_KW).sum())
-        else:
-            cost_trafos = 0.0
+        
+        delta_sn_mva = (net_case.trafo["sn_mva"] - trafo_sn_init).fillna(0.0)
+        delta_trafo_kva = delta_sn_mva * 1000.0
+        delta_trafo_kw = delta_trafo_kva * grid.cosφ
+        cost_trafos = float((delta_trafo_kw * TRAFO_COST_PER_KW).sum())
+
 
         cost_total = cost_lines + cost_trafos
 
