@@ -46,7 +46,7 @@ def check_trafo_loading(
     return df
 
 
-def reinforce_line_one_step(
+def reinforce_line_case(
     net: pp.pandapowerNet,
     line_idx: int,
     step_percent: float = 20.0,
@@ -58,7 +58,7 @@ def reinforce_line_one_step(
     net.line.at[line_idx, "max_i_ka"] *= (1.0 + step_percent / 100.0)
     return net
 
-def reinforce_trafo_one_step(
+def reinforce_trafo_case(
     net: pp.pandapowerNet,
     trafo_idx: int,
     step_percent: float = 20.0,
