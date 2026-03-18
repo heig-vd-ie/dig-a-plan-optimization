@@ -18,7 +18,7 @@ from experiments.reinforcement_power_flow.congestion_helpers import (
 )
 
 # %% input parameters for reinforcement and congestion settings
-LIMIT = 60.0
+LIMIT = 90.0
 STEP = 20.0
 MAX_ROUNDS = 50  
 LINE_COST_PER_KM_KW = 1752
@@ -44,6 +44,7 @@ profiles_cfg["load_profiles"] = [str(project_root / p) for p in profiles_cfg["lo
 profiles_cfg["pv_profile"] = str(project_root / profiles_cfg["pv_profile"])
 profiles_cfg["scenario_name"] = DiscreteScenario(profiles_cfg["scenario_name"])
 stage_years = profiles_cfg.pop("target_year")
+
 
 # Create data model instances 
 grid = GridCaseModel(**grid_cfg)
@@ -82,19 +83,25 @@ line_length_km = pd.Series(1.0, index=net0.line.index, dtype=float)
 
 for year in stage_years:
     print(f"Processing year {year}")
-    parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
-    df = pl.read_parquet(parquet_file)
-    time_cols = [c for c in df.columns if c != "egid"]
+    load_parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
+    load_df = pl.read_parquet(load_parquet_file)
+    
+    pv_profile_dir = Path(profiles.pv_profile)
+    pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
+    pv_df = pl.read_parquet(pv_parquet_file)
+    time_cols = [c for c in load_df.columns if c != "egid"]
     
     line_max_i_init = net_plan.line["max_i_ka"].copy()
     trafo_sn_init = net_plan.trafo["sn_mva"].copy()
+
 
     # Main loop over timestamps
     for tcol in time_cols:
 
         net_case = apply_profile_scenario_to_pandapower(
             net0=net_plan,
-            profile_df=df,
+            load_df=load_df,
+            pv_df=pv_df,
             tcol=tcol,
             mapping_load=mapping_load,
             cosphi=grid.cosφ,
@@ -112,10 +119,7 @@ for year in stage_years:
         
         n_lines_total = len(net_case.line)
         n_trafos_total = len(net_case.trafo)
-
-        # cong_rate_lines_before = len(cong_lines_before) / n_lines_total if n_lines_total > 0 else 0.0
-        # cong_rate_trafos_before = len(cong_trafos_before) / n_trafos_total if n_trafos_total > 0 else 0.0
-
+        
         print(f"\nYear {year} | Timestamp {tcol}")
         print(f"Congestion threshold = {LIMIT:.1f}%")
     
