@@ -13,16 +13,17 @@ from data_model.kace import DiscreteScenario
 from experiments.reinforcement_power_flow.scenario_pp import apply_profile_scenario_to_pandapower
 from experiments.reinforcement_power_flow.congestion_helpers import (
     check_line_loading, check_trafo_loading,
-    reinforce_line_one_step,
-    reinforce_trafo_one_step,
+    reinforce_line_case,
+    reinforce_trafo_case,
 )
 
 # %% input parameters for reinforcement and congestion settings
 LIMIT = 60.0
 STEP = 20.0
 MAX_ROUNDS = 50  
-LINE_COST_PER_KM_KW = 0.2
-TRAFO_COST_PER_KW = 0.15
+LINE_COST_PER_KM_KW = 1752
+TRAFO_COST_PER_KW = 1314
+DISCOUNT_RATE = 0.05
 
 # %% Load JSON config 
 project_root = Path.cwd().parent
@@ -70,15 +71,23 @@ mapping_load["load_idx"] = mapping_load["load_idx"].astype(int)
 
 # %% Reinforcement planning 
 results = []
+yearly_results = []
 # Grid network 
 net_plan = copy.deepcopy(net0)
 profile_dir = Path(profiles.load_profiles[0])
 
+base_year = min(stage_years)
+
+line_length_km = pd.Series(1.0, index=net0.line.index, dtype=float)
+
 for year in stage_years:
-    parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     print(f"Processing year {year}")
+    parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     df = pl.read_parquet(parquet_file)
     time_cols = [c for c in df.columns if c != "egid"]
+    
+    line_max_i_init = net_plan.line["max_i_ka"].copy()
+    trafo_sn_init = net_plan.trafo["sn_mva"].copy()
 
     # Main loop over timestamps
     for tcol in time_cols:
@@ -90,19 +99,8 @@ for year in stage_years:
             mapping_load=mapping_load,
             cosphi=grid.cosφ,
         )
-
-        # initial capacities before reinforcement
-        line_max_i_init = (
-            net_case.line["max_i_ka"].copy() if len(net_case.line) > 0 else pd.Series(dtype=float)
-        )
-        trafo_sn_init = (
-            net_case.trafo["sn_mva"].copy() if len(net_case.trafo) > 0 else pd.Series(dtype=float)
-        )
-
-        n_lines_total = len(net_case.line)
-        n_trafos_total = len(net_case.trafo)
-
-        # PF before reinforcement
+        
+        # pandapower run before reinforcement
         pp.runpp(net_case)
 
         cong_lines = check_line_loading(net_case, limit_percent=LIMIT)
@@ -110,24 +108,25 @@ for year in stage_years:
 
         cong_lines_before = cong_lines.copy()
         cong_trafos_before = cong_trafos.copy()
+        
+        
+        n_lines_total = len(net_case.line)
+        n_trafos_total = len(net_case.trafo)
 
-        cong_rate_lines_before = len(cong_lines_before) / n_lines_total if n_lines_total > 0 else 0.0
-        cong_rate_trafos_before = len(cong_trafos_before) / n_trafos_total if n_trafos_total > 0 else 0.0
+        # cong_rate_lines_before = len(cong_lines_before) / n_lines_total if n_lines_total > 0 else 0.0
+        # cong_rate_trafos_before = len(cong_trafos_before) / n_trafos_total if n_trafos_total > 0 else 0.0
 
         print(f"\nYear {year} | Timestamp {tcol}")
         print(f"Congestion threshold = {LIMIT:.1f}%")
     
-    
-        if len(cong_lines_before) > 0:
-            print("\nTop congested lines before reinforcement:")
-            print(cong_lines_before[["line_idx", "loading_percent"]].head(10))
+        print("\nTop congested lines before reinforcement:")
+        print(cong_lines_before[["line_idx", "loading_percent"]].head(10))
 
-        if len(cong_trafos_before) > 0:
-            print("\nTop congested trafos before reinforcement:")
-            print(cong_trafos_before[["trafo_idx", "loading_percent"]].head(10))
+        print("\nTop congested trafos before reinforcement:")
+        print(cong_trafos_before[["trafo_idx", "loading_percent"]].head(10))
     
-        reinforced_lines_all = set()
-        reinforced_trafos_all = set()
+        reinforced_lines = set()
+        reinforced_trafos = set()
 
         rounds_used = 0
 
@@ -137,13 +136,13 @@ for year in stage_years:
 
             for lid in cong_lines["line_idx"].tolist():
                 lid = int(lid)
-                net_case= reinforce_line_one_step(net_case, lid, step_percent=STEP)
-                reinforced_lines_all.add(lid)
+                net_case= reinforce_line_case(net_case, lid, step_percent=STEP)
+                reinforced_lines.add(lid)
 
             for tid in cong_trafos["trafo_idx"].tolist():
                 tid = int(tid)
-                net_case= reinforce_trafo_one_step(net_case, tid, step_percent=STEP)
-                reinforced_trafos_all.add(tid)
+                net_case= reinforce_trafo_case(net_case, tid, step_percent=STEP)
+                reinforced_trafos.add(tid)
 
             pp.runpp(net_case)
 
@@ -158,28 +157,6 @@ for year in stage_years:
         final_n_cong_lines = len(cong_lines)
         final_n_cong_trafos = len(cong_trafos)
 
-        final_cong_rate_lines = final_n_cong_lines / n_lines_total if n_lines_total > 0 else 0.0
-        final_cong_rate_trafos = final_n_cong_trafos / n_trafos_total if n_trafos_total > 0 else 0.0
-
-        
-        delta_i_ka = (net_case.line["max_i_ka"] - line_max_i_init).fillna(0.0)
-        lengths_km = (net_case.line["length_km"] if "length_km" in net_case.line.columns
-                else pd.Series(1.0, index=net_case.line.index)).fillna(1.0)
-        from_bus_v_kv = net_case.line["from_bus"].map(net_case.bus["vn_kv"]).fillna(0.0)
-        delta_line_kva = np.sqrt(3.0) * from_bus_v_kv * delta_i_ka * 1000.0
-        delta_line_kw = delta_line_kva * grid.cosφ
-        cost_lines = float((delta_line_kw * lengths_km * LINE_COST_PER_KM_KW).sum())
-        
-
-        
-        delta_sn_mva = (net_case.trafo["sn_mva"] - trafo_sn_init).fillna(0.0)
-        delta_trafo_kva = delta_sn_mva * 1000.0
-        delta_trafo_kw = delta_trafo_kva * grid.cosφ
-        cost_trafos = float((delta_trafo_kw * TRAFO_COST_PER_KW).sum())
-
-
-        cost_total = cost_lines + cost_trafos
-
 
         results.append({
             "year": year,
@@ -187,17 +164,14 @@ for year in stage_years:
             "rounds_used": rounds_used,
             "n_congested_lines_before": len(cong_lines_before),
             "n_congested_trafos_before": len(cong_trafos_before),
-            "cong_rate_lines_before": cong_rate_lines_before,
-            "cong_rate_trafos_before": cong_rate_trafos_before,
+            "cong_rate_lines_before": len(cong_lines_before) / n_lines_total if n_lines_total else 0.0,
+            "cong_rate_trafos_before": len(cong_trafos_before) / n_trafos_total if n_trafos_total else 0.0,
             "final_n_congested_lines": final_n_cong_lines,
             "final_n_congested_trafos": final_n_cong_trafos,
-            "final_cong_rate_lines": final_cong_rate_lines,
-            "final_cong_rate_trafos": final_cong_rate_trafos,
-            "reinforced_lines": ",".join(map(str, sorted(reinforced_lines_all))),
-            "reinforced_trafos": ",".join(map(str, sorted(reinforced_trafos_all))), 
-            "cost_lines": cost_lines,
-            "cost_trafos": cost_trafos,
-            "cost_total": cost_total,   
+            "final_cong_rate_lines": final_n_cong_lines / n_lines_total if n_lines_total else 0.0,
+            "final_cong_rate_trafos": final_n_cong_trafos / n_trafos_total if n_trafos_total else 0.0,
+            "reinforced_lines": ",".join(map(str, sorted(reinforced_lines))),
+            "reinforced_trafos": ",".join(map(str, sorted(reinforced_trafos))),  
         })
 
         print(
@@ -207,16 +181,47 @@ for year in stage_years:
             f"rounds={rounds_used}, "
             f"final_lines={final_n_cong_lines}, "
             f"final_trafos={final_n_cong_trafos}"
-            f"cost_total={cost_total:,.2f}"
         )
         # use the new reinforced capacities as the start for the next time
         net_plan = copy.deepcopy(net_case)
+        
+    # calculation of yearly reinforcement costs
+    delta_i_ka = net_plan.line["max_i_ka"].sub(line_max_i_init, fill_value=0.0)
+    delta_sn_mva = net_plan.trafo["sn_mva"].sub(trafo_sn_init, fill_value=0.0)
+    
+    lengths_km = net_plan.line.get("length_km", line_length_km).fillna(1.0)
+    from_bus_v_kv = net_plan.line["from_bus"].map(net_plan.bus["vn_kv"]).fillna(0.0)
+
+    delta_line_kva = np.sqrt(3.0) * from_bus_v_kv * delta_i_ka * 1000.0
+    delta_line_kw = delta_line_kva * grid.cosφ
+    cost_lines = float((delta_line_kw * lengths_km * LINE_COST_PER_KM_KW).sum())
+
+    delta_trafo_kva = delta_sn_mva * 1000.0
+    delta_trafo_kw = delta_trafo_kva * grid.cosφ
+    cost_trafos = float((delta_trafo_kw * TRAFO_COST_PER_KW).sum())
+
+    cost_total_year = cost_lines + cost_trafos
+    years_from_base = year - base_year
+    discount_factor = (1.0 + DISCOUNT_RATE) ** years_from_base
+    npv_cost_year = cost_total_year / discount_factor
+    
+    yearly_results.append({
+        "year": year,
+        "npv_cost_total": npv_cost_year,
+    })
+    
+    print(f"Year {year} reinforcement cost: CHF {cost_total_year:,.2f} | NPV Cost: CHF {npv_cost_year:,.2f}"
+    )
+    
+
 
 # %% Final summary
 summary_df = pd.DataFrame(results)
+yearly_df = pd.DataFrame(yearly_results)
 display(summary_df) # type: ignore
-total_cost_chf = summary_df["cost_total"].sum()
-total_cost_mchf = total_cost_chf / 1e6
+display(yearly_df) # type: ignore
 
-print(f"Total cost [CHF]: {total_cost_chf:,.2f}")
+total_npv_chf = yearly_df["npv_cost_total"].sum()
+total_cost_mchf = total_npv_chf / 1e6
+
 print(f"Total cost [MCHF]: {total_cost_mchf:.6f}")
