@@ -1,51 +1,29 @@
 import json
-import logging
 import os
 import requests
-from pathlib import Path
+from typing import Dict
 from data_model.sddp import (
-    ExpansionResponse,
+    SddpResponse,
     Scenarios,
-    ExpansionRequest,
+    SddpRequest,
     LongTermScenarioRequest,
 )
-from helpers.json import save_obj_to_json, load_obj_from_json
 from helpers import generate_log
 
 log = generate_log(name=__name__)
 
+SERVER_BASE_URL = f"http://{os.environ.get("LOCAL_HOST", "localhost")}:{os.environ.get("SERVER_JL_PORT", 8082)}"
 
-class ExpansionModel:
+
+class SddpModel:
     def __init__(self):
-        """Initialize the ExpansionModel."""
-
-        SERVER_BASE_URL = f"http://{os.environ.get("LOCAL_HOST", "localhost")}:{os.environ.get("SERVER_JL_PORT", 8082)}"
+        """Initialize the SddpModel."""
         self.base_url = SERVER_BASE_URL
-        log.info(f"Expansion API server at: {SERVER_BASE_URL}")
+        log.info(f"SDDP API server at: {SERVER_BASE_URL}")
 
-    def get_server_config(self):
-        """Get the server configuration."""
-        return {"base_url": self.base_url}
-
-    def run_sddp_native(
-        self,
-        request_data: dict | None = None,
-        data_path: Path | None = None,
-    ) -> requests.Response:
+    def run_sddp_native(self, request_data: dict) -> requests.Response:
         """Run the SDDP algorithm (native implementation)."""
         try:
-            if request_data is None:
-                data_path = (
-                    data_path
-                    if data_path
-                    else Path(__file__).parent.parent.parent
-                    / "examples"
-                    / "payloads_jl"
-                    / "default.json"
-                )
-                log.info(f"Using data path: {data_path}")
-                request_data = load_obj_from_json(data_path)
-
             response = requests.patch(
                 f"{self.base_url}/stochastic_planning",
                 headers={"Content-Type": "application/json"},
@@ -57,8 +35,6 @@ class ExpansionModel:
             else:
                 log.info(f"🎉 Response status: {response.status_code}")
             return response
-        except FileNotFoundError:
-            raise FileNotFoundError(f"✗ Could not find data file at {data_path}")
         except json.JSONDecodeError as e:
             raise ValueError(f"✗ Error parsing JSON: {e}")
         except requests.RequestException as e:
@@ -66,10 +42,7 @@ class ExpansionModel:
         except Exception as e:
             raise RuntimeError(f"✗ Unexpected error: {e}")
 
-    def run_generate_scenarios_native(
-        self,
-        request_data: dict,
-    ) -> requests.Response:
+    def run_generate_scenarios_native(self, request_data: Dict) -> requests.Response:
         """Run the SDDP algorithm (native implementation)."""
         try:
             response = requests.patch(
@@ -90,70 +63,19 @@ class ExpansionModel:
         except Exception as e:
             raise RuntimeError(f"✗ Unexpected error: {e}")
 
-    def handle_expansion_request(
-        self,
-        expansion_request: ExpansionRequest,
-        cache_path: Path | None = None,
-    ) -> Path:
-        """Handle the expansion request."""
-        if cache_path is None:
-            cache_path = Path(__file__).parent.parent.parent / ".cache"
-        cache_path.mkdir(parents=True, exist_ok=True)
-        scenarios_path = expansion_request.optimization.scenarios
-        out_of_sample_scenarios_path = (
-            expansion_request.optimization.out_of_sample_scenarios
-        )
-        bender_cuts_path = expansion_request.optimization.bender_cuts
-        save_obj_to_json(expansion_request.bender_cuts, Path(bender_cuts_path))
-        save_obj_to_json(expansion_request.scenarios, Path(scenarios_path))
-        save_obj_to_json(
-            expansion_request.out_of_sample_scenarios,
-            Path(out_of_sample_scenarios_path),
-        )
-        return cache_path
-
-    def run_sddp(
-        self,
-        expansion_request: ExpansionRequest | None = None,
-        cache_path: Path | None = None,
-    ) -> ExpansionResponse:
+    def run_sddp(self, expansion_request: SddpRequest) -> SddpResponse:
         """Run the SDDP algorithm."""
-        if expansion_request is not None:
-            cache_path = self.handle_expansion_request(expansion_request, cache_path)
-            response = self.run_sddp_native(
-                request_data=expansion_request.optimization.model_dump(by_alias=True)
+        response = self.run_sddp_native(
+            request_data=expansion_request.optimization.model_dump(
+                by_alias=True, mode="json"
             )
-        else:
-            response = self.run_sddp_native()
-        return ExpansionResponse(**response.json())
+        )
+        return SddpResponse(**response.json())
 
     def run_generate_scenarios(
-        self,
-        long_term_scenario_request: LongTermScenarioRequest,
+        self, long_term_scenario_request: LongTermScenarioRequest
     ) -> Scenarios:
         response = self.run_generate_scenarios_native(
             request_data=long_term_scenario_request.model_dump(by_alias=True)
         )
         return Scenarios(**response.json())
-
-
-def run_sddp_native(data_path: Path | None = None) -> requests.Response:
-    expansion_model = ExpansionModel()
-    return expansion_model.run_sddp_native(data_path=data_path)
-
-
-def run_sddp(
-    expansion_request: ExpansionRequest | None = None, cache_path: Path | None = None
-) -> ExpansionResponse:
-    expansion_model = ExpansionModel()
-    return expansion_model.run_sddp(
-        expansion_request=expansion_request,
-        cache_path=cache_path,
-    )
-
-
-def generate_scenarios(
-    long_term_scenario_request: LongTermScenarioRequest,
-) -> Scenarios:
-    expansion_model = ExpansionModel()
-    return expansion_model.run_generate_scenarios(long_term_scenario_request)

@@ -17,7 +17,7 @@ from data_model import NodeEdgeModel, EdgeData
 from data_model.expansion import SDDPConfig
 from data_model.reconfiguration import ADMMConfig
 from pipeline_expansion.admm_helpers import ADMM, ADMMResult
-from api.sddp import run_sddp, generate_scenarios
+from api.sddp import SddpModel
 from data_model.sddp import (
     AdditionalParams,
     BenderCut,
@@ -25,11 +25,11 @@ from data_model.sddp import (
     Cut,
     HeavyTaskConfig,
     Node,
-    ExpansionRequest,
+    SddpRequest,
     LongTermScenarioRequest,
     OptimizationConfig,
     PlanningParams,
-    ExpansionResponse,
+    SddpResponse,
     Simulation,
 )
 from helpers.json import save_obj_to_json, load_obj_from_json
@@ -65,6 +65,7 @@ class ExpansionAlgorithm:
         self.admm_config = admm_config
         self.sddp_config = sddp_config
         self.cache_dir = cache_dir
+        self.cache_dir_run = self.cache_dir / time_now
         self.iterations = iterations
         self.just_test = just_test
         self.seed_number = seed_number
@@ -72,6 +73,8 @@ class ExpansionAlgorithm:
         self.s_base = s_base
         self.each_task_memory = each_task_memory
         self.fixed_switches = fixed_switches
+
+        self.expansion_model = SddpModel()
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
@@ -87,6 +90,7 @@ class ExpansionAlgorithm:
             pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number,
+            file_name="scenarios.json",
         )
         self.out_of_sample_scenarios = self.create_scenario_data(
             nodes=nodes,
@@ -94,10 +98,10 @@ class ExpansionAlgorithm:
             pv_potential=pv_potential,
             n_stages=self.sddp_config.n_stages,
             seed_number=self.seed_number + 1000,
+            file_name="out_of_sample_scenarios.json",
         )
 
         self.create_bender_cuts(bender_cuts=bender_cuts)
-        self.cache_dir_run = self.cache_dir / time_now
         os.makedirs(self.cache_dir_run, exist_ok=True)
 
     def _range(self, i: int):
@@ -119,8 +123,9 @@ class ExpansionAlgorithm:
         nodes: List[Node],
         load_potential: dict[int, float],
         pv_potential: dict[int, float],
-        n_stages=3,
-        seed_number=1000,
+        file_name: str,
+        n_stages: int,
+        seed_number: int,
     ):
         """Generate long-term scenarios with configurable parameters."""
         ltm_scenarios = LongTermScenarioRequest(
@@ -133,7 +138,9 @@ class ExpansionAlgorithm:
             N_years_per_stage=self.planning_params.years_per_stage,
             seed_number=seed_number,
         )
-        return generate_scenarios(ltm_scenarios)
+        scenarios = self.expansion_model.run_generate_scenarios(ltm_scenarios)
+        save_obj_to_json(scenarios, self.cache_dir_run / file_name)
+        return scenarios
 
     def create_additional_params(self, sddp_config: SDDPConfig):
         """Create additional parameters with default or custom values."""
@@ -148,10 +155,11 @@ class ExpansionAlgorithm:
     def create_bender_cuts(self, bender_cuts: BenderCuts | None):
         """Create Bender cuts with default or custom values."""
         self.bender_cuts = BenderCuts(cuts={}) if bender_cuts is None else bender_cuts
+        save_obj_to_json(self.bender_cuts, self.cache_dir_run / "bender_cuts.json")
 
-    def create_expansion_request(self):
+    def create_sddp_request(self):
         """Create expansion request with provided or default parameters."""
-        self.expansion_request = dig_a_plan_to_expansion(
+        self.sddp_request = dig_a_plan_to_expansion(
             grid_data=self.grid_data_rm,
             s_base=self.s_base,
             planning_params=self.planning_params,
@@ -160,8 +168,6 @@ class ExpansionAlgorithm:
             expansion_transformer_cost_per_kw=self.sddp_config.expansion_transformer_cost_per_kw,
             penalty_cost_per_consumption_kw=self.sddp_config.penalty_cost_per_consumption_kw,
             penalty_cost_per_production_kw=self.sddp_config.penalty_cost_per_production_kw,
-            scenarios_data=self.scenario_data,
-            out_of_sample_scenarios=self.out_of_sample_scenarios,
             bender_cuts=self.bender_cuts,
             scenarios_cache=self.cache_dir_run / "scenarios.json",
             out_of_sample_scenarios_cache=self.cache_dir_run
@@ -169,31 +175,46 @@ class ExpansionAlgorithm:
             bender_cuts_cache=self.cache_dir_run / "bender_cuts.json",
             optimization_config_cache=self.cache_dir_run / "optimization_config.json",
         )
-        self.node_ids = [
-            node.id for node in self.expansion_request.optimization.grid.nodes
-        ]
-        self.edge_ids = [
-            edge.id for edge in self.expansion_request.optimization.grid.edges
-        ]
-        self.n_scenarios = len(self.expansion_request.scenarios.model_dump().keys())
-        self.n_simulations = self.additional_params.n_simulations
-        self.n_stages = self.expansion_request.optimization.planning_params.n_stages
+        self.node_ids = [node.id for node in self.sddp_request.optimization.grid.nodes]
+        self.edge_ids = [edge.id for edge in self.sddp_request.optimization.grid.edges]
 
-    def record_update_cache(
-        self,
-        sddp_response: ExpansionResponse,
-        admm_response: BenderCuts,
-        ι: int,
-    ):
+    def record_batch_sddp(self, sddp_response: SddpResponse, ι: int):
+        if len(sddp_response.objectives) == 0:
+            return
+        single_row = SddpResponse(
+            objectives=[sddp_response.objectives[0]],
+            simulations=[sddp_response.simulations[0]],
+            out_of_sample_simulations=[sddp_response.out_of_sample_simulations[0]],
+            out_of_sample_objectives=[sddp_response.out_of_sample_objectives[0]],
+        )
+
+        size_bytes = len(json.dumps(single_row.model_dump(mode="json")).encode("utf-8"))
+        max_memory_bytes = 20 * 1024 * 1024
+        batch_size = max(1, max_memory_bytes // size_bytes)
+        n = len(sddp_response.objectives)
+        for i in range(0, n, batch_size):
+            batch = SddpResponse(
+                objectives=sddp_response.objectives[i : i + batch_size],
+                simulations=sddp_response.simulations[i : i + batch_size],
+                out_of_sample_simulations=sddp_response.out_of_sample_simulations[
+                    i : i + batch_size
+                ],
+                out_of_sample_objectives=sddp_response.out_of_sample_objectives[
+                    i : i + batch_size
+                ],
+            )
+            save_obj_to_json(
+                batch,
+                self.cache_dir_run / f"sddp_response_{ι}_{i//batch_size}.json",
+            )
+
+    def record_update_cache(self, admm_response: BenderCuts, ι: int):
         """Update Bender cuts with new values."""
         if self.just_test:
             return None
-        save_obj_to_json(sddp_response, self.cache_dir_run / f"sddp_response_{ι}.json")
         save_obj_to_json(admm_response, self.cache_dir_run / f"bender_cuts_{ι}.json")
-        current_cuts = BenderCuts(
-            **load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
-        )
-        final_cuts = BenderCuts(cuts={**current_cuts.cuts, **admm_response.cuts})
+        current_cuts = load_obj_from_json(self.cache_dir_run / f"bender_cuts.json")
+        final_cuts = BenderCuts(cuts={**current_cuts["cuts"], **admm_response.cuts})
         save_obj_to_json(final_cuts, self.cache_dir_run / f"bender_cuts.json")
         opt_config = OptimizationConfig(
             **load_obj_from_json(self.cache_dir_run / "optimization_config.json")
@@ -202,19 +223,33 @@ class ExpansionAlgorithm:
             Cut(id=int(cut_id)) for cut_id in admm_response.cuts.keys()
         ]
         save_obj_to_json(opt_config, self.cache_dir_run / "optimization_config.json")
-        self.expansion_request = ExpansionRequest(
-            optimization=opt_config,
-            scenarios=self.expansion_request.scenarios,
-            out_of_sample_scenarios=self.expansion_request.out_of_sample_scenarios,
-            bender_cuts=final_cuts,
+        self.sddp_request = SddpRequest(optimization=opt_config)
+
+    def run_sddp(self) -> SddpResponse:
+        """Run the SDDP algorithm with the given expansion request."""
+        import resource, gc
+
+        gc.collect()
+        mem_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        request_size_mb = (
+            len(self.sddp_request.model_dump_json().encode()) / 1024 / 1024
+        )
+        log.info(
+            f"PRE-SDDP | process RSS: {mem_mb:.1f} MB | request payload: {request_size_mb:.1f} MB"
         )
 
-    def run_sddp(self) -> ExpansionResponse:
-        """Run the SDDP algorithm with the given expansion request."""
-        return run_sddp(self.expansion_request, self.cache_dir_run)
+        response = self.expansion_model.run_sddp(self.sddp_request)
+
+        mem_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+        response_size_mb = len(response.model_dump_json().encode()) / 1024 / 1024
+        log.info(
+            f"POST-SDDP | RSS: {mem_after:.1f} MB | response: {response_size_mb:.1f} MB | delta: {mem_after - mem_mb:.1f} MB"
+        )
+
+        return response
 
     def run_admm(
-        self, sddp_response: ExpansionResponse, ι: int, fixed_switches: bool
+        self, needed_simulations: Dict, ι: int, fixed_switches: bool
     ) -> BenderCuts:
         """Run the ADMM algorithm with the given expansion request."""
         admm = ADMM(grid_data=self.grid_data, konfig=self.admm_config)
@@ -228,11 +263,13 @@ class ExpansionAlgorithm:
             edge_ids_ref = ray.put(self.edge_ids)
             futures = {
                 _cut_number(
-                    ι, stage, ω, self.sddp_config.n_optimizations, self.n_stages
+                    ι,
+                    stage,
+                    ω,
+                    self.sddp_config.n_optimizations,
+                    self.sddp_config.n_stages,
                 ): heavy_task_remote.remote(
-                    sddp_response.simulations[
-                        random.randint(0, self.sddp_config.n_optimizations - 1)
-                    ][stage - 1],
+                    needed_simulations[(stage, ω)],
                     admm_ref,
                     node_ids_ref,
                     edge_ids_ref,
@@ -244,11 +281,11 @@ class ExpansionAlgorithm:
                         cache_dir_run=str(self.cache_dir_run),
                     ),
                 )
-                for stage in self._range(min([self.n_stages, ι + 1]))
+                for stage in self._range(min([self.sddp_config.n_stages, ι + 1]))
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
             future_results = {}
-            for stage in self._range(min([self.n_stages, ι + 1])):
+            for stage in self._range(min([self.sddp_config.n_stages, ι + 1])):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         future_results[(ω, stage)] = ray.get(
@@ -258,14 +295,14 @@ class ExpansionAlgorithm:
                                     stage,
                                     ω,
                                     self.sddp_config.n_optimizations,
-                                    self.n_stages,
+                                    self.sddp_config.n_stages,
                                 )
                             ]
                         )
                     except Exception as e:
                         log.error(f"ERROR in [{ω}, {stage}]!!! Exception: {e}")
             cuts = {}
-            for stage in self._range(min([self.n_stages, ι + 1])):
+            for stage in self._range(min([self.sddp_config.n_stages, ι + 1])):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         cuts[
@@ -274,7 +311,7 @@ class ExpansionAlgorithm:
                                 stage,
                                 ω,
                                 self.sddp_config.n_optimizations,
-                                self.n_stages,
+                                self.sddp_config.n_stages,
                             )
                         ] = future_results[(ω, stage)].bender_cut
                     except Exception as e:
@@ -282,17 +319,24 @@ class ExpansionAlgorithm:
                             f"ERROR in retrieving data for [{ω}, {stage}]!!! Exception: {e}"
                         )
             bender_cuts = BenderCuts(cuts=cuts)
-            shutdown_ray()
+
+            shutdown_ray(futures=list(futures.values()))
+            del admm_ref
+            del node_ids_ref
+            del edge_ids_ref
+            del futures
+            del future_results
+            del needed_simulations
+
         else:
             bender_cuts = BenderCuts(cuts={})
             for stage in tqdm.tqdm(
-                self._range(min([self.n_stages, ι + 1])), desc="stages"
+                self._range(min([self.sddp_config.n_stages, ι + 1])), desc="stages"
             ):
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
                 ):
-                    rand_ω = random.randint(0, self.sddp_config.n_optimizations - 1)
-                    sddp_simulation = sddp_response.simulations[rand_ω][stage - 1]
+                    sddp_simulation = needed_simulations[(stage, ω)]
                     try:
                         heavy_task_output = heavy_task(
                             sddp_simulation=sddp_simulation,
@@ -313,7 +357,7 @@ class ExpansionAlgorithm:
                                 stage,
                                 ω,
                                 self.sddp_config.n_optimizations,
-                                self.n_stages,
+                                self.sddp_config.n_stages,
                             )
                         ] = heavy_task_output.bender_cut
                     except Exception as e:
@@ -322,22 +366,30 @@ class ExpansionAlgorithm:
                         )
         return bender_cuts
 
-    def run_pipeline(self) -> ExpansionResponse:
+    def run_pipeline(self) -> SddpResponse:
         """Run the entire expansion pipeline."""
-        self.create_expansion_request()
+        self.create_sddp_request()
         ι = 0
         for ι in tqdm.tqdm(self._range(self.iterations), desc="Pipeline iteration"):
             sddp_response = self.run_sddp()
+            needed_simulations = {
+                (stage, ω): sddp_response.simulations[
+                    random.randint(0, self.sddp_config.n_optimizations - 1)
+                ][stage - 1]
+                for stage in self._range(min([self.sddp_config.n_stages, ι + 1]))
+                for ω in self._range(self.sddp_config.n_optimizations)
+            }
+            self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+            del sddp_response
             admm_response = self.run_admm(
-                sddp_response=sddp_response, ι=ι, fixed_switches=self.fixed_switches
+                needed_simulations=needed_simulations,
+                ι=ι,
+                fixed_switches=self.fixed_switches,
             )
-            self.record_update_cache(
-                sddp_response=sddp_response, admm_response=admm_response, ι=ι
-            )
+            self.record_update_cache(admm_response=admm_response, ι=ι)
         sddp_response = self.run_sddp()
-        save_obj_to_json(
-            sddp_response, self.cache_dir_run / f"sddp_response_{ι+1}.json"
-        )
+        self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
+
         return sddp_response
 
 

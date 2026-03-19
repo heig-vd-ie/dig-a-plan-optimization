@@ -6,8 +6,8 @@ tmux kill-session -t $SESSION 2>/dev/null
 source .venv/bin/activate
 direnv allow
 
-commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization logs -f")
-commands+=("make connect-ray-worker; sleep 3")
+commands=("source .envrc && cd dockerfiles && docker compose -p optimization up -d; sleep 3; docker compose -p optimization && docker logs -f dap-py-api")
+commands+=("sleep 1 && docker logs -f dap-jl-api")
 commands+=("make venv-activate; sleep 3")
 
 tmux new-session -d -s $SESSION
@@ -24,8 +24,8 @@ done
 
 # Optionally set titles
 titles=(
-  "Servers"
-  "Ray Worker"
+  "Server Python"
+  "Server Julia"
   "Interactive"
 )
 

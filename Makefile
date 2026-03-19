@@ -124,4 +124,4 @@ sync-pg: ## Sync data from PostgreSQL
 	@echo "Syncing data from PostgreSQL..."
 	$(MAKE) fix-cache-permissions
 	@.venv/bin/python ./experiments/expansion_planning_result_sync.py --sync --experiment geolocations
-	@.venv/bin/python ./experiments/expansion_planning_result_sync.py --reset --sync --force --experiment $(EXPERIMENT)
+	@.venv/bin/python ./experiments/expansion_planning_result_sync.py --reset --sync --experiment $(EXPERIMENT)

@@ -26,7 +26,6 @@ LOG = generate_log(__name__)
 
 @dataclass
 class Args:
-    force: bool
     reset: bool
     backup: bool
     restore: str
@@ -36,9 +35,6 @@ class Args:
 
 def parse_args() -> Args:
     parser = argparse.ArgumentParser(description="Manage PostgreSQL simulation data.")
-    parser.add_argument(
-        "--force", action="store_true", help="Re-import files even if already present"
-    )
     parser.add_argument(
         "--reset", action="store_true", help="Reset the database (drop and recreate)"
     )
@@ -51,7 +47,7 @@ def parse_args() -> Args:
     parser.add_argument("--sync", action="store_true", help="Sync folders to tables")
     parser.add_argument("--experiment", type=str, help="Experiment name to process")
     ns = parser.parse_args()
-    return Args(ns.force, ns.reset, ns.backup, ns.restore, ns.sync, ns.experiment)
+    return Args(ns.reset, ns.backup, ns.restore, ns.sync, ns.experiment)
 
 
 def get_connection():
@@ -129,7 +125,7 @@ def chunk_sddp_response(data: list[dict], divided_by: int = 10) -> list:
     return final_results
 
 
-def import_file(path: Path, table_name: str, conn, force: bool) -> None:
+def import_file(path: Path, table_name: str, conn) -> None:
     if path.stat().st_size == 0:
         return
 
@@ -197,7 +193,7 @@ if __name__ == "__main__":
             for file in (PROJECT_ROOT / settings.cache.figures / "geolocations").glob(
                 "*.json"
             ):
-                import_file(file, "geolocations", conn, args.force)
+                import_file(file, "geolocations", conn)
         conn.commit()
         exit(0)
 
@@ -270,7 +266,7 @@ if __name__ == "__main__":
 
             json_files = [f for f in files if f.endswith(".json")]
             for file in tqdm(json_files, desc=f"Table: {run_name}"):
-                import_file(Path(root) / file, run_name, conn, args.force)
+                import_file(Path(root) / file, run_name, conn)
 
         conn.close()
         LOG.info(f"Sync complete for '{DB_NAME}'")

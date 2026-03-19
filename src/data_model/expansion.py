@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from data_model.sddp import ExpansionResponse, RiskMeasureType
+from data_model.sddp import SddpResponse, RiskMeasureType
 from pydantic import BaseModel, Field
 from data_model.kace import GridCaseModel
 from data_model.reconfiguration import (
@@ -59,4 +59,4 @@ class ExpansionInput(BaseModel):
 
 
 class ExpansionOutput(BaseModel):
-    sddp_response: ExpansionResponse
+    sddp_response: SddpResponse
