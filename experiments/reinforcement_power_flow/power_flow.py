@@ -1,4 +1,5 @@
 # %% Import libraries
+from pyasn1_modules.rfc7906 import SegmentNumber
 from pathlib import Path
 import json
 import copy
@@ -16,10 +17,11 @@ from experiments.reinforcement_power_flow.congestion_helpers import (
     reinforce_line_case,
     reinforce_trafo_case,
 )
+import matplotlib.pyplot as plt
 
 # %% input parameters for reinforcement and congestion settings
 LIMIT = 90.0
-STEP = 20.0
+STEP = 5.0
 MAX_ROUNDS = 50  
 LINE_COST_PER_KM_KW = 1752
 TRAFO_COST_PER_KW = 1314
@@ -70,9 +72,29 @@ mapping_load = (
 mapping_load["egid"] = mapping_load["egid"].astype(int)
 mapping_load["load_idx"] = mapping_load["load_idx"].astype(int)
 
+net0 = copy.deepcopy(net0)
+load_to_export_sgen = {}
+
+for load_idx, row in net0.load.iterrows():
+    bus_idx = int(row["bus"])
+    sgen_idx = pp.create_sgen(
+        net0, bus=bus_idx, 
+        p_mw=0.0, q_mvar=0.0, 
+        name=f"sgen_for_load_{load_idx}",
+        type="PV", in_service=True,
+        )
+    
+    load_to_export_sgen[int(load_idx) ] = int(sgen_idx)
+load_to_export_sgen = pd.Series(load_to_export_sgen, name="sgen_idx")
+
+
+
 # %% Reinforcement planning 
 results = []
 yearly_results = []
+
+capacity_history_lines = []
+capacity_history_trafos = []
 # Grid network 
 net_plan = copy.deepcopy(net0)
 profile_dir = Path(profiles.load_profiles[0])
@@ -89,6 +111,7 @@ for year in stage_years:
     pv_profile_dir = Path(profiles.pv_profile)
     pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     pv_df = pl.read_parquet(pv_parquet_file)
+    # assert load_df.columns == pv_df.columns, "Load and PV profile columns do not match"
     time_cols = [c for c in load_df.columns if c != "egid"]
     
     line_max_i_init = net_plan.line["max_i_ka"].copy()
@@ -104,6 +127,7 @@ for year in stage_years:
             pv_df=pv_df,
             tcol=tcol,
             mapping_load=mapping_load,
+            load_to_export_sgen=load_to_export_sgen,
             cosphi=grid.cosφ,
         )
         
@@ -178,16 +202,17 @@ for year in stage_years:
             "reinforced_trafos": ",".join(map(str, sorted(reinforced_trafos))),  
         })
 
-        print(
-            f"{year} | Time {tcol} | :"
-            f"before_lines={len(cong_lines_before)}, "
-            f"before_trafos={len(cong_trafos_before)}, "
-            f"rounds={rounds_used}, "
-            f"final_lines={final_n_cong_lines}, "
-            f"final_trafos={final_n_cong_trafos}"
-        )
+
         # use the new reinforced capacities as the start for the next time
         net_plan = copy.deepcopy(net_case)
+        
+        line_snapshot = net_plan.line["max_i_ka"].copy()
+        line_snapshot.name = tcol
+        capacity_history_lines.append(line_snapshot)
+
+        trafo_snapshot = net_plan.trafo["sn_mva"].copy()
+        trafo_snapshot.name = tcol
+        capacity_history_trafos.append(trafo_snapshot)
         
     # calculation of yearly reinforcement costs
     delta_i_ka = net_plan.line["max_i_ka"].sub(line_max_i_init, fill_value=0.0)
@@ -229,3 +254,36 @@ total_npv_chf = yearly_df["npv_cost_total"].sum()
 total_cost_mchf = total_npv_chf / 1e6
 
 print(f"Total cost [MCHF]: {total_cost_mchf:.6f}")
+
+#%% plotting the evolution of total installed capacity over time
+line_hist_df = pd.DataFrame(capacity_history_lines)
+trafo_hist_df = pd.DataFrame(capacity_history_trafos)
+
+line_hist_df.index.name = "time_col"
+trafo_hist_df.index.name = "time_col"
+
+# Total installed capacity evolution 
+line_total = line_hist_df.sum(axis=1)
+trafo_total = trafo_hist_df.sum(axis=1)
+
+x_line = range(len(line_total))
+x_trafo = range(len(trafo_total))
+
+plt.figure(figsize=(10, 5))
+plt.plot(x_line, line_total.values)
+plt.xlabel("Hour index in 2025")
+plt.ylabel("Total line max_i_ka")
+plt.title("Evolution of total line capacity in 2025")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.plot(x_trafo, trafo_total.values)
+plt.xlabel("Hour index in 2025")
+plt.ylabel("Total transformer sn_mva")
+plt.title("Evolution of total transformer capacity in 2025")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+# %%

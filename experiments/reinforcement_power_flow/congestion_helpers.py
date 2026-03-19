@@ -49,7 +49,7 @@ def check_trafo_loading(
 def reinforce_line_case(
     net: pp.pandapowerNet,
     line_idx: int,
-    step_percent: float = 20.0,
+    step_percent: float = 5.0,
 ) -> pp.pandapowerNet:
     """
     Increase line thermal capacity by increasing max_i_ka.
@@ -61,7 +61,7 @@ def reinforce_line_case(
 def reinforce_trafo_case(
     net: pp.pandapowerNet,
     trafo_idx: int,
-    step_percent: float = 20.0,
+    step_percent: float = 5.0,
 ) -> pp.pandapowerNet:
     """
     Increase transformer capacity by increasing sn_mva.
