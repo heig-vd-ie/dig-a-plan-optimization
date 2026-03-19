@@ -110,7 +110,7 @@
                     "zoom": 9.11
                 }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "experiments",
@@ -147,7 +147,7 @@
                         "mode": "absolute",
                         "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 80 }]
                     },
-                    "unit": "currencyUSD"
+                    "unit": "currencyCHF"
                 },
                 "overrides": []
             },
@@ -166,7 +166,7 @@
                 },
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -211,7 +211,7 @@
                         "mode": "absolute",
                         "steps": [{ "color": "green", "value": 0 }, { "color": "blue", "value": 80 }]
                     },
-                    "unit": "currencyUSD"
+                    "unit": "currencyCHF"
                 },
                 "overrides": []
             },
@@ -231,7 +231,7 @@
                 "sizing": "manual",
                 "valueMode": "color"
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "experiments",
@@ -301,7 +301,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -365,7 +365,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -425,7 +425,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -486,7 +486,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -550,7 +550,7 @@
                 },
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "public",
@@ -600,7 +600,7 @@
                 "sizing": "auto",
                 "valueMode": "color"
             },
-            "pluginVersion": "12.4.0",
+            "pluginVersion": "12.4.1",
             "targets": [
                 {
                     "dataset": "experiments",
