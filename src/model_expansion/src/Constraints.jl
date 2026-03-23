@@ -14,13 +14,11 @@ function define_constraints!(
     states,
     params::Types.PlanningParams,
 )
-    # Expansion committed for next stage
-    @constraint(m, [edge in grid.edges], states.δ_com[edge].out == vars.δ_cap[edge])
     # capacity update: add expansion from previous stage
     @constraint(
         m,
         [edge in grid.edges],
-        states.cap[edge].out == states.cap[edge].in + states.δ_com[edge].in
+        states.cap[edge].out == states.cap[edge].in + vars.δ_cap[edge]
     )
     @constraint(
         m,

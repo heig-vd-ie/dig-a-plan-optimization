@@ -14,7 +14,6 @@ function define_state_variables!(m::Model, params::Types.PlanningParams, grid::T
         SDDP.State,
         initial_value = grid.initial_cap[edge]
     )  # Capacity state variable
-    @variable(m, δ_com[edge in grid.edges] >= 0, SDDP.State, initial_value = 0.0)  # committed expansion
     @variable(m, total_unmet_load[node in grid.nodes] >= 0, SDDP.State, initial_value = 0.0)  # unmet load state variable
     @variable(m, total_unmet_pv[node in grid.nodes] >= 0, SDDP.State, initial_value = 0.0)  # unmet PV state variable
     @variable(
@@ -27,7 +26,6 @@ function define_state_variables!(m::Model, params::Types.PlanningParams, grid::T
     return (
         b_rem = b_rem,
         cap = cap,
-        δ_com = δ_com,
         total_unmet_load = total_unmet_load,
         total_unmet_pv = total_unmet_pv,
         actual_load = actual_load,
