@@ -20,19 +20,21 @@ class ScenarioPotentials:
             c("egid").cast(pl.Utf8)
         )
 
-    def compute_potential_load(self) -> dict[int, float]:
+    def compute_potential_load(self, s_base: float) -> dict[int, float]:
         loads_df = []
         for load_profile_path in self.profiles.load_profiles:
             df = self.compute_potential(load_profile_path)
             loads_df.append(df)
         df_cap: pl.DataFrame = pl.concat(loads_df)
-        return self.map_to_potential_dict(df_cap)
+        return self.map_to_potential_dict(df_cap, s_base)
 
-    def compute_potential_pv(self) -> dict[int, float]:
+    def compute_potential_pv(self, s_base: float) -> dict[int, float]:
         df_cap = self.compute_potential(self.profiles.pv_profile)
-        return self.map_to_potential_dict(df_cap)
+        return self.map_to_potential_dict(df_cap, s_base)
 
-    def map_to_potential_dict(self, df: pl.DataFrame) -> dict[int, float]:
+    def map_to_potential_dict(
+        self, df: pl.DataFrame, s_base: float
+    ) -> dict[int, float]:
         self.net.load["index"] = self.net.load.index
         df_temp = df.join(self.egid_id_mapping, on="egid", how="full").select(
             "egid", "capacity", "index"
@@ -50,7 +52,9 @@ class ScenarioPotentials:
             .sum()
         )
         cap_dict = pl_to_dict(df_temp.select("bus", "capacity"))
-        cap_dict_full = {node: cap_dict.get(node, 0.0) for node in all_nodes}
+        cap_dict_full = {
+            node: cap_dict.get(node, 0.0) * 1000 / s_base for node in all_nodes
+        }
         return cap_dict_full
 
     def compute_potential(self, profile_path: str):
@@ -101,8 +105,8 @@ def generate_scenario_potentials(
         pv_potential = {node: 1.0 for node in net.bus.index.to_list()}
     else:
         scenario_profile = ScenarioPotentials(profiles, net, egid_id_mapping)
-        load_potential = scenario_profile.compute_potential_load()
-        pv_potential = scenario_profile.compute_potential_pv()
+        load_potential = scenario_profile.compute_potential_load(grid.s_base)
+        pv_potential = scenario_profile.compute_potential_pv(grid.s_base)
 
     return load_potential, pv_potential
 
