@@ -48,7 +48,7 @@
         "penalty_cost_per_production_kw": 10,
         "δ_b_var": 1000
     },
-    "iterations": 5,
+    "iterations": 10,
     "each_task_memory": 3000000000,
     "seed": 42
 }
