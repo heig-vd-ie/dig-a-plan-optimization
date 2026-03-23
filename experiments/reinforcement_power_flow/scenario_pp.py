@@ -18,7 +18,7 @@ def apply_profile_scenario_to_pandapower(
     
     net = copy.deepcopy(net0)
 
-    net.switch["closed"] = True
+    # net.switch["closed"] = True
     net.load.loc[:, ["p_mw", "q_mvar"]] = 0.0
     net.sgen.loc[load_to_export_sgen.values, ["p_mw", "q_mvar"]] = 0.0
 
@@ -41,6 +41,7 @@ def apply_profile_scenario_to_pandapower(
 
     pv_t["egid"] = pv_t["egid"].astype(int)
     pv_t["p_pv_kw"] = pv_t["p_pv_kw"].astype(float)
+    
 
     scen = (
         load_t
@@ -50,6 +51,7 @@ def apply_profile_scenario_to_pandapower(
         .groupby("load_idx", as_index=False)[["p_load_kw", "p_pv_kw"]]
         .sum()
     )
+    
 
     scen["p_net_kw"] = scen["p_load_kw"] - scen["p_pv_kw"]
     
