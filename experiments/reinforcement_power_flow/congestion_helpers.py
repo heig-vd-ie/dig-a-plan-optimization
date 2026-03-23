@@ -49,23 +49,31 @@ def check_trafo_loading(
 def reinforce_line_case(
     net: pp.pandapowerNet,
     line_idx: int,
-    step_percent: float = 5.0,
+    loading_percent: float,
+    limit_percent: float = 90.0,
+    margin: float = 1.05,
+    max_step_factor=1.20,
 ) -> pp.pandapowerNet:
     """
     Increase line thermal capacity by increasing max_i_ka.
     """
-
-    net.line.at[line_idx, "max_i_ka"] *= (1.0 + step_percent / 100.0)
+    factor = (loading_percent / limit_percent) * margin
+    factor = min(factor, max_step_factor)
+    net.line.at[line_idx, "max_i_ka"] *= factor
     return net
 
 def reinforce_trafo_case(
     net: pp.pandapowerNet,
     trafo_idx: int,
-    step_percent: float = 5.0,
+    loading_percent: float,
+    limit_percent: float = 90.0,
+    margin: float = 1.05,
+    max_step_factor=1.20,
 ) -> pp.pandapowerNet:
     """
     Increase transformer capacity by increasing sn_mva.
     """
-
-    net.trafo.at[trafo_idx, "sn_mva"] *= (1.0 + step_percent / 100.0)
+    factor = (loading_percent / limit_percent) * margin
+    factor = min(factor, max_step_factor)
+    net.trafo.at[trafo_idx, "sn_mva"] *= factor
     return net

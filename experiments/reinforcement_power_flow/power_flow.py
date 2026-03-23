@@ -1,5 +1,4 @@
 # %% Import libraries
-from pyasn1_modules.rfc7906 import SegmentNumber
 from pathlib import Path
 import json
 import copy
@@ -21,11 +20,13 @@ import matplotlib.pyplot as plt
 
 # %% input parameters for reinforcement and congestion settings
 LIMIT = 90.0
-STEP = 5.0
 MAX_ROUNDS = 50  
 LINE_COST_PER_KM_KW = 1752
 TRAFO_COST_PER_KW = 1314
 DISCOUNT_RATE = 0.05
+MAX_STEP_FACTOR = 1.20
+LINE_CAP_LIMIT = 5.0
+TRAFO_CAP_LIMIT = 5.0
 
 # %% Load JSON config 
 project_root = Path.cwd().parent
@@ -87,6 +88,9 @@ for load_idx, row in net0.load.iterrows():
     load_to_export_sgen[int(load_idx) ] = int(sgen_idx)
 load_to_export_sgen = pd.Series(load_to_export_sgen, name="sgen_idx")
 
+line_max_i_base = net0.line["max_i_ka"].copy()
+trafo_sn_base = net0.trafo["sn_mva"].copy()
+
 
 
 # %% Reinforcement planning 
@@ -116,7 +120,7 @@ for year in stage_years:
     
     line_max_i_init = net_plan.line["max_i_ka"].copy()
     trafo_sn_init = net_plan.trafo["sn_mva"].copy()
-
+  
 
     # Main loop over timestamps
     for tcol in time_cols:
@@ -130,17 +134,16 @@ for year in stage_years:
             load_to_export_sgen=load_to_export_sgen,
             cosphi=grid.cosφ,
         )
-        
+         
         # pandapower run before reinforcement
         pp.runpp(net_case)
-
+        
         cong_lines = check_line_loading(net_case, limit_percent=LIMIT)
         cong_trafos = check_trafo_loading(net_case, limit_percent=LIMIT)
 
         cong_lines_before = cong_lines.copy()
         cong_trafos_before = cong_trafos.copy()
-        
-        
+
         n_lines_total = len(net_case.line)
         n_trafos_total = len(net_case.trafo)
         
@@ -157,20 +160,59 @@ for year in stage_years:
         reinforced_trafos = set()
 
         rounds_used = 0
-
-        # Reinforce until congestion becomes zero
+            
         while len(cong_lines) > 0 or len(cong_trafos) > 0:
             rounds_used += 1
 
-            for lid in cong_lines["line_idx"].tolist():
-                lid = int(lid)
-                net_case= reinforce_line_case(net_case, lid, step_percent=STEP)
+            # reinforce only the worst overloaded line
+            if len(cong_lines) > 0:
+                worst_line = cong_lines.iloc[0]
+                lid = int(worst_line["line_idx"])
+                loading = float(worst_line["loading_percent"])
+
+                net_case = reinforce_line_case(
+                    net_case,
+                    line_idx=lid,
+                    loading_percent=loading,
+                    limit_percent=LIMIT,
+                    margin=1.05,
+                    max_step_factor=MAX_STEP_FACTOR,
+                )
+                net_case.line.at[lid, "max_i_ka"] = min(
+                    net_case.line.at[lid, "max_i_ka"],
+                    line_max_i_base.at[lid] * LINE_CAP_LIMIT
+                )
                 reinforced_lines.add(lid)
 
-            for tid in cong_trafos["trafo_idx"].tolist():
-                tid = int(tid)
-                net_case= reinforce_trafo_case(net_case, tid, step_percent=STEP)
+                print(
+                    f"Round {rounds_used}: reinforced line {lid} "
+                    f"with loading {loading:.2f}%"
+                )
+
+            # reinforce only the worst overloaded trafo
+            if len(cong_trafos) > 0:
+                worst_trafo = cong_trafos.iloc[0]
+                tid = int(worst_trafo["trafo_idx"])
+                loading = float(worst_trafo["loading_percent"])
+
+                net_case = reinforce_trafo_case(
+                    net_case,
+                    trafo_idx=tid,
+                    loading_percent=loading,
+                    limit_percent=LIMIT,
+                    margin=1.05,
+                    max_step_factor=MAX_STEP_FACTOR,
+                )
+                net_case.trafo.at[tid, "sn_mva"] = min(
+                    net_case.trafo.at[tid, "sn_mva"],
+                    trafo_sn_base.at[tid] * TRAFO_CAP_LIMIT
+                )
                 reinforced_trafos.add(tid)
+
+                print(
+                    f"Round {rounds_used}: reinforced trafo {tid} "
+                    f"with loading {loading:.2f}%"
+                )
 
             pp.runpp(net_case)
 
@@ -180,6 +222,7 @@ for year in stage_years:
             if rounds_used >= MAX_ROUNDS:
                 print(f"Stop reached at={tcol}, of year={year}")
                 break
+
 
         # Final state at this timestamp
         final_n_cong_lines = len(cong_lines)
@@ -217,6 +260,43 @@ for year in stage_years:
     # calculation of yearly reinforcement costs
     delta_i_ka = net_plan.line["max_i_ka"].sub(line_max_i_init, fill_value=0.0)
     delta_sn_mva = net_plan.trafo["sn_mva"].sub(trafo_sn_init, fill_value=0.0)
+    
+    line_capacity_increase_percent = (
+        (net_plan.line["max_i_ka"] - line_max_i_init)
+        / line_max_i_init.replace(0.0, np.nan)
+        * 100.0
+        )
+
+    trafo_capacity_increase_percent = (
+        (net_plan.trafo["sn_mva"] - trafo_sn_init)
+        / trafo_sn_init.replace(0.0, np.nan)
+        * 100.0
+    )
+
+    print(f"\nYear {year} - line capacity increase percent summary:")
+    print(line_capacity_increase_percent.describe())
+
+    print(f"\nYear {year} - trafo capacity increase percent summary:")
+    print(trafo_capacity_increase_percent.describe())
+    line_cap_df = pd.DataFrame({
+        "line_idx": net_plan.line.index,
+        "max_i_ka_start": line_max_i_init.values,
+        "max_i_ka_final": net_plan.line["max_i_ka"].values,
+        "capacity_increase_percent": line_capacity_increase_percent.values,
+    }).sort_values("capacity_increase_percent", ascending=False)
+
+    trafo_cap_df = pd.DataFrame({
+        "trafo_idx": net_plan.trafo.index,
+        "sn_mva_start": trafo_sn_init.values,
+        "sn_mva_final": net_plan.trafo["sn_mva"].values,
+        "capacity_increase_percent": trafo_capacity_increase_percent.values,
+    }).sort_values("capacity_increase_percent", ascending=False)
+
+    print(f"\nTop 10 reinforced lines in year {year}:")
+    print(line_cap_df.head(10))
+
+    print(f"\nTop 10 reinforced trafos in year {year}:")
+    print(trafo_cap_df.head(10))
     
     lengths_km = net_plan.line.get("length_km", line_length_km).fillna(1.0)
     from_bus_v_kv = net_plan.line["from_bus"].map(net_plan.bus["vn_kv"]).fillna(0.0)
@@ -286,4 +366,6 @@ plt.title("Evolution of total transformer capacity in 2025")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+# %%
+
 # %%
