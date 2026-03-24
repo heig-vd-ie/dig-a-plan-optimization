@@ -55,7 +55,6 @@ class ExpansionAlgorithm:
         bender_cuts: BenderCuts | None = None,
         iterations: int = 10,
         seed_number: int = 42,
-        γ_cuts: float = 0.0,
         just_test: bool = False,
         s_base: float = 1e6,
         with_ray: bool = False,
@@ -78,7 +77,7 @@ class ExpansionAlgorithm:
 
         random.seed(seed_number)
         self.grid_data_rm = remove_switches_from_grid_data(self.grid_data)
-        self.create_planning_params(γ_cuts=γ_cuts, n_stages=self.sddp_config.n_stages)
+        self.create_planning_params(n_stages=self.sddp_config.n_stages)
         self.create_additional_params(sddp_config=sddp_config)
         nodes = [
             Node(id=node["node_id"])
@@ -107,12 +106,11 @@ class ExpansionAlgorithm:
     def _range(self, i: int):
         return range(1, 2 if self.just_test else i + 1)
 
-    def create_planning_params(self, γ_cuts: float = 0.0, n_stages: int = 3):
+    def create_planning_params(self, n_stages: int = 3):
         """Create planning parameters with default or custom values."""
         self.planning_params = PlanningParams(
             n_stages=n_stages,
             initial_budget=self.sddp_config.initial_budget,
-            γ_cuts=γ_cuts,
             discount_rate=self.sddp_config.discount_rate,
             years_per_stage=self.sddp_config.years_per_stage,
             n_cut_scenarios=len(list(self.grid_data.load_data.keys())),

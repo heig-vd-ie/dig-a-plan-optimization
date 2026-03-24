@@ -197,7 +197,6 @@ function handle_stochastic_planning(req::HTTP.Request)
     years_per_stage = planning_params["years_per_stage"]
     n_cut_scenarios = planning_params["n_cut_scenarios"]
     initial_budget = planning_params["initial_budget"]
-    γ_cuts = planning_params["γ_cuts"]
     next!(p)
     investment_costs =
         Dict(edge => grid_data["investment_costs"][string(edge.id)] for edge in edges)
@@ -238,7 +237,6 @@ function handle_stochastic_planning(req::HTTP.Request)
     params = ExpansionModel.Types.PlanningParams(
         n_stages,
         initial_budget,
-        γ_cuts,
         investment_costs,
         penalty_costs_load,
         penalty_costs_pv,

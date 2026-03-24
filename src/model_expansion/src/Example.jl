@@ -141,7 +141,6 @@ println("Bender cuts exported to .cache/bender_cuts.json")
 params = Types.PlanningParams(
     n_stages,
     50.0,  # initial_budget
-    0.0,  # γ_cuts
     investment_costs,
     penalty_costs_load,
     penalty_costs_pv,

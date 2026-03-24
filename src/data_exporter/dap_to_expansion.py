@@ -121,10 +121,7 @@ def dig_a_plan_to_expansion(
             float(expansion_line_cost_per_km_kw) * edge["length_km"] * s_base / 1e3
             if edge["type"] == "branch"
             else (
-                float(expansion_transformer_cost_per_kw)
-                * edge["p_max_pu"]
-                * s_base
-                / 1e3
+                float(expansion_transformer_cost_per_kw) * s_base / 1e3
                 if edge["type"] == "transformer"
                 else 0.0
             )
@@ -132,17 +129,11 @@ def dig_a_plan_to_expansion(
         for edge in grid_data.edge_data.iter_rows(named=True)
     }
     penalty_costs_load = {
-        str(node["node_id"]): float(penalty_cost_per_consumption_kw)
-        * node["cons_installed"]
-        * s_base
-        / 1e3
+        str(node["node_id"]): float(penalty_cost_per_consumption_kw) * s_base / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
     penalty_costs_pv = {
-        str(node["node_id"]): float(penalty_cost_per_production_kw)
-        * node["prod_installed"]
-        * s_base
-        / 1e3
+        str(node["node_id"]): float(penalty_cost_per_production_kw) * s_base / 1e3
         for node in grid_data.node_data.iter_rows(named=True)
     }
     penalty_costs_infeasibility = s_base / 1e3

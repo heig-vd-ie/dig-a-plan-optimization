@@ -121,7 +121,7 @@ function define_subsequent_stage_constraints!(
     @constraint(
         m,
         [cut in grid.cuts],
-        params.γ_cuts * (vars.θ[cut] - params.bender_cuts[cut].θ) + vars.slack[cut] >=
+        (vars.θ[cut] - params.bender_cuts[cut].θ) + vars.slack[cut] >=
         sum(
             (states.actual_load[node].out - params.bender_cuts[cut].load0[node]) *
             params.bender_cuts[cut].λ_load[node] +
@@ -145,8 +145,7 @@ function define_objective!(
     stage::Int,
 )
     # Objective: investment + penalties for unmet demand, discounted to present value
-    discount_factor =
-        (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1) * 8.76 # Convert from annual to per-stage discounting
+    discount_factor = (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1) # Convert from annual to per-stage discounting
     @constraint(
         m,
         vars.obj ==
@@ -156,8 +155,9 @@ function define_objective!(
                 params.penalty_costs_load[node] * states.total_unmet_load[node].out +
                 params.penalty_costs_pv[node] * states.total_unmet_pv[node].out for
                 node in grid.nodes
-            ) * params.years_per_stage +
-            params.γ_cuts *
+            ) *
+            params.years_per_stage *
+            8760 +
             params.years_per_stage *
             sum(vars.θ[cut] for cut in grid.cuts) *
             params.penalty_costs_infeasibility / params.n_cut_scenarios

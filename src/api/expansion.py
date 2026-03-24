@@ -52,7 +52,6 @@ def run_expansion(
         time_now=time_now,
         iterations=requests.iterations,
         seed_number=requests.seed,
-        γ_cuts=1.0,
         s_base=requests.grid.s_base,
         with_ray=with_ray,
     )
