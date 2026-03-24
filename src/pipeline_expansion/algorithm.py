@@ -428,7 +428,8 @@ def _transform_admm_result_into_bender_cuts(
     """Transform ADMM results into Bender cuts."""
     λ_load = _calculate_cuts(admm_result, ["installed_cons"])
     λ_pv = _calculate_cuts(admm_result, ["installed_prod"])
-    λ_cap = _calculate_ftrs(λ_load, λ_pv, edges)
+    λ_cap = _calculate_cuts(admm_result, ["current_limit", "current_limit_tr"])
+    # λ_cap = _calculate_ftrs(λ_load, λ_pv, edges)
     return BenderCut(
         λ_load=λ_load,
         λ_pv=λ_pv,

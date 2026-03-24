@@ -117,35 +117,6 @@ function define_subsequent_stage_constraints!(
     # Edge capacity constraints: sum of actual expansions at connected nodes
     @constraint(m, [edge in grid.edges], states.cap[edge].out >= vars.flow[edge])
     @constraint(m, [edge in grid.edges], states.cap[edge].out >= -vars.flow[edge])
-    # External grid node: flow is equal to actual load minus actual external node flow
-    @constraint(
-        m,
-        [node in filter(n -> n == grid.external_grid, grid.nodes)],
-        sum(
-            vars.flow_l[Edge(edge.id, edge.target, node.id)] for
-            edge in grid.edges if edge.source == node.id
-        ) - sum(
-            vars.flow_l[Edge(edge.id, node.id, edge.source)] for
-            edge in grid.edges if edge.target == node.id
-        ) == states.actual_load[node].out - vars.external_flow
-    )
-    # Internal nodes: flow conservation with respect to actual load
-    # and no external generation
-    @constraint(
-        m,
-        [node in filter(n -> n != grid.external_grid, grid.nodes)],
-        sum(
-            vars.flow_l[Edge(edge.id, edge.target, node.id)] for
-            edge in grid.edges if edge.source == node.id
-        ) - sum(
-            vars.flow_l[Edge(edge.id, node.id, edge.source)] for
-            edge in grid.edges if edge.target == node.id
-        ) == states.actual_load[node].out
-    )
-    # Edge capacity constraints: sum of actual expansions at connected nodes
-    @constraint(m, [edge in grid.edges], states.cap[edge].out >= vars.flow_l[edge])
-    @constraint(m, [edge in grid.edges], states.cap[edge].out >= -vars.flow_l[edge])
-
     # Flow conservation for each edge
     @constraint(
         m,
