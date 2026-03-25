@@ -13,7 +13,6 @@ from data_model.sddp import (
     OptimizationConfig,
     PlanningParams,
     AdditionalParams,
-    Scenarios,
     SddpRequest,
 )
 from data_model import NodeEdgeModel

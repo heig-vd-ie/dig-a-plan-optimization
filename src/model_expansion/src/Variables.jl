@@ -34,13 +34,15 @@ function define_state_variables!(m::Model, params::Types.PlanningParams, grid::T
 end
 
 function define_decision_variables!(m::Model, grid::Types.Grid)
-    @variable(m, slack[cut in grid.cuts] >= 0) # slack variable for Benders cuts
     @variable(m, δ_cap[edge in grid.edges] >= 0)  # expansion decision
     @variable(m, investment_cost >= 0) # investment cost variable
     @variable(m, unmet_load[node in grid.nodes])  # unmet load variable
     @variable(m, unmet_pv[node in grid.nodes])  # unmet PV variable
     @variable(m, flow[edge in grid.edges])  # flow variable
-    @variable(m, θ[cut in grid.cuts] >= 0) # Benders cut variable
+    @variable(m, u1[edge in grid.edges] >= 0)  # Condition 1
+    @variable(m, u2[edge in grid.edges] >= 0)  # Condition 2
+    @variable(m, u3[edge in grid.edges] >= 0)  # Condition 3
+    @variable(m, u4[edge in grid.edges] >= 0)  # Condition 4
     @variable(m, external_flow) # external flow variable
     @variable(m, obj) # objective value variable
     # Random variables (fixed by scenario)
@@ -48,13 +50,15 @@ function define_decision_variables!(m::Model, grid::Types.Grid)
     @variable(m, δ_pv[node in grid.nodes])
     @variable(m, δ_b)
     return (
-        slack = slack,
         δ_cap = δ_cap,
         investment_cost = investment_cost,
         unmet_load = unmet_load,
         unmet_pv = unmet_pv,
         flow = flow,
-        θ = θ,
+        u1 = u1,
+        u2 = u2,
+        u3 = u3,
+        u4 = u4,
         external_flow = external_flow,
         obj = obj,
         δ_load = δ_load,

@@ -2,6 +2,7 @@ import os
 import json
 from pydantic import BaseModel, ConfigDict
 import patito as pt
+import polars as pl
 import ray
 import random
 from typing import Dict, List
@@ -279,11 +280,11 @@ class ExpansionAlgorithm:
                         cache_dir_run=str(self.cache_dir_run),
                     ),
                 )
-                for stage in self._range(min([self.sddp_config.n_stages, ι + 1]))
+                for stage in self._range(self.sddp_config.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
             future_results = {}
-            for stage in self._range(min([self.sddp_config.n_stages, ι + 1])):
+            for stage in self._range(self.sddp_config.n_stages):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         future_results[(ω, stage)] = ray.get(
@@ -300,7 +301,7 @@ class ExpansionAlgorithm:
                     except Exception as e:
                         log.error(f"ERROR in [{ω}, {stage}]!!! Exception: {e}")
             cuts = {}
-            for stage in self._range(min([self.sddp_config.n_stages, ι + 1])):
+            for stage in self._range(self.sddp_config.n_stages):
                 for ω in self._range(self.sddp_config.n_optimizations):
                     try:
                         cuts[
@@ -329,7 +330,7 @@ class ExpansionAlgorithm:
         else:
             bender_cuts = BenderCuts(cuts={})
             for stage in tqdm.tqdm(
-                self._range(min([self.sddp_config.n_stages, ι + 1])), desc="stages"
+                self._range(self.sddp_config.n_stages), desc="stages"
             ):
                 for ω in tqdm.tqdm(
                     self._range(self.sddp_config.n_optimizations), desc="scenarios"
@@ -374,7 +375,7 @@ class ExpansionAlgorithm:
                 (stage, ω): sddp_response.simulations[
                     random.randint(0, self.sddp_config.n_optimizations - 1)
                 ][stage - 1]
-                for stage in self._range(min([self.sddp_config.n_stages, ι + 1]))
+                for stage in self._range(self.sddp_config.n_stages)
                 for ω in self._range(self.sddp_config.n_optimizations)
             }
             self.record_batch_sddp(sddp_response=sddp_response, ι=ι)
@@ -391,49 +392,40 @@ class ExpansionAlgorithm:
         return sddp_response
 
 
-def _calculate_cuts(
-    admm_result: ADMMResult, constraint_names: List[str]
-) -> Dict[str, float]:
-    df = (
-        admm_result.duals.filter(c("name").is_in(constraint_names))[["id", "value"]]
-        .group_by("id")
-        .agg(c("value").abs().sum().alias("value"))
-    )
-    return {row["id"]: row["value"] for row in df.to_dicts()}
-
-
-def _calculate_ftrs(
-    λ_load: Dict[str, float],
-    λ_pv: Dict[str, float],
-    edges: pt.DataFrame[EdgeData],
-) -> Dict[str, float]:
-    return {
-        str(row["edge_id"]): -(
-            abs(
-                λ_load.get(str(row["u_of_edge"]), 0)
-                - λ_load.get(str(row["v_of_edge"]), 0)
-            )
-            + abs(
-                λ_pv.get(str(row["v_of_edge"]), 0) - λ_pv.get(str(row["u_of_edge"]), 0)
-            )
-        )
-        / 2
-        for row in edges.iter_rows(named=True)
-    }
-
-
 def _transform_admm_result_into_bender_cuts(
     admm_result: ADMMResult, edges: pt.DataFrame[EdgeData]
 ) -> BenderCut:
     """Transform ADMM results into Bender cuts."""
-    λ_load = _calculate_cuts(admm_result, ["installed_cons"])
-    λ_pv = _calculate_cuts(admm_result, ["installed_prod"])
-    λ_cap = _calculate_cuts(admm_result, ["current_limit", "current_limit_tr"])
-    # λ_cap = _calculate_ftrs(λ_load, λ_pv, edges)
+
+    ds_cons = admm_result.dps_cons.join(admm_result.dqs_cons, on="node_id", how="left")
+    ds_prod = admm_result.dps_prod.join(admm_result.dqs_prod, on="node_id", how="left")
+
+    ds_cons = ds_cons.select(
+        [
+            c("node_id"),
+            pl.sum_horizontal([c("p_curt_cons"), c("q_curt_cons")]).alias("val"),
+        ]
+    )
+    ds_prod = ds_prod.select(
+        [
+            c("node_id"),
+            pl.sum_horizontal([c("p_curt_prod"), c("q_curt_prod")]).alias("val"),
+        ]
+    )
+    dv_relx = admm_result.dvs_relx_up.join(
+        admm_result.dvs_relx_down, on="node_id", how="left"
+    )
+    dv_relx = dv_relx.select(
+        [
+            c("node_id"),
+            pl.sum_horizontal([c("v_relax_up"), c("v_relax_down")]).alias("val"),
+        ]
+    )
+
     return BenderCut(
-        λ_load=λ_load,
-        λ_pv=λ_pv,
-        λ_cap=λ_cap,
+        λ_load={str(row["node_id"]): row["val"] for row in ds_cons.to_dicts()},
+        λ_pv={str(row["node_id"]): row["val"] for row in ds_prod.to_dicts()},
+        λ_v={str(row["node_id"]): row["val"] for row in dv_relx.to_dicts()},
         load0={
             str(row["node_id"]): row["cons_installed"]
             for row in admm_result.load0.to_dicts()
@@ -445,7 +437,6 @@ def _transform_admm_result_into_bender_cuts(
         cap0={
             str(row["edge_id"]): row["p_max_pu"] for row in admm_result.cap0.to_dicts()
         },
-        θ=sum(admm_result.θs["θ"]),
     )
 
 

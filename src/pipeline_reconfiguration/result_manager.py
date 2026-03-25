@@ -233,3 +233,20 @@ class PipelineResultManager:
                 )
             )
         return pl.concat(θs, how="vertical")
+
+    def extract_nodal_diff(self, variable_name: str) -> pl.DataFrame:
+        """Extract reconfiguration angles."""
+        if not isinstance(self.model_manager, PipelineModelManagerADMM):
+            raise NotImplementedError("Reconfiguration θ extraction is not implemented")
+        δs = []
+        for scenario, ω in enumerate(self.model_manager.Ω):
+            δs.append(
+                self.extract_nodal_variables(variable_name, scenario).select(
+                    [c("node_id"), c(variable_name)]
+                )
+            )
+        return (
+            pl.concat(δs, how="vertical")
+            .group_by("node_id")
+            .agg(c(variable_name).mean().alias(variable_name))
+        )

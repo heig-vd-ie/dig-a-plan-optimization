@@ -221,10 +221,9 @@ function handle_stochastic_planning(req::HTTP.Request)
         cut => begin
             data = bender_cuts_data["cuts"][string(cut.id)]
             ExpansionModel.Types.BenderCut(
-                data["θ"],
-                Dict(edge => data["λ_cap"][edge_ids[edge]] for edge in edges),
                 Dict(node => data["λ_load"][node_ids[node]] for node in nodes),
                 Dict(node => data["λ_pv"][node_ids[node]] for node in nodes),
+                Dict(node => data["λ_v"][node_ids[node]] for node in nodes),
                 Dict(edge => data["cap0"][edge_ids[edge]] for edge in edges),
                 Dict(node => data["load0"][node_ids[node]] for node in nodes),
                 Dict(node => data["pv0"][node_ids[node]] for node in nodes),
@@ -245,7 +244,6 @@ function handle_stochastic_planning(req::HTTP.Request)
         bender_cuts,
         years_per_stage,
         n_cut_scenarios,
-        1000000.0,  # cut_slack_penalty
     )
 
     iteration_limit = additional_params["iteration_limit"]

@@ -17,10 +17,9 @@ struct Cut
 end
 
 struct BenderCut
-    θ::Float64
-    λ_cap::Dict{Edge, Float64}
     λ_load::Dict{Node, Float64}
     λ_pv::Dict{Node, Float64}
+    λ_v::Dict{Node, Float64}
     cap0::Dict{Edge, Float64}
     load0::Dict{Node, Float64}
     pv0::Dict{Node, Float64}
@@ -58,7 +57,6 @@ struct PlanningParams
     bender_cuts::Dict{Cut, BenderCut}
     years_per_stage::Int
     n_cut_scenarios::Int
-    cut_slack_penalty::Float64
 end
 
 end

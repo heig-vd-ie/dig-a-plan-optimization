@@ -29,12 +29,16 @@ def run_expansion(
         requests,
         Path(settings.cache.outputs_expansion) / time_now / INPUT_FILENAME,
     )
-    _, grid_data, load_potential, pv_potential = get_grid_case_for_expansion(
-        requests.grid,
-        seed=requests.seed,
-        stu=requests.short_term_uncertainty,
-        profiles=requests.profiles,
+    _, grid_data, load_potential, pv_potential = (
+        get_grid_case_for_expansion(
+            requests.grid,
+            seed=requests.seed,
+            stu=requests.short_term_uncertainty,
+            profiles=requests.profiles,
+        )
     )
+
+
 
     bender_cuts = (
         None if cut_file is None else BenderCuts(**load_obj_from_json(Path(cut_file)))

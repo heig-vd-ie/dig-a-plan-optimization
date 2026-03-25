@@ -101,10 +101,8 @@ function generate_λ_pv(cuts::Vector{Types.Cut}, nodes::Vector{Types.Node})
     return Dict(cut => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for cut in cuts)
 end
 
-function generate_λ_cap(cuts::Vector{Types.Cut}, edges::Vector{Types.Edge})
-    return Dict(
-        cut => Dict(edge => edge.id == cut.id ? -1.0 : 0.0 for edge in edges) for cut in cuts
-    )
+function generate_λ_v(cuts::Vector{Types.Cut}, nodes::Vector{Types.Node})
+    return Dict(cut => Dict(node => rand(0.0:0.1:0.2) for node in nodes) for cut in cuts)
 end
 
 function generate_cap0(cuts::Vector{Types.Cut}, edges::Vector{Types.Edge})

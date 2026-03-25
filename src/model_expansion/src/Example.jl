@@ -99,33 +99,26 @@ investment_costs, penalty_costs_load, penalty_costs_pv, penalty_costs_infeasibil
     ScenariosGeneration.generate_costs(edges, nodes)
 scenarios = Types.Scenarios(Ω, P)
 out_of_sample_scenarios = Types.Scenarios(Ωo, Po)
-λ_cap = ScenariosGeneration.generate_λ_cap(cuts, edges)
 λ_load = ScenariosGeneration.generate_λ_load(cuts, nodes)
 λ_pv = ScenariosGeneration.generate_λ_pv(cuts, nodes)
+λ_v = ScenariosGeneration.generate_λ_v(cuts, nodes)
 cap0 = ScenariosGeneration.generate_cap0(cuts, edges)
 load0 = ScenariosGeneration.generate_load0(cuts, nodes)
 pv0 = ScenariosGeneration.generate_pv0(cuts, nodes)
 θ = ScenariosGeneration.generate_θ(cuts)
 bender_cuts = Dict(
-    cut => Types.BenderCut(
-        θ[cut],
-        λ_cap[cut],
-        λ_load[cut],
-        λ_pv[cut],
-        cap0[cut],
-        load0[cut],
-        pv0[cut],
-    ) for cut in cuts
+    cut =>
+        Types.BenderCut(λ_load[cut], λ_pv[cut], λ_v[cut], cap0[cut], load0[cut], pv0[cut])
+    for cut in cuts
 )
 
 # Export bender cuts to JSON
 bender_cuts_data = Dict(
     "cuts" => Dict(
         cut.id => Dict(
-            "θ" => bender_cuts[cut].θ,
-            "λ_cap" => Dict(edge.id => bender_cuts[cut].λ_cap[edge] for edge in edges),
             "λ_load" => Dict(node.id => bender_cuts[cut].λ_load[node] for node in nodes),
             "λ_pv" => Dict(node.id => bender_cuts[cut].λ_pv[node] for node in nodes),
+            "λ_v" => Dict(node.id => bender_cuts[cut].λ_v[node] for node in nodes),
             "cap0" => Dict(edge.id => bender_cuts[cut].cap0[edge] for edge in edges),
             "load0" => Dict(node.id => bender_cuts[cut].load0[node] for node in nodes),
             "pv0" => Dict(node.id => bender_cuts[cut].pv0[node] for node in nodes),
@@ -149,7 +142,6 @@ params = Types.PlanningParams(
     bender_cuts,
     1,  # years_per_stage
     1,  # n_cut_scenarios
-    1000000.0,  # cut_slack_penalty
 )
 simulations1, objectives1, simulations1o, objectives1o = Stochastic.stochastic_planning(
     grid,
