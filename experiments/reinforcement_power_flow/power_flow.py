@@ -77,6 +77,8 @@ mapping_pv["egid"] = mapping_pv["egid"].astype(int)
 mapping_pv["bus"] = mapping_pv["bus"].astype(int)
 mapping_pv = mapping_pv.drop_duplicates(subset=["egid"])
 
+
+
 net0 = copy.deepcopy(net0)
 
 pv_egid_to_sgen = {}
@@ -128,6 +130,12 @@ for year in stage_years:
     pv_profile_dir = Path(profiles.pv_profile)
     pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     pv_df = pl.read_parquet(pv_parquet_file)
+    pv_df = pv_df.with_columns(pl.col("egid").cast(pl.Int64))
+    map_pl = pl.from_pandas(mapping_load).with_columns(pl.col("egid").cast(pl.Int64))
+    pv_df = pv_df.join(map_pl, on="egid", how="inner")
+    
+    
+
     
     time_cols = [c for c in load_df.columns if c != "egid"]
     
@@ -137,30 +145,54 @@ for year in stage_years:
     # TEST:check the mapping of PV profiles to loads and buses
     
     test_col = "_12"
-    
+
     pv_test = (
         pv_df.select(["egid", test_col])
         .rename({test_col: "p_pv_kw"})
         .to_pandas()
     )
-    pv_test["egid"] = pv_test["egid"].astype(int)
+
+    pv_test["egid"] = pd.to_numeric(pv_test["egid"], errors="coerce").astype("Int64")
+    pv_test["p_pv_kw"] = pd.to_numeric(pv_test["p_pv_kw"], errors="coerce")
 
     pv_test_pos = pv_test[pv_test["p_pv_kw"] > 0].copy()
+    pv_test_pos["sgen_idx"] = pv_test_pos["egid"].map(pv_egid_to_sgen)
 
-    pv_test_pos_idx = pv_test_pos.merge(mapping_load[["egid", "load_idx"]], on="egid", how="left").copy()
+    print("pv_df egid dtype:", pv_df.schema["egid"])
+    print("pv_egid_to_sgen index dtype:", pv_egid_to_sgen.index.dtype)
+    print(pv_test_pos[["egid", "p_pv_kw", "sgen_idx"]].head(30))
+    print("Positive PV rows:", len(pv_test_pos))
+    print("Mapped to sgen_idx:", pv_test_pos["sgen_idx"].notna().sum())
+    print("Missing sgen_idx:", pv_test_pos["sgen_idx"].isna().sum())
 
-    pv_test_pos_idx["in_bus"] = pv_test_pos_idx["load_idx"].isin(net0.bus.index)
-    pv_test_pos_idx["in_sgen"] = pv_test_pos_idx["load_idx"].isin(net0.sgen.index)
+    net_case_test = apply_profile_scenario_to_pandapower(
+        net0=net_plan,
+        load_df=load_df,
+        pv_df=pv_df,
+        tcol=test_col,
+        mapping_load=mapping_load,
+        pv_egid_to_sgen=pv_egid_to_sgen,
+        cosphi=grid.cosφ,
+    )
 
-    print("\n===== POSITIVE PV INDEX TYPE CHECK =====")
-    print(pv_test_pos_idx[["egid", "p_pv_kw", "load_idx", "in_bus", "in_sgen"]])
-    
-    print("In net0.load:", pv_test_pos_idx["load_idx"].isin(net0.load.index).sum())
-    print("In net0.bus:", pv_test_pos_idx["load_idx"].isin(net0.bus.index).sum())
-    print("In net0.sgen:", pv_test_pos_idx["load_idx"].isin(net0.sgen.index).sum())
+    pv_test = (
+        pv_df.select(["egid", test_col])
+        .rename({test_col: "p_pv_kw"})
+        .to_pandas()
+    )
+    pv_test["p_pv_kw"] = pd.to_numeric(pv_test["p_pv_kw"], errors="coerce")
 
-    print("\n===== POSITIVE PV TO LOAD_IDX CHECK =====")
-    print(pv_test_pos_idx[["egid", "p_pv_kw", "load_idx"]])
+    expected_pv_mw = pv_test["p_pv_kw"].fillna(0.0).sum() / 1000.0
+    actual_pv_series = net_case_test.sgen.loc[pv_egid_to_sgen.values, "p_mw"]
+
+    print("Total net.load p_mw:", net_case_test.load["p_mw"].sum())
+    print("Expected PV from pv_df [MW]:", expected_pv_mw)
+    print("Actual PV net.sgen p_mw [MW]:", actual_pv_series.sum())
+    print("Rows with PV > 0:", (actual_pv_series > 0).sum())
+
+    pv_active = net_case_test.sgen.loc[pv_egid_to_sgen.values].copy()
+    pv_active = pv_active[pv_active["p_mw"] > 0]
+    print(pv_active[["bus", "p_mw", "q_mvar", "name"]].head(30))
 
     #
 
