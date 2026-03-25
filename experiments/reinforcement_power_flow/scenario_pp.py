@@ -12,7 +12,7 @@ def apply_profile_scenario_to_pandapower(
     pv_df: pl.DataFrame,
     tcol: str,
     mapping_load: pd.DataFrame,
-    load_to_export_sgen: pd.Series,
+    pv_egid_to_sgen: pd.Series,
     cosphi: float,
 ) -> pp.pandapowerNet:
     
@@ -20,7 +20,7 @@ def apply_profile_scenario_to_pandapower(
 
     # net.switch["closed"] = True
     net.load.loc[:, ["p_mw", "q_mvar"]] = 0.0
-    net.sgen.loc[load_to_export_sgen.values, ["p_mw", "q_mvar"]] = 0.0
+    net.sgen.loc[pv_egid_to_sgen.values, ["p_mw", "q_mvar"]] = 0.0
 
     load_t = (
         load_df
@@ -38,34 +38,31 @@ def apply_profile_scenario_to_pandapower(
         .rename({tcol: "p_pv_kw"})
         .to_pandas()
     )
+    
 
     pv_t["egid"] = pv_t["egid"].astype(int)
     pv_t["p_pv_kw"] = pv_t["p_pv_kw"].astype(float)
     
 
-    scen = (
+    load_scen = (
         load_t
-        .merge(pv_t, on="egid", how="left")
-        .fillna({"p_pv_kw": 0.0})
         .merge(mapping_load[["egid", "load_idx"]], on="egid", how="inner")
-        .groupby("load_idx", as_index=False)[["p_load_kw", "p_pv_kw"]]
+        .groupby("load_idx", as_index=False)[["p_load_kw"]]
         .sum()
     )
-    
-
-    scen["p_net_kw"] = scen["p_load_kw"] - scen["p_pv_kw"]
-    
-    scen["p_load_mw"] = np.maximum(scen["p_net_kw"], 0.0) / 1000.0
-    scen["p_export_mw"] = np.maximum(-scen["p_net_kw"], 0.0) / 1000.0
-
+    load_scen["p_load_mw"] = load_scen["p_load_kw"] / 1000.0
     tanphi = np.tan(np.arccos(cosphi))
-    scen["q_load_mvar"] = scen["p_load_mw"] * tanphi
-
-    net.load.loc[scen["load_idx"], "p_mw"] = scen["p_load_mw"].to_numpy()
-    net.load.loc[scen["load_idx"], "q_mvar"] = scen["q_load_mvar"].to_numpy()
+    load_scen["q_load_mvar"] = load_scen["p_load_mw"] * tanphi
     
-    sgen_idx = scen["load_idx"].map(load_to_export_sgen).astype(int)
-    net.sgen.loc[sgen_idx, "p_mw"] = scen["p_export_mw"].to_numpy()
-    net.sgen.loc[sgen_idx, "q_mvar"] = 0.0
+    pv_scen = pv_t.copy()
+    pv_scen["sgen_idx"] = pv_scen["egid"].map(pv_egid_to_sgen)
+    pv_scen = pv_scen.dropna(subset=["sgen_idx"]).copy()
+    pv_scen["sgen_idx"] = pv_scen["sgen_idx"].astype(int)
+    pv_scen["p_pv_mw"] = pv_scen["p_pv_kw"] / 1000.0
 
+    net.load.loc[load_scen["load_idx"], "p_mw"] = load_scen["p_load_mw"].tolist()
+    net.load.loc[load_scen["load_idx"], "q_mvar"] = load_scen["q_load_mvar"].tolist()
+    
+    net.sgen.loc[pv_scen["sgen_idx"], "p_mw"] = pv_scen["p_pv_mw"].tolist()
+    net.sgen.loc[pv_scen["sgen_idx"], "q_mvar"] = 0.0
     return net
