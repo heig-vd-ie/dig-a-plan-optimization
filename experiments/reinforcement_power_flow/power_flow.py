@@ -13,8 +13,6 @@ from data_model.kace import DiscreteScenario
 from experiments.reinforcement_power_flow.scenario_pp import apply_profile_scenario_to_pandapower
 from experiments.reinforcement_power_flow.congestion_helpers import (
     check_line_loading, check_trafo_loading,
-    reinforce_line_case,
-    reinforce_trafo_case,
 )
 import matplotlib.pyplot as plt
 
@@ -24,9 +22,6 @@ MAX_ROUNDS = 50
 LINE_COST_PER_KM_KW = 1752
 TRAFO_COST_PER_KW = 1314
 DISCOUNT_RATE = 0.05
-MAX_STEP_FACTOR = 1.20
-LINE_CAP_LIMIT = 5.0
-TRAFO_CAP_LIMIT = 5.0
 
 # %% Load JSON config 
 project_root = Path.cwd().parent
@@ -73,20 +68,37 @@ mapping_load = (
 mapping_load["egid"] = mapping_load["egid"].astype(int)
 mapping_load["load_idx"] = mapping_load["load_idx"].astype(int)
 
-net0 = copy.deepcopy(net0)
-load_to_export_sgen = {}
+mapping_pv = (
+    net0.load[["egid", "bus"]]
+    .dropna(subset=["egid", "bus"])
+    .copy()
+)
+mapping_pv["egid"] = mapping_pv["egid"].astype(int)
+mapping_pv["bus"] = mapping_pv["bus"].astype(int)
+mapping_pv = mapping_pv.drop_duplicates(subset=["egid"])
 
-for load_idx, row in net0.load.iterrows():
+net0 = copy.deepcopy(net0)
+
+pv_egid_to_sgen = {}
+
+for _, row in mapping_pv.iterrows():
+    egid = int(row["egid"])
     bus_idx = int(row["bus"])
+
     sgen_idx = pp.create_sgen(
-        net0, bus=bus_idx, 
-        p_mw=0.0, q_mvar=0.0, 
-        name=f"sgen_for_load_{load_idx}",
-        type="PV", in_service=True,
-        )
-    
-    load_to_export_sgen[int(load_idx) ] = int(sgen_idx)
-load_to_export_sgen = pd.Series(load_to_export_sgen, name="sgen_idx")
+        net0,
+        bus=bus_idx,
+        p_mw=0.0,
+        q_mvar=0.0,
+        name=f"pv_sgen_egid_{egid}",
+        type="PV",
+        in_service=True,
+    )
+
+    pv_egid_to_sgen[egid] = int(sgen_idx)
+
+pv_egid_to_sgen = pd.Series(pv_egid_to_sgen, name="sgen_idx")
+
 
 line_max_i_base = net0.line["max_i_ka"].copy()
 trafo_sn_base = net0.trafo["sn_mva"].copy()
@@ -112,15 +124,45 @@ for year in stage_years:
     load_parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     load_df = pl.read_parquet(load_parquet_file)
     
+    
     pv_profile_dir = Path(profiles.pv_profile)
     pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
     pv_df = pl.read_parquet(pv_parquet_file)
-    # assert load_df.columns == pv_df.columns, "Load and PV profile columns do not match"
+    
     time_cols = [c for c in load_df.columns if c != "egid"]
     
     line_max_i_init = net_plan.line["max_i_ka"].copy()
     trafo_sn_init = net_plan.trafo["sn_mva"].copy()
-  
+    
+    # TEST:check the mapping of PV profiles to loads and buses
+    
+    test_col = "_12"
+    
+    pv_test = (
+        pv_df.select(["egid", test_col])
+        .rename({test_col: "p_pv_kw"})
+        .to_pandas()
+    )
+    pv_test["egid"] = pv_test["egid"].astype(int)
+
+    pv_test_pos = pv_test[pv_test["p_pv_kw"] > 0].copy()
+
+    pv_test_pos_idx = pv_test_pos.merge(mapping_load[["egid", "load_idx"]], on="egid", how="left").copy()
+
+    pv_test_pos_idx["in_bus"] = pv_test_pos_idx["load_idx"].isin(net0.bus.index)
+    pv_test_pos_idx["in_sgen"] = pv_test_pos_idx["load_idx"].isin(net0.sgen.index)
+
+    print("\n===== POSITIVE PV INDEX TYPE CHECK =====")
+    print(pv_test_pos_idx[["egid", "p_pv_kw", "load_idx", "in_bus", "in_sgen"]])
+    
+    print("In net0.load:", pv_test_pos_idx["load_idx"].isin(net0.load.index).sum())
+    print("In net0.bus:", pv_test_pos_idx["load_idx"].isin(net0.bus.index).sum())
+    print("In net0.sgen:", pv_test_pos_idx["load_idx"].isin(net0.sgen.index).sum())
+
+    print("\n===== POSITIVE PV TO LOAD_IDX CHECK =====")
+    print(pv_test_pos_idx[["egid", "p_pv_kw", "load_idx"]])
+
+    #
 
     # Main loop over timestamps
     for tcol in time_cols:
@@ -131,10 +173,10 @@ for year in stage_years:
             pv_df=pv_df,
             tcol=tcol,
             mapping_load=mapping_load,
-            load_to_export_sgen=load_to_export_sgen,
+            pv_egid_to_sgen=pv_egid_to_sgen,
             cosphi=grid.cosφ,
         )
-         
+        
         # pandapower run before reinforcement
         pp.runpp(net_case)
         
@@ -164,55 +206,38 @@ for year in stage_years:
         while len(cong_lines) > 0 or len(cong_trafos) > 0:
             rounds_used += 1
 
-            # reinforce only the worst overloaded line
-            if len(cong_lines) > 0:
-                worst_line = cong_lines.iloc[0]
-                lid = int(worst_line["line_idx"])
-                loading = float(worst_line["loading_percent"])
-
-                net_case = reinforce_line_case(
-                    net_case,
-                    line_idx=lid,
-                    loading_percent=loading,
-                    limit_percent=LIMIT,
-                    margin=1.05,
-                    max_step_factor=MAX_STEP_FACTOR,
-                )
-                net_case.line.at[lid, "max_i_ka"] = min(
-                    net_case.line.at[lid, "max_i_ka"],
-                    line_max_i_base.at[lid] * LINE_CAP_LIMIT
-                )
-                reinforced_lines.add(lid)
-
-                print(
-                    f"Round {rounds_used}: reinforced line {lid} "
-                    f"with loading {loading:.2f}%"
-                )
-
-            # reinforce only the worst overloaded trafo
-            if len(cong_trafos) > 0:
-                worst_trafo = cong_trafos.iloc[0]
-                tid = int(worst_trafo["trafo_idx"])
-                loading = float(worst_trafo["loading_percent"])
-
-                net_case = reinforce_trafo_case(
-                    net_case,
-                    trafo_idx=tid,
-                    loading_percent=loading,
-                    limit_percent=LIMIT,
-                    margin=1.05,
-                    max_step_factor=MAX_STEP_FACTOR,
-                )
-                net_case.trafo.at[tid, "sn_mva"] = min(
-                    net_case.trafo.at[tid, "sn_mva"],
-                    trafo_sn_base.at[tid] * TRAFO_CAP_LIMIT
-                )
-                reinforced_trafos.add(tid)
-
-                print(
-                    f"Round {rounds_used}: reinforced trafo {tid} "
-                    f"with loading {loading:.2f}%"
-                )
+            net_case.line["loading_percent"] = net_case.res_line["loading_percent"]
+            overloaded_line_idx = net_case.line.index[
+                net_case.line["loading_percent"] >= LIMIT
+            ].tolist()
+            reinforced_lines.update(map(int, overloaded_line_idx))
+            
+            net_case.line["max_i_ka"] = net_case.line.apply(
+                lambda x: (
+                    x["max_i_ka"]
+                    if x["loading_percent"] < LIMIT
+                    else x["max_i_ka"] * x["loading_percent"] * 1.2 / 100
+                ),
+                axis=1,
+            )
+            net_case.line = net_case.line.drop(columns="loading_percent")
+ 
+            net_case.trafo["loading_percent"] = net_case.res_trafo["loading_percent"]
+            
+            overloaded_trafo_idx = net_case.trafo.index[
+                net_case.trafo["loading_percent"] >= LIMIT
+            ].tolist()
+            reinforced_trafos.update(map(int, overloaded_trafo_idx))
+            
+            net_case.trafo["sn_mva"] = net_case.trafo.apply(
+                lambda x: (
+                    x["sn_mva"]
+                    if x["loading_percent"] < LIMIT
+                    else x["sn_mva"] * x["loading_percent"] * 1.2 / 100
+                ),
+                axis=1,
+            )
+            net_case.trafo = net_case.trafo.drop(columns="loading_percent")
 
             pp.runpp(net_case)
 
