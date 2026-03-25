@@ -65,4 +65,5 @@ def apply_profile_scenario_to_pandapower(
     
     net.sgen.loc[pv_scen["sgen_idx"], "p_mw"] = pv_scen["p_pv_mw"].tolist()
     net.sgen.loc[pv_scen["sgen_idx"], "q_mvar"] = 0.0
+    
     return net
