@@ -114,8 +114,8 @@ class LongTermScenarioRequest(BaseModel):
     yearly_budget: float
     N_years_per_stage: int
     seed_number: int
-    min_load: float = 5.0
-    min_pv: float = 1.0
+    min_load: float = 0.001
+    min_pv: float = 0.001
 
 
 class StateVar(BaseModel):

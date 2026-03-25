@@ -53,8 +53,8 @@ function handle_generate_scenarios(req::HTTP.Request)
         next!(p2)
     end
 
-    min_load = Float64(get(body, "min_load", 1.0))
-    min_pv = Float64(get(body, "min_pv", 5.0))
+    min_load = Float64(get(body, "min_load", 0.0001))
+    min_pv = Float64(get(body, "min_pv", 0.0001))
     yearly_budget = Float64(get(body, "yearly_budget", 1))
     N_years_per_stage = get(body, "N_years_per_stage", 1)
     seed_number = get(body, "seed_number", 1234)
