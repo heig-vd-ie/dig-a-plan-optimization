@@ -2,6 +2,7 @@ from api.bender import run_bender
 from api.combined import run_combined
 from api.admm import run_admm
 from api.expansion import run_expansion
+from api.benchmark import run_benchmark
 from api.ray_utils import init_ray, shutdown_ray, where_am_i
 from data_model.reconfiguration import (
     ADMMInput,
@@ -59,6 +60,12 @@ def expansion(
     results = run_expansion(
         requests, with_ray=with_ray, cut_file=cut_file, time_now=time_now
     )
+    return results
+
+
+@app.get("/expansion/benchmark")
+def benchmark_expansion_endpoint(requests: BenchmarkExpansion):
+    results = run_benchmark(requests)
     return results
 
 
