@@ -1,15 +1,20 @@
+"""
+# stop the ray server and run the following
+./scripts/start-ray-head.sh
+make fix-cache-permissions CACHE_FOLDER=dockerfiles
+# run this script (it reduces the time needed for power flow from 30 minutes to 5 minutes for 1 year)
+"""
+
 from pathlib import Path
 import pandapower as pp
 import polars as pl
 import json
 
+import ray
+
+from api.ray_utils import init_ray, shutdown_ray, check_ray
 from data_model.benchmark_expansion import BenchmarkExpansion
-from helpers.congestion import (
-    check_line_loading,
-    check_trafo_loading,
-    check_voltage_limits,
-    apply_profile_scenario_to_pandapower,
-)
+from helpers.congestion import heavy_task_powerflow
 from tqdm import tqdm
 from helpers import generate_log
 
@@ -27,7 +32,6 @@ load_profile_dir = (
     Path(__file__).parents[2] / benchmark_expansion.profiles.load_profiles[0]
 )
 pv_profile_dir = Path(__file__).parents[2] / benchmark_expansion.profiles.pv_profile
-limit_percent = benchmark_expansion.congestion_settings.threshold
 
 net0.sgen = net0.load
 net0.sgen["p_mw"] = 0
@@ -51,20 +55,30 @@ for year in benchmark_expansion.congestion_settings.years:
     )
     time_cols = [c for c in load_profiles_all_egids.columns if c.startswith("_")]
 
-    for t in tqdm(time_cols, desc="Power Flow for periods"):
-        
-        net_case = apply_profile_scenario_to_pandapower(
-            net0=net0,
-            load_df=load_profiles_all_egids,
-            pv_df=pv_profiles_all_egids,
-            tcol=t,
-            cosphi=benchmark_expansion.grid.cosφ,
+    init_ray()
+    check_ray(True)
+    heavy_task_remote = ray.remote(heavy_task_powerflow)
+    net0_ref = ray.put(net0)
+    load_df_ref = ray.put(load_profiles_all_egids)
+    pv_df_ref = ray.put(pv_profiles_all_egids)
+    futures = {
+        t: heavy_task_remote.remote(
+            net0_ref,
+            load_df_ref,
+            pv_df_ref,
+            t,
+            benchmark_expansion.grid.cosφ,
+            benchmark_expansion.congestion_settings.threshold,
         )
-        pp.runpp(net_case)
-
-        cong_lines = check_line_loading(net_case, limit_percent=limit_percent)
-        cong_trafos = check_trafo_loading(net_case, limit_percent=limit_percent)
-        bus_ou = check_voltage_limits(net_case)
+        for t in time_cols
+    }
+    future_results = {}
+    for t in tqdm(time_cols, desc="Running PowerFlow"):
+        try:
+            future_results[t] = ray.get(futures[t])
+        except:
+            log.error(f"ERROR in [{t}]!!!")
+    shutdown_ray()
 
 #         n_lines_total = len(net_case.line)
 #         n_trafos_total = len(net_case.trafo)

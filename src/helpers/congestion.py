@@ -148,3 +148,25 @@ def apply_profile_scenario_to_pandapower(
     net.sgen.loc[pv_t["index"], "p_mw"] = pv_t["p_pv_mw"].astype(float).values
     net.sgen.loc[pv_t["index"], "q_mvar"] = 0
     return net
+
+
+def heavy_task_powerflow(
+    net0: pp.pandapowerNet,
+    load_df: pl.DataFrame,
+    pv_df: pl.DataFrame,
+    t: str,
+    cosφ: float,
+    limit_percent: float,
+):
+    net_case = apply_profile_scenario_to_pandapower(
+        net0=net0,
+        load_df=load_df,
+        pv_df=pv_df,
+        tcol=t,
+        cosphi=cosφ,
+    )
+    pp.runpp(net_case)
+
+    cong_lines = check_line_loading(net_case, limit_percent=limit_percent)
+    cong_trafos = check_trafo_loading(net_case, limit_percent=limit_percent)
+    bus_ou = check_voltage_limits(net_case)
