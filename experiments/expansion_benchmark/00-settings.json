@@ -10,9 +10,17 @@
     "profiles": {
         "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],
         "pv_profile": ".cache/input/boisy/pv_profiles",
-        "target_year": [2025],
+        "target_year": 2025,
         "quarter": 1,
         "scenario_name": "Basic"
+    },
+    "congestion_settings": {
+        "threshold": 90,
+        "max_rounds": 50,
+        "line_cost_per_km_kw": 1752,
+        "trafo_cost_per_kw": 1314,
+        "discount_rate": 0.05,
+        "years": [ 2025, 2030, 2035, 2040, 2045, 2050 ]
     },
     "iterations": 1,
     "seed": 42
