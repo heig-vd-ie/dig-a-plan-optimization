@@ -18,27 +18,28 @@ def run_benchmark(benchmark_expansion: BenchmarkExpansion):
     map_df = pl.read_csv(
         Path(__file__).parents[2] / benchmark_expansion.grid.egid_id_mapping_file
     ).select([pl.col("index"), pl.col("egid").cast(pl.Utf8)])
-    load_profile_dir = (
-        Path(__file__).parents[2] / benchmark_expansion.profiles.load_profiles[0]
-    )
-    pv_profile_dir = Path(__file__).parents[2] / benchmark_expansion.profiles.pv_profile
 
-    net0.sgen = net0.load
+    net0.sgen = net0.load.copy()
     net0.sgen["p_mw"] = 0
     net0.sgen["q_mvar"] = 0
 
     for year in benchmark_expansion.congestion_settings.years:
         log.info(f"Power flow for year {year}")
-        load_parquet_file = (
-            load_profile_dir
-            / f"{benchmark_expansion.profiles.scenario_name.value}_{year}.parquet"
+        load_dfs: list[pl.DataFrame] = []
+        for f in benchmark_expansion.profiles.load_profiles:
+            load_parquet_file = (
+                Path(__file__).parents[2]
+                / f
+                / f"{benchmark_expansion.profiles.scenario_name.value}_{year}.parquet"
+            )
+            load_dfs.append(pl.read_parquet(load_parquet_file))
+        load_profiles_all_egids = pl.concat(load_dfs).join(
+            map_df, on="egid", how="left"
         )
         pv_parquet_file = (
-            pv_profile_dir
+            Path(__file__).parents[2]
+            / benchmark_expansion.profiles.pv_profile
             / f"{benchmark_expansion.profiles.scenario_name.value}_{year}.parquet"
-        )
-        load_profiles_all_egids = pl.read_parquet(load_parquet_file).join(
-            map_df, on="egid", how="left"
         )
         pv_profiles_all_egids = pl.read_parquet(pv_parquet_file).join(
             map_df, on="egid", how="left"

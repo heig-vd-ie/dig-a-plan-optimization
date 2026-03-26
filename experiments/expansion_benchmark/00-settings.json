@@ -1,16 +1,15 @@
 {
     "grid": {
-        "name": "boisy-feeder-1",
-        "pp_file": ".cache/input/boisy/feeders/feeder_feeder_1.p",
+        "name": "boisy",
+        "pp_file": ".cache/input/boisy/boisy_grid.p",
         "s_base": 1000000,
         "cosφ": 0.95,
         "egid_id_mapping_file": ".cache/input/boisy/consumer_egid_idx_mapping.csv",
         "minimum_impedance": 0.001
     },
     "profiles": {
-        "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1" ],
+        "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1", ".cache/input/boisy/load_profiles/feeder_2" ],
         "pv_profile": ".cache/input/boisy/pv_profiles",
-        "target_year": 2025,
         "quarter": 1,
         "scenario_name": "Basic"
     },

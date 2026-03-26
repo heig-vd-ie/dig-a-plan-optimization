@@ -43,14 +43,10 @@ def check_trafo_loading(net: pp.pandapowerNet) -> pd.DataFrame:
     df = df[df["loading_percent"].notna()]
     df = df.sort_values("loading_percent", ascending=False)
 
-    # df = df[df["loading_percent"] >= limit_percent].copy()
-
     return df
 
 
-def check_voltage_limits(
-    net: pp.pandapowerNet
-) -> pd.DataFrame:
+def check_voltage_limits(net: pp.pandapowerNet) -> pd.DataFrame:
     """
     Returns a bus voltage table sorted by pandapower res_bus.vm_pu.
     """
@@ -63,6 +59,7 @@ def check_voltage_limits(
 
     df = df[df["vm_pu"].notna()]
     df = df.sort_values("vm_pu", ascending=False)
+
     return df
 
 
@@ -111,25 +108,30 @@ def apply_profile_scenario_to_pandapower(
     net = copy.deepcopy(net0)
 
     # net.switch["closed"] = True
-    net.load.loc[:, ["p_mw", "q_mvar"]] = 0.0
-    net.sgen.loc[:, ["p_mw", "q_mvar"]] = 0.0
+    net.load[["p_mw", "q_mvar", "sn_mva"]] = 0.0
+    net.sgen[["p_mw", "q_mvar", "sn_mva"]] = 0.0
 
     load_t = (
-        load_df.select(["egid", "index", tcol]).rename({tcol: "p_load_kw"}).to_pandas()
+        load_df.select(["egid", "index", tcol])
+        .filter(pl.col("index").is_in(net.load.index.to_list()))
+        .rename({tcol: "p_load_kw"})
+        .rename({"index": "load_idx"})
+        .to_pandas()
     )
 
     pv_t = (
         pv_df.select(["egid", "index", tcol])
         .rename({tcol: "p_pv_kw"})
         .filter(pl.col("index").is_in(net.sgen.index.to_list()))
+        .rename({"index": "load_idx"})
         .to_pandas()
     )
 
-    load_t = load_t.groupby("index", as_index=False)[["p_load_kw"]].sum()
+    load_t = load_t.groupby("load_idx", as_index=False)[["p_load_kw"]].sum()
     load_t["p_load_mw"] = load_t["p_load_kw"] / 1000.0
     load_t["q_load_mvar"] = load_t["p_load_mw"] * np.tan(np.arccos(cosphi))
 
-    pv_t = pv_t.groupby("index", as_index=False)[["p_pv_kw"]].sum()
+    pv_t = pv_t.groupby("load_idx", as_index=False)[["p_pv_kw"]].sum()
     pv_t["p_pv_mw"] = pv_t["p_pv_kw"] / 1000.0
 
     net.load["p_mw"] = net.load["p_mw"].astype("float64")
@@ -137,11 +139,17 @@ def apply_profile_scenario_to_pandapower(
     net.sgen["p_mw"] = net.sgen["p_mw"].astype("float64")
     net.sgen["q_mvar"] = net.sgen["q_mvar"].astype("float64")
 
-    net.load.loc[load_t["index"], "p_mw"] = load_t["p_load_mw"].astype(float).values
-    net.load.loc[load_t["index"], "q_mvar"] = load_t["q_load_mvar"].astype(float).values
+    lt = load_t.copy()
+    lt["load_idx"] = lt["load_idx"].astype(int)
+    lt = lt.set_index("load_idx")
+    net.load.loc[lt.index, "p_mw"] = lt["p_load_mw"].astype(float)
+    net.load.loc[lt.index, "q_mvar"] = lt["q_load_mvar"].astype(float)
 
-    net.sgen.loc[pv_t["index"], "p_mw"] = pv_t["p_pv_mw"].astype(float).values
-    net.sgen.loc[pv_t["index"], "q_mvar"] = 0
+    pt = pv_t.copy()
+    pt["load_idx"] = pt["load_idx"].astype(int)
+    pt = pt.set_index("load_idx")
+    net.sgen.loc[pt.index, "p_mw"] = pt["p_pv_mw"].astype(float).values
+    net.sgen.loc[pt.index, "q_mvar"] = 0
     return net
 
 
@@ -173,9 +181,7 @@ def heavy_task_powerflow(
     if not (PROJECT_ROOT / cache_folder / kace_name).exists():
         os.makedirs(str(PROJECT_ROOT / cache_folder / kace_name), exist_ok=True)
     save_obj_to_json(
-        obj=cong_lines[
-            ["loading_percent"]
-        ].to_dict(),
+        obj=cong_lines[["loading_percent"]].to_dict(),
         path_filename=PROJECT_ROOT
         / cache_folder
         / kace_name
