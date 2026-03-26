@@ -79,7 +79,7 @@ class Benchmark:
         self.net0.line["loading_percent"] = self.net0.line["loading_percent"].fillna(
             self.benchmark_expansion.congestion_settings.threshold
         )
-        self.net0.line["new_ka"] *= (
+        self.net0.line["new_ka"] = self.net0.line["max_i_ka"] * (
             self.net0.line["loading_percent"]
             / self.benchmark_expansion.congestion_settings.threshold
         )
@@ -99,12 +99,12 @@ class Benchmark:
         self.net0.trafo["loading_percent"] = self.net0.trafo["loading_percent"].fillna(
             self.benchmark_expansion.congestion_settings.threshold
         )
-        self.net0.trafo["new_mva"] *= (
+        self.net0.trafo["new_mva"] = self.net0.trafo["sn_mva"] * (
             self.net0.trafo["loading_percent"]
             / self.benchmark_expansion.congestion_settings.threshold
         )
         df = self.net0.trafo.copy()
-        df["delta_mva"] = self.net0.line["new_mva"] - self.net0.line["sn_mva"]
+        df["delta_mva"] = self.net0.trafo["new_mva"] - self.net0.trafo["sn_mva"]
         df = df[df["delta_mva"] > 0]
         save_obj_to_json(
             obj=df[["delta_mva"]].to_dict(),
@@ -113,7 +113,7 @@ class Benchmark:
             / self.benchmark_expansion.grid.name
             / f"expanded_trafos_{self.benchmark_expansion.profiles.scenario_name}_{year}_{quarter}.json",
         )
-        self.net0.trafo["sn_mva"] = self.net0.line["new_mva"]
+        self.net0.trafo["sn_mva"] = self.net0.trafo["new_mva"]
         self.net0.trafo = self.net0.trafo.drop(columns=["loading_percent", "new_mva"])
 
     def run_per_year(
