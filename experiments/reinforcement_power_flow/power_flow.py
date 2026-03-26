@@ -141,10 +141,13 @@ line_length_km = pd.Series(1.0, index=net0.line.index, dtype=float)
 
 for year in stage_years:
     print(f"Processing year {year}")
-    load_parquet_file = profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
-    load_data = pl.read_parquet(load_parquet_file).with_columns(
+    
+    load_data = pl.concat([
+        pl.read_parquet(Path(profiles.load_profiles[0]) / f"{profiles.scenario_name.value}_{year}.parquet"),
+        pl.read_parquet(Path(profiles.load_profiles[1]) / f"{profiles.scenario_name.value}_{year}.parquet"),
+    ], how="vertical").with_columns(
         pl.col("egid").cast(pl.Int64, strict=False)
-    )
+    )   
 
     pv_profile_dir = Path(profiles.pv_profile)
     pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
@@ -152,7 +155,15 @@ for year in stage_years:
         pl.col("egid").cast(pl.Int64, strict=False)
     )
     
-    time_cols = [c for c in load_data.columns if c != "egid"]
+    # time_cols = [c for c in load_data.columns if c != "egid"]
+    time_cols = ["_0"]
+    
+    load_data = (
+    load_data
+    .group_by("egid")
+    .agg([pl.col(c).sum().alias(c) for c in time_cols])
+    .sort("egid")
+    )
     
     line_max_i_init = net_plan.line["max_i_ka"].copy()
     trafo_sn_init = net_plan.trafo["sn_mva"].copy()
