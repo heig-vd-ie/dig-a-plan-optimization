@@ -11,6 +11,7 @@ class CacheFolder:
     outputs_admm: str
     outputs_bender: str
     outputs_combined: str
+    outputs_benchmark: str
 
 
 @dataclass

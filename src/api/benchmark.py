@@ -1,12 +1,10 @@
 from pathlib import Path
 import pandapower as pp
 import polars as pl
-import json
-
 import ray
 
 from api.ray_utils import init_ray, shutdown_ray, check_ray
-from data_model.benchmark_expansion import BenchmarkExpansion
+from data_model.benchmark import BenchmarkExpansion
 from helpers.congestion import heavy_task_powerflow
 from tqdm import tqdm
 from helpers import generate_log
@@ -56,11 +54,13 @@ def run_benchmark(benchmark_expansion: BenchmarkExpansion):
         futures = {
             t: heavy_task_remote.remote(
                 net0_ref,
+                benchmark_expansion.grid.name,
                 load_df_ref,
                 pv_df_ref,
                 t,
                 benchmark_expansion.grid.cosφ,
-                benchmark_expansion.congestion_settings.threshold,
+                year,
+                benchmark_expansion.profiles.scenario_name.value,
             )
             for t in time_cols
         }

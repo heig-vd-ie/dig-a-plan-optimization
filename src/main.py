@@ -11,6 +11,7 @@ from data_model.reconfiguration import (
     ReconfigurationOutput,
 )
 from data_model.expansion import ExpansionInput, ExpansionOutput
+from data_model.benchmark import BenchmarkExpansion
 from fastapi import FastAPI
 import ray
 import warnings
@@ -50,7 +51,7 @@ def reconfiguration_admm(requests: ADMMInput) -> ReconfigurationOutput:
     return run_admm(requests)
 
 
-@app.patch("/expansion", tags=["Expansion"])
+@app.patch("/expansion/two-stage", tags=["Expansion"])
 def expansion(
     requests: ExpansionInput,
     with_ray: bool = False,
@@ -63,7 +64,7 @@ def expansion(
     return results
 
 
-@app.get("/expansion/benchmark")
+@app.patch("/expansion/benchmark", tags=["Expansion"])
 def benchmark_expansion_endpoint(requests: BenchmarkExpansion):
     results = run_benchmark(requests)
     return results

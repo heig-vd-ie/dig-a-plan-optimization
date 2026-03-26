@@ -1,11 +1,14 @@
+import os
 import copy
 import polars as pl
 import numpy as np
 import pandas as pd
 import pandapower as pp
+from helpers.json import save_obj_to_json
+from konfig import settings, PROJECT_ROOT
 
 
-def check_line_loading(net: pp.pandapowerNet, limit_percent: float) -> pd.DataFrame:
+def check_line_loading(net: pp.pandapowerNet) -> pd.DataFrame:
     """
     Returns a line table sorted by pandapower res_line.loading_percent.
     """
@@ -23,12 +26,10 @@ def check_line_loading(net: pp.pandapowerNet, limit_percent: float) -> pd.DataFr
     df = df[df["loading_percent"].notna()]
     df = df.sort_values("loading_percent", ascending=False)
 
-    df = df[df["loading_percent"] >= limit_percent].copy()
-
     return df
 
 
-def check_trafo_loading(net: pp.pandapowerNet, limit_percent: float) -> pd.DataFrame:
+def check_trafo_loading(net: pp.pandapowerNet) -> pd.DataFrame:
     """
     Returns a transformer table sorted by pandapower res_trafo.loading_percent.
     """
@@ -42,13 +43,13 @@ def check_trafo_loading(net: pp.pandapowerNet, limit_percent: float) -> pd.DataF
     df = df[df["loading_percent"].notna()]
     df = df.sort_values("loading_percent", ascending=False)
 
-    df = df[df["loading_percent"] >= limit_percent].copy()
+    # df = df[df["loading_percent"] >= limit_percent].copy()
 
     return df
 
 
 def check_voltage_limits(
-    net: pp.pandapowerNet, limit_percent: float = 5
+    net: pp.pandapowerNet
 ) -> pd.DataFrame:
     """
     Returns a bus voltage table sorted by pandapower res_bus.vm_pu.
@@ -62,12 +63,6 @@ def check_voltage_limits(
 
     df = df[df["vm_pu"].notna()]
     df = df.sort_values("vm_pu", ascending=False)
-
-    df = df[
-        (df["vm_pu"] >= 1 + limit_percent / 100)
-        | (df["vm_pu"] <= 1 - limit_percent / 100)
-    ].copy()
-
     return df
 
 
@@ -152,12 +147,15 @@ def apply_profile_scenario_to_pandapower(
 
 def heavy_task_powerflow(
     net0: pp.pandapowerNet,
+    kace_name: str,
     load_df: pl.DataFrame,
     pv_df: pl.DataFrame,
     t: str,
     cosφ: float,
-    limit_percent: float,
+    year: int,
+    scenario: str,
 ):
+    """Run power flow as one node"""
     net_case = apply_profile_scenario_to_pandapower(
         net0=net0,
         load_df=load_df,
@@ -167,6 +165,33 @@ def heavy_task_powerflow(
     )
     pp.runpp(net_case)
 
-    cong_lines = check_line_loading(net_case, limit_percent=limit_percent)
-    cong_trafos = check_trafo_loading(net_case, limit_percent=limit_percent)
+    cong_lines = check_line_loading(net_case)
+    cong_trafos = check_trafo_loading(net_case)
     bus_ou = check_voltage_limits(net_case)
+    cache_folder = settings.cache.outputs_benchmark
+
+    if not (PROJECT_ROOT / cache_folder / kace_name).exists():
+        os.makedirs(str(PROJECT_ROOT / cache_folder / kace_name), exist_ok=True)
+    save_obj_to_json(
+        obj=cong_lines[
+            ["loading_percent"]
+        ].to_dict(),
+        path_filename=PROJECT_ROOT
+        / cache_folder
+        / kace_name
+        / f"congested_lines_{scenario}_{year}_{t}.json",
+    )
+    save_obj_to_json(
+        obj=cong_trafos[["loading_percent"]].to_dict(),
+        path_filename=PROJECT_ROOT
+        / cache_folder
+        / kace_name
+        / f"congested_trafos_{scenario}_{year}_{t}.json",
+    )
+    save_obj_to_json(
+        obj=bus_ou[["vm_pu"]].to_dict(),
+        path_filename=PROJECT_ROOT
+        / cache_folder
+        / kace_name
+        / f"ou_buses_{scenario}_{year}_{t}.json",
+    )

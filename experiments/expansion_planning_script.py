@@ -122,7 +122,7 @@ def expansion_planning_script(
     else:
         response = requests.patch(
             (
-                f"http://{LOCALHOST}:{PY_PORT}/expansion?with_ray={withray}"
+                f"http://{LOCALHOST}:{PY_PORT}/expansion/two-stage?with_ray={withray}"
                 + ("" if cachename == "-n" else f"&time_now={cachename}")
             ),
             json=payload,
