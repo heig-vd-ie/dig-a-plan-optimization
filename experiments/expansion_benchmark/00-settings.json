@@ -15,6 +15,7 @@
     },
     "congestion_settings": {
         "threshold": 90,
+        "voltage_limits": 5,
         "max_rounds": 50,
         "line_cost_per_km_kw": 1752,
         "trafo_cost_per_kw": 1314,

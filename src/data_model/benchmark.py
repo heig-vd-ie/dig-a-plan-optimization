@@ -1,10 +1,11 @@
 from pydantic import BaseModel
-
+from typing import Dict
 from data_model import GridCaseModel, ShortTermUncertaintyProfile
 
 
 class CongestionSettings(BaseModel):
     threshold: float
+    voltage_limits: float
     max_rounds: int
     line_cost_per_km_kw: float
     trafo_cost_per_kw: float
@@ -18,3 +19,9 @@ class BenchmarkExpansion(BaseModel):
     congestion_settings: CongestionSettings
     iterations: int
     seed: int
+
+
+class PowerFlowResponse(BaseModel):
+    congested_lines: list[Dict]
+    congested_trafos: list[Dict]
+    congested_buses: list[Dict]

@@ -6,6 +6,7 @@ import pandas as pd
 import pandapower as pp
 from helpers.json import save_obj_to_json
 from konfig import settings, PROJECT_ROOT
+from data_model.benchmark import PowerFlowResponse
 
 
 def check_line_loading(net: pp.pandapowerNet) -> pd.DataFrame:
@@ -61,40 +62,6 @@ def check_voltage_limits(net: pp.pandapowerNet) -> pd.DataFrame:
     df = df.sort_values("vm_pu", ascending=False)
 
     return df
-
-
-def reinforce_line_case(
-    net: pp.pandapowerNet,
-    line_idx: int,
-    loading_percent: float,
-    limit_percent: float = 90.0,
-    margin: float = 1.05,
-    max_step_factor=1.20,
-) -> pp.pandapowerNet:
-    """
-    Increase line thermal capacity by increasing max_i_ka.
-    """
-    factor = (loading_percent / limit_percent) * margin
-    factor = min(factor, max_step_factor)
-    net.line.at[line_idx, "max_i_ka"] *= factor
-    return net
-
-
-def reinforce_trafo_case(
-    net: pp.pandapowerNet,
-    trafo_idx: int,
-    loading_percent: float,
-    limit_percent: float = 90.0,
-    margin: float = 1.05,
-    max_step_factor=1.20,
-) -> pp.pandapowerNet:
-    """
-    Increase transformer capacity by increasing sn_mva.
-    """
-    factor = (loading_percent / limit_percent) * margin
-    factor = min(factor, max_step_factor)
-    net.trafo.at[trafo_idx, "sn_mva"] *= factor
-    return net
 
 
 def apply_profile_scenario_to_pandapower(
@@ -162,6 +129,8 @@ def heavy_task_powerflow(
     cosφ: float,
     year: int,
     scenario: str,
+    threshold_current: float,
+    threshold_voltage: float,
 ):
     """Run power flow as one node"""
     net_case = apply_profile_scenario_to_pandapower(
@@ -200,4 +169,19 @@ def heavy_task_powerflow(
         / cache_folder
         / kace_name
         / f"ou_buses_{scenario}_{year}_{t}.json",
+    )
+    bus_ou_out = bus_ou[
+        (bus_ou["vm_pu"] >= 1 + threshold_voltage / 100)
+        | (bus_ou["vm_pu"] <= 1 - threshold_voltage / 100)
+    ][["bus_idx", "vm_pu"]].to_dict(orient="records")
+    cong_lines_out = cong_lines[cong_lines["loading_percent"] >= threshold_current][
+        ["line_idx", "loading_percent"]
+    ].to_dict(orient="records")
+    cong_trafos_out = cong_trafos[cong_trafos["loading_percent"] >= threshold_current][
+        ["trafo_idx", "loading_percent"]
+    ].to_dict(orient="records")
+    return PowerFlowResponse(
+        congested_lines=cong_lines_out,
+        congested_trafos=cong_trafos_out,
+        congested_buses=bus_ou_out,
     )
