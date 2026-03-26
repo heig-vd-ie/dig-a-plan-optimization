@@ -20,7 +20,7 @@ class Benchmark:
     def run(self, benchmark_expansion: BenchmarkExpansion):
         """"""
         self.benchmark_expansion = benchmark_expansion
-        self.number_of_quarters = 400  # TODO
+        self.number_of_quarters = 4
         self.net0 = pp.from_pickle(
             Path(__file__).parents[2] / benchmark_expansion.grid.pp_file
         )
@@ -34,8 +34,8 @@ class Benchmark:
         self.net0.sgen["p_mw"] = 0
         self.net0.sgen["q_mvar"] = 0
 
-        for year in [benchmark_expansion.congestion_settings.years[0]]:  # TODO
-            for quarter in range(1, 1 + 2):  # TODO
+        for year in benchmark_expansion.congestion_settings.years:
+            for quarter in range(1, 1 + self.number_of_quarters):
                 log.info(f"Power flow for year {year} and quarter {quarter}")
                 results = self.run_per_year(benchmark_expansion, year, quarter)
                 self.reinforce_edges(results, year, quarter)
