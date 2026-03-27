@@ -91,24 +91,36 @@ def plot_histogram(
     variable_title: str,
 ):
     df = df.select([variable_column, target_column])
-    variables = df[variable_column].unique().sort().to_list()
+
+    grouped = (
+        df.group_by(variable_column)
+        .agg(pl.col(target_column).alias("values"))
+        .sort(variable_column)
+    )
+
+    variables = grouped[variable_column].to_list()
+    values_list = grouped["values"].to_list()
 
     colors = px.colors.qualitative.Set2
 
+    # IMPORTANT: use fixed bins across all groups (comparable histograms)
+    all_values = np.concatenate([np.asarray(v) for v in values_list])
+    bin_edges = np.histogram_bin_edges(all_values, bins=100)
+
     fig = go.Figure()
-    for i, y in enumerate(variables):
-        data = df.filter(pl.col(variable_column) == y)[target_column].to_numpy()
+
+    for i, (y, data) in enumerate(zip(variables, values_list)):
+        data = np.asarray(data)
+
+        hist, _ = np.histogram(data, bins=bin_edges)
 
         fig.add_trace(
-            go.Histogram(
-                x=data,
+            go.Bar(
+                x=bin_edges[:-1],
+                y=hist,
                 name=str(y),
-                nbinsx=60,
                 opacity=0.65,
-                marker=dict(
-                    color=colors[i % len(colors)],
-                    line=dict(width=0.5, color="black"),
-                ),
+                marker=dict(color=colors[i % len(colors)]),
             )
         )
 
@@ -117,12 +129,15 @@ def plot_histogram(
         template="simple_white",
         xaxis=dict(
             title=xaxis_title,
-            ticks="outside",
             showgrid=True,
             gridcolor="lightgray",
+            ticks="outside",
         ),
         yaxis=dict(
-            title="Frequency", ticks="outside", showgrid=True, gridcolor="lightgray"
+            title="Frequency",
+            showgrid=True,
+            gridcolor="lightgray",
+            ticks="outside",
         ),
         legend=dict(
             title=variable_title,
@@ -134,17 +149,21 @@ def plot_histogram(
         ),
         width=900,
         height=550,
-        font=dict(size=14),
-        margin=dict(l=60, r=30, t=80, b=60),
     )
+
     fig.write_html(
         Path(PROJECT_ROOT)
         / settings.cache.figures
         / f"{CACHE_FOLDER}_{target_column}_vs_{variable_column}.html"
     )
+
     fig.show()
 
 
 if __name__ == "__main__":
     df = collect_data("congested_lines", "loading_percent")
     plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
+    df = collect_data("congested_trafos", "loading_percent")
+    plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
+    df = collect_data("ou_buses", "vm_pu")
+    plot_histogram(df, "y", "vm_pu", "Voltage (p.u.)", "Year")
