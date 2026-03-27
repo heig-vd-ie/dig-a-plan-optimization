@@ -73,12 +73,9 @@ class Benchmark:
         """Reinforce each edge based on loading percent and voltage"""
         capacity_column = "max_i_ka" if edge_type == "line" else "sn_mva"
         frames_i: list[pd.DataFrame] = []
-        frames_v: list[pd.DataFrame] = []
         for i in list(results.keys()):
             df1 = pd.DataFrame(getattr(results[i], f"congested_{edge_type}s"))
-            df2 = pd.DataFrame(results[i].congested_buses)
             frames_i.append(df1)
-            frames_v.append(df2)
 
         congested = pd.concat(frames_i)
 
@@ -90,7 +87,7 @@ class Benchmark:
         log.info(congested)
         new_edges: pd.DataFrame = getattr(self.net0, edge_type).copy()
         new_edges = new_edges.merge(
-            congested, left_on="idx", right_on=f"{edge_type}_idx"
+            congested, left_on="idx", right_on=f"{edge_type}_idx", how="left"
         )
         new_edges["loading_percent"] = new_edges["loading_percent"].fillna(
             self.benchmark_expansion.congestion_settings.threshold
@@ -100,17 +97,18 @@ class Benchmark:
             new_edges["loading_percent"]
             / self.benchmark_expansion.congestion_settings.threshold
         )
-        new_edges["delta"] = new_edges["new_cap"] - new_edges[capacity_column]
-        new_edges = new_edges[new_edges["delta"] > 0]
+        df = new_edges.copy()
+        df["delta"] = df["new_cap"] - df[capacity_column]
+        df = df[df["delta"] > 0]
         save_obj_to_json(
-            obj=new_edges[["delta"]].to_dict(),
+            obj=df[["delta"]].to_dict(),
             path_filename=PROJECT_ROOT
             / settings.cache.outputs_benchmark
             / self.benchmark_expansion.grid.name
             / f"expanded_{edge_type}s_{self.benchmark_expansion.profiles.scenario_name.value}_{year}_{quarter}.json",
         )
         new_edges[capacity_column] = new_edges["new_cap"]
-        new_edges = new_edges.drop(columns=["loading_percent", "new_cap", "delta"])
+        new_edges = new_edges.drop(columns=["loading_percent", "new_cap"])
         if f"{edge_type}_idx" in new_edges.columns:
             new_edges = new_edges.drop(columns=[f"{edge_type}_idx"])
         setattr(self.net0, edge_type, new_edges)

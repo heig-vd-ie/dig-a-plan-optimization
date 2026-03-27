@@ -6,8 +6,8 @@ import plotly.express as px
 
 log = generate_log(name=__name__)
 
-CACHE_FOLDER = "boisy-basic"
-FORCE = True
+CACHE_FOLDER = "boisy-full"
+FORCE = False
 
 
 def collect_data(startswith_word: str, col: str, force: bool = FORCE) -> pl.DataFrame:
