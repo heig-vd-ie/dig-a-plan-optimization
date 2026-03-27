@@ -3,7 +3,8 @@ import pandapower as pp
 import polars as pl
 import pandas as pd
 import ray
-from typing import Dict
+import os
+from typing import Dict, Literal
 from api.ray_utils import init_ray, shutdown_ray, check_ray
 from data_model.benchmark import BenchmarkExpansion, PowerFlowResponse
 from helpers.congestion import heavy_task_powerflow
@@ -19,6 +20,26 @@ class Benchmark:
 
     def run(self, benchmark_expansion: BenchmarkExpansion):
         """"""
+        if not (
+            PROJECT_ROOT
+            / settings.cache.outputs_benchmark
+            / benchmark_expansion.grid.name
+        ).exists():
+            os.makedirs(
+                str(
+                    PROJECT_ROOT
+                    / settings.cache.outputs_benchmark
+                    / benchmark_expansion.grid.name
+                ),
+                exist_ok=True,
+            )
+        save_obj_to_json(
+            obj=benchmark_expansion,
+            path_filename=PROJECT_ROOT
+            / settings.cache.outputs_benchmark
+            / benchmark_expansion.grid.name
+            / f"input.json",
+        )
         self.benchmark_expansion = benchmark_expansion
         self.number_of_quarters = 4
         self.net0 = pp.from_pickle(
@@ -38,83 +59,59 @@ class Benchmark:
             for quarter in range(1, 1 + self.number_of_quarters):
                 log.info(f"Power flow for year {year} and quarter {quarter}")
                 results = self.run_per_year(benchmark_expansion, year, quarter)
-                self.reinforce_edges(results, year, quarter)
+                self.reinforce_edges(results, year, quarter, "line")
+                self.reinforce_edges(results, year, quarter, "trafo")
         return None
 
     def reinforce_edges(
-        self, results: Dict[str, PowerFlowResponse], year: int, quarter: int
+        self,
+        results: Dict[str, PowerFlowResponse],
+        year: int,
+        quarter: int,
+        edge_type: Literal["line", "trafo"],
     ):
-        # TODO: voltage dependent expansion
-        frames_lines: list[pd.DataFrame] = []
-        frames_trafo: list[pd.DataFrame] = []
-
+        """Reinforce each edge based on loading percent and voltage"""
+        capacity_column = "max_i_ka" if edge_type == "line" else "sn_mva"
+        frames_i: list[pd.DataFrame] = []
+        frames_v: list[pd.DataFrame] = []
         for i in list(results.keys()):
+            df1 = pd.DataFrame(getattr(results[i], f"congested_{edge_type}s"))
+            df2 = pd.DataFrame(results[i].congested_buses)
+            frames_i.append(df1)
+            frames_v.append(df2)
 
-            df = pd.DataFrame(results[i].congested_lines)
-            frames_lines.append(df)
+        congested = pd.concat(frames_i)
 
-            df = pd.DataFrame(results[i].congested_trafos)
-            frames_trafo.append(df)
-
-        congested_lines = pd.concat(frames_lines)
-        congested_trafo = pd.concat(frames_trafo)
-
-        if congested_lines.shape[0] > 0:
-            congested_lines = congested_lines.groupby("line_idx").max()
+        if congested.shape[0] > 0:
+            congested = congested.groupby(f"{edge_type}_idx").max()
         else:
-            congested_lines = pd.DataFrame(columns=["line_idx", "loading_percent"])
-        if congested_trafo.shape[0] > 0:
-            congested_trafo = congested_trafo.groupby("trafo_idx").max()
-        else:
-            congested_trafo = pd.DataFrame(columns=["trafo_idx", "loading_percent"])
+            congested = pd.DataFrame(columns=[f"{edge_type}_idx", "loading_percent"])
 
-        log.info(congested_lines)
-        log.info(congested_trafo)
-        self.net0.line = self.net0.line.merge(
-            congested_lines, left_on="idx", right_on="line_idx"
+        log.info(congested)
+        new_edges = getattr(self.net0, edge_type).copy()
+        new_edges = new_edges.merge(
+            congested, left_on="idx", right_on=f"{edge_type}_idx"
         )
-        self.net0.trafo = self.net0.trafo.merge(
-            congested_trafo, left_on="idx", right_on="trafo_idx"
-        )
-        self.net0.line["loading_percent"] = self.net0.line["loading_percent"].fillna(
+        new_edges["loading_percent"] = new_edges["loading_percent"].fillna(
             self.benchmark_expansion.congestion_settings.threshold
         )
-        self.net0.line["new_ka"] = self.net0.line["max_i_ka"] * (
-            self.net0.line["loading_percent"]
+
+        new_edges["new_cap"] = new_edges[capacity_column] * (
+            new_edges["loading_percent"]
             / self.benchmark_expansion.congestion_settings.threshold
         )
-        df = self.net0.line.copy()
-        df["delta_ka"] = self.net0.line["new_ka"] - self.net0.line["max_i_ka"]
-        df = df[df["delta_ka"] > 0]
+        new_edges["delta"] = new_edges["new_cap"] - new_edges[capacity_column]
+        new_edges = new_edges[new_edges["delta"] > 0]
         save_obj_to_json(
-            obj=df[["delta_ka"]].to_dict(),
+            obj=new_edges[["delta"]].to_dict(),
             path_filename=PROJECT_ROOT
             / settings.cache.outputs_benchmark
             / self.benchmark_expansion.grid.name
-            / f"expanded_lines_{self.benchmark_expansion.profiles.scenario_name}_{year}_{quarter}.json",
+            / f"expanded_{edge_type}s_{self.benchmark_expansion.profiles.scenario_name}_{year}_{quarter}.json",
         )
-        self.net0.line["max_i_ka"] = self.net0.line["new_ka"]
-        self.net0.line = self.net0.line.drop(columns=["loading_percent", "new_ka"])
-
-        self.net0.trafo["loading_percent"] = self.net0.trafo["loading_percent"].fillna(
-            self.benchmark_expansion.congestion_settings.threshold
-        )
-        self.net0.trafo["new_mva"] = self.net0.trafo["sn_mva"] * (
-            self.net0.trafo["loading_percent"]
-            / self.benchmark_expansion.congestion_settings.threshold
-        )
-        df = self.net0.trafo.copy()
-        df["delta_mva"] = self.net0.trafo["new_mva"] - self.net0.trafo["sn_mva"]
-        df = df[df["delta_mva"] > 0]
-        save_obj_to_json(
-            obj=df[["delta_mva"]].to_dict(),
-            path_filename=PROJECT_ROOT
-            / settings.cache.outputs_benchmark
-            / self.benchmark_expansion.grid.name
-            / f"expanded_trafos_{self.benchmark_expansion.profiles.scenario_name}_{year}_{quarter}.json",
-        )
-        self.net0.trafo["sn_mva"] = self.net0.trafo["new_mva"]
-        self.net0.trafo = self.net0.trafo.drop(columns=["loading_percent", "new_mva"])
+        new_edges[capacity_column] = new_edges["new_cap"]
+        new_edges = new_edges.drop(columns=["loading_percent", "new_cap", "delta"])
+        setattr(self.net0, edge_type, new_edges)
 
     def run_per_year(
         self, benchmark_expansion: BenchmarkExpansion, year: int, quarter: int

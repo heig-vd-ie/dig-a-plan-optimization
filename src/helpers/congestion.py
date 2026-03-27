@@ -147,8 +147,6 @@ def heavy_task_powerflow(
     bus_ou = check_voltage_limits(net_case)
     cache_folder = settings.cache.outputs_benchmark
 
-    if not (PROJECT_ROOT / cache_folder / kace_name).exists():
-        os.makedirs(str(PROJECT_ROOT / cache_folder / kace_name), exist_ok=True)
     save_obj_to_json(
         obj=cong_lines[["loading_percent"]].to_dict(),
         path_filename=PROJECT_ROOT
