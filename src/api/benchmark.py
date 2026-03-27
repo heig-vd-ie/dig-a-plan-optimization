@@ -88,7 +88,7 @@ class Benchmark:
             congested = pd.DataFrame(columns=[f"{edge_type}_idx", "loading_percent"])
 
         log.info(congested)
-        new_edges = getattr(self.net0, edge_type).copy()
+        new_edges: pd.DataFrame = getattr(self.net0, edge_type).copy()
         new_edges = new_edges.merge(
             congested, left_on="idx", right_on=f"{edge_type}_idx"
         )
@@ -107,10 +107,12 @@ class Benchmark:
             path_filename=PROJECT_ROOT
             / settings.cache.outputs_benchmark
             / self.benchmark_expansion.grid.name
-            / f"expanded_{edge_type}s_{self.benchmark_expansion.profiles.scenario_name}_{year}_{quarter}.json",
+            / f"expanded_{edge_type}s_{self.benchmark_expansion.profiles.scenario_name.value}_{year}_{quarter}.json",
         )
         new_edges[capacity_column] = new_edges["new_cap"]
         new_edges = new_edges.drop(columns=["loading_percent", "new_cap", "delta"])
+        if f"{edge_type}_idx" in new_edges.columns:
+            new_edges = new_edges.drop(columns=[f"{edge_type}_idx"])
         setattr(self.net0, edge_type, new_edges)
 
     def run_per_year(
