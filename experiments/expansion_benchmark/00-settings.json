@@ -1,6 +1,6 @@
 {
     "grid": {
-        "name": "boisy",
+        "name": "boisy-full",
         "pp_file": ".cache/input/boisy/boisy_grid.p",
         "s_base": 1000000,
         "cosφ": 0.95,
@@ -11,7 +11,7 @@
         "load_profiles": [ ".cache/input/boisy/load_profiles/feeder_1", ".cache/input/boisy/load_profiles/feeder_2" ],
         "pv_profile": ".cache/input/boisy/pv_profiles",
         "quarter": 1,
-        "scenario_name": "Basic"
+        "scenario_name": "Full"
     },
     "congestion_settings": {
         "threshold": 90,
