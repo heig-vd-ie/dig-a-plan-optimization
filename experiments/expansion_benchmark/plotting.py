@@ -3,14 +3,15 @@ import polars as pl
 import re
 import plotly.graph_objects as go
 import plotly.express as px
+import argparse
+from tqdm import tqdm
 
 log = generate_log(name=__name__)
 
-CACHE_FOLDER = "boisy-full"
-FORCE = True
 
-
-def collect_data(startswith_word: str, col: str, force: bool) -> pl.DataFrame:
+def collect_data(
+    CACHE_FOLDER: str, startswith_word: str, col: str, force: bool
+) -> pl.DataFrame:
     """Collect data from json files"""
     parquet_file = (
         Path(PROJECT_ROOT)
@@ -28,9 +29,10 @@ def collect_data(startswith_word: str, col: str, force: bool) -> pl.DataFrame:
             f"{startswith_word}_*.json"
         )
     )
+    log.info(f"Collect data from {len(files)} different files!")
     dfs = []
 
-    for f in files:
+    for f in tqdm(files, desc="Loading files"):
         match = pattern.search(f.name)
         if not match:
             continue
@@ -84,6 +86,7 @@ def collect_data(startswith_word: str, col: str, force: bool) -> pl.DataFrame:
 
 
 def plot_histogram(
+    CACHE_FOLDER: str,
     df: pl.DataFrame,
     variable_column: str,
     target_column: str,
@@ -161,9 +164,23 @@ def plot_histogram(
 
 
 if __name__ == "__main__":
-    df = collect_data("congested_lines", "loading_percent", FORCE)
-    plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
-    df = collect_data("congested_trafos", "loading_percent", FORCE)
-    plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
-    df = collect_data("ou_buses", "vm_pu", FORCE)
-    plot_histogram(df, "y", "vm_pu", "Voltage (p.u.)", "Year")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--CACHE_FOLDER", type=str, required=True)
+    parser.add_argument("--FORCE", action="store_true", help="Force recomputation")
+
+    args = parser.parse_args()
+
+    df = collect_data(
+        args.CACHE_FOLDER, "congested_lines", "loading_percent", args.FORCE
+    )
+    plot_histogram(
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year"
+    )
+    df = collect_data(
+        args.CACHE_FOLDER, "congested_trafos", "loading_percent", args.FORCE
+    )
+    plot_histogram(
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year"
+    )
+    df = collect_data(args.CACHE_FOLDER, "ou_buses", "vm_pu", args.FORCE)
+    plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year")
