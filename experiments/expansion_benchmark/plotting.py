@@ -7,10 +7,10 @@ import plotly.express as px
 log = generate_log(name=__name__)
 
 CACHE_FOLDER = "boisy-full"
-FORCE = False
+FORCE = True
 
 
-def collect_data(startswith_word: str, col: str, force: bool = FORCE) -> pl.DataFrame:
+def collect_data(startswith_word: str, col: str, force: bool) -> pl.DataFrame:
     """Collect data from json files"""
     parquet_file = (
         Path(PROJECT_ROOT)
