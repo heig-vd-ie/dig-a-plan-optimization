@@ -161,9 +161,9 @@ def plot_histogram(
 
 
 if __name__ == "__main__":
-    df = collect_data("congested_lines", "loading_percent")
+    df = collect_data("congested_lines", "loading_percent", FORCE)
     plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
-    df = collect_data("congested_trafos", "loading_percent")
+    df = collect_data("congested_trafos", "loading_percent", FORCE)
     plot_histogram(df, "y", "loading_percent", "Loading percent (%)", "Year")
-    df = collect_data("ou_buses", "vm_pu")
+    df = collect_data("ou_buses", "vm_pu", FORCE)
     plot_histogram(df, "y", "vm_pu", "Voltage (p.u.)", "Year")
