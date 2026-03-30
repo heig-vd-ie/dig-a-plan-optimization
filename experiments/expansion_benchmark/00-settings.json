@@ -20,7 +20,8 @@
         "line_cost_per_km_kw": 1752,
         "trafo_cost_per_kw": 1314,
         "discount_rate": 0.05,
-        "years": [ 2025, 2030, 2035, 2040, 2045, 2050 ]
+        "years": [ 2025, 2030, 2035, 2040, 2045, 2050 ],
+        "reserve_percent": 10
     },
     "iterations": 1,
     "seed": 42

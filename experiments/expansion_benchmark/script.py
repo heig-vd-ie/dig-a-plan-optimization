@@ -1,7 +1,7 @@
 from experiments import *
 
 if __name__ == "__main__":
-    payload_file = PROJECT_ROOT / "experiments/expansion_benchmark/00-settings.json"
+    payload_file = PROJECT_ROOT / "experiments/expansion_benchmark/01-settings.json"
     payload = json.load(open(payload_file, "r"))
 
     response = requests.patch(

@@ -80,7 +80,10 @@ class Benchmark:
         congested = pd.concat(frames_i)
 
         if congested.shape[0] > 0:
-            congested = congested.groupby(f"{edge_type}_idx").max()
+            congested = congested.groupby(f"{edge_type}_idx").quantile(0.95)
+            congested["loading_percent"] = congested["loading_percent"] * (
+                1 + self.benchmark_expansion.congestion_settings.reserve_percent / 100
+            )
         else:
             congested = pd.DataFrame(columns=[f"{edge_type}_idx", "loading_percent"])
 

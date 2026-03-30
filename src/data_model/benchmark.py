@@ -11,6 +11,7 @@ class CongestionSettings(BaseModel):
     trafo_cost_per_kw: float
     discount_rate: float
     years: list[int]
+    reserve_percent: float
 
 
 class BenchmarkExpansion(BaseModel):
