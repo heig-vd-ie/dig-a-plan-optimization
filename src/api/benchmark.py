@@ -61,6 +61,7 @@ class Benchmark:
                 results = self.run_per_year(benchmark_expansion, year, quarter)
                 self.reinforce_edges(results, year, quarter, "line")
                 self.reinforce_edges(results, year, quarter, "trafo")
+                results = self.run_per_year(benchmark_expansion, year, quarter)
         return None
 
     def reinforce_edges(
