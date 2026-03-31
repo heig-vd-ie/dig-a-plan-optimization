@@ -13,7 +13,7 @@
             ".cache/input/boisy/load_profiles/feeder_2"
         ],
         "pv_profile": ".cache/input/boisy/pv_profiles",
-        "target_year": [2025],
+        "target_year": [2025, 2030, 2035, 2040, 2045, 2050],
         "quarter": 1,
         "scenario_name": "Basic"
     },

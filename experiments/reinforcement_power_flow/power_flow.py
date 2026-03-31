@@ -139,6 +139,7 @@ base_year = min(stage_years)
 
 line_length_km = pd.Series(1.0, index=net0.line.index, dtype=float)
 
+
 for year in stage_years:
     print(f"Processing year {year}")
     
@@ -155,8 +156,8 @@ for year in stage_years:
         pl.col("egid").cast(pl.Int64, strict=False)
     )
     
-    # time_cols = [c for c in load_data.columns if c != "egid"]
-    time_cols = ["_0"]
+    time_cols = [c for c in load_data.columns if c != "egid"]
+    
     
     load_data = (
     load_data
@@ -199,10 +200,14 @@ for year in stage_years:
         print(f"Congestion threshold = {LIMIT:.1f}%")
     
         print("\nTop congested lines before reinforcement:")
-        print(cong_lines_before[["line_idx", "loading_percent"]].head(10))
+        print(
+            cong_lines_before[
+                ["line_idx", "from_bus", "to_bus", "max_i_ka", "i_from_ka", "i_to_ka", "loading_percent"]
+            ].head(10)
+        )
 
         print("\nTop congested trafos before reinforcement:")
-        print(cong_trafos_before[["trafo_idx", "loading_percent"]].head(10))
+        print(cong_trafos_before[["trafo_idx", "hv_bus", "lv_bus", "sn_mva", "loading_percent"]].head(10))
     
         reinforced_lines = set()
         reinforced_trafos = set()
