@@ -1,3 +1,5 @@
+from typing import Literal
+
 from experiments import *
 import polars as pl
 import re
@@ -13,14 +15,18 @@ def collect_data(
     CACHE_FOLDER: str, startswith_word: str, col: str, force: bool
 ) -> pl.DataFrame:
     """Collect data from json files"""
-    parquet_file = (
-        Path(PROJECT_ROOT)
-        / settings.cache.outputs_benchmark
-        / CACHE_FOLDER
-        / f"{startswith_word}.parquet"
-    )
-    if parquet_file.exists() and (not force):
-        return pl.read_parquet(parquet_file)
+    if not force:
+        files = list(
+            (Path(PROJECT_ROOT) / settings.cache.outputs_benchmark / CACHE_FOLDER).glob(
+                f"{startswith_word}_*.parquet"
+            )
+        )
+        dfs: list[pl.DataFrame] = []
+        for f in tqdm(files, desc="Loading files"):
+            df = pl.read_parquet(f)
+            dfs.append(df)
+
+        return pl.concat(dfs, how="vertical")
 
     pattern = re.compile(rf"{startswith_word}_(\w+)_(\d{{4}})_+(\w+)\.json")
 
@@ -30,7 +36,7 @@ def collect_data(
         )
     )
     log.info(f"Collect data from {len(files)} different files!")
-    dfs = []
+    dfs: list[pl.DataFrame] = []
 
     for f in tqdm(files, desc="Loading files"):
         match = pattern.search(f.name)
@@ -66,6 +72,13 @@ def collect_data(
             pl.col(col).cast(pl.Float64),
         )
 
+        tmp.write_parquet(
+            Path(PROJECT_ROOT)
+            / settings.cache.outputs_benchmark
+            / CACHE_FOLDER
+            / f"{startswith_word}_{scenario}_{year}_{time_step}.parquet"
+        )
+
         dfs.append(tmp)
 
     if not dfs:
@@ -79,9 +92,8 @@ def collect_data(
             }
         )
 
-    results = pl.concat(dfs, how="vertical", rechunk=True)
-    log.info(results)
-    results.write_parquet(parquet_file)
+    results = pl.concat(dfs, how="vertical")
+    log.info(f"Collected {results.shape[0]} rows of data for {startswith_word}!")
     return results
 
 
@@ -106,7 +118,6 @@ def plot_histogram(
 
     colors = px.colors.qualitative.Set2
 
-    # IMPORTANT: use fixed bins across all groups (comparable histograms)
     all_values = np.concatenate([np.asarray(v) for v in values_list])
     bin_edges = np.histogram_bin_edges(all_values, bins=100)
 
@@ -163,6 +174,72 @@ def plot_histogram(
     fig.show()
 
 
+def calculate_expansion_cost(CACHE_FOLDER, FORCE, edge_type: Literal["line", "trafo"]):
+    df_edge = collect_data(CACHE_FOLDER, f"expanded_{edge_type}s", "delta", FORCE)
+
+    with open(
+        Path(PROJECT_ROOT)
+        / settings.cache.outputs_benchmark
+        / CACHE_FOLDER
+        / "input.json"
+    ) as f:
+        req = json.load(f)
+
+    if edge_type == "line":
+        net = pp.from_pickle(req["grid"]["pp_file"])
+        lines_pd = net.line
+        buses_pd = net.bus
+        lines_pd["id"] = lines_pd.index
+        buses_pd["id"] = buses_pd.index
+        lines = pl.from_dataframe(lines_pd)[["id", "length_km", "from_bus"]]
+        buses = pl.from_dataframe(buses_pd)[["id", "vn_kv"]]
+        df_edge = df_edge.join(lines, on="id", how="left").join(
+            buses, left_on="from_bus", right_on="id", how="left"
+        )
+        df_edge = df_edge.select(
+            pl.col("id"),
+            pl.col("y"),
+            (pl.col("delta") * pl.col("length_km") * pl.col("vn_kv") * 1000).alias(
+                "delta"
+            ),
+        )
+    df_edge = df_edge.with_columns(
+        [
+            (
+                (pl.col("delta") * (1000 if edge_type == "trafo" else 1))
+                * req["congestion_settings"][
+                    (
+                        "line_cost_per_km_kw"
+                        if edge_type == "line"
+                        else "trafo_cost_per_kw"
+                    )
+                ]
+            ).alias("cost")
+        ]
+    )
+    df_edge = df_edge.with_columns(
+        [
+            (
+                pl.col("cost")
+                * (
+                    (1 - req["congestion_settings"]["discount_rate"])
+                    ** (pl.col("y").cast(pl.Float64) - 2025)
+                )
+            ).alias("net_present_cost")
+        ]
+    )
+    df_edge.write_parquet(
+        Path(PROJECT_ROOT)
+        / settings.cache.outputs_benchmark
+        / CACHE_FOLDER
+        / f"expanded_{edge_type}s.parquet"
+    )
+    log.info(
+        f"Calculated expansion cost for {edge_type}s is {df_edge['net_present_cost'].sum() / 1000000:.4f} million CHF."
+    )
+    return df_edge
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--CACHE_FOLDER", type=str, required=True)
@@ -184,3 +261,10 @@ if __name__ == "__main__":
     )
     df = collect_data(args.CACHE_FOLDER, "ou_buses", "vm_pu", args.FORCE)
     plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year")
+
+    line_cost = calculate_expansion_cost(
+        args.CACHE_FOLDER, args.FORCE, edge_type="line"
+    )
+    trafo_cost = calculate_expansion_cost(
+        args.CACHE_FOLDER, args.FORCE, edge_type="trafo"
+    )
