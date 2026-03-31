@@ -30,12 +30,17 @@ def parse_args():
         help="Select which experiment variant to run",
     )
 
+    parser.add_argument("--wo", action="store_true", help="Without expansion")
+
     return parser.parse_args()
 
 
-def apply_args(payload: dict, grid, scenario):
+def apply_args(payload: dict, grid, scenario, wo):
     payload["profiles"]["scenario_name"] = scenario
     payload["grid"]["name"] = grid + "-" + scenario
+    if wo:
+        payload["congestion_settings"]["threshold"] = 10000
+        payload["grid"]["name"] = payload["grid"]["name"] + "-wo"
 
     match grid:
         case "boisy":
@@ -115,7 +120,7 @@ if __name__ == "__main__":
     payload_file = PROJECT_ROOT / "experiments/expansion_benchmark/00-settings.json"
     payload = json.load(open(payload_file, "r"))
 
-    payload = apply_args(payload, args.grid, args.scenario)
+    payload = apply_args(payload, args.grid, args.scenario, args.wo)
 
     response = requests.patch(
         f"http://{LOCALHOST}:{PY_PORT}/expansion/benchmark",
