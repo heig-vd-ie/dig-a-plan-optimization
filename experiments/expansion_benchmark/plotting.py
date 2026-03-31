@@ -104,6 +104,7 @@ def plot_histogram(
     target_column: str,
     xaxis_title: str,
     variable_title: str,
+    percentage: float,
 ):
     df = df.select([variable_column, target_column])
 
@@ -119,7 +120,10 @@ def plot_histogram(
     colors = px.colors.qualitative.Set2
 
     all_values = np.concatenate([np.asarray(v) for v in values_list])
-    bin_edges = np.histogram_bin_edges(all_values, bins=100)
+    max_values, min_values = np.max(all_values), np.min(all_values)
+    bin_edges = np.histogram_bin_edges(
+        all_values, bins=np.arange(min_values, max_values + percentage, percentage)
+    )
 
     fig = go.Figure()
 
@@ -251,16 +255,16 @@ if __name__ == "__main__":
         args.CACHE_FOLDER, "congested_lines", "loading_percent", args.FORCE
     )
     plot_histogram(
-        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year"
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2
     )
     df = collect_data(
         args.CACHE_FOLDER, "congested_trafos", "loading_percent", args.FORCE
     )
     plot_histogram(
-        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year"
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2
     )
     df = collect_data(args.CACHE_FOLDER, "ou_buses", "vm_pu", args.FORCE)
-    plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year")
+    plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year", 0.001)
 
     line_cost = calculate_expansion_cost(
         args.CACHE_FOLDER, args.FORCE, edge_type="line"
