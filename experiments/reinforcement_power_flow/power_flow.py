@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pandapower as pp
 import polars as pl
+import matplotlib.pyplot as plt
 
 from data_model import GridCaseModel, ShortTermUncertaintyProfile
 from data_model.kace import DiscreteScenario
@@ -14,14 +15,21 @@ from experiments.reinforcement_power_flow.scenario_pp import apply_profile_scena
 from experiments.reinforcement_power_flow.congestion_helpers import (
     check_line_loading, check_trafo_loading,
 )
-import matplotlib.pyplot as plt
 
 # %% input parameters for reinforcement and congestion settings
 LIMIT = 90.0
+VMIN = 0.95
+VMAX = 1.05
 MAX_ROUNDS = 50  
 LINE_COST_PER_KM_KW = 1752
 TRAFO_COST_PER_KW = 1314
 DISCOUNT_RATE = 0.05
+
+
+def remove_upper_tail(data, upper_pct=99):
+    s = pd.Series(data).dropna()
+    upper = np.percentile(s, upper_pct)
+    return s[s <= upper].tolist()
 
 # %% Load JSON config 
 project_root = Path.cwd().parent
@@ -89,7 +97,7 @@ mapping_pv = (
 )
 
 
-
+# %% Add PV generators
 net0 = copy.deepcopy(net0)
 
 pv_egid_to_sgen_rows = []
@@ -114,10 +122,13 @@ for row in mapping_pv.select(["egid", "bus"]).iter_rows(named=True):
     })
 
 
-pv_egid_to_sgen = pl.DataFrame(pv_egid_to_sgen_rows).with_columns([
-    pl.col("egid").cast(pl.Int64, strict=False),
-    pl.col("sgen_idx").cast(pl.Int64, strict=False),
-]).drop_nulls(["egid", "sgen_idx"])
+pv_egid_to_sgen = (
+    pl.DataFrame(pv_egid_to_sgen_rows)
+    .with_columns([
+        pl.col("egid").cast(pl.Int64, strict=False),
+        pl.col("sgen_idx").cast(pl.Int64, strict=False),
+    ]).drop_nulls(["egid", "sgen_idx"])
+)
 
 
 line_max_i_base = net0.line["max_i_ka"].copy()
@@ -129,14 +140,20 @@ trafo_sn_base = net0.trafo["sn_mva"].copy()
 results = []
 yearly_results = []
 
-capacity_history_lines = []
-capacity_history_trafos = []
+# capacity_history_lines = []
+# capacity_history_trafos = []
+
+# after-reinforcement distributions
+line_loading_count_year = []
+trafo_loading_count_year = []
+bus_voltage_dist_year = []
+line_loading_dist_year = []
+trafo_loading_dist_year = []
+
+
 # Grid network 
 net_plan = copy.deepcopy(net0)
-profile_dir = Path(profiles.load_profiles[0])
-
 base_year = min(stage_years)
-
 line_length_km = pd.Series(1.0, index=net0.line.index, dtype=float)
 
 
@@ -150,9 +167,9 @@ for year in stage_years:
         pl.col("egid").cast(pl.Int64, strict=False)
     )   
 
-    pv_profile_dir = Path(profiles.pv_profile)
-    pv_parquet_file = pv_profile_dir / f"{profiles.scenario_name.value}_{year}.parquet"
-    pv_data = pl.read_parquet(pv_parquet_file).with_columns(
+    pv_data = pl.read_parquet(
+        Path(profiles.pv_profile) / f"{profiles.scenario_name.value}_{year}.parquet"
+    ).with_columns(
         pl.col("egid").cast(pl.Int64, strict=False)
     )
     
@@ -160,15 +177,20 @@ for year in stage_years:
     
     
     load_data = (
-    load_data
-    .group_by("egid")
-    .agg([pl.col(c).sum().alias(c) for c in time_cols])
-    .sort("egid")
+        load_data
+        .group_by("egid")
+        .agg([pl.col(c).sum().alias(c) for c in time_cols])
+        .sort("egid")
     )
     
-    line_max_i_init = net_plan.line["max_i_ka"].copy()
-    trafo_sn_init = net_plan.trafo["sn_mva"].copy()
+    # line_max_i_init = net_plan.line["max_i_ka"].copy()
+    # trafo_sn_init = net_plan.trafo["sn_mva"].copy()
     
+    year_line_counts = []
+    year_trafo_counts = []
+    year_bus_voltage_dist = []
+    year_line_loading_dist = []
+    year_trafo_loading_dist = []
 
 
     # Main loop over timestamps
@@ -196,18 +218,18 @@ for year in stage_years:
         n_lines_total = len(net_case.line)
         n_trafos_total = len(net_case.trafo)
         
-        print(f"\nYear {year} | Timestamp {tcol}")
-        print(f"Congestion threshold = {LIMIT:.1f}%")
+        # print(f"\nYear {year} | Timestamp {tcol}")
+        # print(f"Congestion threshold = {LIMIT:.1f}%")
     
-        print("\nTop congested lines before reinforcement:")
-        print(
-            cong_lines_before[
-                ["line_idx", "from_bus", "to_bus", "max_i_ka", "i_from_ka", "i_to_ka", "loading_percent"]
-            ].head(10)
-        )
+        # print("\nTop congested lines before reinforcement:")
+        # print(
+        #     cong_lines_before[
+        #         ["line_idx", "from_bus", "to_bus", "max_i_ka", "i_from_ka", "i_to_ka", "loading_percent"]
+        #     ].head(10)
+        # )
 
-        print("\nTop congested trafos before reinforcement:")
-        print(cong_trafos_before[["trafo_idx", "hv_bus", "lv_bus", "sn_mva", "loading_percent"]].head(10))
+        # print("\nTop congested trafos before reinforcement:")
+        # print(cong_trafos_before[["trafo_idx", "hv_bus", "lv_bus", "sn_mva", "loading_percent"]].head(10))
     
         reinforced_lines = set()
         reinforced_trafos = set()
@@ -260,9 +282,18 @@ for year in stage_years:
                 break
 
 
-        # Final state at this timestamp
+        # Final reinforced state
         final_n_cong_lines = len(cong_lines)
         final_n_cong_trafos = len(cong_trafos)
+        line_loading_final = net_case.res_line["loading_percent"].dropna()
+        trafo_loading_final = net_case.res_trafo["loading_percent"].dropna()
+        vm_final = net_case.res_bus["vm_pu"].dropna()
+
+        year_line_counts.append(int((line_loading_final > LIMIT).sum()))
+        year_trafo_counts.append(int((trafo_loading_final > LIMIT).sum()))
+        year_bus_voltage_dist.extend(vm_final.tolist())
+        year_line_loading_dist.extend(line_loading_final.tolist())
+        year_trafo_loading_dist.extend(trafo_loading_final.tolist())
 
 
         results.append({
@@ -285,15 +316,22 @@ for year in stage_years:
         # use the new reinforced capacities as the start for the next time
         net_plan = copy.deepcopy(net_case)
         
-        line_snapshot = net_plan.line["max_i_ka"].copy()
-        line_snapshot.name = tcol
-        capacity_history_lines.append(line_snapshot)
+        # line_snapshot = net_plan.line["max_i_ka"].copy()
+        # line_snapshot.name = tcol
+        # capacity_history_lines.append(line_snapshot)
 
-        trafo_snapshot = net_plan.trafo["sn_mva"].copy()
-        trafo_snapshot.name = tcol
-        capacity_history_trafos.append(trafo_snapshot)
+        # trafo_snapshot = net_plan.trafo["sn_mva"].copy()
+        # trafo_snapshot.name = tcol
+        # capacity_history_trafos.append(trafo_snapshot)
+
+    
+    line_loading_count_year.append(year_line_counts)
+    trafo_loading_count_year.append(year_trafo_counts)
+    bus_voltage_dist_year.append(year_bus_voltage_dist)
+    line_loading_dist_year.append(year_line_loading_dist)
+    trafo_loading_dist_year.append(year_trafo_loading_dist)
         
-    # calculation of yearly reinforcement costs
+    # yearly reinforcement costs
     delta_i_ka = net_plan.line["max_i_ka"].sub(line_max_i_init, fill_value=0.0)
     delta_sn_mva = net_plan.trafo["sn_mva"].sub(trafo_sn_init, fill_value=0.0)
     
@@ -314,25 +352,25 @@ for year in stage_years:
 
     print(f"\nYear {year} - trafo capacity increase percent summary:")
     print(trafo_capacity_increase_percent.describe())
-    line_cap_df = pd.DataFrame({
-        "line_idx": net_plan.line.index,
-        "max_i_ka_start": line_max_i_init.values,
-        "max_i_ka_final": net_plan.line["max_i_ka"].values,
-        "capacity_increase_percent": line_capacity_increase_percent.values,
-    }).sort_values("capacity_increase_percent", ascending=False)
+    # line_cap_df = pd.DataFrame({
+    #     "line_idx": net_plan.line.index,
+    #     "max_i_ka_start": line_max_i_init.values,
+    #     "max_i_ka_final": net_plan.line["max_i_ka"].values,
+    #     "capacity_increase_percent": line_capacity_increase_percent.values,
+    # }).sort_values("capacity_increase_percent", ascending=False)
 
-    trafo_cap_df = pd.DataFrame({
-        "trafo_idx": net_plan.trafo.index,
-        "sn_mva_start": trafo_sn_init.values,
-        "sn_mva_final": net_plan.trafo["sn_mva"].values,
-        "capacity_increase_percent": trafo_capacity_increase_percent.values,
-    }).sort_values("capacity_increase_percent", ascending=False)
+    # trafo_cap_df = pd.DataFrame({
+    #     "trafo_idx": net_plan.trafo.index,
+    #     "sn_mva_start": trafo_sn_init.values,
+    #     "sn_mva_final": net_plan.trafo["sn_mva"].values,
+    #     "capacity_increase_percent": trafo_capacity_increase_percent.values,
+    # }).sort_values("capacity_increase_percent", ascending=False)
 
-    print(f"\nTop 10 reinforced lines in year {year}:")
-    print(line_cap_df.head(10))
+    # print(f"\nTop 10 reinforced lines in year {year}:")
+    # print(line_cap_df.head(10))
 
-    print(f"\nTop 10 reinforced trafos in year {year}:")
-    print(trafo_cap_df.head(10))
+    # print(f"\nTop 10 reinforced trafos in year {year}:")
+    # print(trafo_cap_df.head(10))
     
     lengths_km = net_plan.line.get("length_km", line_length_km).fillna(1.0)
     from_bus_v_kv = net_plan.line["from_bus"].map(net_plan.bus["vn_kv"]).fillna(0.0)
@@ -371,37 +409,63 @@ total_cost_mchf = total_npv_chf / 1e6
 
 print(f"Total cost [MCHF]: {total_cost_mchf:.6f}")
 
-#%% plotting the evolution of total installed capacity over time
-line_hist_df = pd.DataFrame(capacity_history_lines)
-trafo_hist_df = pd.DataFrame(capacity_history_trafos)
+# %% filtered plotting data after reinforcement
+line_loading_count_year_f = [remove_upper_tail(x, upper_pct=99) for x in line_loading_count_year]
+trafo_loading_count_year_f = [remove_upper_tail(x, upper_pct=99) for x in trafo_loading_count_year]
+bus_voltage_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in bus_voltage_dist_year]
+line_loading_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in line_loading_dist_year]
+trafo_loading_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in trafo_loading_dist_year]
 
-line_hist_df.index.name = "time_col"
-trafo_hist_df.index.name = "time_col"
-
-# Total installed capacity evolution 
-line_total = line_hist_df.sum(axis=1)
-trafo_total = trafo_hist_df.sum(axis=1)
-
-x_line = range(len(line_total))
-x_trafo = range(len(trafo_total))
-
+# %% Boxplots after reinforcement
 plt.figure(figsize=(10, 5))
-plt.plot(x_line, line_total.values)
-plt.xlabel("Hour index in 2025")
-plt.ylabel("Total line max_i_ka")
-plt.title("Evolution of total line capacity in 2025")
+plt.boxplot(line_loading_count_year_f, labels=stage_years)
+plt.xlabel("Year")
+plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
+plt.title("After reinforcement: overloaded lines count")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.plot(x_trafo, trafo_total.values)
-plt.xlabel("Hour index in 2025")
-plt.ylabel("Total transformer sn_mva")
-plt.title("Evolution of total transformer capacity in 2025")
+plt.boxplot(trafo_loading_count_year_f, labels=stage_years)
+plt.xlabel("Year")
+plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
+plt.title("After reinforcement: overloaded trafos count")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-# %%
 
-# %%
+plt.figure(figsize=(10, 5))
+plt.boxplot(bus_voltage_dist_year_f, labels=stage_years)
+plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
+plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
+plt.xlabel("Year")
+plt.ylabel("Bus voltage [pu]")
+plt.title("After reinforcement: bus voltage distribution")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.boxplot(line_loading_dist_year_f, labels=stage_years)
+plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
+plt.xlabel("Year")
+plt.ylabel("Line loading percent")
+plt.title("After reinforcement: line loading distribution")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 5))
+plt.boxplot(trafo_loading_dist_year_f, labels=stage_years)
+plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
+plt.xlabel("Year")
+plt.ylabel("Transformer loading percent")
+plt.title("After reinforcement: transformer loading distribution")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.show()
+

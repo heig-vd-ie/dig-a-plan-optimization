@@ -17,6 +17,11 @@ from experiments.reinforcement_power_flow.congestion_helpers import (
 from pandapower.auxiliary import LoadflowNotConverged
 import matplotlib.pyplot as plt
 
+def remove_upper_tail(data, upper_pct=99):
+    s = pd.Series(data).dropna()
+    upper = np.percentile(s, upper_pct)
+    return s[s <= upper].tolist()
+
 # %% input parameters
 LIMIT = 90.0
 VMIN = 0.95
@@ -215,26 +220,48 @@ for year in stage_years:
     line_loading_dist_year.append(year_line_loading_dist)
     trafo_loading_dist_year.append(year_trafo_loading_dist)
     
+    
+line_loading_dist_year_filtered = [
+    remove_upper_tail(x, upper_pct=99) for x in line_loading_dist_year
+]
 
 
-line_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_count_year]
-trafo_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_count_year]
-bus_voltage_plot_data = [pd.Series(x).dropna().tolist() for x in bus_voltage_dist_year]
+trafo_loading_dist_year_filtered = [
+    remove_upper_tail(x, upper_pct=99) for x in trafo_loading_dist_year
+]
+
+bus_voltage_dist_year_filtered = [
+    remove_upper_tail(x, upper_pct=99) for x in bus_voltage_dist_year
+]
+
+line_loading_count_year_filtered = [
+    remove_upper_tail(x, upper_pct=99) for x in line_loading_count_year
+]
+
+trafo_loading_count_year_filtered = [
+    remove_upper_tail(x, upper_pct=99) for x in trafo_loading_count_year
+]
+
+line_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_count_year_filtered]
+trafo_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_count_year_filtered]
+bus_voltage_plot_data = [pd.Series(x).dropna().tolist() for x in bus_voltage_dist_year_filtered]
+line_loading_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_dist_year_filtered]
+trafo_loading_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_dist_year_filtered]
 
 # %% boxplot for lines
 plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_count_year, labels=stage_years)
+plt.boxplot(line_plot_data, labels=stage_years)
 plt.xlabel("Year")
-plt.ylabel("Number of lines with loading > 100%")
+plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
 
 # boxplot for trafos
 plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_count_year, labels=stage_years)
+plt.boxplot(trafo_plot_data, labels=stage_years)
 plt.xlabel("Year")
-plt.ylabel("Number of trafos with loading > 100%")
+plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
@@ -243,6 +270,8 @@ plt.show()
 
 plt.figure(figsize=(10, 5))
 plt.boxplot(bus_voltage_plot_data, labels=stage_years)
+plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
+plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
 plt.xlabel("Year")
 plt.ylabel("Bus voltage [pu]")
 plt.grid(True)
@@ -252,7 +281,8 @@ plt.show()
 
 # %% line loading percent distribution
 plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_dist_year, labels=stage_years)
+plt.boxplot(line_loading_plot_data, labels=stage_years)
+plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
 plt.ylabel("Line loading percent")
 plt.title("Distribution of line loading percent")
@@ -262,7 +292,8 @@ plt.show()
 
 # %% trafo loading percent distribution
 plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_dist_year, labels=stage_years)
+plt.boxplot(trafo_loading_plot_data, labels=stage_years)
+plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
 plt.ylabel("Transformer loading percent")
 plt.title("Distribution of transformer loading percent")
