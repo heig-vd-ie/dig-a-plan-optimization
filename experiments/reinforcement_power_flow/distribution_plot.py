@@ -239,11 +239,10 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# %% 
 # %% Boxplot: voltage distribution
 
 plt.figure(figsize=(10, 5))
-plt.boxplot(bus_voltage_plot_data, tick_labels=stage_years)
+plt.boxplot(bus_voltage_plot_data, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel("Bus voltage [pu]")
 plt.grid(True)
@@ -253,7 +252,7 @@ plt.show()
 
 # %% line loading percent distribution
 plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_dist_year, tick_labels=stage_years)
+plt.boxplot(line_loading_dist_year, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel("Line loading percent")
 plt.title("Distribution of line loading percent")
@@ -263,7 +262,7 @@ plt.show()
 
 # %% trafo loading percent distribution
 plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_dist_year, tick_labels=stage_years)
+plt.boxplot(trafo_loading_dist_year, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel("Transformer loading percent")
 plt.title("Distribution of transformer loading percent")
