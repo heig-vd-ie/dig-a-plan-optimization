@@ -105,6 +105,7 @@ def plot_histogram(
     xaxis_title: str,
     variable_title: str,
     percentage: float,
+    prefix: str,
 ):
     df = df.select([variable_column, target_column])
 
@@ -172,7 +173,7 @@ def plot_histogram(
     fig.write_html(
         Path(PROJECT_ROOT)
         / settings.cache.figures
-        / f"{CACHE_FOLDER}_{target_column}_vs_{variable_column}.html"
+        / f"{CACHE_FOLDER}_{prefix}_{target_column}_vs_{variable_column}.html"
     )
 
     fig.show()
@@ -255,16 +256,16 @@ if __name__ == "__main__":
         args.CACHE_FOLDER, "congested_lines", "loading_percent", args.FORCE
     )
     plot_histogram(
-        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2, "lines"
     )
     df = collect_data(
         args.CACHE_FOLDER, "congested_trafos", "loading_percent", args.FORCE
     )
     plot_histogram(
-        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2
+        args.CACHE_FOLDER, df, "y", "loading_percent", "Loading percent (%)", "Year", 2, "trafos"
     )
     df = collect_data(args.CACHE_FOLDER, "ou_buses", "vm_pu", args.FORCE)
-    plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year", 0.001)
+    plot_histogram(args.CACHE_FOLDER, df, "y", "vm_pu", "Voltage (p.u.)", "Year", 0.001, "buses")
 
     line_cost = calculate_expansion_cost(
         args.CACHE_FOLDER, args.FORCE, edge_type="line"
