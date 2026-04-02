@@ -183,8 +183,8 @@ for year in stage_years:
         .sort("egid")
     )
     
-    # line_max_i_init = net_plan.line["max_i_ka"].copy()
-    # trafo_sn_init = net_plan.trafo["sn_mva"].copy()
+    line_max_i_init = net_plan.line["max_i_ka"].copy()
+    trafo_sn_init = net_plan.trafo["sn_mva"].copy()
     
     year_line_counts = []
     year_trafo_counts = []
