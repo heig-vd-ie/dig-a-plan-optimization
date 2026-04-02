@@ -110,7 +110,7 @@
                     "zoom": 9.11
                 }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "experiments",
@@ -166,14 +166,14 @@
                 },
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}.json%'",
+                    "rawSql": "SELECT \n  (value)::float AS InSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -187,7 +187,7 @@
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}.json%'",
+                    "rawSql": "SELECT \n  (value)::float AS OutOfSample\nFROM \n  $Experiment, \n  jsonb_array_elements_text(data->'out_of_sample_objectives') AS value\nWHERE \n  source_file LIKE '%sddp_response_${iteration_number}%'",
                     "refId": "B",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],
@@ -231,7 +231,7 @@
                 "sizing": "manual",
                 "valueMode": "color"
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "experiments",
@@ -301,7 +301,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
@@ -365,7 +365,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
@@ -425,7 +425,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
@@ -486,7 +486,7 @@
                 ],
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
@@ -550,7 +550,7 @@
                 },
                 "tooltip": { "hideZeros": false, "mode": "single", "sort": "none" }
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "public",
@@ -600,14 +600,14 @@
                 "sizing": "auto",
                 "valueMode": "color"
             },
-            "pluginVersion": "12.4.1",
+            "pluginVersion": "12.4.2",
             "targets": [
                 {
                     "dataset": "experiments",
                     "editorMode": "code",
                     "format": "table",
                     "rawQuery": true,
-                    "rawSql": "-- 1. Remove the old version entirely\nDROP FUNCTION IF EXISTS query_all_experiments(TEXT[]);\n\n-- 2. Create the new version\nCREATE OR REPLACE FUNCTION query_all_experiments(experiment_names TEXT[])\nRETURNS TABLE(tbl_name TEXT, result_val NUMERIC) AS $$\nDECLARE\n    final_query TEXT;\nBEGIN\n    SELECT string_agg(\n        format(\n            'SELECT %L, (val)::numeric FROM %I, jsonb_array_elements_text(data -> %L) AS val WHERE source_file LIKE %L', \n            t,                      -- %L: The table name as a text string\n            t,                      -- %I: The actual table to query\n            'objectives',           -- %L: The JSON key\n            '%sddp_response_$iteration_number.json%'      -- %L: The LIKE pattern (Note: variables like iteration_number should be passed here if dynamic)\n        ), \n        ' UNION ALL '\n    )\n    INTO final_query\n    FROM unnest(experiment_names) AS t;\n\n    RETURN QUERY EXECUTE final_query;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT \n    tbl_name, \n    AVG(result_val) AS average_score\nFROM query_all_experiments(ARRAY[$Experiments]) -- Replace with your array variable\nGROUP BY tbl_name\nORDER BY tbl_name;",
+                    "rawSql": "-- 1. Remove the old version entirely\nDROP FUNCTION IF EXISTS query_all_experiments(TEXT[]);\n\n-- 2. Create the new version\nCREATE OR REPLACE FUNCTION query_all_experiments(experiment_names TEXT[])\nRETURNS TABLE(tbl_name TEXT, result_val NUMERIC) AS $$\nDECLARE\n    final_query TEXT;\nBEGIN\n    SELECT string_agg(\n        format(\n            'SELECT %L, (val)::numeric FROM %I, jsonb_array_elements_text(data -> %L) AS val WHERE source_file LIKE %L', \n            t,                      -- %L: The table name as a text string\n            t,                      -- %I: The actual table to query\n            'objectives',           -- %L: The JSON key\n            '%sddp_response_$iteration_number%'      -- %L: The LIKE pattern (Note: variables like iteration_number should be passed here if dynamic)\n        ), \n        ' UNION ALL '\n    )\n    INTO final_query\n    FROM unnest(experiment_names) AS t;\n\n    RETURN QUERY EXECUTE final_query;\nEND;\n$$ LANGUAGE plpgsql;\n\nSELECT \n    tbl_name, \n    AVG(result_val) AS average_score\nFROM query_all_experiments(ARRAY[$Experiments]) -- Replace with your array variable\nGROUP BY tbl_name\nORDER BY tbl_name;",
                     "refId": "A",
                     "sql": {
                         "columns": [{ "parameters": [], "type": "function" }],

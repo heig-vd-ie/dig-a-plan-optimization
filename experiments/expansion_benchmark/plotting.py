@@ -94,7 +94,7 @@ def plot_histogram(
     variable_title: str,
     percentage: float,
     prefix: str,
-    chunk_size: int = 1000,
+    chunk_size: int = 100,
 ):
     global_min = float("inf")
     global_max = float("-inf")
