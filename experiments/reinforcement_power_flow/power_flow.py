@@ -26,11 +26,6 @@ TRAFO_COST_PER_KW = 1314
 DISCOUNT_RATE = 0.05
 
 
-def remove_upper_tail(data, upper_pct=99):
-    s = pd.Series(data).dropna()
-    upper = np.percentile(s, upper_pct)
-    return s[s <= upper].tolist()
-
 # %% Load JSON config 
 project_root = Path.cwd().parent
 json_file = project_root / "experiments" / "reinforcement_power_flow" / "00-power-flow.json"
@@ -140,8 +135,6 @@ trafo_sn_base = net0.trafo["sn_mva"].copy()
 results = []
 yearly_results = []
 
-# capacity_history_lines = []
-# capacity_history_trafos = []
 
 # after-reinforcement distributions
 line_loading_count_year = []
@@ -218,18 +211,6 @@ for year in stage_years:
         n_lines_total = len(net_case.line)
         n_trafos_total = len(net_case.trafo)
         
-        # print(f"\nYear {year} | Timestamp {tcol}")
-        # print(f"Congestion threshold = {LIMIT:.1f}%")
-    
-        # print("\nTop congested lines before reinforcement:")
-        # print(
-        #     cong_lines_before[
-        #         ["line_idx", "from_bus", "to_bus", "max_i_ka", "i_from_ka", "i_to_ka", "loading_percent"]
-        #     ].head(10)
-        # )
-
-        # print("\nTop congested trafos before reinforcement:")
-        # print(cong_trafos_before[["trafo_idx", "hv_bus", "lv_bus", "sn_mva", "loading_percent"]].head(10))
     
         reinforced_lines = set()
         reinforced_trafos = set()
@@ -316,13 +297,6 @@ for year in stage_years:
         # use the new reinforced capacities as the start for the next time
         net_plan = copy.deepcopy(net_case)
         
-        # line_snapshot = net_plan.line["max_i_ka"].copy()
-        # line_snapshot.name = tcol
-        # capacity_history_lines.append(line_snapshot)
-
-        # trafo_snapshot = net_plan.trafo["sn_mva"].copy()
-        # trafo_snapshot.name = tcol
-        # capacity_history_trafos.append(trafo_snapshot)
 
     
     line_loading_count_year.append(year_line_counts)
@@ -334,43 +308,7 @@ for year in stage_years:
     # yearly reinforcement costs
     delta_i_ka = net_plan.line["max_i_ka"].sub(line_max_i_init, fill_value=0.0)
     delta_sn_mva = net_plan.trafo["sn_mva"].sub(trafo_sn_init, fill_value=0.0)
-    
-    line_capacity_increase_percent = (
-        (net_plan.line["max_i_ka"] - line_max_i_init)
-        / line_max_i_init.replace(0.0, np.nan)
-        * 100.0
-        )
 
-    trafo_capacity_increase_percent = (
-        (net_plan.trafo["sn_mva"] - trafo_sn_init)
-        / trafo_sn_init.replace(0.0, np.nan)
-        * 100.0
-    )
-
-    print(f"\nYear {year} - line capacity increase percent summary:")
-    print(line_capacity_increase_percent.describe())
-
-    print(f"\nYear {year} - trafo capacity increase percent summary:")
-    print(trafo_capacity_increase_percent.describe())
-    # line_cap_df = pd.DataFrame({
-    #     "line_idx": net_plan.line.index,
-    #     "max_i_ka_start": line_max_i_init.values,
-    #     "max_i_ka_final": net_plan.line["max_i_ka"].values,
-    #     "capacity_increase_percent": line_capacity_increase_percent.values,
-    # }).sort_values("capacity_increase_percent", ascending=False)
-
-    # trafo_cap_df = pd.DataFrame({
-    #     "trafo_idx": net_plan.trafo.index,
-    #     "sn_mva_start": trafo_sn_init.values,
-    #     "sn_mva_final": net_plan.trafo["sn_mva"].values,
-    #     "capacity_increase_percent": trafo_capacity_increase_percent.values,
-    # }).sort_values("capacity_increase_percent", ascending=False)
-
-    # print(f"\nTop 10 reinforced lines in year {year}:")
-    # print(line_cap_df.head(10))
-
-    # print(f"\nTop 10 reinforced trafos in year {year}:")
-    # print(trafo_cap_df.head(10))
     
     lengths_km = net_plan.line.get("length_km", line_length_km).fillna(1.0)
     from_bus_v_kv = net_plan.line["from_bus"].map(net_plan.bus["vn_kv"]).fillna(0.0)
@@ -409,16 +347,10 @@ total_cost_mchf = total_npv_chf / 1e6
 
 print(f"Total cost [MCHF]: {total_cost_mchf:.6f}")
 
-# %% filtered plotting data after reinforcement
-line_loading_count_year_f = [remove_upper_tail(x, upper_pct=99) for x in line_loading_count_year]
-trafo_loading_count_year_f = [remove_upper_tail(x, upper_pct=99) for x in trafo_loading_count_year]
-bus_voltage_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in bus_voltage_dist_year]
-line_loading_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in line_loading_dist_year]
-trafo_loading_dist_year_f = [remove_upper_tail(x, upper_pct=99) for x in trafo_loading_dist_year]
 
 # %% Boxplots after reinforcement
 plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_count_year_f, labels=stage_years)
+plt.boxplot(line_loading_count_year, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
 plt.title("After reinforcement: overloaded lines count")
@@ -427,7 +359,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_count_year_f, labels=stage_years)
+plt.boxplot(trafo_loading_count_year, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
 plt.title("After reinforcement: overloaded trafos count")
@@ -436,7 +368,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.boxplot(bus_voltage_dist_year_f, labels=stage_years)
+plt.boxplot(bus_voltage_dist_year, labels=stage_years)
 plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
 plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
 plt.xlabel("Year")
@@ -448,7 +380,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_dist_year_f, labels=stage_years)
+plt.boxplot(line_loading_dist_year, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
 plt.ylabel("Line loading percent")
@@ -459,7 +391,7 @@ plt.tight_layout()
 plt.show()
 
 plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_dist_year_f, labels=stage_years)
+plt.boxplot(trafo_loading_dist_year, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
 plt.ylabel("Transformer loading percent")
@@ -469,3 +401,5 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
+
+# %%

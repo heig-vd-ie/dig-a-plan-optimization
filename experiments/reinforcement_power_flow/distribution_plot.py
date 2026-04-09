@@ -244,7 +244,7 @@ trafo_loading_count_year_filtered = [
 
 line_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_count_year_filtered]
 trafo_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_count_year_filtered]
-bus_voltage_plot_data = [pd.Series(x).dropna().tolist() for x in bus_voltage_dist_year_filtered]
+bus_voltage_plot_data = [pd.Series(x).dropna().tolist() for x in bus_voltage_dist_year]
 line_loading_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_dist_year_filtered]
 trafo_loading_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_dist_year_filtered]
 
@@ -268,13 +268,16 @@ plt.show()
 
 # %% Boxplot: voltage distribution
 
+
 plt.figure(figsize=(10, 5))
 plt.boxplot(bus_voltage_plot_data, labels=stage_years)
 plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
 plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
 plt.xlabel("Year")
 plt.ylabel("Bus voltage [pu]")
+plt.title("Before reinforcement: bus voltage distribution")
 plt.grid(True)
+plt.legend()
 plt.tight_layout()
 plt.show()
 

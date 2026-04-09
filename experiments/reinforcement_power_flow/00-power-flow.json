@@ -15,7 +15,7 @@
         "pv_profile": ".cache/input/boisy/pv_profiles",
         "target_year": [2025, 2030, 2035, 2040, 2045, 2050],
         "quarter": 1,
-        "scenario_name": "Basic"
+        "scenario_name": "Full"
     },
     "iterations": 1,
     "seed": 42
