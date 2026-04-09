@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import copy
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -30,6 +31,10 @@ DISCOUNT_RATE = 0.05
 project_root = Path.cwd().parent
 json_file = project_root / "experiments" / "reinforcement_power_flow" / "00-power-flow.json"
 
+results_dir = project_root / ".cache" / "results"
+power_flow_results_file = project_root / ".cache" / "power_flow_results_after_reinforcement.pkl"
+summary_results_file = project_root / ".cache" / "reinforcement_summary.pkl"
+
 with open(json_file, "r", encoding="utf-8") as f:
     config = json.load(f)
 
@@ -46,11 +51,9 @@ profiles_cfg["pv_profile"] = str(project_root / profiles_cfg["pv_profile"])
 profiles_cfg["scenario_name"] = DiscreteScenario(profiles_cfg["scenario_name"])
 stage_years = profiles_cfg.pop("target_year")
 
-
 # Create data model instances 
 grid = GridCaseModel(**grid_cfg)
 profiles = ShortTermUncertaintyProfile(**profiles_cfg)
-
 
 # %% Load the pandapower network
 net0 = pp.from_pickle(grid.pp_file)
@@ -91,7 +94,6 @@ mapping_pv = (
     .unique(subset=["egid"], keep="first")
 )
 
-
 # %% Add PV generators
 net0 = copy.deepcopy(net0)
 
@@ -125,16 +127,12 @@ pv_egid_to_sgen = (
     ]).drop_nulls(["egid", "sgen_idx"])
 )
 
-
 line_max_i_base = net0.line["max_i_ka"].copy()
 trafo_sn_base = net0.trafo["sn_mva"].copy()
-
-
 
 # %% Reinforcement planning 
 results = []
 yearly_results = []
-
 
 # after-reinforcement distributions
 line_loading_count_year = []
@@ -334,13 +332,37 @@ for year in stage_years:
     print(f"Year {year} reinforcement cost: CHF {cost_total_year:,.2f} | NPV Cost: CHF {npv_cost_year:,.2f}"
     )
     
+# %% Save power flow results in .cache
+power_flow_data = {
+    "line_loading_count_year": line_loading_count_year,
+    "trafo_loading_count_year": trafo_loading_count_year,
+    "bus_voltage_dist_year": bus_voltage_dist_year,
+    "line_loading_dist_year": line_loading_dist_year,
+    "trafo_loading_dist_year": trafo_loading_dist_year,
+    "results": results,
+    "yearly_results": yearly_results,
+}
+
+with open(power_flow_results_file, "wb") as f:
+    pickle.dump(power_flow_data, f)
+
+print(f"Saved power flow results file to: {power_flow_results_file}")
 
 
 # %% Final summary
 summary_df = pd.DataFrame(results)
 yearly_df = pd.DataFrame(yearly_results)
-display(summary_df) # type: ignore
-display(yearly_df) # type: ignore
+
+summary_results_data = {
+    "summary_df": summary_df,
+    "yearly_df": yearly_df,
+}
+
+with open(summary_results_file, "wb") as f:
+    pickle.dump(summary_results_data, f)
+    
+print(summary_df) 
+print(yearly_df) 
 
 total_npv_chf = yearly_df["npv_cost_total"].sum()
 total_cost_mchf = total_npv_chf / 1e6
@@ -349,25 +371,25 @@ print(f"Total cost [MCHF]: {total_cost_mchf:.6f}")
 
 
 # %% Boxplots after reinforcement
-plt.figure(figsize=(10, 5))
-plt.boxplot(line_loading_count_year, labels=stage_years)
-plt.xlabel("Year")
-plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
-plt.title("After reinforcement: overloaded lines count")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(10, 5))
+# plt.boxplot(line_loading_count_year, labels=stage_years)
+# plt.xlabel("Year")
+# plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
+# plt.title("After reinforcement: overloaded lines count")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
 
-plt.figure(figsize=(10, 5))
-plt.boxplot(trafo_loading_count_year, labels=stage_years)
-plt.xlabel("Year")
-plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
-plt.title("After reinforcement: overloaded trafos count")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
+# plt.figure(figsize=(10, 5))
+# plt.boxplot(trafo_loading_count_year, labels=stage_years)
+# plt.xlabel("Year")
+# plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
+# plt.title("After reinforcement: overloaded trafos count")
+# plt.grid(True)
+# plt.tight_layout()
+# plt.show()
 
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(bus_voltage_dist_year, labels=stage_years)
 plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
 plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
@@ -377,9 +399,10 @@ plt.title("After reinforcement: bus voltage distribution")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
+fig.savefig(results_dir / "voltage_after_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(line_loading_dist_year, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
@@ -388,9 +411,10 @@ plt.title("After reinforcement: line loading distribution")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
+fig.savefig(results_dir / "line_distribution_loading_after_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(trafo_loading_dist_year, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
@@ -399,6 +423,7 @@ plt.title("After reinforcement: transformer loading distribution")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
+fig.savefig(results_dir / "trafo_distribution_loading_after_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 

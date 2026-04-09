@@ -1,7 +1,9 @@
 # %% Import libraries
+
 from pathlib import Path
 import json
 import copy
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -30,6 +32,8 @@ VMAX= 1.05
 # %% Load JSON config 
 project_root = Path.cwd().parent
 json_file = project_root / "experiments" / "reinforcement_power_flow" / "00-power-flow.json"
+results_dir = project_root / ".cache" / "results"
+power_flow_results_file = project_root / ".cache" / "power_flow_results.pkl"
 
 with open(json_file, "r", encoding="utf-8") as f:
     config = json.load(f)
@@ -180,9 +184,9 @@ for year in stage_years:
             cosphi=grid.cosφ,
         )
         
-        total_p_load_mw = float(net_case.load["p_mw"].sum())
-        total_q_load_mvar = float(net_case.load["q_mvar"].sum())
-        total_pv_mw = float(net_case.sgen["p_mw"].sum())
+        # total_p_load_mw = float(net_case.load["p_mw"].sum())
+        # total_q_load_mvar = float(net_case.load["q_mvar"].sum())
+        # total_pv_mw = float(net_case.sgen["p_mw"].sum())
 
         
         pp.runpp(
@@ -207,9 +211,7 @@ for year in stage_years:
         
         year_line_loading_dist.extend(line_loading.tolist())
         year_trafo_loading_dist.extend(trafo_loading.tolist())
-
-   
-            
+ 
     
     line_loading_count_year.append(year_line_counts)
     trafo_loading_count_year.append(year_trafo_counts)
@@ -220,6 +222,21 @@ for year in stage_years:
     line_loading_dist_year.append(year_line_loading_dist)
     trafo_loading_dist_year.append(year_trafo_loading_dist)
     
+
+# %% Save power flow results in .cache 
+power_flow_data = {
+    "line_loading_count_year": line_loading_count_year,
+    "trafo_loading_count_year": trafo_loading_count_year,
+    "bus_voltage_dist_year": bus_voltage_dist_year,
+    "line_loading_dist_year": line_loading_dist_year,
+    "trafo_loading_dist_year": trafo_loading_dist_year,
+}
+
+with open(power_flow_results_file, "wb") as f:
+    pickle.dump(power_flow_data, f)
+
+print(f"Saved power flow results file to: {power_flow_results_file}")
+
     
 line_loading_dist_year_filtered = [
     remove_upper_tail(x, upper_pct=99) for x in line_loading_dist_year
@@ -249,27 +266,29 @@ line_loading_plot_data = [pd.Series(x).dropna().tolist() for x in line_loading_d
 trafo_loading_plot_data = [pd.Series(x).dropna().tolist() for x in trafo_loading_dist_year_filtered]
 
 # %% boxplot for lines
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(line_plot_data, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
+fig.savefig(results_dir / "number_congested_before_line_Basic.png", dpi=200, bbox_inches="tight") 
 plt.show()
 
 # boxplot for trafos
-plt.figure(figsize=(10, 5))
+fig =plt.figure(figsize=(10, 5))
 plt.boxplot(trafo_plot_data, labels=stage_years)
 plt.xlabel("Year")
 plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
+fig.savefig(results_dir / "number_congested_before_trafo_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # %% Boxplot: voltage distribution
 
 
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(bus_voltage_plot_data, labels=stage_years)
 plt.axhline(VMIN, linestyle="--", linewidth=1, label=f"VMIN={VMIN}")
 plt.axhline(VMAX, linestyle="--", linewidth=1, label=f"VMAX={VMAX}")
@@ -279,11 +298,12 @@ plt.title("Before reinforcement: bus voltage distribution")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
+fig.savefig(results_dir / "voltage_before_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 
 # %% line loading percent distribution
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(line_loading_plot_data, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
@@ -291,10 +311,11 @@ plt.ylabel("Line loading percent")
 plt.title("Distribution of line loading percent")
 plt.grid(True)
 plt.tight_layout()
+fig.savefig(results_dir / "line_distribution_loading_before_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # %% trafo loading percent distribution
-plt.figure(figsize=(10, 5))
+fig = plt.figure(figsize=(10, 5))
 plt.boxplot(trafo_loading_plot_data, labels=stage_years)
 plt.axhline(LIMIT, linestyle="--", linewidth=1, label=f"Limit={LIMIT:.0f}%")
 plt.xlabel("Year")
@@ -302,5 +323,6 @@ plt.ylabel("Transformer loading percent")
 plt.title("Distribution of transformer loading percent")
 plt.grid(True)
 plt.tight_layout()
+fig.savefig(results_dir / "trafo_distribution_loading_before_Basic.png", dpi=200, bbox_inches="tight")
 plt.show()
 
