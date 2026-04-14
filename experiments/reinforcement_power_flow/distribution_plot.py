@@ -272,7 +272,7 @@ plt.xlabel("Year")
 plt.ylabel(f"Number of lines with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
-fig.savefig(results_dir / "number_congested_before_line_Basic.png", dpi=200, bbox_inches="tight") 
+fig.savefig(results_dir / "number_congested_before_line_Full.png", dpi=200, bbox_inches="tight") 
 plt.show()
 
 # boxplot for trafos
@@ -282,7 +282,7 @@ plt.xlabel("Year")
 plt.ylabel(f"Number of trafos with loading > {LIMIT:.0f}%")
 plt.grid(True)
 plt.tight_layout()
-fig.savefig(results_dir / "number_congested_before_trafo_Basic.png", dpi=200, bbox_inches="tight")
+fig.savefig(results_dir / "number_congested_before_trafo_Full.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # %% Boxplot: voltage distribution
@@ -298,7 +298,7 @@ plt.title("Before reinforcement: bus voltage distribution")
 plt.grid(True)
 plt.legend()
 plt.tight_layout()
-fig.savefig(results_dir / "voltage_before_Basic.png", dpi=200, bbox_inches="tight")
+fig.savefig(results_dir / "voltage_before_Full.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 
@@ -311,7 +311,7 @@ plt.ylabel("Line loading percent")
 plt.title("Distribution of line loading percent")
 plt.grid(True)
 plt.tight_layout()
-fig.savefig(results_dir / "line_distribution_loading_before_Basic.png", dpi=200, bbox_inches="tight")
+fig.savefig(results_dir / "line_distribution_loading_before_Full.png", dpi=200, bbox_inches="tight")
 plt.show()
 
 # %% trafo loading percent distribution
@@ -323,6 +323,6 @@ plt.ylabel("Transformer loading percent")
 plt.title("Distribution of transformer loading percent")
 plt.grid(True)
 plt.tight_layout()
-fig.savefig(results_dir / "trafo_distribution_loading_before_Basic.png", dpi=200, bbox_inches="tight")
+fig.savefig(results_dir / "trafo_distribution_loading_before_Full.png", dpi=200, bbox_inches="tight")
 plt.show()
 
