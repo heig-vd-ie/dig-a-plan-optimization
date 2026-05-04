@@ -60,7 +60,7 @@ run-ray-worker:  ## Start Ray worker
 	echo "Starting Ray worker natively connecting to HEAD_HOST_IP:$$SERVER_RAY_PORT" && \
 	./scripts/start-ray-worker.sh
 
-make connect-ray-worker:  ## Connect to Ray worker via SSH
+connect-ray-worker:  ## Connect to Ray worker via SSH
 	@direnv allow && \
 	echo "Connecting to Ray worker via SSH..." && \
 	./scripts/connect-ray-worker.sh

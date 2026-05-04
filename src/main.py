@@ -2,6 +2,7 @@ from api.bender import run_bender
 from api.combined import run_combined
 from api.admm import run_admm
 from api.expansion import run_expansion
+from api.benchmark import Benchmark
 from api.ray_utils import init_ray, shutdown_ray, where_am_i
 from data_model.reconfiguration import (
     ADMMInput,
@@ -10,6 +11,7 @@ from data_model.reconfiguration import (
     ReconfigurationOutput,
 )
 from data_model.expansion import ExpansionInput, ExpansionOutput
+from data_model.benchmark import BenchmarkExpansion
 from fastapi import FastAPI
 import ray
 import warnings
@@ -49,7 +51,7 @@ def reconfiguration_admm(requests: ADMMInput) -> ReconfigurationOutput:
     return run_admm(requests)
 
 
-@app.patch("/expansion", tags=["Expansion"])
+@app.patch("/expansion/two-stage", tags=["Expansion"])
 def expansion(
     requests: ExpansionInput,
     with_ray: bool = False,
@@ -59,6 +61,12 @@ def expansion(
     results = run_expansion(
         requests, with_ray=with_ray, cut_file=cut_file, time_now=time_now
     )
+    return results
+
+
+@app.patch("/expansion/benchmark", tags=["Expansion"])
+def benchmark_expansion_endpoint(requests: BenchmarkExpansion):
+    results = Benchmark().run(requests)
     return results
 
 

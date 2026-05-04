@@ -11,6 +11,8 @@ boisy feeder_1 fixed switches|python experiments/expansion_planning_script.py --
 boisy feeder_2 fixed switches|python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --fixed_switches true --cachename boisy_feeder_2_fixed_switches
 boisy feeder_1 expectation|python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --admmiter 3 --cachename boisy_feeder_1_expectation
 boisy feeder_2 expectation|python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --admmiter 3 --cachename boisy_feeder_2_expectation
+boisy feeder_1 worstcase|python experiments/expansion_planning_script.py --kace boisy --feedername feeder_1 --admmiter 3  --riskmeasuretype WorstCase --cachename boisy_feeder_1_worstcase
+boisy feeder_2 worstcase|python experiments/expansion_planning_script.py --kace boisy --feedername feeder_2 --admmiter 3  --riskmeasuretype WorstCase --cachename boisy_feeder_2_worstcase
 estavayer centre_ville fixed switches|python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --fixed_switches true --cachename estavayer_centre_ville_fixed_switches
 estavayer centre_ville expectation|python experiments/expansion_planning_script.py --kace estavayer --feedername centre_ville --admmiter 3 --cachename estavayer_centre_ville_expectation
 estavayer aumont fixed switches|python experiments/expansion_planning_script.py --kace estavayer --feedername aumont --fixed_switches true --cachename estavayer_aumont_fixed_switches
