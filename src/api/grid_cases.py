@@ -117,8 +117,23 @@ def get_grid_case_for_expansion(
         profiles=profiles,
     )
 
-    load_potential, pv_potential = generate_scenario_potentials(
+    load_potential, pv_potential, load_exact, pv_exact = generate_scenario_potentials(
         grid=grid, profiles=profiles
     )
+
+    if not (load_exact is None):
+        node_edge_model.node_data = node_edge_model.node_data.with_columns(
+            pl.col("node_id")
+            .cast(pl.Int64)
+            .replace_strict(pv_exact)
+            .alias("cons_installed")
+        )
+    if not (pv_exact is None):
+        node_edge_model.node_data = node_edge_model.node_data.with_columns(
+            pl.col("node_id")
+            .cast(pl.Int64)
+            .replace_strict(pv_exact)
+            .alias("prod_installed")
+        )
 
     return net, node_edge_model, load_potential, pv_potential

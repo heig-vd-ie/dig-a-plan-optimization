@@ -14,13 +14,11 @@ function define_constraints!(
     states,
     params::Types.PlanningParams,
 )
-    # Expansion committed for next stage
-    @constraint(m, [edge in grid.edges], states.δ_com[edge].out == vars.δ_cap[edge])
     # capacity update: add expansion from previous stage
     @constraint(
         m,
         [edge in grid.edges],
-        states.cap[edge].out == states.cap[edge].in + states.δ_com[edge].in
+        states.cap[edge].out == states.cap[edge].in + vars.δ_cap[edge]
     )
     @constraint(
         m,
@@ -119,21 +117,83 @@ function define_subsequent_stage_constraints!(
     # Edge capacity constraints: sum of actual expansions at connected nodes
     @constraint(m, [edge in grid.edges], states.cap[edge].out >= vars.flow[edge])
     @constraint(m, [edge in grid.edges], states.cap[edge].out >= -vars.flow[edge])
-    # Flow conservation for each edge
+    # Constraint for voltage issue
     @constraint(
         m,
-        [cut in grid.cuts],
-        params.γ_cuts * (vars.θ[cut] - params.bender_cuts[cut].θ) + vars.slack[cut] >=
-        sum(
-            (states.actual_load[node].out - params.bender_cuts[cut].load0[node]) *
-            params.bender_cuts[cut].λ_load[node] +
-            (states.actual_pv[node].out - params.bender_cuts[cut].pv0[node]) *
-            params.bender_cuts[cut].λ_pv[node] for node in grid.nodes
-        ) + sum(
-            (states.cap[edge].out - params.bender_cuts[cut].cap0[edge]) *
-            params.bender_cuts[cut].λ_cap[edge] for edge in grid.edges
+        [cut in grid.cuts, edge in grid.edges],
+        states.cap[edge].out >=
+        (
+            1 + abs(
+                params.bender_cuts[cut].λ_v[Node(edge.source)] -
+                params.bender_cuts[cut].λ_v[Node(edge.target)],
+            )
+        ) *
+        params.bender_cuts[cut].cap0[edge] *
+        vars.u1[edge]
+    )
+    # Constraint for congestion
+    @constraint(
+        m,
+        [cut in grid.cuts, edge in grid.edges],
+        (
+            states.cap[edge].out >=
+            (
+                abs(
+                    params.bender_cuts[cut].λ_load[Node(edge.source)] -
+                    params.bender_cuts[cut].λ_load[Node(edge.target)],
+                ) + params.bender_cuts[cut].cap0[edge]
+            ) * vars.u2[edge]
         )
     )
+    # Curtailment of Load
+    @constraint(
+        m,
+        [cut in grid.cuts, edge in grid.edges],
+        (
+            vars.unmet_load[Node(edge.source)] >=
+            params.bender_cuts[cut].load0[Node(edge.source)] *
+            params.bender_cuts[cut].λ_load[Node(edge.source)] *
+            vars.u3[edge]
+        )
+    )
+    @constraint(
+        m,
+        [cut in grid.cuts, edge in grid.edges],
+        (
+            vars.unmet_load[Node(edge.target)] >=
+            params.bender_cuts[cut].load0[Node(edge.target)] *
+            params.bender_cuts[cut].λ_load[Node(edge.target)] *
+            vars.u3[edge]
+        )
+    )
+    # Curtailment of Pv
+    @constraint(
+        m,
+        [cut in grid.cuts, edge in grid.edges],
+        (
+            vars.unmet_pv[Node(edge.source)] >=
+            (
+                params.bender_cuts[cut].pv0[Node(edge.source)] *
+                params.bender_cuts[cut].λ_pv[Node(edge.source)] +
+                params.bender_cuts[cut].λ_v[Node(edge.source)]
+            ) * vars.u4[edge]
+        )
+    )
+    @constraint(
+        m,
+        [cut in grid.cuts, edge in grid.edges],
+        (
+            vars.unmet_pv[Node(edge.target)] >=
+            (
+                params.bender_cuts[cut].pv0[Node(edge.target)] *
+                params.bender_cuts[cut].λ_pv[Node(edge.target)] +
+                params.bender_cuts[cut].λ_v[Node(edge.target)]
+            ) * vars.u4[edge]
+        )
+    )
+    # Conditions
+    @constraint(m, [edge in grid.edges], vars.u1[edge] + vars.u4[edge] >= 1)
+    @constraint(m, [edge in grid.edges], vars.u2[edge] + vars.u3[edge] >= 1)
 
     return nothing
 end
@@ -147,8 +207,7 @@ function define_objective!(
     stage::Int,
 )
     # Objective: investment + penalties for unmet demand, discounted to present value
-    discount_factor =
-        (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1) * 8.76 # Convert from annual to per-stage discounting
+    discount_factor = (1 / (1 + params.discount_rate))^(stage * params.years_per_stage - 1) # Convert from annual to per-stage discounting
     @constraint(
         m,
         vars.obj ==
@@ -158,12 +217,10 @@ function define_objective!(
                 params.penalty_costs_load[node] * states.total_unmet_load[node].out +
                 params.penalty_costs_pv[node] * states.total_unmet_pv[node].out for
                 node in grid.nodes
-            ) * params.years_per_stage +
-            params.γ_cuts *
+            ) *
             params.years_per_stage *
-            sum(vars.θ[cut] for cut in grid.cuts) *
-            params.penalty_costs_infeasibility / params.n_cut_scenarios
-        ) + (sum(vars.slack[cut] for cut in grid.cuts) * params.cut_slack_penalty)
+            8760
+        )
     )
     return nothing
 end

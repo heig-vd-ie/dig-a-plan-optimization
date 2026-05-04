@@ -53,8 +53,8 @@ function handle_generate_scenarios(req::HTTP.Request)
         next!(p2)
     end
 
-    min_load = Float64(get(body, "min_load", 1.0))
-    min_pv = Float64(get(body, "min_pv", 5.0))
+    min_load = Float64(get(body, "min_load", 0.0001))
+    min_pv = Float64(get(body, "min_pv", 0.0001))
     yearly_budget = Float64(get(body, "yearly_budget", 1))
     N_years_per_stage = get(body, "N_years_per_stage", 1)
     seed_number = get(body, "seed_number", 1234)
@@ -197,7 +197,6 @@ function handle_stochastic_planning(req::HTTP.Request)
     years_per_stage = planning_params["years_per_stage"]
     n_cut_scenarios = planning_params["n_cut_scenarios"]
     initial_budget = planning_params["initial_budget"]
-    γ_cuts = planning_params["γ_cuts"]
     next!(p)
     investment_costs =
         Dict(edge => grid_data["investment_costs"][string(edge.id)] for edge in edges)
@@ -222,10 +221,9 @@ function handle_stochastic_planning(req::HTTP.Request)
         cut => begin
             data = bender_cuts_data["cuts"][string(cut.id)]
             ExpansionModel.Types.BenderCut(
-                data["θ"],
-                Dict(edge => data["λ_cap"][edge_ids[edge]] for edge in edges),
                 Dict(node => data["λ_load"][node_ids[node]] for node in nodes),
                 Dict(node => data["λ_pv"][node_ids[node]] for node in nodes),
+                Dict(node => data["λ_v"][node_ids[node]] for node in nodes),
                 Dict(edge => data["cap0"][edge_ids[edge]] for edge in edges),
                 Dict(node => data["load0"][node_ids[node]] for node in nodes),
                 Dict(node => data["pv0"][node_ids[node]] for node in nodes),
@@ -238,7 +236,6 @@ function handle_stochastic_planning(req::HTTP.Request)
     params = ExpansionModel.Types.PlanningParams(
         n_stages,
         initial_budget,
-        γ_cuts,
         investment_costs,
         penalty_costs_load,
         penalty_costs_pv,
@@ -247,7 +244,6 @@ function handle_stochastic_planning(req::HTTP.Request)
         bender_cuts,
         years_per_stage,
         n_cut_scenarios,
-        1000000.0,  # cut_slack_penalty
     )
 
     iteration_limit = additional_params["iteration_limit"]

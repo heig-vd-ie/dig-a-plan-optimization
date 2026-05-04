@@ -13,12 +13,14 @@ class ScenarioPotentials:
         profiles: ShortTermUncertaintyProfile,
         net: pp.pandapowerNet,
         egid_id_mapping: pl.DataFrame,
+        s_base: float,
     ):
         self.profiles = profiles
         self.net = net
         self.egid_id_mapping = egid_id_mapping.select("index", "egid").with_columns(
             c("egid").cast(pl.Utf8)
         )
+        self.s_base = s_base
 
     def compute_potential_load(self) -> dict[int, float]:
         loads_df = []
@@ -29,6 +31,18 @@ class ScenarioPotentials:
         return self.map_to_potential_dict(df_cap)
 
     def compute_potential_pv(self) -> dict[int, float]:
+        df_cap = self.compute_potential(self.profiles.pv_profile)
+        return self.map_to_potential_dict(df_cap)
+
+    def compute_exact_load(self) -> dict[int, float]:
+        loads_df = []
+        for load_profile_path in self.profiles.load_profiles:
+            df = self.compute_exact(load_profile_path)
+            loads_df.append(df)
+        df_cap: pl.DataFrame = pl.concat(loads_df)
+        return self.map_to_potential_dict(df_cap)
+
+    def compute_exact_pv(self) -> dict[int, float]:
         df_cap = self.compute_potential(self.profiles.pv_profile)
         return self.map_to_potential_dict(df_cap)
 
@@ -50,7 +64,9 @@ class ScenarioPotentials:
             .sum()
         )
         cap_dict = pl_to_dict(df_temp.select("bus", "capacity"))
-        cap_dict_full = {node: cap_dict.get(node, 0.0) for node in all_nodes}
+        cap_dict_full = {
+            node: cap_dict.get(node, 0.0) * 1000 / self.s_base for node in all_nodes
+        }
         return cap_dict_full
 
     def compute_potential(self, profile_path: str):
@@ -83,11 +99,32 @@ class ScenarioPotentials:
             raise ValueError("There is no profile with respect to the target year")
         return df.select(c("egid"), (c("maximum") - c("minimum")).alias("capacity"))
 
+    def compute_exact(self, profile_path: str):
+        profile_path_typed = Path(profile_path)
+        profile_files = [p for p in profile_path_typed.iterdir() if p.is_file()]
+        profile_files_filtered = [
+            p
+            for p in profile_files
+            if int(str(p).split("_")[-1].replace(".parquet", ""))
+            == self.profiles.target_year
+        ]
+        df: None | pl.DataFrame = None
+        for p in profile_files_filtered:
+            df = pl.read_parquet(p).select(
+                c("egid"),
+                pl.mean_horizontal(pl.all().exclude("egid")).alias("capacity"),
+            )
+        if df is None:
+            raise ValueError("There is no profile with respect to the target year")
+        return df.select(c("egid"), c("capacity"))
+
 
 def generate_scenario_potentials(
     grid: GridCaseModel,
     profiles: ShortTermUncertaintyProfile | None = None,
-) -> tuple[dict[int, float], dict[int, float]]:
+) -> tuple[
+    dict[int, float], dict[int, float], dict[int, float] | None, dict[int, float] | None
+]:
     """
     Generate dummy potentials for load and PV based on node IDs.
 
@@ -99,12 +136,18 @@ def generate_scenario_potentials(
     if profiles is None:
         load_potential = {node: 5.0 for node in net.bus.index.to_list()}
         pv_potential = {node: 1.0 for node in net.bus.index.to_list()}
+        load_exact = None
+        pv_exact = None
     else:
-        scenario_profile = ScenarioPotentials(profiles, net, egid_id_mapping)
+        scenario_profile = ScenarioPotentials(
+            profiles, net, egid_id_mapping, grid.s_base
+        )
         load_potential = scenario_profile.compute_potential_load()
         pv_potential = scenario_profile.compute_potential_pv()
+        load_exact = scenario_profile.compute_exact_load()
+        pv_exact = scenario_profile.compute_exact_pv()
 
-    return load_potential, pv_potential
+    return load_potential, pv_potential, load_exact, pv_exact
 
 
 if __name__ == "__main__":
@@ -112,7 +155,7 @@ if __name__ == "__main__":
 
     log = generate_log(__name__)
     grid = GridCaseModel()
-    load_potential, pv_potential = generate_scenario_potentials(
+    load_potential, pv_potential, load_exact, pv_exact = generate_scenario_potentials(
         grid=grid, profiles=ShortTermUncertaintyProfile()
     )
     log.info("Scenario potentials generated successfully.")

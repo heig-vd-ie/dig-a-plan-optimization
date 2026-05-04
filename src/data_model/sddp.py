@@ -29,13 +29,12 @@ class Scenarios(BaseModel):
 class BenderCut(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    λ_load: Dict[str, float]
-    λ_pv: Dict[str, float]
     pv0: Dict[str, float]
     load0: Dict[str, float]
-    λ_cap: Dict[str, float]
     cap0: Dict[str, float]
-    θ: float
+    λ_load: Dict[str, float]
+    λ_pv: Dict[str, float]
+    λ_v: Dict[str, float]
 
 
 class BenderCuts(BaseModel):
@@ -75,7 +74,6 @@ class Grid(BaseModel):
 class PlanningParams(BaseModel):
     n_stages: int
     initial_budget: float
-    γ_cuts: float
     discount_rate: float
     years_per_stage: int
     n_cut_scenarios: int
@@ -116,8 +114,8 @@ class LongTermScenarioRequest(BaseModel):
     yearly_budget: float
     N_years_per_stage: int
     seed_number: int
-    min_load: float = 5.0
-    min_pv: float = 1.0
+    min_load: float = 0.001
+    min_pv: float = 0.001
 
 
 class StateVar(BaseModel):

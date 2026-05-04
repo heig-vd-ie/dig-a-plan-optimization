@@ -45,16 +45,16 @@
         "n_optimizations": 20,
         "n_stages": 5,
         "n_scenarios": 100,
-        "initial_budget": 500000,
+        "initial_budget": 50000,
         "discount_rate": 0.05,
         "years_per_stage": 5,
         "risk_measure_type": "Expectation",
         "risk_measure_param": 0.1,
-        "expansion_line_cost_per_km_kw": 0.2,
+        "expansion_line_cost_per_km_kw": 0.1,
         "expansion_transformer_cost_per_kw": 0.15,
         "penalty_cost_per_consumption_kw": 6,
-        "penalty_cost_per_production_kw": 2,
-        "δ_b_var": 100000
+        "penalty_cost_per_production_kw": 6,
+        "δ_b_var": 10000
     },
     "iterations": 10,
     "seed": 42

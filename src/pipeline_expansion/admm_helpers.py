@@ -10,8 +10,12 @@ from data_model.reconfiguration import ADMMConfig
 
 @dataclass
 class ADMMResult:
-    duals: pl.DataFrame
-    θs: pl.DataFrame
+    dps_cons: pl.DataFrame
+    dps_prod: pl.DataFrame
+    dqs_cons: pl.DataFrame
+    dqs_prod: pl.DataFrame
+    dvs_relx_up: pl.DataFrame
+    dvs_relx_down: pl.DataFrame
     load0: pl.DataFrame
     pv0: pl.DataFrame
     cap0: pl.DataFrame
@@ -142,15 +146,24 @@ class ADMM:
         self.dap = DigAPlanADMM(konfig=self.konfig)
         self.dap.add_grid_data(grid_data=self.grid_data)
         self.dap.solve_model(extract_duals=True, fixed_switches=fixed_switches)
-        duals = self.dap.result_manager.extract_duals_for_expansion()
-        θs = self.dap.result_manager.extract_reconfiguration_θ()
+        dps_cons = self.dap.result_manager.extract_nodal_diff("p_curt_cons")
+        dps_prod = self.dap.result_manager.extract_nodal_diff("p_curt_prod")
+        dqs_cons = self.dap.result_manager.extract_nodal_diff("q_curt_cons")
+        dqs_prod = self.dap.result_manager.extract_nodal_diff("q_curt_prod")
+        dvs_relx_up = self.dap.result_manager.extract_nodal_diff("v_relax_up")
+        dvs_relx_down = self.dap.result_manager.extract_nodal_diff("v_relax_down")
+
         load0 = self.dap.data_manager.node_data[["node_id", "cons_installed"]]
         pv0 = self.dap.data_manager.node_data[["node_id", "prod_installed"]]
         cap0 = self.dap.data_manager.edge_data[["edge_id", "p_max_pu"]]
         results = self._record_results()
         return ADMMResult(
-            duals=duals,
-            θs=θs,
+            dps_cons=dps_cons,
+            dps_prod=dps_prod,
+            dqs_cons=dqs_cons,
+            dqs_prod=dqs_prod,
+            dvs_relx_up=dvs_relx_up,
+            dvs_relx_down=dvs_relx_down,
             load0=load0,
             pv0=pv0,
             cap0=cap0,
